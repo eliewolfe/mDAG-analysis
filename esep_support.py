@@ -26,7 +26,7 @@ def does_this_dsep_rule_out_this_support(ab, C, s):
     if C:
         s_resorted = s[np.lexsort(s[:, C].T)]
         partitioned = [np.vstack(tuple(g)) for k, g in itertools.groupby(s_resorted, lambda e: tuple(e.take(C)))]
-        conditioning_sizes = range(1, 2 ** 2)
+        conditioning_sizes = range(1, len(C) ** 2)
         for r in conditioning_sizes:
             for partition_index in itertools.combinations(partitioned, r):
                 submat = np.vstack(tuple(partition_index))
@@ -39,10 +39,13 @@ def does_this_dsep_rule_out_this_support(ab, C, s):
 
 
 def does_this_esep_rule_out_this_support(ab, C, D, s):
+    # We check for D being a point distribution
+
     # print(s)
     # print((ab, C, D))
-    if D:
-        s_resorted = s[np.lexsort(s[:, D].T)]
+    columns_D = s[:, D]
+    if len(D) > 0 and np.array_equiv(columns_D[0], columns_D):
+        s_resorted = s[np.lexsort(columns_D.T)]
         partitioned = [np.vstack(tuple(g)) for k, g in itertools.groupby(s_resorted, lambda e: tuple(e.take(D)))]
         for fixedD in partitioned:
             if does_this_dsep_rule_out_this_support(ab, C, fixedD):
@@ -51,15 +54,14 @@ def does_this_esep_rule_out_this_support(ab, C, D, s):
     else:
         return does_this_dsep_rule_out_this_support(ab, C, s)
 
+
 class SmartSupportTesting(SupportTesting):
-    def __init__(self, parents_of, observed_cardinalities, nof_events, eseprelations):
+    def __init__(self, parents_of, observed_cardinalities, nof_events, esep_relations):
         super().__init__(parents_of, observed_cardinalities, nof_events)
-        self.eseprelations = tuple(eseprelations)
-
-
+        self.esep_relations = tuple(esep_relations)
 
     def trivial_infeasible_support_Q(self, candidate_s):
-        return any(does_this_esep_rule_out_this_support(*e_sep, candidate_s) for e_sep in self.eseprelations)
+        return any(does_this_esep_rule_out_this_support(*e_sep, candidate_s) for e_sep in self.esep_relations)
 
     # @property
     # def _smart_unique_candidate_supports(self):
@@ -67,7 +69,6 @@ class SmartSupportTesting(SupportTesting):
     #     for idx, candidate_s in enumerate(to_filter):
     #         if not self.trivial_infeasible_support_Q(candidate_s):
     #             yield idx
-
 
     @property
     def smart_unique_candidate_supports(self):
@@ -98,10 +99,15 @@ class SmartSupportTesting(SupportTesting):
 
 if __name__ == '__main__':
     # test_two_col_mat = np.asarray([[1, 0], [0, 1], [0, 1], [1, 1]])
-    #
-    # s = np.asarray([[0, 0, 0, 0, 0], [1, 1, 0, 1, 0], [0, 0, 1, 1, 1], [1, 1, 0, 0, 0], [1, 1, 1, 1, 1]])
-    # C = [1, 2]
-    # ab = [0, 4]
+
+    s = np.asarray(
+        [[0, 0, 0, 0, 0],
+         [1, 1, 0, 1, 0],
+         [0, 0, 1, 1, 1],
+         [1, 1, 0, 0, 0],
+         [1, 1, 1, 1, 1]])
+    C = [1, 2]
+    ab = [0, 4]
     # s_resorted = s[np.lexsort(s[:,C].T)]
     # partitioned = [np.vstack(tuple(g)) for k, g in itertools.groupby(s_resorted, lambda e: tuple(e.take(C)))]
     # conditioning_sizes = range(1,2**2)
@@ -111,25 +117,25 @@ if __name__ == '__main__':
     #         if not product_support_test(submat[:,ab]):
     #             print((submat[:,C], submat[:,ab], product_support_test(submat[:,ab])))
 
-    # print(does_this_dsep_rule_out_this_support(ab, C, s))
+    print(does_this_dsep_rule_out_this_support(ab, C, s))
 
     from mDAG import mDAG
     import networkx as nx
-    from more_itertools import chunked
 
+    #
     # # Testing example for Ilya conjecture proof.
     directed_dict_of_lists = {"C": ["A", "B"], "X": ["C"], "D": ["A", "B"]}
     directed_structure = nx.from_dict_of_lists(directed_dict_of_lists, create_using=nx.DiGraph)
     simplicial_complex1 = [("A", "X", "D"), ("B", "X", "D"), ("A", "C")]
     simplicial_complex2 = [("A", "X", "D"), ("B", "X", "D")]
-
+    #
     md1 = mDAG(directed_structure, simplicial_complex1)
     md2 = mDAG(directed_structure, simplicial_complex2)
-    # print(md1.all_esep)
-    # print(list(chunked(map(lambda vars: list(md2.as_integer_labels(tuple(vars))), itertools.chain.from_iterable(md2.all_esep)),3)))
-    # print(md1.all_esep.difference(md2.all_esep))
-    #print(md1.infeasible_binary_supports_n_events(4))
-    print(md1.smart_infeasible_binary_supports_n_events(4))
-    print(md2.smart_infeasible_binary_supports_n_events(4))
-    print(to_digits(to_digits(9787, np.broadcast_to(2 ** 5, 4)), np.broadcast_to(2, 5)))
-    #Cool, it works great.
+    # # print(md1.all_esep)
+    # # print(md1.all_esep.difference(md2.all_esep))
+    # #print(md1.infeasible_binary_supports_n_events(4))
+    # print(md1.smart_infeasible_binary_supports_n_events(4))
+    # print(md2.smart_infeasible_binary_supports_n_events(4))
+    print(set(md2.smart_infeasible_binary_supports_n_events(4)).difference(md1.smart_infeasible_binary_supports_n_events(4)))
+    print(to_digits(to_digits(9786, np.broadcast_to(2 ** 5, 4)), np.broadcast_to(2, 5)))
+    # #Cool, it works great.

@@ -185,6 +185,7 @@ class SupportTesting(SupportTester):
 
 
 class CumulativeSupportTesting:
+    #TODO: Add scrollbar
     def __init__(self, parents_of, observed_cardinalities, max_nof_events):
         self.parents_of = parents_of
         self.observed_cardinalities= observed_cardinalities
@@ -215,23 +216,23 @@ if __name__ == '__main__':
     parents_of = ([3, 4], [4, 5], [3, 5])
     observed_cardinalities = (2, 2, 2)
     nof_events = 3
-    st = SupportTesting(parents_of, observed_cardinalities, nof_events)
+    # st = SupportTesting(parents_of, observed_cardinalities, nof_events)
+    #
+    # occuring_events_temp = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+    # print(st.feasibleQ(occuring_events_temp, name='mgh', use_timer=True))
+    # occuring_events_temp = [(0, 0, 0), (0, 1, 0), (0, 0, 1)]
+    # print(st.feasibleQ(occuring_events_temp, name='mgh', use_timer=True))
 
-    occuring_events_temp = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
-    print(st.feasibleQ(occuring_events_temp, name='mgh', use_timer=True))
-    occuring_events_temp = [(0, 0, 0), (0, 1, 0), (0, 0, 1)]
-    print(st.feasibleQ(occuring_events_temp, name='mgh', use_timer=True))
-
-    # st = SupportTesting(parents_of, observed_cardinalities, 2)
+    st = SupportTesting(parents_of, observed_cardinalities, 2)
     # sample2 = st.unique_candidate_supports
-    # # print(st.unique_candidate_supports)
-    # # print(st.visualize_supports(st.unique_candidate_supports))
+    # print(st.unique_candidate_supports)
+    # print(st.visualize_supports(st.unique_candidate_supports))
     # inf2 = st.unique_infeasible_supports(name='mgh', use_timer=False)
     # print(inf2)
     # print(st.devisualize_supports(inf2))
     # print(st.extreme_devisualize_supports(inf2))
     # st = SupportTesting(parents_of, observed_cardinalities, 3)
-    # sample3 = st.unique_candidate_supports
+    # # sample3 = st.unique_candidate_supports
     # inf3 = st.unique_infeasible_supports(name='mgh', use_timer=False)
     # print(inf3)
     # print(st.devisualize_supports(inf3))
@@ -242,21 +243,22 @@ if __name__ == '__main__':
     # st = SupportTesting(parents_of, [2, 3, 4], 2)
     # print(st.outcome_relabelling_group.shape)
     # print(st._array_of_potentially_forbidden_events)
-    cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 6)
-    print(cst.all_infeasible_supports)
-    print(cst.all_infeasible_supports_matrix)
-
-    #Everything appears to work as desired.
-    #So let's pick a really hard problem, the square!
-
+    # cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 6)
+    # print(cst.all_infeasible_supports)
+    # print(cst.all_infeasible_supports_matrix)
+    #
+    # #Everything appears to work as desired.
+    # #So let's pick a really hard problem, the square!
+    #
     parents_of = ([4, 5, 6], [4, 7, 8], [5, 7, 9], [6, 8, 9])
     observed_cardinalities = (2, 2, 2,2)
-    cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 3)
+    cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 5)
     print(cst.all_infeasible_supports)
-    print(cst.all_infeasible_supports_matrix)
-    discovered = to_digits(cst.all_infeasible_supports_matrix, observed_cardinalities)
-    trulyvariable = discovered.compress(discovered.any(axis=-2).all(axis=-1), axis=0) #makes every variable actually variable
-    print(trulyvariable)
+    # print(cst.all_infeasible_supports_matrix)
+    # discovered = to_digits(cst.all_infeasible_supports_matrix, observed_cardinalities)
+    # print(discovered)
+    # trulyvariable = discovered.compress(discovered.any(axis=-2).all(axis=-1), axis=0) #makes every variable actually variable
+    # print(trulyvariable)
     #TODO: it would be good to recognize PRODUCT support matrices. Will be required for d-sep and e-sep filter.
     # see https://www.researchgate.net/post/How-I-can-check-in-MATLAB-if-a-matrix-is-result-of-the-Kronecker-product/542ab19bd039b130378b469d/citation/download?
     # see https://math.stackexchange.com/a/321424
