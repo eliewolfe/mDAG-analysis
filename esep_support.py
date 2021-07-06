@@ -72,7 +72,7 @@ class SmartSupportTesting(SupportTesting):
 
     @property
     def smart_unique_candidate_supports(self):
-        to_filter = self.visualize_supports(self.unique_candidate_supports)
+        to_filter = self.from_list_to_matrix(self.unique_candidate_supports)
         indices_to_keep = [idx for idx, candidate_s in enumerate(to_filter) if
                            not self.trivial_infeasible_support_Q(candidate_s)]
         # indices_to_keep = list(self._smart_unique_candidate_supports)
@@ -83,18 +83,18 @@ class SmartSupportTesting(SupportTesting):
         """
         Return a signature of infeasible support for a given parents_of, observed_cardinalities, and nof_events
         :param kwargs: optional arguments to pysat.Solver
-        In this function I would like to add intelligent filter, such as removing supports which are equivalent under
-        graph automorphisms, or which are identified as infeasible due to d-separation and e-separation
+        CHANGED: Now returns each infeasible support as a single integer.
         """
-        return np.array(
-            [occuring_events for occuring_events in self.visualize_supports(self.smart_unique_candidate_supports) if
+        return self.from_matrix_to_integer(
+            [occuring_events for occuring_events in self.from_list_to_matrix(self.smart_unique_candidate_supports) if
              not self.feasibleQ(occuring_events, **kwargs)[0]])
 
-    def smart_unique_infeasible_supports_devisualized(self, **kwargs):
-        return self.devisualize_supports(self.smart_unique_infeasible_supports(**kwargs))
+    def smart_unique_infeasible_supports_unlabelled(self, **kwargs):
+        return np.unique(np.amin(self.from_list_to_integer(
+            np.sort(self.universal_relabelling_group[:, self.from_integer_to_list(self.smart_unique_infeasible_supports())])
+        ), axis=0))
 
-    def smart_unique_infeasible_supports_extremely_devisualized(self, **kwargs):
-        return self.extreme_devisualize_supports(self.smart_unique_infeasible_supports(**kwargs))
+
 
 
 if __name__ == '__main__':

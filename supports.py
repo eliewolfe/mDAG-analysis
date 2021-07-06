@@ -5,7 +5,7 @@ from pysat.solvers import Solver
 from pysat.formula import IDPool  # I wonder if we can't get away without this, but it is SO convenient
 # from pysat.card import CardEnc, EncType
 from operator import itemgetter
-from radix import from_digits, to_digits
+from radix import from_digits, to_digits, uniform_base_test
 
 from sys import hexversion
 
@@ -126,7 +126,7 @@ class SupportTester:
 
 
 class SupportTesting(SupportTester):
-    @property
+    @cached_property
     def outcome_relabelling_group(self):
         if np.array_equiv(2, self.observed_cardinalities):
             return np.bitwise_xor.outer(self.conceivable_events_range, self.conceivable_events_range)
@@ -140,14 +140,29 @@ class SupportTesting(SupportTester):
                 np.uint).reshape((-1, self.max_conceivable_events, self.nof_observed)),
                                self.observed_cardinalities)
 
-    # @cached_property
-    @property
-    def unique_candidate_supports(self):
-        candidates = np.pad(np.fromiter(itertools.chain.from_iterable(
-            itertools.combinations(self.conceivable_events_range[1:], self.nof_events - 1)), np.uint).reshape(
-            (-1, self.nof_events - 1)), ((0, 0), (1, 0)), 'constant')
+    @cached_property
+    def party_relabelling_group(self):
+        assert uniform_base_test(self.observed_cardinalities), "Not meaningful to relabel parties with different cardinalities"
+        to_reshape = self.conceivable_events_range.reshape(self.observed_cardinalities)
+        return np.fromiter(
+            itertools.chain.from_iterable(
+                to_reshape.transpose(perm).ravel() for perm in itertools.permutations(range(self.nof_observed))
+            ), np.uint
+        ).reshape((-1, self.max_conceivable_events,))
+
+    @cached_property
+    def universal_relabelling_group(self):
+        return np.vstack(np.take(self.outcome_relabelling_group, self.party_relabelling_group, axis=-1))
+        # hugegroup = np.vstack(np.take(self.outcome_relabelling_group, self.party_relabelling_group, axis=-1))
+        # hugegroup = hugegroup[np.lexsort(hugegroup.T)]
+        # hugegroup2 = np.vstack(np.take(self.party_relabelling_group, self.outcome_relabelling_group, axis=-1))
+        # hugegroup2 = hugegroup2[np.lexsort(hugegroup2.T)]
+        # assert np.array_equal(hugegroup, hugegroup2), "subgroups should be commutative"
+
+    def unique_supports_under_group(self, candidates_raw, group):
+        candidates = candidates_raw.copy()
         compressed_candidates = from_digits(candidates, self.event_cardinalities)
-        for group_element in self.outcome_relabelling_group[1:]:
+        for group_element in group[1:]:
             new_candidates = group_element[candidates]
             new_candidates.sort()
             np.minimum(compressed_candidates,
@@ -156,31 +171,59 @@ class SupportTesting(SupportTester):
             candidates = to_digits(compressed_candidates, self.event_cardinalities)
         return np.unique(candidates, axis=0)
 
-    def visualize_supports(self, supports):
-        return to_digits(supports, self.observed_cardinalities)
 
-    def devisualize_supports(self, visualized_supports):
-        return from_digits(visualized_supports, self.observed_cardinalities)
+    @cached_property
+    def unique_candidate_supports(self):
+        candidates = np.pad(np.fromiter(itertools.chain.from_iterable(
+            itertools.combinations(self.conceivable_events_range[1:], self.nof_events - 1)), np.uint).reshape(
+            (-1, self.nof_events - 1)), ((0, 0), (1, 0)), 'constant')
+        return self.unique_supports_under_group(candidates, self.outcome_relabelling_group)
+        # compressed_candidates = from_digits(candidates, self.event_cardinalities)
+        # for group_element in self.outcome_relabelling_group[1:]:
+        #     new_candidates = group_element[candidates]
+        #     new_candidates.sort()
+        #     np.minimum(compressed_candidates,
+        #                from_digits(new_candidates, self.event_cardinalities),
+        #                out=compressed_candidates)
+        #     candidates = to_digits(compressed_candidates, self.event_cardinalities)
+        # return np.unique(candidates, axis=0)
 
-    def extreme_devisualize_supports(self, visualized_supports):
-        return from_digits(self.devisualize_supports(visualized_supports), self.event_cardinalities)
+    def from_list_to_matrix(self, supports_as_lists):
+        return to_digits(supports_as_lists, self.observed_cardinalities)
+
+    def from_matrix_to_list(self, supports_as_matrices):
+        return from_digits(supports_as_matrices, self.observed_cardinalities)
+
+    def from_list_to_integer(self, supports_as_lists):
+        return from_digits(supports_as_lists, self.event_cardinalities)
+
+    def from_integer_to_list(self, supports_as_integers):
+        return to_digits(supports_as_integers, self.event_cardinalities)
+
+    def from_matrix_to_integer(self, supports_as_matrices):
+        return self.from_list_to_integer(self.from_matrix_to_list(supports_as_matrices))
+
+    def from_integer_to_matrix(self, supports_as_integers):
+        return self.from_list_to_matrix(self.from_integer_to_list(supports_as_integers))
+
+
+
 
     def unique_infeasible_supports(self, **kwargs):
         """
         Return a signature of infeasible support for a given parents_of, observed_cardinalities, and nof_events
         :param kwargs: optional arguments to pysat.Solver
-        In this function I would like to add intelligent filter, such as removing supports which are equivalent under
-        graph automorphisms, or which are identified as infeasible due to d-separation and e-separation
+        CHANGED: Now returns each infeasible support as a single integer.
         """
-        return np.array(
-            [occuring_events for occuring_events in self.visualize_supports(self.unique_candidate_supports) if
+        return self.from_matrix_to_integer(
+            [occuring_events for occuring_events in self.from_list_to_matrix(self.unique_candidate_supports) if
              not self.feasibleQ(occuring_events, **kwargs)[0]])
 
-    def unique_infeasible_supports_devisualized(self, **kwargs):
-        return self.devisualize_supports(self.unique_infeasible_supports(**kwargs))
+    def unique_infeasible_supports_unlabelled(self, **kwargs):
+        return np.unique(np.amin(self.from_list_to_integer(
+            np.sort(self.universal_relabelling_group[:, self.from_integer_to_list(self.unique_infeasible_supports())])
+        ), axis=0))
 
-    def unique_infeasible_supports_extremely_devisualized(self, **kwargs):
-        return self.extreme_devisualize_supports(self.unique_infeasible_supports(**kwargs))
 
 
 
@@ -196,17 +239,44 @@ class CumulativeSupportTesting:
     @property
     def _all_infeasible_supports(self):
         for nof_events in range(2, self.max_nof_events+1):
-            st = SupportTesting(self.parents_of, self.observed_cardinalities, nof_events)
-            #yield st.extreme_devisualize_supports(st.unique_infeasible_supports(name='mgh', use_timer=False))
-            yield st.unique_infeasible_supports_extremely_devisualized(name='mgh', use_timer=False)
+            yield SupportTesting(self.parents_of, self.observed_cardinalities, nof_events
+                                 ).unique_infeasible_supports(name='mgh', use_timer=False)
+
+    @property
+    def _all_infeasible_supports_unlabelled(self):
+        for nof_events in range(2, self.max_nof_events+1):
+            yield SupportTesting(self.parents_of, self.observed_cardinalities, nof_events
+                                 ).unique_infeasible_supports_unlabelled(name='mgh', use_timer=False)
 
     @cached_property
     def all_infeasible_supports(self):
         return np.fromiter(itertools.chain.from_iterable(self._all_infeasible_supports), np.uint64)
 
     @cached_property
-    def all_infeasible_supports_matrix(self):
-        return to_digits(self.all_infeasible_supports, self.multi_index_shape)
+    def all_infeasible_supports_unlabelled(self):
+        return np.fromiter(itertools.chain.from_iterable(self._all_infeasible_supports_unlabelled), np.uint64)
+
+    def from_list_to_matrix(self, supports_as_lists):
+        return to_digits(supports_as_lists, self.observed_cardinalities)
+
+    def from_matrix_to_list(self, supports_as_matrices):
+        return from_digits(supports_as_matrices, self.observed_cardinalities)
+
+    def from_list_to_integer(self, supports_as_lists):
+        return from_digits(supports_as_lists, self.multi_index_shape)
+
+    def from_integer_to_list(self, supports_as_integers):
+        return to_digits(supports_as_integers, self.multi_index_shape)
+
+    def from_matrix_to_integer(self, supports_as_matrices):
+        return self.from_list_to_integer(self.from_matrix_to_list(supports_as_matrices))
+
+    def from_integer_to_matrix(self, supports_as_integers):
+        return self.from_list_to_matrix(self.from_integer_to_list(supports_as_integers))
+
+    # @cached_property
+    # def all_infeasible_supports_as_list(self):
+    #     return self.from_integer_to_list(self.all_infeasible_supports)
 
 
 #TODO: Visualize an infeasible support as a SciPy sparce matrix
@@ -223,7 +293,10 @@ if __name__ == '__main__':
     # occuring_events_temp = [(0, 0, 0), (0, 1, 0), (0, 0, 1)]
     # print(st.feasibleQ(occuring_events_temp, name='mgh', use_timer=True))
 
-    st = SupportTesting(parents_of, observed_cardinalities, 2)
+    st = SupportTesting(parents_of, observed_cardinalities, 3)
+    inf = st.unique_infeasible_supports_unlabelled(name='mgh', use_timer=False)
+    print(inf)
+    print(st.from_integer_to_matrix(inf))
     # sample2 = st.unique_candidate_supports
     # print(st.unique_candidate_supports)
     # print(st.visualize_supports(st.unique_candidate_supports))
@@ -252,13 +325,16 @@ if __name__ == '__main__':
     #
     parents_of = ([4, 5, 6], [4, 7, 8], [5, 7, 9], [6, 8, 9])
     observed_cardinalities = (2, 2, 2,2)
-    cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 5)
+    cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 3)
     print(cst.all_infeasible_supports)
+    print(cst.all_infeasible_supports_unlabelled)
+    discovered=cst.from_integer_to_matrix(cst.all_infeasible_supports_unlabelled)
+    #print(discovered)
     # print(cst.all_infeasible_supports_matrix)
     # discovered = to_digits(cst.all_infeasible_supports_matrix, observed_cardinalities)
     # print(discovered)
-    # trulyvariable = discovered.compress(discovered.any(axis=-2).all(axis=-1), axis=0) #makes every variable actually variable
-    # print(trulyvariable)
+    trulyvariable = discovered.compress(discovered.any(axis=-2).all(axis=-1), axis=0) #makes every variable actually variable
+    print(trulyvariable)
     #TODO: it would be good to recognize PRODUCT support matrices. Will be required for d-sep and e-sep filter.
     # see https://www.researchgate.net/post/How-I-can-check-in-MATLAB-if-a-matrix-is-result-of-the-Kronecker-product/542ab19bd039b130378b469d/citation/download?
     # see https://math.stackexchange.com/a/321424

@@ -123,17 +123,28 @@ class mDAG:
         # to_translate = list(map(set, map(self.as_extended_graph.predecessors, self.visible_nodes)))
         # return [tuple(self.translation_dict[n] for n in parents) for parents in to_translate]
 
-    def infeasible_binary_supports_n_events(self,n):
+
+    def infeasible_binary_supports_n_events(self, n):
         return SupportTesting(self.parents_of_for_supports_analysis,
                               np.broadcast_to(2,self.number_of_visible),
-                              n
-                              ).unique_infeasible_supports_extremely_devisualized(name='mgh', use_timer=False)
+                              n).unique_infeasible_supports(name='mgh', use_timer=False)
 
     def smart_infeasible_binary_supports_n_events(self,n):
         return SmartSupportTesting(self.parents_of_for_supports_analysis,
                               np.broadcast_to(2,self.number_of_visible),
                               n, chunked(map(lambda vars: list(self.as_integer_labels(tuple(vars))), itertools.chain.from_iterable(self.all_esep)), 3)
-                              ).smart_unique_infeasible_supports_extremely_devisualized(name='mgh', use_timer=False)
+                              ).smart_unique_infeasible_supports(name='mgh', use_timer=False)
+
+    def infeasible_binary_supports_n_events_unlabelled(self, n):
+        return SupportTesting(self.parents_of_for_supports_analysis,
+                              np.broadcast_to(2,self.number_of_visible),
+                              n).unique_infeasible_supports_unlabelled(name='mgh', use_timer=False)
+
+    def smart_infeasible_binary_supports_n_events_unlabelled(self,n):
+        return SmartSupportTesting(self.parents_of_for_supports_analysis,
+                              np.broadcast_to(2,self.number_of_visible),
+                              n, chunked(map(lambda vars: list(self.as_integer_labels(tuple(vars))), itertools.chain.from_iterable(self.all_esep)), 3)
+                              ).smart_unique_infeasible_supports_unlabelled(name='mgh', use_timer=False)
 
     @cached_property
     def simplicial_complex_as_graph(self):  # let directed_structure be a DAG initially without latents
