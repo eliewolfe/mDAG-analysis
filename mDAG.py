@@ -36,12 +36,8 @@ class mDAG:
         """
         self.directed_structure = directed_structure
         self.simplicial_complex = simplicial_complex
-        self.number_of_visible = self.directed_structure.number_of_nodes()
-        self.number_of_latent = len(self.simplicial_complex)
-        self.number_of_nodes = self.number_of_visible + self.number_of_latent
-        self.visible_nodes = list(self.directed_structure.nodes())
-        self.latent_nodes = list(range(self.number_of_visible, self.number_of_nodes))
-        self.all_nodes = self.visible_nodes + self.latent_nodes
+        self.number_of_visible: int = self.directed_structure.number_of_nodes()
+
         self.directed_structure_as_list = sorted(self.directed_structure.edges())
 
         # Putting singleton latents on the nodes that originally have no latent parents:
@@ -51,6 +47,11 @@ class mDAG:
             self.extended_simplicial_complex = sorted(self.simplicial_complex + [(singleton,) for singleton in
                                                                                  set(self.visible_nodes).difference(
                                                                                      *self.simplicial_complex)])
+        self.number_of_latent = len(self.extended_simplicial_complex)
+        self.number_of_nodes = self.number_of_visible + self.number_of_latent
+        self.visible_nodes = list(self.directed_structure.nodes())
+        self.latent_nodes = list(range(self.number_of_visible, self.number_of_nodes))
+        self.all_nodes = self.visible_nodes + self.latent_nodes
 
         self.stringify = lambda l: '(' + ','.join(map(str, l)) + ')'
         # self.directed_structure_string = self.stringify(map(self.stringify,self.directed_structure_as_list))
@@ -65,7 +66,7 @@ class mDAG:
 
     @cached_property
     def simplicial_complex_string(self):
-        return self.stringify(map(self.stringify, sorted(self.simplicial_complex)))
+        return self.stringify(map(self.stringify, sorted(self.extended_simplicial_complex)))
 
     @cached_property
     def mDAG_string(self):
@@ -88,17 +89,17 @@ class mDAG:
         g = self.directed_structure.copy()
         g.add_nodes_from(self.latent_nodes, type="Latent")
         g.add_edges_from(chain.from_iterable(
-            zip(repeat(i), children) for i, children in zip(self.latent_nodes, self.simplicial_complex)))
+            zip(repeat(i), children) for i, children in zip(self.latent_nodes, self.extended_simplicial_complex)))
         return g
 
-    @cached_property
-    def as_extended_graph(self):  #This fills in the singleton variables
-        g = self.as_graph.copy()
-        rootless_visible = set(self.visible_nodes).difference(*self.simplicial_complex)
-        implicit_latent_nodes = list(range(self.number_of_nodes,self.number_of_nodes+len(rootless_visible)))
-        g.add_nodes_from(implicit_latent_nodes, type="Latent")
-        g.add_edges_from(zip(implicit_latent_nodes,rootless_visible))
-        return g
+    # @cached_property
+    # def as_extended_graph(self):  #This fills in the singleton variables
+    #     g = self.as_graph.copy()
+    #     rootless_visible = set(self.visible_nodes).difference(*self.simplicial_complex)
+    #     implicit_latent_nodes = list(range(self.number_of_nodes,self.number_of_nodes+len(rootless_visible)))
+    #     g.add_nodes_from(implicit_latent_nodes, type="Latent")
+    #     g.add_edges_from(zip(implicit_latent_nodes,rootless_visible))
+    #     return g
 
     @staticmethod
     def partsextractor(thing_to_take_parts_of, indices):
@@ -111,7 +112,7 @@ class mDAG:
 
     @cached_property
     def translation_dict(self):
-        return dict(zip(self.as_extended_graph.nodes(), range(self.as_extended_graph.number_of_nodes())))
+        return dict(zip(self.as_graph.nodes(), range(self.as_graph.number_of_nodes())))
 
     def as_integer_labels(self, labels):
         return self.partsextractor(self.translation_dict, labels)
@@ -119,25 +120,25 @@ class mDAG:
 
     @cached_property
     def parents_of_for_supports_analysis(self):
-        return [self.as_integer_labels(tuple(self.as_extended_graph.predecessors(n))) for n in self.visible_nodes]
+        return [self.as_integer_labels(tuple(self.as_graph.predecessors(n))) for n in self.visible_nodes]
         # to_translate = list(map(set, map(self.as_extended_graph.predecessors, self.visible_nodes)))
         # return [tuple(self.translation_dict[n] for n in parents) for parents in to_translate]
 
 
     def infeasible_binary_supports_n_events(self, n):
         return SupportTesting(self.parents_of_for_supports_analysis,
-                              np.broadcast_to(2,self.number_of_visible),
+                              np.broadcast_to(2, self.number_of_visible),
                               n).unique_infeasible_supports(name='mgh', use_timer=False)
 
     def smart_infeasible_binary_supports_n_events(self,n):
         return SmartSupportTesting(self.parents_of_for_supports_analysis,
-                              np.broadcast_to(2,self.number_of_visible),
+                              np.broadcast_to(2, self.number_of_visible),
                               n, chunked(map(lambda vars: list(self.as_integer_labels(tuple(vars))), itertools.chain.from_iterable(self.all_esep)), 3)
                               ).smart_unique_infeasible_supports(name='mgh', use_timer=False)
 
     def infeasible_binary_supports_n_events_unlabelled(self, n):
         return SupportTesting(self.parents_of_for_supports_analysis,
-                              np.broadcast_to(2,self.number_of_visible),
+                              np.broadcast_to(2, self.number_of_visible),
                               n).unique_infeasible_supports_unlabelled(name='mgh', use_timer=False)
 
     def smart_infeasible_binary_supports_n_events_unlabelled(self,n):

@@ -6,6 +6,8 @@ from pysat.formula import IDPool  # I wonder if we can't get away without this, 
 # from pysat.card import CardEnc, EncType
 from operator import itemgetter
 from radix import from_digits, to_digits, uniform_base_test
+import progressbar
+from tqdm import tqdm
 
 from sys import hexversion
 
@@ -20,9 +22,9 @@ elif hexversion >= 0x3060000:
 else:
     cached_property = property
 
-
-class SupportTester:
+class SupportTester(object):
     def __init__(self, parents_of, observed_cardinalities, nof_events):
+        print('Instantiating new object with nof_events=', nof_events)
         self.parents_of = parents_of
         self.nof_events = nof_events
         self.nof_observed = len(self.parents_of)
@@ -30,8 +32,6 @@ class SupportTester:
         self.nof_latent = max(itertools.chain.from_iterable(self.parents_of)) + 1 - self.nof_observed
         self.observed_cardinalities = observed_cardinalities
         self.observed_cardinalities_ranges = list(map(range, self.observed_cardinalities))
-
-
 
         self.observed_and_latent_cardinalities = tuple(np.hstack((observed_cardinalities,
                                                                   np.repeat(self.nof_events, self.nof_latent))))
@@ -74,7 +74,6 @@ class SupportTester:
                             in range(self.nof_observed)]
                            for iterator in np.ndindex(self.observed_and_latent_cardinalities)]).reshape(
             (np.prod(self.observed_cardinalities), -1, self.nof_events ** self.nof_latent, self.nof_observed))
-
 
     def forbidden_events_clauses(self, occurring_events):
         return self._array_of_potentially_forbidden_events[
@@ -216,7 +215,10 @@ class SupportTesting(SupportTester):
         CHANGED: Now returns each infeasible support as a single integer.
         """
         return self.from_matrix_to_integer(
-            [occuring_events for occuring_events in self.from_list_to_matrix(self.unique_candidate_supports) if
+            [occuring_events for occuring_events in progressbar.progressbar(
+                self.from_list_to_matrix(self.unique_candidate_supports)
+                , widgets=['[nof_events=',str(self.nof_events),'] ',progressbar.SimpleProgress(), progressbar.Bar(),' (', progressbar.ETA(), ') ']
+            ) if
              not self.feasibleQ(occuring_events, **kwargs)[0]])
 
     def unique_infeasible_supports_unlabelled(self, **kwargs):
@@ -325,7 +327,7 @@ if __name__ == '__main__':
     #
     parents_of = ([4, 5, 6], [4, 7, 8], [5, 7, 9], [6, 8, 9])
     observed_cardinalities = (2, 2, 2,2)
-    cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 3)
+    cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 4)
     print(cst.all_infeasible_supports)
     print(cst.all_infeasible_supports_unlabelled)
     discovered=cst.from_integer_to_matrix(cst.all_infeasible_supports_unlabelled)
