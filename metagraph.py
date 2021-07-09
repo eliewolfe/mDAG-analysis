@@ -237,12 +237,13 @@ class Observable_mDAGs:
                 break
         return False
 
+    @cached_property
     def dict_ind_mDAGs(self):
         return {(s, d): mDAG for (mDAG, s, d) in self.all_indexed_mDAGs}
 
     def CI_classes(self):
         dict_CI_relations = {}
-        indexed_mDAGs = self.dict_ind_mDAGs()
+        indexed_mDAGs = self.dict_ind_mDAGs
         eq_classes = self.equivalence_classes
         for equivalence_class in eq_classes:
             representative_indices = next(iter(equivalence_class))  # just pick some mDAG of every equivalence class
