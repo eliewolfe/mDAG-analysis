@@ -47,9 +47,9 @@ def to_bits(integers, mantissa):
 #     #return byte << 1 | bit
 #     #one = 1
 #     return np.bitwise_or(np.left_shift(byte, 1), bit)
-
-def from_bits(smooshed_bit_array):
-    return pack_a_bit.reduce(smooshed_bit_array, axis=-1)
+#
+# def from_bits(smooshed_bit_array):
+#     return pack_a_bit.reduce(smooshed_bit_array, axis=-1)
 
 
 def from_bits(smooshed_bit_array):
@@ -148,7 +148,7 @@ def bitarray_to_int(bit_array):
 
 def int_to_bitarray(integer, numcolumns):
     numrows = -np.floor_divide(-np.log(integer), np.log(2**numcolumns)).astype(int).max()
-    return np.reshape(to_bits(integer, numrows * numcolumns), np.asarray(integer).shape + (numrows,numcolumns))
+    return np.reshape(to_bits(integer, numrows * numcolumns), np.asarray(integer).shape + (numrows, numcolumns))
 
 
 

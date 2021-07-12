@@ -37,7 +37,11 @@ class SupportTester(object):
                                                                   np.repeat(self.nof_events, self.nof_latent))))
 
         self.max_conceivable_events = np.prod(self.observed_cardinalities)
+
         self.event_cardinalities = np.broadcast_to(self.max_conceivable_events, self.nof_events)
+
+        self.repeated_observed_cardinalities = np.broadcast_to(np.expand_dims(self.observed_cardinalities,axis=-1),
+                                                               (self.nof_observed, self.nof_events)).T.ravel()
 
         self.conceivable_events_range = np.arange(self.max_conceivable_events, dtype=np.uint)
 
@@ -199,11 +203,24 @@ class SupportTesting(SupportTester):
     def from_integer_to_list(self, supports_as_integers):
         return to_digits(supports_as_integers, self.event_cardinalities)
 
+    # def from_matrix_to_integer(self, supports_as_matrices):
+    #     return self.from_list_to_integer(self.from_matrix_to_list(supports_as_matrices))
+    #
+    # def from_integer_to_matrix(self, supports_as_integers):
+    #     return self.from_list_to_matrix(self.from_integer_to_list(supports_as_integers))
+
     def from_matrix_to_integer(self, supports_as_matrices):
-        return self.from_list_to_integer(self.from_matrix_to_list(supports_as_matrices))
+        supports_as_matrices_as_array = np.asarray(supports_as_matrices)
+        shape = supports_as_matrices_as_array.shape
+        return from_digits(
+            supports_as_matrices_as_array.reshape(shape[:-2] + (np.prod(shape[-2:]),)),
+            self.repeated_observed_cardinalities)
 
     def from_integer_to_matrix(self, supports_as_integers):
-        return self.from_list_to_matrix(self.from_integer_to_list(supports_as_integers))
+        # return self.from_list_to_matrix(self.from_integer_to_list(supports_as_integers))
+        return np.reshape(to_digits(
+            supports_as_integers, self.repeated_observed_cardinalities),
+            np.asarray(supports_as_integers).shape + (self.nof_events, self.nof_observed))
 
 
 
@@ -234,9 +251,13 @@ class CumulativeSupportTesting:
     def __init__(self, parents_of, observed_cardinalities, max_nof_events):
         self.parents_of = parents_of
         self.observed_cardinalities= observed_cardinalities
+        self.nof_observed = len(self.parents_of)
+        assert self.nof_observed == len(observed_cardinalities)
         self.max_nof_events = max_nof_events
         self.max_conceivable_events = np.prod(self.observed_cardinalities)
         self.multi_index_shape = np.broadcast_to(self.max_conceivable_events, self.max_nof_events)
+        self.repeated_observed_cardinalities = np.broadcast_to(np.expand_dims(self.observed_cardinalities,axis=-1),
+                                                               (self.nof_observed, self.max_nof_events)).T.ravel()
 
     @property
     def _all_infeasible_supports(self):
@@ -271,10 +292,18 @@ class CumulativeSupportTesting:
         return to_digits(supports_as_integers, self.multi_index_shape)
 
     def from_matrix_to_integer(self, supports_as_matrices):
-        return self.from_list_to_integer(self.from_matrix_to_list(supports_as_matrices))
+        # return self.from_list_to_integer(self.from_matrix_to_list(supports_as_matrices))
+        supports_as_matrices_as_array = np.asarray(supports_as_matrices)
+        shape = supports_as_matrices_as_array.shape
+        return from_digits(
+            supports_as_matrices_as_array.reshape(shape[:-2] + (np.prod(shape[-2:]),)),
+            self.repeated_observed_cardinalities)
 
     def from_integer_to_matrix(self, supports_as_integers):
-        return self.from_list_to_matrix(self.from_integer_to_list(supports_as_integers))
+        # return self.from_list_to_matrix(self.from_integer_to_list(supports_as_integers))
+        return np.reshape(to_digits(
+            supports_as_integers, self.repeated_observed_cardinalities),
+            np.asarray(supports_as_integers).shape + (self.max_nof_events, self.nof_observed))
 
     # @cached_property
     # def all_infeasible_supports_as_list(self):
