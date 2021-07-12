@@ -6,7 +6,8 @@ import itertools
 import scipy.special #For binomial coefficient
 from mDAG import mDAG
 from operator import itemgetter
-from radix import bitarray_to_int
+# from radix import bitarray_to_int
+from utilities import partsextractor, nx_to_int, hypergraph_to_int
 
 from sys import hexversion
 
@@ -30,7 +31,7 @@ class Observable_mDAGs:
             The number of observed variables.
         """
         self.n = n
-        self.setn = set(range(self.n))
+        self.setn = tuple(range(self.n))
         self.error_collection = []
 
     @cached_property
@@ -44,6 +45,7 @@ class Observable_mDAGs:
         node_pair_choices = tuple(zip(possible_node_pairs, reversed_node_pairs))
         for list_of_directions in product(range(3), repeat=scipy.special.comb(self.n, 2, exact=True)):
             g = baseg.copy()  # Reset
+            nx.relabel_nodes(g, lambda v: v, copy=False)
             g.add_edges_from(
                 tuple(choice[direction]) for choice, direction in zip(node_pair_choices, list_of_directions) if
                 direction < 2)
@@ -61,12 +63,14 @@ class Observable_mDAGs:
         return [tuple(sorted(d.edges())) for d in self.all_directed_structures]
 
     @cached_property
-    def all_directed_structures_as_integers(self):
+    def directed_structures_dictionary(self):
         # return list(map(nx.edges,self.all_directed_structures))
-        return [bitarray_to_int(nx.to_numpy_array(d, dtype=bool)).tolist() for d in self.all_directed_structures]
+        #return [nx_to_int(d):i for i,d in enumerate(self.all_directed_structures)]
+        return dict(zip(map(nx_to_int, self.all_directed_structures), range(len(self.all_directed_structures))))
 
     def lookup_directed_structure_index(self, mDAG):
-        return self.all_directed_structures_as_tuples.index(tuple(sorted(mDAG.directed_structure.edges())))
+        # return self.all_directed_structures_as_tuples.index(tuple(sorted(mDAG.directed_structure.edges())))
+        return self.directed_structures_dictionary[nx_to_int(mDAG.directed_structure)]
 
     @cached_property
     def all_simplicial_complices(self):
@@ -79,11 +83,17 @@ class Observable_mDAGs:
                     (ch_as_set.issubset(ch_list) or ch_list.issubset(ch)) for ch_list in map(set, simplicial_complex))
                 )])
         return [tuple(
-            sorted(simplicial_complex + [(singleton,) for singleton in self.setn.difference(*simplicial_complex)])) for
+            sorted(simplicial_complex + [(singleton,) for singleton in set(self.setn).difference(*simplicial_complex)])) for
                 simplicial_complex in list_of_simplicial_complices]
 
+    @cached_property
+    def simplicial_complices_dictionary(self):
+        return dict(zip(map(hypergraph_to_int, self.all_simplicial_complices), range(len(self.all_simplicial_complices))))
+
     def lookup_simplicial_complex_index(self, mDAG):
-        return self.all_simplicial_complices.index(tuple(sorted(mDAG.extended_simplicial_complex)))
+        # return self.all_simplicial_complices.index(tuple(sorted(mDAG.extended_simplicial_complex)))
+        return self.simplicial_complices_dictionary[hypergraph_to_int(mDAG.extended_simplicial_complex)]
+
 
     def lookup_indices(self, mDAG):
         d = self.lookup_directed_structure_index(mDAG)
@@ -123,7 +133,7 @@ class Observable_mDAGs:
         S1 and S2 are simplicial complices, in our data structure as lists of tuples.
         """
         # Modifying to restrict to minimal differences for speed
-        return all(any(s2.issubset(s1) for s1 in S1) for s2 in map(set, S2))
+        # return all(any(s2.issubset(s1) for s1 in S1) for s2 in map(set, S2))
         dominance_count = 0
         for s2 in map(set, S2):
             contained = False
@@ -201,12 +211,19 @@ class Observable_mDAGs:
             for mDAG2 in mDAG.generate_weaker_mDAGs_FaceSplitting_Simultaneous:
                 s2 = self.lookup_simplicial_complex_index(mDAG2)
                 yield ((s2, d), (s, d))
-            #And to account for relabellings...
+            # #And to account for relabellings...
+            # for mDAG2 in mDAG.generate_symmetric_variants:
+            #     d2 = self.lookup_directed_structure_index(mDAG2)
+            #     s2 = self.lookup_simplicial_complex_index(mDAG2)
+            #     yield ((s2, d2), (s, d))
+
+    @property
+    def meta_graph_symmetry_edges(self):
+        for (mDAG, s, d) in self.all_indexed_mDAGs:
             for mDAG2 in mDAG.generate_symmetric_variants:
                 d2 = self.lookup_directed_structure_index(mDAG2)
                 s2 = self.lookup_simplicial_complex_index(mDAG2)
                 yield ((s2, d2), (s, d))
-
 
 
     @cached_property
@@ -218,10 +235,21 @@ class Observable_mDAGs:
         return g
 
     @cached_property
-    def meta_graph(self):
+    def symmetry_graph(self):
         g = nx.DiGraph()
         g.add_nodes_from(self.meta_graph_nodes)
+        print('Adding symmetry relations...')
+        g.add_edges_from(self.meta_graph_symmetry_edges)
+        return g
+
+
+    @cached_property
+    def meta_graph(self):
+        g = self.symmetry_graph.copy()
+        #g.add_nodes_from(self.meta_graph_nodes)
+        print('Adding dominance relations...')
         g.add_edges_from(self.meta_graph_directed_edges)
+        print('Adding equivalence relations...')
         g.add_edges_from(self.meta_graph_undirected_edges)
         print('Metagraph has been constructed.')
         return g

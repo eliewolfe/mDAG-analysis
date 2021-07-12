@@ -31,12 +31,12 @@ if __name__ == '__main__':
     print(len(np.flatnonzero(fundamental_list)))
 
     eqclasses3 = Observable_mDAGs3.equivalence_classes
-    eqclasses4 = Observable_mDAGs4.equivalence_classes
-    print(len(eqclasses4))
+    # eqclasses4 = Observable_mDAGs4.equivalence_classes
+    print(len(eqclasses3))
 
-    # foundational_eqclasses = [eqclass for eqclass in eqclasses4 if (len(eqclass)==1 and Observable_mDAGs4.lookup_mDAG(list(eqclass)).fundamental_graphQ) or (len(eqclass)>1 and all(mDAG.fundamental_graphQ for mDAG in Observable_mDAGs4.lookup_mDAG(list(eqclass))))]
-    foundational_eqclasses = [eqclass for eqclass in eqclasses4 if all(mDAG.fundamental_graphQ for mDAG in Observable_mDAGs4.lookup_mDAGs(eqclass))]
-    print(len(foundational_eqclasses))
+    # # foundational_eqclasses = [eqclass for eqclass in eqclasses4 if (len(eqclass)==1 and Observable_mDAGs4.lookup_mDAG(list(eqclass)).fundamental_graphQ) or (len(eqclass)>1 and all(mDAG.fundamental_graphQ for mDAG in Observable_mDAGs4.lookup_mDAG(list(eqclass))))]
+    # foundational_eqclasses = [eqclass for eqclass in eqclasses4 if all(mDAG.fundamental_graphQ for mDAG in Observable_mDAGs4.lookup_mDAGs(eqclass))]
+    # print(len(foundational_eqclasses))
 
     # #Let's confirm that e-separation relations are invariant across every eq class
     # #CONFIRMED, hence commented out.

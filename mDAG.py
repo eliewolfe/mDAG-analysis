@@ -4,7 +4,8 @@ import numpy as np
 import itertools
 from merge import merge_intersection
 from more_itertools import ilen, chunked
-from radix import bitarray_to_int
+# from radix import bitarray_to_int
+from utilities import partsextractor, nx_to_int, hypergraph_to_int
 
 from sys import hexversion
 
@@ -39,8 +40,8 @@ class mDAG:
         self.number_of_visible: int = self.directed_structure.number_of_nodes()
 
         self.directed_structure_as_list = sorted(self.directed_structure.edges())
-        self.directed_structure_as_int = bitarray_to_int(nx.to_numpy_array(d, dtype=bool)).tolist()
-        self.visible_nodes = list(self.directed_structure.nodes())
+        self.directed_structure_as_int = nx_to_int(self.directed_structure)
+        self.visible_nodes = sorted(self.directed_structure.nodes())
 
         # Putting singleton latents on the nodes that originally have no latent parents:
         if complex_extended:
@@ -103,21 +104,21 @@ class mDAG:
     #     g.add_edges_from(zip(implicit_latent_nodes,rootless_visible))
     #     return g
 
-    @staticmethod
-    def partsextractor(thing_to_take_parts_of, indices):
-        if len(indices) == 0:
-            return tuple()
-        elif len(indices) == 1:
-            return (itemgetter(*indices)(thing_to_take_parts_of),)
-        else:
-            return itemgetter(*indices)(thing_to_take_parts_of)
+    # @staticmethod
+    # def partsextractor(thing_to_take_parts_of, indices):
+    #     if len(indices) == 0:
+    #         return tuple()
+    #     elif len(indices) == 1:
+    #         return (itemgetter(*indices)(thing_to_take_parts_of),)
+    #     else:
+    #         return itemgetter(*indices)(thing_to_take_parts_of)
 
     @cached_property
     def translation_dict(self):
         return dict(zip(self.as_graph.nodes(), range(self.as_graph.number_of_nodes())))
 
     def as_integer_labels(self, labels):
-        return self.partsextractor(self.translation_dict, labels)
+        return partsextractor(self.translation_dict, labels)
 
 
     @cached_property
@@ -126,17 +127,18 @@ class mDAG:
         # to_translate = list(map(set, map(self.as_extended_graph.predecessors, self.visible_nodes)))
         # return [tuple(self.translation_dict[n] for n in parents) for parents in to_translate]
 
-
-    @cached_property
-    def simplicial_complex_as_mat(self):
-        r = np.zeros((len(self.extended_simplicial_complex), self.number_of_visible), dtype = bool)
-        for i,lp in enumerate(self.extended_simplicial_complex):
-            r[i, self.as_integer_labels(lp)] = True
-        return r[np.lexsort(r.T)]
+    # @cached_property
+    # def simplicial_complex_as_mat(self):
+    #     r = np.zeros((len(self.extended_simplicial_complex), self.number_of_visible), dtype = bool)
+    #     for i,lp in enumerate(self.extended_simplicial_complex):
+    #         r[i, self.as_integer_labels(lp)] = True
+    #     return r[np.lexsort(r.T)]
 
     @cached_property
     def simplicial_complex_as_int(self):
-        return bitarray_to_int(self.simplicial_complex_as_mat)
+        # return bitarray_to_int(self.simplicial_complex_as_mat).tolist()
+        # return hypergraph_to_int(list(map(self.as_integer_labels, self.extended_simplicial_complex)))
+        return hypergraph_to_int(self.extended_simplicial_complex) #Assumes observed variables are integers!
 
 
     def infeasible_binary_supports_n_events(self, n):
