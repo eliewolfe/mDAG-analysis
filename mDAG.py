@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 import networkx as nx
 import numpy as np
-from itertools import combinations, repeat, chain
 import itertools
 from merge import merge_intersection
 from more_itertools import ilen, chunked
+from radix import bitarray_to_int
 
 from sys import hexversion
 
@@ -39,6 +39,8 @@ class mDAG:
         self.number_of_visible: int = self.directed_structure.number_of_nodes()
 
         self.directed_structure_as_list = sorted(self.directed_structure.edges())
+        self.directed_structure_as_int = bitarray_to_int(nx.to_numpy_array(d, dtype=bool)).tolist()
+        self.visible_nodes = list(self.directed_structure.nodes())
 
         # Putting singleton latents on the nodes that originally have no latent parents:
         if complex_extended:
@@ -49,7 +51,7 @@ class mDAG:
                                                                                      *self.simplicial_complex)])
         self.number_of_latent = len(self.extended_simplicial_complex)
         self.number_of_nodes = self.number_of_visible + self.number_of_latent
-        self.visible_nodes = list(self.directed_structure.nodes())
+
         self.latent_nodes = list(range(self.number_of_visible, self.number_of_nodes))
         self.all_nodes = self.visible_nodes + self.latent_nodes
 
@@ -88,8 +90,8 @@ class mDAG:
     def as_graph(self):  # let directed_structure be a DAG initially without latents
         g = self.directed_structure.copy()
         g.add_nodes_from(self.latent_nodes, type="Latent")
-        g.add_edges_from(chain.from_iterable(
-            zip(repeat(i), children) for i, children in zip(self.latent_nodes, self.extended_simplicial_complex)))
+        g.add_edges_from(itertools.chain.from_iterable(
+            zip(itertools.repeat(i), children) for i, children in zip(self.latent_nodes, self.extended_simplicial_complex)))
         return g
 
     # @cached_property
@@ -143,7 +145,7 @@ class mDAG:
 
     def smart_infeasible_binary_supports_n_events_unlabelled(self,n):
         return SmartSupportTesting(self.parents_of_for_supports_analysis,
-                              np.broadcast_to(2,self.number_of_visible),
+                              np.broadcast_to(2, self.number_of_visible),
                               n, chunked(map(lambda vars: list(self.as_integer_labels(tuple(vars))), itertools.chain.from_iterable(self.all_esep)), 3)
                               ).smart_unique_infeasible_supports_unlabelled(name='mgh', use_timer=False)
 
@@ -152,8 +154,8 @@ class mDAG:
         g = nx.DiGraph()
         g.add_nodes_from(self.visible_nodes, type="Visible")
         g.add_nodes_from(self.latent_nodes, type="Latent")
-        g.add_edges_from(chain.from_iterable(
-            zip(repeat(i), children) for i, children in zip(self.latent_nodes, self.simplicial_complex)))
+        g.add_edges_from(itertools.chain.from_iterable(
+            zip(itertools.repeat(i), children) for i, children in zip(self.latent_nodes, self.simplicial_complex)))
         return g
 
     @cached_property
@@ -254,7 +256,7 @@ class mDAG:
         integers = range(length)
         subsetrange = range(1, length)
         for r in subsetrange:
-            for ints_to_mask in map(list, combinations(integers, r)):
+            for ints_to_mask in map(list, itertools.combinations(integers, r)):
                 mask = np.ones(length, dtype=np.bool)
                 mask[ints_to_mask] = False
                 yield (set(itertools.compress(variables_to_partition, mask.tolist())),

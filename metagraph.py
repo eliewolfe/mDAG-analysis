@@ -6,6 +6,7 @@ import itertools
 import scipy.special #For binomial coefficient
 from mDAG import mDAG
 from operator import itemgetter
+from radix import bitarray_to_int
 
 from sys import hexversion
 
@@ -58,6 +59,11 @@ class Observable_mDAGs:
     def all_directed_structures_as_tuples(self):
         # return list(map(nx.edges,self.all_directed_structures))
         return [tuple(sorted(d.edges())) for d in self.all_directed_structures]
+
+    @cached_property
+    def all_directed_structures_as_integers(self):
+        # return list(map(nx.edges,self.all_directed_structures))
+        return [bitarray_to_int(nx.to_numpy_array(d, dtype=bool)).tolist() for d in self.all_directed_structures]
 
     def lookup_directed_structure_index(self, mDAG):
         return self.all_directed_structures_as_tuples.index(tuple(sorted(mDAG.directed_structure.edges())))
