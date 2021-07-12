@@ -74,7 +74,7 @@ class mDAG:
     def mDAG_string(self):
         return self.directed_structure_string + '|' + self.simplicial_complex_string
 
-        #
+
 
     # def extended_simplicial_complex(self):
     #  # Returns the simplicial complex extended to include singleton sets.
@@ -125,6 +125,18 @@ class mDAG:
         return [self.as_integer_labels(tuple(self.as_graph.predecessors(n))) for n in self.visible_nodes]
         # to_translate = list(map(set, map(self.as_extended_graph.predecessors, self.visible_nodes)))
         # return [tuple(self.translation_dict[n] for n in parents) for parents in to_translate]
+
+
+    @cached_property
+    def simplicial_complex_as_mat(self):
+        r = np.zeros((len(self.extended_simplicial_complex), self.number_of_visible), dtype = bool)
+        for i,lp in enumerate(self.extended_simplicial_complex):
+            r[i, self.as_integer_labels(lp)] = True
+        return r[np.lexsort(r.T)]
+
+    @cached_property
+    def simplicial_complex_as_int(self):
+        return bitarray_to_int(self.simplicial_complex_as_mat)
 
 
     def infeasible_binary_supports_n_events(self, n):
