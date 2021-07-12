@@ -35,53 +35,53 @@ def to_bits(integers, mantissa):
         bytes_array = np.flip(np.expand_dims(np.asarray(integers, np.uint64), axis=-1).view(np.uint8), axis=-1)
     return np.unpackbits(bytes_array, axis=-1, bitorder='big')[...,-mantissa:]
 
-import numba
-@numba.vectorize([
-    numba.int64(numba.uint8, numba.uint8),
-    numba.int64(numba.uint8, numba.int64),
-    numba.int64(numba.uint, numba.uint),
-    numba.int64(numba.uint, numba.int64),
-    numba.int64(numba.int64, numba.int64)
-], nopython = True)
-def pack_a_bit(byte, bit):
-    #return byte << 1 | bit
-    #one = 1
-    return np.bitwise_or(np.left_shift(byte, 1), bit)
+# import numba
+# @numba.vectorize([
+#     numba.int64(numba.uint8, numba.uint8),
+#     numba.int64(numba.uint8, numba.int64),
+#     numba.int64(numba.uint, numba.uint),
+#     numba.int64(numba.uint, numba.int64),
+#     numba.int64(numba.int64, numba.int64)
+# ], nopython = True)
+# def pack_a_bit(byte, bit):
+#     #return byte << 1 | bit
+#     #one = 1
+#     return np.bitwise_or(np.left_shift(byte, 1), bit)
 
 def from_bits(smooshed_bit_array):
     return pack_a_bit.reduce(smooshed_bit_array, axis=-1)
 
 
-# def from_bits(smooshed_bit_array):
-#     mantissa = np.asarray(smooshed_bit_array).shape[-1]
-#     possible_mantissas = np.array([8,16,32,64])
-#     effective_mantissa = possible_mantissas.compress(np.floor_divide(possible_mantissas, mantissa))[0]
-#     ready_for_viewing = np.packbits(np.flip(smooshed_bit_array, axis=-1), axis=-1, bitorder='little')
-#     final_dimension = ready_for_viewing.shape[-1]
-#     if mantissa<=8:
-#         return np.squeeze(ready_for_viewing, axis=-1)
-#     elif mantissa<=16:
-#         return np.squeeze(ready_for_viewing.view(np.uint16), axis=-1)
-#     elif mantissa <= 32:
-#         pad_size = 4-final_dimension
-#         if pad_size == 0:
-#             return np.squeeze(ready_for_viewing.view(np.uint32), axis=-1)
-#         else:
-#             npad = [(0, 0)] * ready_for_viewing.ndim
-#             npad[-1] = (0, pad_size)
-#             return np.squeeze(np.ascontiguousarray(
-#                 np.pad(ready_for_viewing, pad_width=npad, mode='constant', constant_values=0)
-#             ).view(np.uint32), axis=-1)
-#     elif mantissa <= 64:
-#         pad_size = 8-final_dimension
-#         if pad_size == 0:
-#             return np.squeeze(ready_for_viewing.view(np.uint64), axis=-1)
-#         else:
-#             npad = [(0, 0)] * ready_for_viewing.ndim
-#             npad[-1] = (0, pad_size)
-#             return np.squeeze(np.ascontiguousarray(
-#                 np.pad(ready_for_viewing, pad_width=npad, mode='constant', constant_values=0)
-#             ).view(np.uint64), axis=-1)
+def from_bits(smooshed_bit_array):
+    mantissa = np.asarray(smooshed_bit_array).shape[-1]
+    possible_mantissas = np.array([8,16,32,64])
+    effective_mantissa = possible_mantissas.compress(np.floor_divide(possible_mantissas, mantissa))[0]
+    ready_for_viewing = np.packbits(np.flip(smooshed_bit_array, axis=-1), axis=-1, bitorder='little')
+    final_dimension = ready_for_viewing.shape[-1]
+    if mantissa<=8:
+        return np.squeeze(ready_for_viewing, axis=-1)
+    elif mantissa<=16:
+        return np.squeeze(ready_for_viewing.view(np.uint16), axis=-1)
+    elif mantissa <= 32:
+        pad_size = 4-final_dimension
+        if pad_size == 0:
+            return np.squeeze(ready_for_viewing.view(np.uint32), axis=-1)
+        else:
+            npad = [(0, 0)] * ready_for_viewing.ndim
+            npad[-1] = (0, pad_size)
+            return np.squeeze(np.ascontiguousarray(
+                np.pad(ready_for_viewing, pad_width=npad, mode='constant', constant_values=0)
+            ).view(np.uint32), axis=-1)
+    elif mantissa <= 64:
+        pad_size = 8-final_dimension
+        if pad_size == 0:
+            return np.squeeze(ready_for_viewing.view(np.uint64), axis=-1)
+        else:
+            npad = [(0, 0)] * ready_for_viewing.ndim
+            npad[-1] = (0, pad_size)
+            return np.squeeze(np.ascontiguousarray(
+                np.pad(ready_for_viewing, pad_width=npad, mode='constant', constant_values=0)
+            ).view(np.uint64), axis=-1)
 
 def _from_digits(digits_array, base):
     return np.matmul(np.asarray(digits_array, np.uint), radix_converter(base))
@@ -129,32 +129,59 @@ def array_to_string(digits_array):
 def to_string_digits(integer, base):
     return array_to_string(to_digits(integer, base))
 
+def bitarray_to_int(bit_array):
+    bit_array_as_array = np.asarray(bit_array)
+    shape = bit_array_as_array.shape
+    (numrows, numcolumns) = shape[-2:]
+    # return from_digits(
+    #     from_bits(bit_array_as_array),
+    #     np.broadcast_to(2**numcolumns, numrows))
+    return from_bits(bit_array_as_array.reshape(shape[:-2]+(numrows * numcolumns,)))
+
+# def int_to_bitarray_old(integer, numcolumns):
+#     numrows = -np.floor_divide(-np.log(integer), np.log(2**numcolumns)).astype(int).max()
+#     return to_bits(
+#         to_digits(
+#             integer,
+#             np.broadcast_to(2**numcolumns, numrows)
+#         ), numcolumns)
+
+def int_to_bitarray(integer, numcolumns):
+    numrows = -np.floor_divide(-np.log(integer), np.log(2**numcolumns)).astype(int).max()
+    return np.reshape(to_bits(integer, numrows * numcolumns), np.asarray(integer).shape + (numrows,numcolumns))
+
+
+
 
 if __name__ == '__main__':
     integers = [[234, 1237, 543, 23], [53, 234, 732, 123]]
     base = (2, 3, 2, 3, 4, 2, 2, 3, 2)
-    digits_array = to_digits(integers, base)
-    print(to_digits(integers, base))
-    print(to_string_digits(integers, base))
-    print(np.array_equiv(integers, from_digits(to_digits(integers, base), base)))
+    # digits_array = to_digits(integers, base)
+    # print(to_digits(integers, base))
+    # print(to_string_digits(integers, base))
+    # print(np.array_equiv(integers, from_digits(to_digits(integers, base), base)))
     print(np.array_equiv(integers, from_string_digits(to_string_digits(integers, base), base)))
-    integers = 1237
-    print(to_digits(integers,base))
-    print(from_digits(to_digits(integers,base),base))
+    # integers = 1237
+    # print(to_digits(integers,base))
+    # print(from_digits(to_digits(integers,base),base))
+    #
+    # integers = [[234, 1237, 543, 23], [53, 234, 732, 123]]
+    # base =np.broadcast_to(2,11)
+    # digits_array = to_digits(integers, base)
+    # print(to_digits(integers, base))
+    # print(to_string_digits(integers, base))
+    # print(np.array_equiv(integers, from_digits(to_digits(integers, base), base)))
+    # print(np.array_equiv(integers, from_string_digits(to_string_digits(integers, base), base)))
+    # integers = 1237
+    # print(to_digits(integers,base))
+    # print(from_digits(to_digits(integers,base),base))
+    #
+    # print(from_digits([],base))
+    # print(to_digits([], base))
+    #print(int_to_bitarray(integers, 11))
+    print(np.array_equiv(integers, bitarray_to_int(int_to_bitarray(integers, 11))))
 
-    integers = [[234, 1237, 543, 23], [53, 234, 732, 123]]
-    base =np.broadcast_to(2,11)
-    digits_array = to_digits(integers, base)
-    print(to_digits(integers, base))
-    print(to_string_digits(integers, base))
-    print(np.array_equiv(integers, from_digits(to_digits(integers, base), base)))
-    print(np.array_equiv(integers, from_string_digits(to_string_digits(integers, base), base)))
-    integers = 1237
-    print(to_digits(integers,base))
-    print(from_digits(to_digits(integers,base),base))
 
-    print(from_digits([],base))
-    print(to_digits([], base))
 
 
 
