@@ -45,6 +45,9 @@ def hypergraph_to_int(integers_hypergraph):
     # return hypergraph_to_canonical_tuples(integers_hypergraph)
     return bitarray_to_int(hypergraph_to_bitarray(integers_hypergraph)).tolist()
 
+def representatives(eqclasses):
+    eqclasses_copy = eqclasses.copy()
+    return [eqclass.pop() for eqclass in eqclasses_copy]
 
 
 if __name__ == '__main__':

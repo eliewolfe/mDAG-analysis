@@ -7,7 +7,7 @@ import scipy.special #For binomial coefficient
 from mDAG import mDAG
 from operator import itemgetter
 # from radix import bitarray_to_int
-from utilities import partsextractor, nx_to_int, hypergraph_to_int
+from utilities import partsextractor, nx_to_int, hypergraph_to_int, representatives
 
 from sys import hexversion
 
@@ -104,16 +104,29 @@ class Observable_mDAGs:
     def num_simplicial_complices(self):
         return len(self.all_simplicial_complices)
 
-    @cached_property
-    def all_indexed_mDAGs(self):
-        return [(mDAG(directed_structure, list(simplicial_complex), complex_extended=True), s, d)
-                for s, simplicial_complex in enumerate(self.all_simplicial_complices)
-                for d, directed_structure in enumerate(self.all_directed_structures)
-                ]
+
+
+    # @cached_property
+    # def all_indexed_mDAGs(self):
+    #     return [(mDAG(directed_structure, list(simplicial_complex), complex_extended=True), s, d)
+    #             for s, simplicial_complex in enumerate(self.all_simplicial_complices)
+    #             for d, directed_structure in enumerate(self.all_directed_structures)
+    #             ]
+    #
 
     @cached_property
+    def dict_ind_mDAGs(self):
+        return {(s, d): mDAG(directed_structure, list(simplicial_complex), complex_extended=True)
+                for s, simplicial_complex in enumerate(self.all_simplicial_complices)
+                for d, directed_structure in enumerate(self.all_directed_structures)
+                }
+
+    def lookup_mDAG(self, indices):
+        return partsextractor(self.dict_ind_mDAGs, indices)
+    #
+    @property
     def all_mDAGs(self):
-        return [mDAG for (mDAG, s, d) in self.all_indexed_mDAGs]
+        return self.dict_ind_mDAGs.values()
 
     @staticmethod
     def can_D1_simulate_D2(D1, D2):
@@ -158,21 +171,22 @@ class Observable_mDAGs:
         return [(first[0], second[0]) for first, second in permutations(enumerate(self.all_simplicial_complices), 2) if
                 self.can_S1_simulate_S2(first[1], second[1])]
 
-    def lookup_mDAG(self, indices):
-        # Untested. I think this works well for for multiple sets of indices, may need some wrapping if only one set of indices is given.
-        return itemgetter(
-            *np.ravel_multi_index(np.array(indices).T, (self.num_simplicial_complices, self.num_directed_structures)))(
-            self.all_mDAGs)
 
-    def lookup_mDAGs(self, multiple_indices):
-        as_array = np.array(list(multiple_indices))
-        looked_up = itemgetter(
-            *np.ravel_multi_index(as_array.T, (self.num_simplicial_complices, self.num_directed_structures)))(
-            self.all_mDAGs)
-        if as_array.__len__() == 1:
-            return [looked_up]
-        else:
-            return looked_up
+    # def lookup_mDAG(self, indices):
+    #     # Untested. I think this works well for for multiple sets of indices, may need some wrapping if only one set of indices is given.
+    #     return itemgetter(
+    #         *np.ravel_multi_index(np.array(indices).T, (self.num_simplicial_complices, self.num_directed_structures)))(
+    #         self.all_mDAGs)
+    #
+    # def lookup_mDAGs(self, multiple_indices):
+    #     as_array = np.array(list(multiple_indices))
+    #     looked_up = itemgetter(
+    #         *np.ravel_multi_index(as_array.T, (self.num_simplicial_complices, self.num_directed_structures)))(
+    #         self.all_mDAGs)
+    #     if as_array.__len__() == 1:
+    #         return [looked_up]
+    #     else:
+    #         return looked_up
 
     @cached_property
     def meta_graph_nodes(self):
@@ -180,6 +194,40 @@ class Observable_mDAGs:
                 for s in range(self.num_simplicial_complices)
                 for d in range(self.num_directed_structures)
                 ]
+
+    @property
+    def meta_graph_symmetry_edges(self):
+        for ((s, d), mDAG) in self.dict_ind_mDAGs.items():
+            for mDAG2 in mDAG.generate_symmetric_variants:
+                d2 = self.lookup_directed_structure_index(mDAG2)
+                s2 = self.lookup_simplicial_complex_index(mDAG2)
+                yield ((s2, d2), (s, d))
+
+    @cached_property
+    def symmetry_graph(self):
+        g = nx.DiGraph()
+        g.add_nodes_from(self.meta_graph_nodes)
+        print('Adding symmetry relations...')
+        g.add_edges_from(self.meta_graph_symmetry_edges)
+        return g
+
+    @cached_property
+    def symmetry_classes(self):
+        return list(nx.strongly_connected_components(self.symmetry_graph))
+
+    @cached_property
+    def symmetry_representatives(self):
+        return representatives(self.symmetry_classes)
+
+    @cached_property
+    def dict_ind_unlabelled_mDAGs(self):
+        return dict(zip(self.symmetry_representatives, self.lookup_mDAG(self.symmetry_representatives)))
+
+    @property
+    def all_unlabelled_mDAGs(self):
+        return self.dict_ind_unlabelled_mDAGs.values()
+
+
 
 
     @property
@@ -194,7 +242,7 @@ class Observable_mDAGs:
 
     @property
     def safe_meta_graph_undirected_edges(self):
-        for (mDAG, s, d) in self.all_indexed_mDAGs:
+        for ((s, d), mDAG) in self.dict_ind_mDAGs.items():
             for mDAG2 in mDAG.generate_weaker_mDAG_HLP:  # Generates AT MOST ONE alternate directed structure
                 d2 = self.lookup_directed_structure_index(mDAG2)
                 yield ((s, d2), (s, d))
@@ -204,26 +252,15 @@ class Observable_mDAGs:
 
     @property
     def meta_graph_undirected_edges(self):
-        for (mDAG, s, d) in self.all_indexed_mDAGs:
-            for mDAG2 in mDAG.generate_weaker_mDAG_HLP:  # Generates AT MOST ONE alternate directed structure
+        for ((s, d), mDAG) in self.dict_ind_unlabelled_mDAGs.items():  # NEW: Over graph patterns only
+            for mDAG2 in mDAG.generate_weaker_mDAG_HLP:
                 d2 = self.lookup_directed_structure_index(mDAG2)
                 yield ((s, d2), (s, d))
             for mDAG2 in mDAG.generate_weaker_mDAGs_FaceSplitting_Simultaneous:
                 s2 = self.lookup_simplicial_complex_index(mDAG2)
                 yield ((s2, d), (s, d))
-            # #And to account for relabellings...
-            # for mDAG2 in mDAG.generate_symmetric_variants:
-            #     d2 = self.lookup_directed_structure_index(mDAG2)
-            #     s2 = self.lookup_simplicial_complex_index(mDAG2)
-            #     yield ((s2, d2), (s, d))
 
-    @property
-    def meta_graph_symmetry_edges(self):
-        for (mDAG, s, d) in self.all_indexed_mDAGs:
-            for mDAG2 in mDAG.generate_symmetric_variants:
-                d2 = self.lookup_directed_structure_index(mDAG2)
-                s2 = self.lookup_simplicial_complex_index(mDAG2)
-                yield ((s2, d2), (s, d))
+
 
 
     @cached_property
@@ -233,15 +270,6 @@ class Observable_mDAGs:
         g.add_edges_from(self.meta_graph_directed_edges)
         g.add_edges_from(self.safe_meta_graph_undirected_edges)
         return g
-
-    @cached_property
-    def symmetry_graph(self):
-        g = nx.DiGraph()
-        g.add_nodes_from(self.meta_graph_nodes)
-        print('Adding symmetry relations...')
-        g.add_edges_from(self.meta_graph_symmetry_edges)
-        return g
-
 
     @cached_property
     def meta_graph(self):
@@ -271,9 +299,6 @@ class Observable_mDAGs:
                 break
         return False
 
-    @cached_property
-    def dict_ind_mDAGs(self):
-        return {(s, d): mDAG for (mDAG, s, d) in self.all_indexed_mDAGs}
 
     def CI_classes(self):
         dict_CI_relations = {}

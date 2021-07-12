@@ -22,21 +22,20 @@ if __name__ == '__main__':
 
 
     #Let's also think about fundamentality.
+    n = 4
+    Observable_mDAGs = Observable_mDAGs(n)
+    print("Number of unlabelled graph patterns: ", len(Observable_mDAGs.all_unlabelled_mDAGs))
+    fundamental_list = [mDAG.fundamental_graphQ for mDAG in Observable_mDAGs.all_unlabelled_mDAGs]
+    print("Number of fundamental unlabelled graph patterns: ", len(np.flatnonzero(fundamental_list)))
 
-    Observable_mDAGs3 = Observable_mDAGs(3)
-    Observable_mDAGs4 = Observable_mDAGs(4)
+    eqclasses = Observable_mDAGs.equivalence_classes
+    print("Upper bound on number of equivalence classes: ", len(eqclasses))
+    unlabelled_eqclasses = [eqclass.intersection(Observable_mDAGs.symmetry_representatives) for eqclass in eqclasses]
 
-    fundamental_list = [mDAG.fundamental_graphQ for mDAG in Observable_mDAGs4.all_mDAGs]
-    print(len(fundamental_list))
-    print(len(np.flatnonzero(fundamental_list)))
-
-    eqclasses3 = Observable_mDAGs3.equivalence_classes
-    # eqclasses4 = Observable_mDAGs4.equivalence_classes
-    print(len(eqclasses3))
 
     # # foundational_eqclasses = [eqclass for eqclass in eqclasses4 if (len(eqclass)==1 and Observable_mDAGs4.lookup_mDAG(list(eqclass)).fundamental_graphQ) or (len(eqclass)>1 and all(mDAG.fundamental_graphQ for mDAG in Observable_mDAGs4.lookup_mDAG(list(eqclass))))]
-    # foundational_eqclasses = [eqclass for eqclass in eqclasses4 if all(mDAG.fundamental_graphQ for mDAG in Observable_mDAGs4.lookup_mDAGs(eqclass))]
-    # print(len(foundational_eqclasses))
+    foundational_eqclasses = [eqclass for eqclass in unlabelled_eqclasses if all(mDAG.fundamental_graphQ for mDAG in Observable_mDAGs.lookup_mDAG(eqclass))]
+    print("Upper bound on number of 100% foundational equivalence classes: ", len(foundational_eqclasses))
 
     # #Let's confirm that e-separation relations are invariant across every eq class
     # #CONFIRMED, hence commented out.
