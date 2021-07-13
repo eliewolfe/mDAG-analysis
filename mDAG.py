@@ -96,6 +96,10 @@ class mDAG:
             zip(itertools.repeat(i), children) for i, children in zip(self.latent_nodes, self.extended_simplicial_complex)))
         return g
 
+    @cached_property
+    def relative_complexity_for_sat_solver(self):  # choose eqclass representative which minimizes this
+        return self.as_graph.number_of_edges()
+
     # @cached_property
     # def as_extended_graph(self):  #This fills in the singleton variables
     #     g = self.as_graph.copy()
@@ -158,8 +162,6 @@ class mDAG:
         return mdag_to_canonical_int(self.directed_structure_as_bitarray, self.simplicial_complex_as_bitarray)
 
 
-
-
     def infeasible_binary_supports_n_events(self, n):
         return SupportTesting(self.parents_of_for_supports_analysis,
                               np.broadcast_to(2, self.number_of_visible),
@@ -199,13 +201,12 @@ class mDAG:
         #         nx.weakly_connected_components(self.simplicial_complex_as_graph)]
         return merge_intersection(self.extended_simplicial_complex)
 
-
-    @staticmethod
-    def graph_to_string(g,order):
-        numnodes = g.number_of_nodes()
-        adjmat = nx.to_numpy_array(g, nodelist=order, dtype=np.bool_)
-        flatmat = np.hstack([np.diag(adjmat, i) for i in np.arange(-numnodes+1,numnodes)])
-        return tuple(flatmat)
+    # @staticmethod
+    # def graph_to_string(g,order):
+    #     numnodes = g.number_of_nodes()
+    #     adjmat = nx.to_numpy_array(g, nodelist=order, dtype=np.bool_)
+    #     flatmat = np.hstack([np.diag(adjmat, i) for i in np.arange(-numnodes+1,numnodes)])
+    #     return tuple(flatmat)
 
     @staticmethod
     def _all_2_vs_any_partitions(variables_to_partition):
