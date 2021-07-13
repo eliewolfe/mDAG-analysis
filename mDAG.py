@@ -5,7 +5,7 @@ import itertools
 from merge import merge_intersection
 from more_itertools import ilen, chunked
 # from radix import bitarray_to_int
-from utilities import partsextractor, nx_to_int, hypergraph_to_int
+from utilities import partsextractor, nx_to_bitarray, hypergraph_to_bitarray, mdag_to_int, mdag_to_canonical_int
 
 from sys import hexversion
 
@@ -40,7 +40,8 @@ class mDAG:
         self.number_of_visible: int = self.directed_structure.number_of_nodes()
 
         self.directed_structure_as_list = sorted(self.directed_structure.edges())
-        self.directed_structure_as_int = nx_to_int(self.directed_structure)
+        self.directed_structure_as_bitarray = nx_to_bitarray(self.directed_structure)
+        # self.directed_structure_as_int = nx_to_int(self.directed_structure)
         self.visible_nodes = sorted(self.directed_structure.nodes())
 
         # Putting singleton latents on the nodes that originally have no latent parents:
@@ -134,11 +135,29 @@ class mDAG:
     #         r[i, self.as_integer_labels(lp)] = True
     #     return r[np.lexsort(r.T)]
 
+    # @cached_property
+    # def simplicial_complex_as_int(self):
+    #     # return bitarray_to_int(self.simplicial_complex_as_mat).tolist()
+    #     # return hypergraph_to_int(list(map(self.as_integer_labels, self.extended_simplicial_complex)))
+    #     return hypergraph_to_int(self.extended_simplicial_complex) #Assumes observed variables are integers!
+
     @cached_property
-    def simplicial_complex_as_int(self):
-        # return bitarray_to_int(self.simplicial_complex_as_mat).tolist()
-        # return hypergraph_to_int(list(map(self.as_integer_labels, self.extended_simplicial_complex)))
-        return hypergraph_to_int(self.extended_simplicial_complex) #Assumes observed variables are integers!
+    def simplicial_complex_as_bitarray(self):
+        return hypergraph_to_bitarray(self.extended_simplicial_complex) #Assumes observed variables are integers!
+
+    @cached_property
+    def unique_id(self):
+        # Returns a unique identification number.
+        # return int.from_bytes(bytearray(self.__repr__().encode('UTF-8')), byteorder='big', signed=True)
+        return mdag_to_int(self.directed_structure_as_bitarray, self.simplicial_complex_as_bitarray)
+
+    @cached_property
+    def unique_unlabelled_id(self):
+        # Returns a unique identification number.
+        # return int.from_bytes(bytearray(self.__repr__().encode('UTF-8')), byteorder='big', signed=True)
+        return mdag_to_canonical_int(self.directed_structure_as_bitarray, self.simplicial_complex_as_bitarray)
+
+
 
 
     def infeasible_binary_supports_n_events(self, n):
@@ -180,10 +199,6 @@ class mDAG:
         #         nx.weakly_connected_components(self.simplicial_complex_as_graph)]
         return merge_intersection(self.extended_simplicial_complex)
 
-    @cached_property
-    def unique_id(self):
-        # Returns a unique identification number.
-        return int.from_bytes(bytearray(self.__repr__().encode('UTF-8')), byteorder='big', signed=True)
 
     @staticmethod
     def graph_to_string(g,order):
