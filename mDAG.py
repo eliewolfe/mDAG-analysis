@@ -231,6 +231,14 @@ class mDAG:
     def all_CI(self):
         return set(self._all_CI_generator)
 
+    @cached_property
+    def all_CI_unlabelled(self):
+        return set([frozenset([tuple([frozenset(np.take(perm, list(variable_set)))
+                    for variable_set in dsep_relation])
+                    for dsep_relation in self.all_CI])
+                    for perm in
+             itertools.permutations(self.visible_nodes)]).pop()
+
     @property
     def _all_e_sep_generator(self):
         for r in range(self.number_of_visible-1):

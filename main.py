@@ -37,6 +37,8 @@ if __name__ == '__main__':
     # # foundational_eqclasses = [eqclass for eqclass in eqclasses4 if (len(eqclass)==1 and Observable_mDAGs4.lookup_mDAG(list(eqclass)).fundamental_graphQ) or (len(eqclass)>1 and all(mDAG.fundamental_graphQ for mDAG in Observable_mDAGs4.lookup_mDAG(list(eqclass))))]
     foundational_eqclasses = [eqclass for eqclass in eqclasses if all(mDAG.fundamental_graphQ for mDAG in Observable_mDAGs.lookup_mDAG(eqclass))]
     print("Upper bound on number of 100% foundational equivalence classes: ", len(foundational_eqclasses), flush=True)
+    semi_foundational_eqclasses = [eqclass for eqclass in eqclasses if any(mDAG.fundamental_graphQ for mDAG in Observable_mDAGs.lookup_mDAG(eqclass))]
+    print("Upper bound on number of partially foundational equivalence classes: ", len(semi_foundational_eqclasses), flush=True)
 
 
 
