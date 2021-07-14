@@ -37,8 +37,9 @@ def hypergraph_to_canonical_tuples(hypergraph):
 def hypergraph_to_bitarray(integers_hypergraph): #Now works with sets.
     #nof_nodes = np.hstack(integers_hypergraph).max() + 1
     nof_nodes = max(map(max, integers_hypergraph)) + 1
-    r = np.zeros((len(integers_hypergraph), nof_nodes), dtype=bool)
-    for i, lp in enumerate(integers_hypergraph):
+    integers_hypergraph_compressed = [list(lp) for lp in integers_hypergraph if len(lp)>1]
+    r = np.zeros((len(integers_hypergraph_compressed), nof_nodes), dtype=bool)
+    for i, lp in enumerate(integers_hypergraph_compressed):
         r[i, list(lp)] = True
     return r[np.lexsort(r.T)]
 

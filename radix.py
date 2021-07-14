@@ -54,34 +54,37 @@ def to_bits(integers, mantissa):
 
 def from_bits(smooshed_bit_array):
     mantissa = np.asarray(smooshed_bit_array).shape[-1]
-    possible_mantissas = np.array([8,16,32,64])
-    effective_mantissa = possible_mantissas.compress(np.floor_divide(possible_mantissas, mantissa))[0]
-    ready_for_viewing = np.packbits(np.flip(smooshed_bit_array, axis=-1), axis=-1, bitorder='little')
-    final_dimension = ready_for_viewing.shape[-1]
-    if mantissa<=8:
-        return np.squeeze(ready_for_viewing, axis=-1)
-    elif mantissa<=16:
-        return np.squeeze(ready_for_viewing.view(np.uint16), axis=-1)
-    elif mantissa <= 32:
-        pad_size = 4-final_dimension
-        if pad_size == 0:
-            return np.squeeze(ready_for_viewing.view(np.uint32), axis=-1)
-        else:
-            npad = [(0, 0)] * ready_for_viewing.ndim
-            npad[-1] = (0, pad_size)
-            return np.squeeze(np.ascontiguousarray(
-                np.pad(ready_for_viewing, pad_width=npad, mode='constant', constant_values=0)
-            ).view(np.uint32), axis=-1)
-    elif mantissa <= 64:
-        pad_size = 8-final_dimension
-        if pad_size == 0:
-            return np.squeeze(ready_for_viewing.view(np.uint64), axis=-1)
-        else:
-            npad = [(0, 0)] * ready_for_viewing.ndim
-            npad[-1] = (0, pad_size)
-            return np.squeeze(np.ascontiguousarray(
-                np.pad(ready_for_viewing, pad_width=npad, mode='constant', constant_values=0)
-            ).view(np.uint64), axis=-1)
+    if mantissa > 0:
+        possible_mantissas = np.array([8,16,32,64])
+        effective_mantissa = possible_mantissas.compress(np.floor_divide(possible_mantissas, mantissa))[0]
+        ready_for_viewing = np.packbits(np.flip(smooshed_bit_array, axis=-1), axis=-1, bitorder='little')
+        final_dimension = ready_for_viewing.shape[-1]
+        if mantissa<=8:
+            return np.squeeze(ready_for_viewing, axis=-1)
+        elif mantissa<=16:
+            return np.squeeze(ready_for_viewing.view(np.uint16), axis=-1)
+        elif mantissa <= 32:
+            pad_size = 4-final_dimension
+            if pad_size == 0:
+                return np.squeeze(ready_for_viewing.view(np.uint32), axis=-1)
+            else:
+                npad = [(0, 0)] * ready_for_viewing.ndim
+                npad[-1] = (0, pad_size)
+                return np.squeeze(np.ascontiguousarray(
+                    np.pad(ready_for_viewing, pad_width=npad, mode='constant', constant_values=0)
+                ).view(np.uint32), axis=-1)
+        elif mantissa <= 64:
+            pad_size = 8-final_dimension
+            if pad_size == 0:
+                return np.squeeze(ready_for_viewing.view(np.uint64), axis=-1)
+            else:
+                npad = [(0, 0)] * ready_for_viewing.ndim
+                npad[-1] = (0, pad_size)
+                return np.squeeze(np.ascontiguousarray(
+                    np.pad(ready_for_viewing, pad_width=npad, mode='constant', constant_values=0)
+                ).view(np.uint64), axis=-1)
+    else:
+        return np.zeros(np.asarray([]).shape[:-2],dtype=int)
 
 def _from_digits(digits_array, base):
     return np.matmul(np.asarray(digits_array, np.uint), radix_converter(base))
