@@ -130,7 +130,7 @@ def to_string_digits(integer, base):
     return array_to_string(to_digits(integer, base))
 
 def bitarray_to_int(bit_array):
-    bit_array_as_array = np.flip(np.asarray(bit_array),axis=-2)
+    bit_array_as_array = np.asarray(bit_array)
     shape = bit_array_as_array.shape
     (numrows, numcolumns) = shape[-2:]
     # return from_digits(
@@ -138,17 +138,9 @@ def bitarray_to_int(bit_array):
     #     np.broadcast_to(2**numcolumns, numrows))
     return from_bits(bit_array_as_array.reshape(shape[:-2]+(numrows * numcolumns,)))
 
-# def int_to_bitarray_old(integer, numcolumns):
-#     numrows = -np.floor_divide(-np.log(integer), np.log(2**numcolumns)).astype(int).max()
-#     return to_bits(
-#         to_digits(
-#             integer,
-#             np.broadcast_to(2**numcolumns, numrows)
-#         ), numcolumns)
-
 def int_to_bitarray(integer, numcolumns):
     numrows = -np.floor_divide(-np.log(integer+1), np.log(2**numcolumns)).astype(int).max() #Danger border case
-    return np.flip(np.reshape(to_bits(integer, numrows * numcolumns), np.asarray(integer).shape + (numrows, numcolumns)),axis=-2)
+    return np.reshape(to_bits(integer, numrows * numcolumns), np.asarray(integer).shape + (numrows, numcolumns))
 
 
 

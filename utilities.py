@@ -34,8 +34,9 @@ def hypergraph_to_canonical_tuples(hypergraph):
     return tuple(sorted(map(lambda s: tuple(sorted(s)), hypergraph)))
 
 
-def hypergraph_to_bitarray(integers_hypergraph):
-    nof_nodes = np.hstack(integers_hypergraph).max() + 1
+def hypergraph_to_bitarray(integers_hypergraph): #Now works with sets.
+    #nof_nodes = np.hstack(integers_hypergraph).max() + 1
+    nof_nodes = max(map(max, integers_hypergraph)) + 1
     r = np.zeros((len(integers_hypergraph), nof_nodes), dtype=bool)
     for i, lp in enumerate(integers_hypergraph):
         r[i, list(lp)] = True
@@ -62,18 +63,8 @@ def representatives(eqclasses):
     return [eqclass.pop() for eqclass in eqclasses_copy]
 
 def mdag_to_int(ds_bitarray, sc_bitarray):
-    # nof_observed = len(ds_bitarray)
-    # unique_id = bitarray_to_int(np.vstack((sc_bitarray, ds_bitarray))).tolist()
-    # assert unique_id == bitarray_to_int(ds_bitarray).astype(np.ulonglong) + ((2**(nof_observed**2)) * bitarray_to_int(sc_bitarray).astype(np.ulonglong)), (
-    #     np.vstack((sc_bitarray, ds_bitarray)).astype(int),
-    #     unique_id,
-    #     bitarray_to_int(ds_bitarray),
-    #     bitarray_to_int(sc_bitarray),
-    #     bitarray_to_int(ds_bitarray).astype(np.ulonglong) + (
-    #                 (2 ** (nof_observed ** 2)) * bitarray_to_int(sc_bitarray).astype(np.ulonglong))
-    # )
-    #return bitarray_to_int(np.vstack((sc_bitarray, ds_bitarray))).astype(np.ulonglong).tolist()
-    return bitarray_to_int(np.vstack((ds_bitarray, sc_bitarray))).astype(np.ulonglong).tolist()
+    return bitarray_to_int(np.vstack((sc_bitarray, ds_bitarray))).astype(np.ulonglong).tolist()
+    #return bitarray_to_int(np.vstack((ds_bitarray, sc_bitarray))).astype(np.ulonglong).tolist()
 
 def bitarrays_permutations(ds_bitarray, sc_bitarray):
     nof_observed = len(ds_bitarray)

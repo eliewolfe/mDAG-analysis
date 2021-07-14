@@ -4,7 +4,7 @@ import numpy as np
 import itertools
 from merge import merge_intersection
 from more_itertools import ilen, chunked
-# from radix import bitarray_to_int
+from radix import bitarray_to_int
 from utilities import partsextractor, nx_to_bitarray, hypergraph_to_bitarray, mdag_to_int, mdag_to_canonical_int
 
 from sys import hexversion
@@ -424,15 +424,25 @@ class mDAG:
             yield new_mDAG
 
     @cached_property
+    def skeleton_bitarray(self):
+        # new_directed_structure = self.directed_structure.to_undirected()
+        # for hyperedge in self.simplicial_complex:
+        #     new_directed_structure.add_edges_from(itertools.combinations(hyperedge,2))
+        # skeleton_array = nx_to_bitarray(new_directed_structure)
+        # skeleton_array = skeleton_array.compress(skeleton_array.sum(axis=1) > 1, axis=0)
+        # return skeleton_array[np.lexsort(skeleton_array.T)]
+        return hypergraph_to_bitarray(merge_intersection(self.directed_structure_as_list +  self.simplicial_complex))
+
+    @cached_property
     def skeleton(self):
-        new_directed_structure = self.directed_structure.to_undirected()
-        for hyperedge in self.simplicial_complex:
-            new_directed_structure.add_edges_from(itertools.combinations(hyperedge,2))
-        return new_directed_structure
+        return bitarray_to_int(self.skeleton_bitarray).astype(np.ulonglong).tolist()
+        # return frozentset(map(frozenset,merge_intersection(self.directed_structure_as_list +  self.simplicial_complex)))
+
 
     @cached_property
     def skeleton_unlabelled(self):
         # return min([sorted(map(sorted,np.take(perm,self.skeleton.edges())))
-        #             for perm in itertools.permutations(self.visible_nodes)])
-        return set([frozenset(map(frozenset, np.take(perm, self.skeleton.edges()))) for perm in
-             itertools.permutations(self.visible_nodes)]).pop()
+        #              for perm in itertools.permutations(self.visible_nodes)])
+        # return set([frozenset(map(frozenset, np.take(perm, self.skeleton))) for perm in
+             # itertools.permutations(self.visible_nodes)]).pop()
+        return bitarray_to_int([self.skeleton_bitarray[np.lexsort(self.skeleton_bitarray[:,perm].T)][:,perm] for perm in map(list, itertools.permutations(range(self.number_of_visible)))]).min().astype(np.ulonglong)
