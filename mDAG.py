@@ -6,6 +6,7 @@ from merge import merge_intersection
 from more_itertools import ilen, chunked
 from radix import bitarray_to_int
 from utilities import partsextractor, nx_to_bitarray, hypergraph_to_bitarray, mdag_to_int, mdag_to_canonical_int
+from utilities import stringify_in_tuple, stringify_in_list, stringify_in_set
 
 from sys import hexversion
 
@@ -24,6 +25,7 @@ from collections import defaultdict
 from operator import itemgetter
 from supports import SupportTesting
 from esep_support import SmartSupportTesting
+
 
 class mDAG:
     def __init__(self, directed_structure, simplicial_complex, complex_extended=False):
@@ -57,26 +59,24 @@ class mDAG:
         self.latent_nodes = list(range(self.number_of_visible, self.number_of_nodes))
         self.all_nodes = self.visible_nodes + self.latent_nodes
 
-        self.stringify = lambda l: '(' + ','.join(map(str, l)) + ')'
+        #self.stringify = lambda l: '(' + ','.join(map(str, l)) + ')'
         # self.directed_structure_string = self.stringify(map(self.stringify,self.directed_structure_as_list))
         # self.directed_structure_string = self.stringify(str(i)+':'+self.stringify(v) for i,v in nx.to_dict_of_lists(self.directed_structure).items() if len(v)>0)
         # self.simplicial_complex_string = self.stringify(map(self.stringify,sorted(self.simplicial_complex)))
 
     @cached_property
     def directed_structure_string(self):
-        return self.stringify(
-            str(i) + ':' + self.stringify(v) for i, v in nx.to_dict_of_lists(self.directed_structure).items() if
+        return stringify_in_set(
+            str(i) + ':' + stringify_in_list(v) for i, v in nx.to_dict_of_lists(self.directed_structure).items() if
             len(v) > 0)
 
     @cached_property
     def simplicial_complex_string(self):
-        return self.stringify(map(self.stringify, sorted(self.extended_simplicial_complex)))
+        return stringify_in_list(map(stringify_in_tuple, sorted(self.extended_simplicial_complex)))
 
     @cached_property
     def mDAG_string(self):
         return self.directed_structure_string + '|' + self.simplicial_complex_string
-
-
 
     # def extended_simplicial_complex(self):
     #  # Returns the simplicial complex extended to include singleton sets.
@@ -93,7 +93,8 @@ class mDAG:
         g = self.directed_structure.copy()
         g.add_nodes_from(self.latent_nodes, type="Latent")
         g.add_edges_from(itertools.chain.from_iterable(
-            zip(itertools.repeat(i), children) for i, children in zip(self.latent_nodes, self.extended_simplicial_complex)))
+            zip(itertools.repeat(i), children) for i, children in
+            zip(self.latent_nodes, self.extended_simplicial_complex)))
         return g
 
     @cached_property
@@ -125,7 +126,6 @@ class mDAG:
     def as_integer_labels(self, labels):
         return partsextractor(self.translation_dict, labels)
 
-
     @cached_property
     def parents_of_for_supports_analysis(self):
         return [self.as_integer_labels(tuple(self.as_graph.predecessors(n))) for n in self.visible_nodes]
@@ -147,7 +147,7 @@ class mDAG:
 
     @cached_property
     def simplicial_complex_as_bitarray(self):
-        return hypergraph_to_bitarray(self.extended_simplicial_complex) #Assumes observed variables are integers!
+        return hypergraph_to_bitarray(self.extended_simplicial_complex)  # Assumes observed variables are integers!
 
     @cached_property
     def unique_id(self):
@@ -161,28 +161,29 @@ class mDAG:
         # return int.from_bytes(bytearray(self.__repr__().encode('UTF-8')), byteorder='big', signed=True)
         return mdag_to_canonical_int(self.directed_structure_as_bitarray, self.simplicial_complex_as_bitarray)
 
-
     def infeasible_binary_supports_n_events(self, n):
         return SupportTesting(self.parents_of_for_supports_analysis,
                               np.broadcast_to(2, self.number_of_visible),
                               n).unique_infeasible_supports(name='mgh', use_timer=False)
 
-    def smart_infeasible_binary_supports_n_events(self,n):
+    def smart_infeasible_binary_supports_n_events(self, n):
         return SmartSupportTesting(self.parents_of_for_supports_analysis,
-                              np.broadcast_to(2, self.number_of_visible),
-                              n, chunked(map(lambda vars: list(self.as_integer_labels(tuple(vars))), itertools.chain.from_iterable(self.all_esep)), 3)
-                              ).smart_unique_infeasible_supports(name='mgh', use_timer=False)
+                                   np.broadcast_to(2, self.number_of_visible),
+                                   n, chunked(map(lambda vars: list(self.as_integer_labels(tuple(vars))),
+                                                  itertools.chain.from_iterable(self.all_esep)), 3)
+                                   ).smart_unique_infeasible_supports(name='mgh', use_timer=False)
 
     def infeasible_binary_supports_n_events_unlabelled(self, n):
         return SupportTesting(self.parents_of_for_supports_analysis,
                               np.broadcast_to(2, self.number_of_visible),
                               n).unique_infeasible_supports_unlabelled(name='mgh', use_timer=False)
 
-    def smart_infeasible_binary_supports_n_events_unlabelled(self,n):
+    def smart_infeasible_binary_supports_n_events_unlabelled(self, n):
         return SmartSupportTesting(self.parents_of_for_supports_analysis,
-                              np.broadcast_to(2, self.number_of_visible),
-                              n, chunked(map(lambda vars: list(self.as_integer_labels(tuple(vars))), itertools.chain.from_iterable(self.all_esep)), 3)
-                              ).smart_unique_infeasible_supports_unlabelled(name='mgh', use_timer=False)
+                                   np.broadcast_to(2, self.number_of_visible),
+                                   n, chunked(map(lambda vars: list(self.as_integer_labels(tuple(vars))),
+                                                  itertools.chain.from_iterable(self.all_esep)), 3)
+                                   ).smart_unique_infeasible_supports_unlabelled(name='mgh', use_timer=False)
 
     @cached_property
     def simplicial_complex_as_graph(self):  # let directed_structure be a DAG initially without latents
@@ -232,36 +233,40 @@ class mDAG:
     def all_CI(self):
         return set(self._all_CI_generator)
 
+
+    def _all_CI_like_unlabelled_generator(self, attribute):
+        for perm in itertools.permutations(self.visible_nodes):
+            relabelling = dict(zip(self.visible_nodes, perm))
+            yield frozenset(
+                    tuple(
+                        frozenset(partsextractor(perm, variable_set))
+                        for variable_set in relation)
+                    for relation in self.__getattribute__(attribute))
+
     @cached_property
     def all_CI_unlabelled(self):
-        return min((frozenset([tuple([frozenset(np.take(perm, list(variable_set)))
-                    for variable_set in dsep_relation])
-                    for dsep_relation in self.all_CI])
-                    for perm in
-             itertools.permutations(self.visible_nodes)))
+        return min(self._all_CI_like_unlabelled_generator('all_CI'))
+
 
     @property
     def _all_e_sep_generator(self):
-        for r in range(self.number_of_visible-1):
+        for r in range(self.number_of_visible - 1):
             for to_delete in itertools.combinations(self.visible_nodes, r):
-                graph_copy=self.as_graph.copy() #Don't forget to copy!
+                graph_copy = self.as_graph.copy()  # Don't forget to copy!
                 graph_copy.remove_nodes_from(to_delete)
                 remaining = set(self.visible_nodes).difference(to_delete)
                 for x, y, Z in self._all_2_vs_any_partitions(tuple(remaining)):
                     if nx.d_separated(graph_copy, {x}, {y}, set(Z)):
                         yield frozenset([x, y]), frozenset(Z), frozenset(to_delete)
 
-    @cached_property #Behaving weird, get consumed unless wrapped in tuple
+    @cached_property  # Behaving weird, get consumed unless wrapped in tuple
     def all_esep(self):
         return set(self._all_e_sep_generator)
 
     @cached_property
     def all_esep_unlabelled(self):
-        return min((frozenset([tuple([frozenset(np.take(perm, list(variable_set)))
-                    for variable_set in esep_relation])
-                    for esep_relation in self.all_esep])
-                    for perm in
-             itertools.permutations(self.visible_nodes)))
+        return min(self._all_CI_like_unlabelled_generator('all_esep'))
+
 
     @cached_property
     def droppable_edges(self):
@@ -330,7 +335,6 @@ class mDAG:
             new_mDAG = self.__class__(self.directed_structure, new_simplicial_complex, complex_extended=True)
             yield new_mDAG
 
-
     @property  # Agressive conjucture of simultaneous face splitting
     # What does it mean to split simultanously? It means we consider intersections based on D...?
     def generate_weaker_mDAGs_FaceSplitting_Simultaneous(self):
@@ -393,10 +397,10 @@ class mDAG:
 
     @cached_property
     def fundamental_graphQ(self):
-        #Implement three conditions
-        district_lengths = np.fromiter(map(len,self.districts), np.int_)
+        # Implement three conditions
+        district_lengths = np.fromiter(map(len, self.districts), np.int_)
         # district_lengths = np.asarray(list(map(len, self.districts)))
-        common_cause_district_positions = np.flatnonzero(district_lengths>1)
+        common_cause_district_positions = np.flatnonzero(district_lengths > 1)
         if len(common_cause_district_positions) != 1:
             return False
         district_vertices = set(self.districts[common_cause_district_positions[0]])
@@ -404,7 +408,7 @@ class mDAG:
         for v in non_district_vertices:
             if set(self.directed_structure.successors(v)).isdisjoint(district_vertices):
                 return False
-            if ilen(self.directed_structure.predecessors(v))>0:
+            if ilen(self.directed_structure.predecessors(v)) > 0:
                 return False
         return True
 
@@ -418,23 +422,21 @@ class mDAG:
         for node_order in node_orders:
             new_directed_structure = nx.relabel_nodes(self.directed_structure, node_order.__getitem__)
             # print(self.extended_simplicial_complex)
-            new_simplicial_complex = [tuple(sorted(np.take(node_order,hyperedge))) for hyperedge in self.extended_simplicial_complex]
+            new_simplicial_complex = [tuple(sorted(np.take(node_order, hyperedge))) for hyperedge in
+                                      self.extended_simplicial_complex]
             # print(new_simplicial_complex)
-            new_mDAG = self.__class__(new_directed_structure, new_simplicial_complex , complex_extended=True)
+            new_mDAG = self.__class__(new_directed_structure, new_simplicial_complex, complex_extended=True)
             yield new_mDAG
 
     @cached_property
     def skeleton_bitarray(self):
-        # new_directed_structure = self.directed_structure.to_undirected()
-        # for hyperedge in self.simplicial_complex:
-        #     new_directed_structure.add_edges_from(itertools.combinations(hyperedge,2))
-        # skeleton_array = nx_to_bitarray(new_directed_structure)
-        # skeleton_array = skeleton_array.compress(skeleton_array.sum(axis=1) > 1, axis=0)
-        # return skeleton_array[np.lexsort(skeleton_array.T)]
-        simplicial_complex_as_nontriv_sets = [set(edge) for edge in self.simplicial_complex if len(edge)>1]
-        return hypergraph_to_bitarray(self.simplicial_complex + [
-            ds for ds in self.directed_structure_as_list if not any(
-                edge.issuperset(ds) for edge in simplicial_complex_as_nontriv_sets)])
+        skeleton_graph = self.directed_structure.to_undirected()
+        for hyperedge in self.simplicial_complex:
+            skeleton_graph.add_edges_from(itertools.combinations(hyperedge,2))
+        cliques =  list(nx.find_cliques(skeleton_graph))
+        # print(cliques)
+        # simplicial_complex_as_nontriv_sets = [set(clique) for clique in cliques if len(clique) > 1]
+        return hypergraph_to_bitarray(cliques)
         # return hypergraph_to_bitarray(merge_intersection(self.directed_structure_as_list +  self.simplicial_complex))
 
     @cached_property
@@ -442,11 +444,12 @@ class mDAG:
         return bitarray_to_int(self.skeleton_bitarray).astype(np.ulonglong).tolist()
         # return frozentset(map(frozenset,merge_intersection(self.directed_structure_as_list +  self.simplicial_complex)))
 
-
     @cached_property
     def skeleton_unlabelled(self):
         # return min([sorted(map(sorted,np.take(perm,self.skeleton.edges())))
         #              for perm in itertools.permutations(self.visible_nodes)])
         # return set([frozenset(map(frozenset, np.take(perm, self.skeleton))) for perm in
-             # itertools.permutations(self.visible_nodes)]).pop()
-        return bitarray_to_int([self.skeleton_bitarray[np.lexsort(self.skeleton_bitarray[:,perm].T)][:,perm] for perm in map(list, itertools.permutations(range(self.number_of_visible)))]).min().astype(np.ulonglong)
+        # itertools.permutations(self.visible_nodes)]).pop()
+        return bitarray_to_int(
+            [self.skeleton_bitarray[np.lexsort(self.skeleton_bitarray[:, perm].T)][:, perm] for perm in
+             map(list, itertools.permutations(range(self.number_of_visible)))]).min().astype(np.ulonglong)

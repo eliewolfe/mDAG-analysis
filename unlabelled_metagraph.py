@@ -437,29 +437,43 @@ class Observable_unlabelled_mDAGs:
         #     if x_and_y:
         #       Skeleton_and_esep.append(x_and_y)
         # return Skeleton_and_esep
+
+    def groupby_then_split_by(self, level1attributes, level2attributes):
+        d = defaultdict(set)
+        joint_attributes = level1attributes + level2attributes
+        critical_range = len(level1attributes)
+        for mDAG in self.representative_mDAGs_list:
+            d[tuple(mDAG.__getattribute__(prop) for prop in joint_attributes)].add(mDAG)
+        d2 = defaultdict(dict)
+        for key_tuple, partition in d.items():
+            d2[key_tuple[:critical_range]][key_tuple] = tuple(partition)
+        return [val for val in d2.values() if len(val)>1]
+
+
+
     
-    def is_mDAG_in_list(self, mDAG, l):
-        mDAG_id=mDAG.unique_unlabelled_id
-        for mDAG_l in l:
-            mDAG_l_id=mDAG_l.unique_unlabelled_id
-            if mDAG_l_id==mDAG_id:
-                return True
-        return False
+    # def is_mDAG_in_list(self, mDAG, l):
+    #     mDAG_id=mDAG.unique_unlabelled_id
+    #     for mDAG_l in l:
+    #         mDAG_l_id=mDAG_l.unique_unlabelled_id
+    #         if mDAG_l_id==mDAG_id:
+    #             return True
+    #     return False
     
     #examples of mDAGs that are shown inequivalent by comparison1 but not by comparison2
-    def Example_searcher(self, classes_comparison1, classes_comparison2):
-        for (prop2_v1, prop2_v2) in itertools.combinations(classes_comparison2):
-            for prop1 in classes_comparison1:
-                overlap_v1 = prop2_v1.intersection(prop1)
-                if len(overlap_v1)>=1:
-                    overlap_v2 = prop2_v2.intersection(prop1)
-                    if len(overlap_v2)>=1:
-                        for pair in itertools.product(overlap_v1, overlap_v2):
-                            yield pair
-                    else:
-                        break
-                else:
-                    break
+    # def Example_searcher(self, classes_comparison1, classes_comparison2):
+    #     for (prop2_v1, prop2_v2) in itertools.combinations(classes_comparison1, 2):
+    #         for prop1 in classes_comparison2:
+    #             overlap_v1 = prop2_v1.intersection(prop1)
+    #             if len(overlap_v1)>=1:
+    #                 overlap_v2 = prop2_v2.intersection(prop1)
+    #                 if len(overlap_v2)>=1:
+    #                     for pair in itertools.product(overlap_v1, overlap_v2):
+    #                         yield pair
+    #                 else:
+    #                     break
+    #             else:
+    #                 break
         # for class1 in classes_comparison1:
         #     if class1 not in classes_comparison2:
         #         for mDAG1 in class1:

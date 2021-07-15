@@ -60,8 +60,11 @@ def hypergraph_to_int(integers_hypergraph):
 
 
 def representatives(eqclasses):
-    eqclasses_copy = eqclasses.copy()
-    return [eqclass.pop() for eqclass in eqclasses_copy]
+    return [next(iter(eqclass)) for eqclass in eqclasses]
+
+def convert_eqclass_dict_to_representatives_dict(d):
+        for k, v in d.items():
+            d[k] = next(iter(v))
 
 def mdag_to_int(ds_bitarray, sc_bitarray):
     return bitarray_to_int(np.vstack((sc_bitarray, ds_bitarray))).astype(np.ulonglong).tolist()
@@ -87,6 +90,12 @@ def mdag_to_canonical_int(ds_bitarray, sc_bitarray):
     #      perm in map(list, itertools.permutations(range(nof_observed))))
     return min(bitarrays_permutations(ds_bitarray, sc_bitarray))
 
+def stringify_in_tuple(l):
+    return '(' + ','.join(map(str, l)) + ')'
+def stringify_in_list(l):
+    return '[' + ','.join(map(str, l)) + ']'
+def stringify_in_set(l):
+    return '{' + ','.join(map(str, l)) + '}'
 
 
 

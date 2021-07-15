@@ -7,6 +7,7 @@ from unlabelled_metagraph import Observable_unlabelled_mDAGs
 # from mDAG import mDAG
 # import networkx as nx
 # import json
+from utilities import convert_eqclass_dict_to_representatives_dict
 
 
 if __name__ == '__main__':
@@ -42,9 +43,24 @@ if __name__ == '__main__':
 
     print("Number of CI classes: ", len(Observable_mDAGs.CI_classes()))
     print("Number of Skeleton classes: ", len(Observable_mDAGs.Skeleton_classes()))
-    print("Number of Skeleton+CI classes: ", len(Observable_mDAGs.Skeleton_classes()))
-    print("Number of ESEP classes: ", len(Observable_mDAGs.Skeleton_and_CI()))
+    print("Number of Skeleton+CI classes: ", len(Observable_mDAGs.Skeleton_and_CI()))
+    print("Number of ESEP classes: ", len(Observable_mDAGs.esep_classes()))
     print("Number of Skeleton+ESEP classes: ", len(Observable_mDAGs.Skeleton_and_esep()))
+
+    same_esep_different_skeleton = Observable_mDAGs.groupby_then_split_by(
+        ['all_esep_unlabelled'], ['skeleton_unlabelled'])
+    same_skeleton_different_CI = Observable_mDAGs.groupby_then_split_by(
+        ['skeleton_unlabelled'], ['all_CI_unlabelled'])
+    same_CI_different_skeleton = Observable_mDAGs.groupby_then_split_by(
+        ['all_CI_unlabelled'], ['skeleton_unlabelled'])
+
+    for example_collection in (same_esep_different_skeleton, same_skeleton_different_CI, same_CI_different_skeleton):
+        for example in example_collection:
+            convert_eqclass_dict_to_representatives_dict(example)
+
+
+
+
 
 
 
