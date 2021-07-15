@@ -234,11 +234,11 @@ class mDAG:
 
     @cached_property
     def all_CI_unlabelled(self):
-        return set([frozenset([tuple([frozenset(np.take(perm, list(variable_set)))
+        return min((frozenset([tuple([frozenset(np.take(perm, list(variable_set)))
                     for variable_set in dsep_relation])
                     for dsep_relation in self.all_CI])
                     for perm in
-             itertools.permutations(self.visible_nodes)]).pop()
+             itertools.permutations(self.visible_nodes)))
 
     @property
     def _all_e_sep_generator(self):
@@ -257,11 +257,11 @@ class mDAG:
 
     @cached_property
     def all_esep_unlabelled(self):
-        return set([frozenset([tuple([frozenset(np.take(perm, list(variable_set)))
+        return min((frozenset([tuple([frozenset(np.take(perm, list(variable_set)))
                     for variable_set in esep_relation])
                     for esep_relation in self.all_esep])
                     for perm in
-             itertools.permutations(self.visible_nodes)]).pop()
+             itertools.permutations(self.visible_nodes)))
 
     @cached_property
     def droppable_edges(self):
@@ -431,7 +431,11 @@ class mDAG:
         # skeleton_array = nx_to_bitarray(new_directed_structure)
         # skeleton_array = skeleton_array.compress(skeleton_array.sum(axis=1) > 1, axis=0)
         # return skeleton_array[np.lexsort(skeleton_array.T)]
-        return hypergraph_to_bitarray(merge_intersection(self.directed_structure_as_list +  self.simplicial_complex))
+        simplicial_complex_as_nontriv_sets = [set(edge) for edge in self.simplicial_complex if len(edge)>1]
+        return hypergraph_to_bitarray(self.simplicial_complex + [
+            ds for ds in self.directed_structure_as_list if not any(
+                edge.issuperset(ds) for edge in simplicial_complex_as_nontriv_sets)])
+        # return hypergraph_to_bitarray(merge_intersection(self.directed_structure_as_list +  self.simplicial_complex))
 
     @cached_property
     def skeleton(self):
