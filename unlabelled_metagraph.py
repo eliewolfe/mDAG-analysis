@@ -7,7 +7,8 @@ import scipy.special #For binomial coefficient
 from mDAG import mDAG
 from operator import itemgetter
 # from radix import bitarray_to_int
-from utilities import partsextractor, nx_to_int, hypergraph_to_int, representatives
+from utilities import partsextractor, nx_to_int, hypergraph_to_int
+from collections import defaultdict
 
 from sys import hexversion
 
@@ -310,6 +311,14 @@ class Observable_unlabelled_mDAGs:
     def equivalence_classes(self):
         return list(nx.strongly_connected_components(self.meta_graph))
 
+    @cached_property
+    def safe_equivalence_classes_as_mDAGs(self):
+        return [self.lookup_mDAG(eqclass) for eqclass in self.safe_equivalence_classes]
+
+    @cached_property
+    def equivalence_classes_as_mDAGs(self):
+        return [self.lookup_mDAG(eqclass) for eqclass in self.equivalence_classes]
+
     # def same_eq_class(self, mDAG1, mDAG2):
     #     (s1, d1) = self.lookup_indices(mDAG1)
     #     (s2, d2) = self.lookup_indices(mDAG2)
@@ -319,21 +328,148 @@ class Observable_unlabelled_mDAGs:
     #             break
     #     return False
 
+    @cached_property
+    def safe_representative_mDAGs_list(self):
+        return [eqclass[0] for eqclass in self.safe_equivalence_classes_as_mDAGs]
+        # rep_mDAGs=[]
+        # indexed_unlabelled_mDAGs=self.dict_ind_unlabelled_mDAGs
+        # eq_classes=self.safe_equivalence_classes
+        # for equivalence_class in eq_classes:
+        #   representative_indices=next(iter(equivalence_class))   #just pick some mDAG of every equivalence class
+        #   representative_mDAG=indexed_unlabelled_mDAGs[representative_indices]
+        #   rep_mDAGs.append(representative_mDAG)
+        # return rep_mDAGs
 
+    @cached_property
+    def representative_mDAGs_list(self):
+        return [eqclass[0] for eqclass in self.equivalence_classes_as_mDAGs]
+        # rep_mDAGs=[]
+        # indexed_unlabelled_mDAGs=self.dict_ind_unlabelled_mDAGs
+        # eq_classes=self.equivalence_classes
+        # for equivalence_class in eq_classes:
+        #   representative_indices=next(iter(equivalence_class))   #just pick some mDAG of every equivalence class
+        #   representative_mDAG=indexed_unlabelled_mDAGs[representative_indices]
+        #   rep_mDAGs.append(representative_mDAG)
+        # return rep_mDAGs
+
+    def classify_by_attributes(self, representatives, attributes):
+        """
+
+        :param choice of either self.safe_representative_mDAGs_list or self.representative_mDAGs_list:
+        :param attributes: list of attributes to classify mDAGs by. For a single attribute, use a list with one item.
+        Attributes are given as STRINGS, e.g. ['all_CI_unlabelled', 'skeleton_unlabelled']
+        :return: dictionary of mDAGS according to attributes.
+        """
+        d = defaultdict(set)
+        for mDAG in representatives:
+            d[tuple(mDAG.__getattribute__(prop) for prop in attributes)].add(mDAG)
+        return d
+
+    def safe_CI_classes(self):
+        return self.classify_by_attributes(self.safe_representative_mDAGs_list, ['all_CI_unlabelled'])
+        # dict_CI_relations={}
+        # for representative_mDAG in self.safe_representative_mDAGs_list():
+        #   dict_CI_relations[representative_mDAG]=tuple(representative_mDAG.all_CI_unlabelled)
+        #  #returns dictionary where the CI relations are the keys and a list of the representative mDAGs of the corresponding equivalence classes are the values
+        # return {CI:[rep for rep in dict_CI_relations.keys() if dict_CI_relations[rep] == CI] for CI in set(dict_CI_relations.values())}
+    
     def CI_classes(self):
-        dict_CI_relations = {}
-        indexed_mDAGs = self.dict_ind_labelled_mDAGs
-        eq_classes = self.equivalence_classes
-        for equivalence_class in eq_classes:
-            representative_indices = next(iter(equivalence_class))  # just pick some mDAG of every equivalence class
-            representative_mDAG = indexed_mDAGs[representative_indices]
-            dict_CI_relations[representative_mDAG] = tuple(representative_mDAG.all_CI)
-            # return a dictionary where the CI relations are the keys and a list of the representative mDAGs of the corresponding equivalence classes are the values
-        return {CI: [equiv_class for equiv_class in dict_CI_relations.keys() if dict_CI_relations[equiv_class] == CI]
-                for CI in set(dict_CI_relations.values())}
+        return self.classify_by_attributes(self.representative_mDAGs_list, ['all_CI_unlabelled'])
+        # dict_CI_relations={}
+        # for representative_mDAG in self.representative_mDAGs_list():
+        #   dict_CI_relations[representative_mDAG]=tuple(sorted(representative_mDAG.all_CI_unlabelled))
+        #  #returns dictionary where the CI relations are the keys and a list of the representative mDAGs of the corresponding equivalence classes are the values
+        # return {CI:[rep for rep in dict_CI_relations.keys() if dict_CI_relations[rep] == CI] for CI in set(dict_CI_relations.values())}
 
     # Acknowledgement: Leonardo Lessa helped me improve CI_classes
+    
+    def safe_esep_classes(self):
+        return self.classify_by_attributes(self.safe_representative_mDAGs_list, ['all_esep_unlabelled'])
+        # dict_esep_relations={}
+        # for representative_mDAG in self.safe_representative_mDAGs_list():
+        #   dict_esep_relations[representative_mDAG]=tuple(representative_mDAG.all_esep_unlabelled)
+        #  #returns dictionary where the esep relations are the keys and a list of the representative mDAGs of the corresponding equivalence classes are the values
+        # return {esep:[rep for rep in dict_esep_relations.keys() if dict_esep_relations[rep] == esep] for esep in set(dict_esep_relations.values())}
 
+    def esep_classes(self):
+        return self.classify_by_attributes(self.representative_mDAGs_list, ['all_esep_unlabelled'])
+        # dict_esep_relations={}
+        # for representative_mDAG in self.representative_mDAGs_list():
+        #   dict_esep_relations[representative_mDAG]=tuple(representative_mDAG.all_esep_unlabelled)
+        #  #returns dictionary where the esep relations are the keys and a list of the representative mDAGs of the corresponding equivalence classes are the values
+        # return {esep:[rep for rep in dict_esep_relations.keys() if dict_esep_relations[rep] == esep] for esep in set(dict_esep_relations.values())}
+
+    def Skeleton_classes(self):
+        return self.classify_by_attributes(self.representative_mDAGs_list, ['skeleton_unlabelled'])
+        # eq_classes_representative_mDAGs=self.representative_mDAGs_list()
+        # skeleton_classes=[[eq_classes_representative_mDAGs[0]]]
+        # for k in range(1,len(eq_classes_representative_mDAGs)):
+        #   graph=eq_classes_representative_mDAGs[k]
+        #   already_there=False
+        #   for same_skeleton in skeleton_classes:
+        #     if graph.skeleton_unlabelled==same_skeleton[0].skeleton_unlabelled:
+        #       same_skeleton.append(graph)
+        #       already_there=True
+        #   if not already_there:
+        #     skeleton_classes.append([graph])
+        # return skeleton_classes
+    
+    def Skeleton_and_CI(self):
+        return self.classify_by_attributes(self.representative_mDAGs_list, ['skeleton_unlabelled', 'all_CI_unlabelled'])
+        # Skeleton_and_CI = []
+        # CI_classes=list(self.CI_classes().values())
+        # sk_classes=self.Skeleton_classes()
+        # for x in CI_classes:
+        #   for y in sk_classes:
+        #     x_and_y = list(filter(lambda g:g in x, y))
+        #     if x_and_y:
+        #       Skeleton_and_CI.append(x_and_y)
+        # return Skeleton_and_CI
+    
+    def Skeleton_and_esep(self):
+        return self.classify_by_attributes(self.representative_mDAGs_list, ['skeleton_unlabelled', 'all_esep_unlabelled'])
+        # Skeleton_and_esep = []
+        # esep_classes=list(self.esep_classes().values())
+        # sk_classes=self.Skeleton_classes()
+        # for x in esep_classes:
+        #   for y in sk_classes:
+        #     x_and_y = list(filter(lambda g:g in x, y))
+        #     if x_and_y:
+        #       Skeleton_and_esep.append(x_and_y)
+        # return Skeleton_and_esep
+    
+    def is_mDAG_in_list(self, mDAG, l):
+        mDAG_id=mDAG.unique_unlabelled_id
+        for mDAG_l in l:
+            mDAG_l_id=mDAG_l.unique_unlabelled_id
+            if mDAG_l_id==mDAG_id:
+                return True
+        return False
+    
+    #examples of mDAGs that are shown inequivalent by comparison1 but not by comparison2
+    def Example_searcher(self, classes_comparison1, classes_comparison2):
+        for (prop2_v1, prop2_v2) in itertools.combinations(classes_comparison2):
+            for prop1 in classes_comparison1:
+                overlap_v1 = prop2_v1.intersection(prop1)
+                if len(overlap_v1)>=1:
+                    overlap_v2 = prop2_v2.intersection(prop1)
+                    if len(overlap_v2)>=1:
+                        for pair in itertools.product(overlap_v1, overlap_v2):
+                            yield pair
+                    else:
+                        break
+                else:
+                    break
+        # for class1 in classes_comparison1:
+        #     if class1 not in classes_comparison2:
+        #         for mDAG1 in class1:
+        #             for class2 in classes_comparison2:
+        #                 if self.is_mDAG_in_list(mDAG1,class2):
+        #                     for mDAG2 in class2:
+        #                         if not self.is_mDAG_in_list(mDAG2,class1):
+        #                             yield (mDAG1, mDAG2)
+        
+    
     @cached_property
     def singleton_equivalence_classes(self):
         return [tuple(eqclass)[0] for eqclass in self.equivalence_classes if len(eqclass) == 1]

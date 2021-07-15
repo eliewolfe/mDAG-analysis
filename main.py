@@ -40,6 +40,14 @@ if __name__ == '__main__':
     semi_foundational_eqclasses = [eqclass for eqclass in eqclasses if any(mDAG.fundamental_graphQ for mDAG in Observable_mDAGs.lookup_mDAG(eqclass))]
     print("Upper bound on number of partially foundational equivalence classes: ", len(semi_foundational_eqclasses), flush=True)
 
+    print("Number of CI classes: ", len(Observable_mDAGs.CI_classes()))
+    print("Number of Skeleton classes: ", len(Observable_mDAGs.Skeleton_classes()))
+    print("Number of Skeleton+CI classes: ", len(Observable_mDAGs.Skeleton_classes()))
+    print("Number of ESEP classes: ", len(Observable_mDAGs.Skeleton_and_CI()))
+    print("Number of Skeleton+ESEP classes: ", len(Observable_mDAGs.Skeleton_and_esep()))
+
+
+
 
 
 
