@@ -105,15 +105,15 @@ class hypergraph:
 class undirected_graph:
     def __init__(self, hyperedges):
         self.nof_nodes = max(map(max, hyperedges)) + 1
-        self.as_edges = tuple(itertools.chain.from_iterable(
-            itertools.combinations(hyperedge, 2) for hyperedge in hyperedges))
+        self.as_edges = tuple(set(itertools.chain.from_iterable(
+            itertools.combinations(sorted(hyperedge), 2) for hyperedge in hyperedges)))
 
     # @property
     # def as_edges(self):
     #     return itertools.chain.from_iterable(
     #         itertools.combinations(hyperedge, 2) for hyperedge in self.extended_simplicial_complex)
 
-    @cached_property
+    @property
     def as_edges_array(self):
         # return np.fromiter(self.as_edges, int).reshape((-1,2))
         return np.asarray(self.as_edges, dtype=int).reshape((-1,2))

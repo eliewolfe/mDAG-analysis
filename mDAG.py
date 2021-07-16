@@ -278,13 +278,13 @@ class mDAG:
             self.as_graph.predecessors(pair[1]))]  # as graph included both visible at latent parents
         return candidates
 
-    @property
-    def generate_weaker_mDAGs_HLP(self):
-        for droppable_edge in self.droppable_edges:
-            new_directed_structure = self.directed_structure.copy()
-            new_directed_structure.remove_edge(*droppable_edge)
-            new_mDAG = self.__class__(new_directed_structure, self.extended_simplicial_complex, complex_extended=True)
-            yield new_mDAG
+    # @property
+    # def generate_weaker_mDAGs_HLP(self):
+    #     for droppable_edge in self.droppable_edges:
+    #         new_directed_structure = self.directed_structure.copy()
+    #         new_directed_structure.remove_edge(*droppable_edge)
+    #         new_mDAG = self.__class__(new_directed_structure, self.extended_simplicial_complex, complex_extended=True)
+    #         yield new_mDAG
 
     @property
     def generate_weaker_mDAG_HLP(self):

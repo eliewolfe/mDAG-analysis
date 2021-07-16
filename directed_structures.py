@@ -65,9 +65,9 @@ class directed_structure:
     def as_tuples(self):
         return tuple(sorted(map(nx.utils.to_tuple, self.edge_list)))
 
-    @cached_property
+    @property
     def as_edges_array(self):
-        return np.asarray(self.edge_list, dtype=int).reshape((-1,2)) #No sorting whatsoever.
+        return np.asarray(self.edge_list, dtype=int).reshape((-1,2)) #No sorting or deduplication.
 
     @cached_property
     def as_bit_square_matrix(self):
@@ -79,6 +79,10 @@ class directed_structure:
     def as_bit_square_matrix_plus_eye(self):
         #Used for computing parents_plus
         return np.bitwise_or(self.as_bit_square_matrix, np.identity(self.number_of_visible, dtype=bool))
+
+    @cached_property
+    def observable_parentsplus_list(self):
+        return list(map(frozenset, map(np.flatnonzero, self.as_bit_square_matrix_plus_eye.T)))
 
     @staticmethod
     def bit_array_to_integer(bitarray):
