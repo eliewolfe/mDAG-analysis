@@ -97,6 +97,10 @@ class mDAG:
         return self.skeleton_instance.as_edges_unlabelled_integer
 
 
+
+
+
+
     @staticmethod
     def _all_2_vs_any_partitions(variables_to_partition):
         # expect input in the form of a list
@@ -276,3 +280,34 @@ class mDAG:
                 self.directed_structure_instance.bit_square_matrix,
                 hypergraph(new_simplicial_complex).as_bit_array)
 
+    #TODO: slightly speed up this by avoiding hypergraph creation. That is, directly modify the bit array.
+    #Or, if we are really fancy, we can modify the bits of the unique_id itself!!
+
+
+
+
+
+
+
+    @property
+    def districts(self):
+        return self.simplicial_complex_instance.districts
+
+    @cached_property
+    def fundamental_graphQ(self):
+        # Implement three conditions
+        district_lengths = np.fromiter(map(len, self.districts), np.int_)
+        # district_lengths = np.asarray(list(map(len, self.districts)))
+        common_cause_district_positions = np.flatnonzero(district_lengths > 1)
+        if len(common_cause_district_positions) != 1:
+            return False
+        district_vertices = set(self.districts[common_cause_district_positions[0]])
+        non_district_vertices = set(range(self.number_of_visible)).difference(district_vertices)
+        for v in non_district_vertices:
+            # Does it have children outside the district
+            if set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[v])).isdisjoint(district_vertices):
+                return False
+            # Does it have parents
+            if self.directed_structure_instance.as_bit_square_matrix[:, v].any():
+                return False
+        return True
