@@ -8,6 +8,7 @@ from radix import bitarray_to_int
 from utilities import partsextractor, nx_to_bitarray, hypergraph_to_bitarray, mdag_to_int, mdag_to_canonical_int
 from utilities import stringify_in_tuple, stringify_in_list, stringify_in_set
 
+
 from sys import hexversion
 
 if hexversion >= 0x3080000:
@@ -39,6 +40,7 @@ class mDAG:
         """
         self.directed_structure = directed_structure
         self.simplicial_complex = simplicial_complex
+        # self.hypergraph_instance = hypergraph(simplicial_complex) #TODO: initialize with hypegraph instance
         self.number_of_visible: int = self.directed_structure.number_of_nodes()
 
         self.directed_structure_as_list = sorted(self.directed_structure.edges())
