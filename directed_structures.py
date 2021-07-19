@@ -53,6 +53,7 @@ class directed_structure:
             self.edge_list = list(chunked(partsextractor(self.translation_dict, itertools.chain.from_iterable(edge_list)),2))
         else:
             self.edge_list = edge_list
+        self.number_of_edges = len(edge_list)
 
     @staticmethod
     def is_range(variable_names):
@@ -64,6 +65,10 @@ class directed_structure:
     @cached_property
     def as_tuples(self):
         return tuple(sorted(map(nx.utils.to_tuple, self.edge_list)))
+
+    @cached_property
+    def as_set_of_tuples(self):
+        return set(map(nx.utils.to_tuple, self.edge_list))
 
     @property
     def as_edges_array(self):
@@ -127,6 +132,13 @@ class directed_structure:
         g = empty_digraph(self.number_of_visible).copy()
         g.add_edges_from(self.edge_list)
         return g
+
+    def can_D1_minimally_simulate_D2(D1, D2):
+        """
+        D1 and D2 are networkx.DiGraph objects.
+        We say that D1 can 'simulate' D2 if the edges of D2 are contained within those of D1.
+        """
+        return D1.number_of_edges == D2.number_of_edges + 1 and D2.as_set_of_tuples.issubset(D1.as_set_of_tuples)
 
 
 

@@ -13,6 +13,8 @@ from radix import from_bits
 from merge import merge_intersection
 from utilities import stringify_in_tuple, stringify_in_list
 
+from scipy.special import comb
+
 def has_length_greater_than_one(stuff):
     return len(stuff)>1
 def drop_singletons(hypergraph):
@@ -36,9 +38,17 @@ class hypergraph:
     def __init__(self, extended_simplicial_complex):
         #TODO: Adjust code to handle non-integer-values hypergraphs!
         self.simplicial_complex = extended_simplicial_complex
+        self.simplicial_complex_as_sets = list(map(frozenset, self.simplicial_complex))
         self.number_of_latent = len(self.simplicial_complex)
         self.number_of_visible = max(map(max, self.simplicial_complex)) + 1
         self.number_of_visible_plus_latent = self.number_of_visible + self.number_of_latent
+        # self.max_number_of_latents = comb(self.number_of_visible, np.floor_divide(self.number_of_visible,2), exact=True)
+
+    @cached_property
+    def tally(self):
+        # absent_latent_count = self.max_number_of_latents - self.number_of_latent
+        # return tuple(np.pad(np.flip(sorted(map(len, self.simplicial_complex))),(0,absent_latent_count)))
+        return tuple(np.flip(sorted(map(len, self.simplicial_complex))))
 
     @cached_property
     def compressed_simplicial_complex(self):
@@ -61,14 +71,14 @@ class hypergraph:
     def as_bit_array(self):
         r = np.zeros((self.number_of_nonsingleton_latent, self.number_of_visible), dtype=bool)
         for i, lp in enumerate(self.compressed_simplicial_complex):
-            r[i, lp] = True
+            r[i, tuple(lp)] = True
         return r[np.lexsort(r.T)]
 
     @cached_property
     def as_extended_bit_array(self):
         r = np.zeros((self.number_of_latent, self.number_of_visible), dtype=bool)
         for i, lp in enumerate(self.simplicial_complex):
-            r[i, lp] = True
+            r[i, tuple(lp)] = True
         return r[np.lexsort(r.T)]
 
     @cached_property
@@ -95,6 +105,27 @@ class hypergraph:
     @cached_property
     def as_string(self):
         return stringify_in_list(map(stringify_in_tuple, sorted(self.simplicial_complex)))
+
+    def can_S1_minimally_simulate_S2(S1, S2):
+        """
+        S1 and S2 are simplicial complices, in our data structure as lists of tuples.
+        """
+        # Modifying to restrict to minimal differences for speed
+        # return all(any(s2.issubset(s1) for s1 in S1) for s2 in map(set, S2))
+        dominance_count = 0
+        so_far_so_good = True
+        for s2 in S2.simplicial_complex_as_sets:
+            contained = False
+            for s1 in S1.simplicial_complex_as_sets:
+                if s2.issubset(s1):
+                    contained = True
+                    if len(s2) > len(s1):
+                        dominance_count += 0
+                    break
+            so_far_so_good = contained and (dominance_count <= 1)
+            if not so_far_so_good:
+                break
+        return so_far_so_good
 
     def __str__(self):
         return self.as_string

@@ -192,7 +192,7 @@ class mDAG:
 
     @cached_property
     def droppable_edges(self):
-        candidates = [tuple(pair) for pair in self.directed_structure_instance.self.edge_list if
+        candidates = [tuple(pair) for pair in self.directed_structure_instance.edge_list if
                       any(set(pair).issubset(hyperredge) for hyperredge in self.simplicial_complex_instance.compressed_simplicial_complex)]
         candidates = [pair for pair in candidates if set(self.as_graph.predecessors(pair[0])).issubset(
             self.as_graph.predecessors(pair[1]))]  # as_graph includes both visible at latent parents
@@ -201,7 +201,7 @@ class mDAG:
     @property
     def generate_weaker_mDAG_HLP(self):
         if self.droppable_edges:
-            new_bit_square_matrix = self.directed_structure_instance.bit_square_matrix.copy()
+            new_bit_square_matrix = self.directed_structure_instance.as_bit_square_matrix.copy()
             new_bit_square_matrix[tuple(np.asarray(self.droppable_edges, dtype=int).reshape((-1,2)).T)] = False
             yield  mdag_to_int(new_bit_square_matrix, self.simplicial_complex_instance.as_bit_array)
 
@@ -243,8 +243,14 @@ class mDAG:
         # print(candidates)
         return candidates
 
+    def generate_weaker_mDAGs_FaceSplitting(self, unsafe=True):
+        if unsafe:
+            return self.generate_weaker_mDAGs_FaceSplitting_Simultaneous
+        else:
+            return self.generate_weaker_mDAGs_FaceSplitting_Safe
+
     @property
-    def generate_weaker_mDAGs_FaceSplitting(self):
+    def generate_weaker_mDAGs_FaceSplitting_Safe(self):
         for C, D in self.splittable_faces:
             new_simplicial_complex = self.simplicial_complex_instance.simplicial_complex.copy()
             new_simplicial_complex.remove(tuple(sorted(list(C) + list(D))))

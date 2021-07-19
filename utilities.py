@@ -7,12 +7,16 @@ import itertools
 
 
 def partsextractor(thing_to_take_parts_of, indices):
-    if len(indices) == 0:
-        return tuple()
-    elif len(indices) == 1:
-        return (itemgetter(*indices)(thing_to_take_parts_of),)
+    if hasattr(indices, '__iter__'):
+        if len(indices) == 0:
+            return tuple()
+        elif len(indices) == 1:
+            return (itemgetter(*indices)(thing_to_take_parts_of),)
+        else:
+            return itemgetter(*indices)(thing_to_take_parts_of)
     else:
-        return itemgetter(*indices)(thing_to_take_parts_of)
+        return itemgetter(indices)(thing_to_take_parts_of)
+
 
 
 def nx_to_tuples(g):
