@@ -9,6 +9,8 @@ from operator import itemgetter
 from utilities import partsextractor
 from collections import defaultdict
 
+from radix import int_to_bitarray
+
 from sys import hexversion
 
 if hexversion >= 0x3080000:
@@ -42,13 +44,16 @@ class Observable_unlabelled_mDAGs:
         self.sort_by_length = lambda s: sorted(s, key=len)
 
     @cached_property
-    def all_unlabelled_directed_structures(self):
+    def all_directed_structures(self):
         possible_node_pairs = list(itertools.combinations(self.tuple_n, 2))
-        excessive_unlabelled_directed_structures = [directed_structure(self.tuple_n, edge_list) for r
-                                                    in range(1, len(possible_node_pairs)) for edge_list
+        return [directed_structure(self.tuple_n, edge_list) for r
+                                                    in range(0, len(possible_node_pairs)+1) for edge_list
                                                     in itertools.combinations(possible_node_pairs, r)]
+
+    @cached_property
+    def all_unlabelled_directed_structures(self):
         d = defaultdict(list)
-        for ds in excessive_unlabelled_directed_structures:
+        for ds in self.all_directed_structures:
             d[ds.as_unlabelled_integer].append(ds)
         return tuple(next(iter(eqclass)) for eqclass in d.values())
         # return [ds for ds in excessive_unlabelled_directed_structures
@@ -83,7 +88,7 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def all_labelled_mDAGs(self):
-        return [mDAG(ds, sc) for sc in self.all_simplicial_complices for ds in self.all_unlabelled_directed_structures]
+        return [mDAG(ds, sc) for sc in self.all_simplicial_complices for ds in self.all_directed_structures]
 
     @cached_property
     def dict_id_to_canonical_id(self):
@@ -133,6 +138,9 @@ class Observable_unlabelled_mDAGs:
     def meta_graph_undirected_edges(self, unsafe=True):
         for (id, mDAG) in self.dict_ind_unlabelled_mDAGs.items():  # NEW: Over graph patterns only
             for mDAG2 in mDAG.generate_weaker_mDAG_HLP:
+                # print(np.vstack((mDAG.simplicial_complex_instance.as_bit_array.astype(int),
+                #                 mDAG.directed_structure_instance.as_bit_square_matrix.astype(int))),
+                #       '\n', int_to_bitarray(mDAG2, self.n),'\n--------')
                 yield (self.dict_id_to_canonical_id[mDAG2], id)
             for mDAG2 in mDAG.generate_weaker_mDAGs_FaceSplitting(unsafe=unsafe):
                 yield (self.dict_id_to_canonical_id[mDAG2], id)

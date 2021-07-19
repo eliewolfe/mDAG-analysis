@@ -208,6 +208,7 @@ class mDAG:
 
     @staticmethod
     def _all_bipartitions(variables_to_partition):
+        #Yields tuples of frozensets
         # expect input in the form of a list
         length = len(variables_to_partition)
         integers = range(length)
@@ -216,8 +217,8 @@ class mDAG:
             for ints_to_mask in map(list, itertools.combinations(integers, r)):
                 mask = np.ones(length, dtype=np.bool)
                 mask[ints_to_mask] = False
-                yield (set(itertools.compress(variables_to_partition, mask.tolist())),
-                       set(itertools.compress(variables_to_partition, np.logical_not(mask).tolist())))
+                yield (frozenset(itertools.compress(variables_to_partition, mask.tolist())),
+                       frozenset(itertools.compress(variables_to_partition, np.logical_not(mask).tolist())))
 
     # def setpredecessorsplus(self, X):
     #     result = set(X)
@@ -252,14 +253,14 @@ class mDAG:
     @property
     def generate_weaker_mDAGs_FaceSplitting_Safe(self):
         for C, D in self.splittable_faces:
-            new_simplicial_complex = self.simplicial_complex_instance.simplicial_complex.copy()
-            new_simplicial_complex.remove(tuple(sorted(list(C) + list(D))))
-            setC = set(C)
-            setD = set(D)
-            if not any(setC.issubset(facet) for facet in new_simplicial_complex):
-                new_simplicial_complex.append(tuple(sorted(C)))
-            if not any(setD.issubset(facet) for facet in new_simplicial_complex):
-                new_simplicial_complex.append(tuple(sorted(D)))
+            new_simplicial_complex = self.simplicial_complex_instance.simplicial_complex_as_sets.copy()
+            new_simplicial_complex.discard(C.union(D))
+            # setC = set(C)
+            # setD = set(D)
+            if not any(C.issubset(facet) for facet in new_simplicial_complex):
+                new_simplicial_complex.append(C)
+            if not any(D.issubset(facet) for facet in new_simplicial_complex):
+                new_simplicial_complex.append(D)
             # new_simplicial_complex.sort()
             yield mdag_to_int(
                 self.directed_structure_instance.bit_square_matrix,
@@ -269,21 +270,21 @@ class mDAG:
     def generate_weaker_mDAGs_FaceSplitting_Simultaneous(self):
         new_dict = defaultdict(list)
         for C, D in self.splittable_faces:
-            new_dict[tuple(D)].append(C)
+            new_dict[D].append(C)
         for D, Cs in new_dict.items():
-            new_simplicial_complex = self.simplicial_complex_instance.simplicial_complex.copy()
-            setD = set(D)
+            new_simplicial_complex = self.simplicial_complex_instance.simplicial_complex_as_sets.copy()
+            #setD = frozenset(D)
             for C in Cs:
-                new_simplicial_complex.remove(tuple(sorted(list(C) + list(D))))
-            if not any(setD.issubset(facet) for facet in new_simplicial_complex):
-                new_simplicial_complex.append(tuple(sorted(D)))
+                new_simplicial_complex.discard(C.union(D))
+            if not any(D.issubset(facet) for facet in new_simplicial_complex):
+                new_simplicial_complex.add(D)
             for C in Cs:
-                setC = set(C)
-                if not any(setC.issubset(facet) for facet in new_simplicial_complex):
-                    new_simplicial_complex.append(tuple(sorted(C)))
+                # setC = frozenset(C)
+                if not any(C.issubset(facet) for facet in new_simplicial_complex):
+                    new_simplicial_complex.add(C)
             # new_simplicial_complex.sort()
             yield mdag_to_int(
-                self.directed_structure_instance.bit_square_matrix,
+                self.directed_structure_instance.as_bit_square_matrix,
                 hypergraph(new_simplicial_complex).as_bit_array)
 
     #TODO: slightly speed up this by avoiding hypergraph creation. That is, directly modify the bit array.

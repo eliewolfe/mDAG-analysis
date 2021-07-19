@@ -38,7 +38,7 @@ class hypergraph:
     def __init__(self, extended_simplicial_complex):
         #TODO: Adjust code to handle non-integer-values hypergraphs!
         self.simplicial_complex = extended_simplicial_complex
-        self.simplicial_complex_as_sets = list(map(frozenset, self.simplicial_complex))
+        self.simplicial_complex_as_sets = set(map(frozenset, self.simplicial_complex))
         self.number_of_latent = len(self.simplicial_complex)
         self.number_of_visible = max(map(max, self.simplicial_complex)) + 1
         self.number_of_visible_plus_latent = self.number_of_visible + self.number_of_latent
