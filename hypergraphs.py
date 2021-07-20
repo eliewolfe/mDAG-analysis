@@ -75,6 +75,11 @@ class hypergraph:
         return r[np.lexsort(r.T)]
 
     @cached_property
+    def latent_parents_list(self):
+        # return list(map(frozenset, map(np.flatnonzero, self.as_bit_array.T)))
+        return [frozenset(np.flatnonzero(column)+self.number_of_visible) for column in self.as_bit_array.T]
+
+    @cached_property
     def as_extended_bit_array(self):
         r = np.zeros((self.number_of_latent, self.number_of_visible), dtype=bool)
         for i, lp in enumerate(self.simplicial_complex):

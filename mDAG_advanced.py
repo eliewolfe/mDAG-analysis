@@ -203,7 +203,15 @@ class mDAG:
         if self.droppable_edges:
             new_bit_square_matrix = self.directed_structure_instance.as_bit_square_matrix.copy()
             new_bit_square_matrix[tuple(np.asarray(self.droppable_edges, dtype=int).reshape((-1,2)).T)] = False
-            yield  mdag_to_int(new_bit_square_matrix, self.simplicial_complex_instance.as_bit_array)
+            yield mdag_to_int(new_bit_square_matrix, self.simplicial_complex_instance.as_bit_array)
+
+    @property
+    def generate_slightly_weaker_mDAGs_HLP(self):
+        for droppable_edge in self.droppable_edges:
+            new_bit_square_matrix = self.directed_structure_instance.as_bit_square_matrix.copy()
+            new_bit_square_matrix[droppable_edge] = False
+            # new_bit_square_matrix[tuple(np.asarray(self.droppable_edges, dtype=int).reshape((-1,2)).T)] = False
+            yield mdag_to_int(new_bit_square_matrix, self.simplicial_complex_instance.as_bit_array)
 
 
     @staticmethod
@@ -225,22 +233,25 @@ class mDAG:
     #     for x in X:
     #         result.update(self.as_graph.predecessors(x))
     #     return result
+    @cached_property
+    def all_parentsplus_list(self):
+        return [frozenset({}).union(v_par, l_par) for v_par,l_par in zip(
+                self.directed_structure_instance.observable_parentsplus_list,
+                self.simplicial_complex_instance.latent_parents_list)]
 
-    def set_observable_predecessors(self, X):
+    def set_predecessors(self, X):
         # return frozenset().union(*partsextractor(self.directed_structure_instance.observable_parentsplus_list, X))
-        return frozenset(itertools.chain.from_iterable(
-            partsextractor(self.directed_structure_instance.observable_parentsplus_list, X)))
+        return frozenset(itertools.chain.from_iterable(partsextractor(self.all_parentsplus_list, X)))
 
-
-    def singleton_observable_predecessors(self, x):
-        return partsextractor(self.directed_structure_instance.observable_parentsplus_list, x)
+    def singleton_predecessors(self, x):
+        return partsextractor(self.all_parentsplus_list, x)
 
     @cached_property
     def splittable_faces(self):
         candidates = itertools.chain.from_iterable(map(self._all_bipartitions, self.simplicial_complex_instance.compressed_simplicial_complex))
         # candidates = [(C,D) for C,D in candidates if all(set(self.as_graph.predecessors(c).issubset(self.as_graph.predecessors(d)) for c in C for d in D)]
         candidates = [(C, D) for C, D in candidates if
-                      all(self.set_observable_predecessors(C).issubset(self.singleton_observable_predecessors(d)) for d in D)]
+                      all(self.set_predecessors(C).issubset(self.singleton_predecessors(d)) for d in D)]
         # print(candidates)
         return candidates
 

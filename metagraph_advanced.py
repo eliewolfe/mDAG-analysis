@@ -115,18 +115,21 @@ class Observable_unlabelled_mDAGs:
         return tuple(self.dict_ind_unlabelled_mDAGs.keys())
 
 
-    @cached_property
+    @property
     def hypergraph_dominances(self):
         return [(S1.as_integer, S2.as_integer) for S1, S2 in itertools.permutations(self.all_simplicial_complices, 2) if
                 S1.can_S1_minimally_simulate_S2(S2)]
 
-    @cached_property
+    @property
     def directed_dominances(self):
-        return [(D1.as_integer, D2.as_integer) for D1, D2 in itertools.permutations(self.all_unlabelled_directed_structures, 2) if
+        # return [(D1.as_integer, D2.as_integer) for D1, D2 in itertools.permutations(self.all_unlabelled_directed_structures, 2) if
+        #         D1.can_D1_minimally_simulate_D2(D2)]
+        return [(D1.as_integer, D2.as_integer) for D1, D2 in
+                itertools.permutations(self.all_directed_structures, 2) if
                 D1.can_D1_minimally_simulate_D2(D2)]
 
     @property
-    def meta_graph_directed_edges(self):
+    def unlabelled_dominances(self):
         # I'm experimenting with only using the directed dominances.
         for h in map(lambda sc: sc.as_integer, self.all_simplicial_complices):
             for d1, d2 in self.directed_dominances:
@@ -135,25 +138,51 @@ class Observable_unlabelled_mDAGs:
             for h1, h2 in self.hypergraph_dominances:
                 yield (self.mdag_int_pair_to_canonical_int(h1, d), self.mdag_int_pair_to_canonical_int(h2, d))
 
-    def meta_graph_undirected_edges(self, unsafe=True):
+    @property
+    def HLP_edges(self):
+        # return [(self.dict_id_to_canonical_id[mDAG2], id) for
+        #  (id, mDAG) in self.dict_ind_unlabelled_mDAGs.items() for
+        #  mDAG2 in mDAG.generate_weaker_mDAG_HLP]
         for (id, mDAG) in self.dict_ind_unlabelled_mDAGs.items():  # NEW: Over graph patterns only
             for mDAG2 in mDAG.generate_weaker_mDAG_HLP:
-                # print(np.vstack((mDAG.simplicial_complex_instance.as_bit_array.astype(int),
-                #                 mDAG.directed_structure_instance.as_bit_square_matrix.astype(int))),
-                #       '\n', int_to_bitarray(mDAG2, self.n),'\n--------')
                 yield (self.dict_id_to_canonical_id[mDAG2], id)
+                # if (id, self.dict_id_to_canonical_id[mDAG2]) not in self.unlabelled_dominances:
+                #     print((int_to_bitarray(id,4), int_to_bitarray(self.dict_id_to_canonical_id[mDAG2],4)))
+                # yield (id, self.dict_id_to_canonical_id[mDAG2]) #Not needed if directed dominances included
+
+    def FaceSplitting_edges(self, unsafe=True):
+        # return [(self.dict_id_to_canonical_id[mDAG2], id) for
+        #  (id, mDAG) in self.dict_ind_unlabelled_mDAGs.items() for
+        #  mDAG2 in mDAG.generate_weaker_mDAGs_FaceSplitting(unsafe=unsafe)]
+        for (id, mDAG) in self.dict_ind_unlabelled_mDAGs.items():  # NEW: Over graph patterns only
             for mDAG2 in mDAG.generate_weaker_mDAGs_FaceSplitting(unsafe=unsafe):
                 yield (self.dict_id_to_canonical_id[mDAG2], id)
+                # yield (id, self.dict_id_to_canonical_id[mDAG2]) #Not needed if hypergraph dominance relations included
+    #
+    # def meta_graph_undirected_edges(self, unsafe=True):
+    #     for (id, mDAG) in self.dict_ind_unlabelled_mDAGs.items():  # NEW: Over graph patterns only
+    #         for mDAG2 in mDAG.generate_weaker_mDAG_HLP:
+    #             yield (self.dict_id_to_canonical_id[mDAG2], id)
+    #         for mDAG2 in mDAG.generate_weaker_mDAGs_FaceSplitting(unsafe=unsafe):
+    #             yield (self.dict_id_to_canonical_id[mDAG2], id)
 
     @cached_property
     def meta_graph(self):
         g = nx.DiGraph()
         g.add_nodes_from(self.meta_graph_nodes)
         print('Adding dominance relations...', flush=True)
-        g.add_edges_from(self.meta_graph_directed_edges)
-        print('Adding equivalence relations...', flush=True)
-        g.add_edges_from(self.meta_graph_undirected_edges(unsafe=True))
-        print('Metagraph has been constructed.', flush=True)
+        g.add_edges_from(self.unlabelled_dominances)
+        edge_count = g.number_of_edges()
+        print('Adding HLP equivalence relations...', flush=True)
+        g.add_edges_from(self.HLP_edges)
+        new_edge_count =  g.number_of_edges()
+        print('Number of HLP equivalence relations added: ', new_edge_count-edge_count)
+        edge_count = new_edge_count
+        print('Adding FaceSplitting equivalence relations...', flush=True)
+        g.add_edges_from(self.FaceSplitting_edges(unsafe=True))
+        new_edge_count = g.number_of_edges()
+        print('Number of FaceSplitting equivalence relations added: ', new_edge_count - edge_count)
+        print('Metagraph has been constructed. Total edge count: ', g.number_of_edges(), flush=True)
         return g
 
     @cached_property

@@ -281,6 +281,17 @@ class Observable_unlabelled_mDAGs:
             for mDAG2 in mDAG.generate_weaker_mDAGs_FaceSplitting_Simultaneous:
                 yield (mDAG2.unique_unlabelled_id, id)
 
+    @property
+    def HLP_edges(self):
+        for (id, mDAG) in self.dict_ind_unlabelled_mDAGs.items():  # NEW: Over graph patterns only
+            for mDAG2 in mDAG.generate_weaker_mDAG_HLP:
+                yield (mDAG2.unique_unlabelled_id, id)
+
+    @property
+    def FaceSplitting_edges(self):
+        for (id, mDAG) in self.dict_ind_unlabelled_mDAGs.items():  # NEW: Over graph patterns only
+            for mDAG2 in mDAG.generate_weaker_mDAGs_FaceSplitting_Simultaneous:
+                yield (mDAG2.unique_unlabelled_id, id)
 
 
 
@@ -299,8 +310,15 @@ class Observable_unlabelled_mDAGs:
         print('Adding dominance relations...')
         g.add_edges_from(self.meta_graph_directed_edges)
         print('Adding equivalence relations...')
-        g.add_edges_from(self.meta_graph_undirected_edges)
-        print('Metagraph has been constructed.')
+        edge_count = g.number_of_edges()
+        g.add_edges_from(self.HLP_edges)
+        new_edge_count =  g.number_of_edges()
+        print('Number of HLP equivalence relations added: ', new_edge_count-edge_count)
+        edge_count = new_edge_count
+        g.add_edges_from(self.FaceSplitting_edges)
+        new_edge_count = g.number_of_edges()
+        print('Number of FaceSplitting equivalence relations added: ', new_edge_count - edge_count)
+        #print('Metagraph has been constructed. Number of nontrivial edges: ',g.number_of_edges() - edge_count)
         return g
 
     @cached_property
