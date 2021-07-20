@@ -112,7 +112,7 @@ def from_string_digits(string_digits_array, base):
 
 
 def _to_digits(integer, base):
-    return np.stack(np.unravel_index(integer, base), axis=-1)
+    return np.stack(np.unravel_index(np.asarray(integer, dtype=np.intp), base), axis=-1)
 
 def to_digits(integer, base):
     if binary_base_test(base):

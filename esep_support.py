@@ -61,7 +61,7 @@ class SmartSupportTesting(SupportTesting):
         self.esep_relations = tuple(esep_relations)
 
     def trivial_infeasible_support_Q(self, candidate_s):
-        return any(does_this_esep_rule_out_this_support(*e_sep, candidate_s) for e_sep in self.esep_relations)
+        return any(does_this_esep_rule_out_this_support(*map(list,e_sep), candidate_s) for e_sep in self.esep_relations)
 
     # @property
     # def _smart_unique_candidate_supports(self):
@@ -121,16 +121,22 @@ if __name__ == '__main__':
 
     from mDAG_advanced import mDAG
     import networkx as nx
+    from hypergraphs import hypergraph
+    from directed_structures import directed_structure
 
     #
     # # Testing example for Ilya conjecture proof.
     directed_dict_of_lists = {"C": ["A", "B"], "X": ["C"], "D": ["A", "B"]}
-    directed_structure = nx.from_dict_of_lists(directed_dict_of_lists, create_using=nx.DiGraph)
-    simplicial_complex1 = [("A", "X", "D"), ("B", "X", "D"), ("A", "C")]
-    simplicial_complex2 = [("A", "X", "D"), ("B", "X", "D")]
+    ds = directed_structure(["X","A","B","C","D"], nx.from_dict_of_lists(directed_dict_of_lists, create_using=nx.DiGraph).edges())
+    # simplicial_complex1 = hypergraph([("A", "X", "D"), ("B", "X", "D"), ("A", "C")])
+    # simplicial_complex2 = hypergraph[("A", "X", "D"), ("B", "X", "D")])
+    simplicial_complex1 = hypergraph([(1, 0, 4), (2, 0, 4), (1, 3)])
+    simplicial_complex2 = hypergraph([(1, 0, 4), (2, 0, 4)])
     #
-    md1 = mDAG(directed_structure, simplicial_complex1)
-    md2 = mDAG(directed_structure, simplicial_complex2)
+
+    md1 = mDAG(ds, simplicial_complex1)
+    md2 = mDAG(ds, simplicial_complex2)
+
     # # print(md1.all_esep)
     # # print(md1.all_esep.difference(md2.all_esep))
     # #print(md1.infeasible_binary_supports_n_events(4))

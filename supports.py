@@ -24,7 +24,7 @@ else:
 
 class SupportTester(object):
     def __init__(self, parents_of, observed_cardinalities, nof_events):
-        print('Instantiating new object with nof_events=', nof_events)
+        print('Instantiating new object with nof_events=', nof_events, flush=True)
         self.parents_of = parents_of
         self.nof_events = nof_events
         self.nof_observed = len(self.parents_of)
@@ -49,7 +49,7 @@ class SupportTester(object):
                                                                   self.parents_of[idx]) for idx in
                                               range(self.nof_observed)]
 
-        self.binary_variables = set(np.flatnonzero(np.asarray(self.observed_cardinalities) == 2))
+        self.binary_variables = set(np.flatnonzero(np.asarray(self.observed_cardinalities, dtype=np.intp) == 2))
         self.nonbinary_variables = set(range(self.nof_observed)).difference(self.binary_variables)
         self.vpool = IDPool(start_from=1)
         # self.var = lambda idx, val, par: self.vpool.id('v[{0}]_{2}=={1}'.format(idx, val, par))
@@ -76,14 +76,14 @@ class SupportTester(object):
     def _array_of_potentially_forbidden_events(self):
         return np.asarray([[-self.var(idx, iterator[idx], self.partsextractor(iterator, self.parents_of[idx])) for idx
                             in range(self.nof_observed)]
-                           for iterator in np.ndindex(self.observed_and_latent_cardinalities)]).reshape(
+                           for iterator in np.ndindex(self.observed_and_latent_cardinalities)], dtype=np.intp).reshape(
             (np.prod(self.observed_cardinalities), -1, self.nof_events ** self.nof_latent, self.nof_observed))
 
     def forbidden_events_clauses(self, occurring_events):
         return self._array_of_potentially_forbidden_events[
             np.setdiff1d(
                 self.conceivable_events_range,
-                from_digits(np.asarray(occurring_events), self.observed_cardinalities),
+                from_digits(np.asarray(occurring_events, dtype=np.intp), self.observed_cardinalities),
                 assume_unique=True
             )].reshape((-1, self.nof_observed))
 
@@ -210,7 +210,7 @@ class SupportTesting(SupportTester):
     #     return self.from_list_to_matrix(self.from_integer_to_list(supports_as_integers))
 
     def from_matrix_to_integer(self, supports_as_matrices):
-        supports_as_matrices_as_array = np.asarray(supports_as_matrices)
+        supports_as_matrices_as_array = np.asarray(supports_as_matrices, dtype=np.intp)
         shape = supports_as_matrices_as_array.shape
         return from_digits(
             supports_as_matrices_as_array.reshape(shape[:-2] + (np.prod(shape[-2:]),)),
@@ -220,7 +220,7 @@ class SupportTesting(SupportTester):
         # return self.from_list_to_matrix(self.from_integer_to_list(supports_as_integers))
         return np.reshape(to_digits(
             supports_as_integers, self.repeated_observed_cardinalities),
-            np.asarray(supports_as_integers).shape + (self.nof_events, self.nof_observed))
+            np.asarray(supports_as_integers, dtype=np.intp).shape + (self.nof_events, self.nof_observed))
 
 
 

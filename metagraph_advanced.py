@@ -29,6 +29,25 @@ from directed_structures import directed_structure
 from mDAG_advanced import mDAG
 
 
+def evaluate_property_or_method(instance, attribute):
+    if isinstance(attribute, str):
+        return getattr(instance, attribute)
+    elif isinstance(attribute, tuple):
+        return getattr(instance, attribute[0])(*attribute[1:])
+
+def classify_by_attributes(representatives, attributes):
+    """
+    :param choice of either self.safe_representative_mDAGs_list or self.representative_mDAGs_list:
+    :param attributes: list of attributes to classify mDAGs by. For a single attribute, use a list with one item.
+    Attributes are given as STRINGS, e.g. ['all_CI_unlabelled', 'skeleton_unlabelled']
+    :return: dictionary of mDAGS according to attributes.
+    """
+    d = defaultdict(set)
+    for mDAG in representatives:
+        d[tuple(evaluate_property_or_method(mDAG, prop) for prop in attributes)].add(mDAG)
+    return tuple(d.values())
+
+
 
 class Observable_unlabelled_mDAGs:
     def __init__(self, n):
@@ -230,38 +249,25 @@ class Observable_unlabelled_mDAGs:
     def representative_mDAGs_list(self):
         return self.smart_representatives(self.foundational_eqclasses, 'relative_complexity_for_sat_solver')
 
-    def classify_by_attributes(self, representatives, attributes):
-        """
-
-        :param choice of either self.safe_representative_mDAGs_list or self.representative_mDAGs_list:
-        :param attributes: list of attributes to classify mDAGs by. For a single attribute, use a list with one item.
-        Attributes are given as STRINGS, e.g. ['all_CI_unlabelled', 'skeleton_unlabelled']
-        :return: dictionary of mDAGS according to attributes.
-        """
-        d = defaultdict(set)
-        for mDAG in representatives:
-            d[tuple(mDAG.__getattribute__(prop) for prop in attributes)].add(mDAG)
-        return tuple(d.values())
-
     @property
     def CI_classes(self):
-        return self.classify_by_attributes(self.representative_mDAGs_list, ['all_CI_unlabelled'])
+        return classify_by_attributes(self.representative_mDAGs_list, ['all_CI_unlabelled'])
 
     @property
     def esep_classes(self):
-        return self.classify_by_attributes(self.representative_mDAGs_list, ['all_esep_unlabelled'])
+        return classify_by_attributes(self.representative_mDAGs_list, ['all_esep_unlabelled'])
 
     @property
     def Skeleton_classes(self):
-        return self.classify_by_attributes(self.representative_mDAGs_list, ['skeleton_unlabelled'])
+        return classify_by_attributes(self.representative_mDAGs_list, ['skeleton_unlabelled'])
 
     @property
     def Skeleton_and_CI(self):
-        return self.classify_by_attributes(self.representative_mDAGs_list, ['skeleton_unlabelled', 'all_CI_unlabelled'])
+        return classify_by_attributes(self.representative_mDAGs_list, ['skeleton_unlabelled', 'all_CI_unlabelled'])
 
     @property
     def Skeleton_and_esep(self):
-        return self.classify_by_attributes(self.representative_mDAGs_list,
+        return classify_by_attributes(self.representative_mDAGs_list,
                                            ['skeleton_unlabelled', 'all_esep_unlabelled'])
 
     def groupby_then_split_by(self, level1attributes, level2attributes):
@@ -299,6 +305,9 @@ if __name__ == '__main__':
     print("Number of Foundational Skeleton+CI classes: ", len(Observable_mDAGs.Skeleton_and_CI))
     print("Number of Foundational ESEP classes: ", len(Observable_mDAGs.esep_classes))
     print("Number of Foundational Skeleton+ESEP classes: ", len(Observable_mDAGs.Skeleton_and_esep))
+    print("Number of ESEP+Supports2 classes: ", len(classify_by_attributes(
+        Observable_mDAGs.representative_mDAGs_list,
+        ['all_esep_unlabelled', ('smart_infeasible_binary_supports_n_events_unlabelled',2)])))
 
     same_esep_different_skeleton = Observable_mDAGs.groupby_then_split_by(
         ['all_esep_unlabelled'], ['skeleton_unlabelled'])

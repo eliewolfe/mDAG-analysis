@@ -46,21 +46,22 @@ class directed_structure:
     """
     def __init__(self, variable_names, edge_list):
         self.variable_names = variable_names
-        self.number_of_visible = len(self.variable_names )
+        self.number_of_visible = len(self.variable_names)
         self.visible_nodes = list(range(self.number_of_visible))
         self.translation_dict = dict(zip(self.variable_names, self.visible_nodes))
         if not self.is_range(variable_names):
-            self.edge_list = list(chunked(partsextractor(self.translation_dict, itertools.chain.from_iterable(edge_list)),2))
+            self.edge_list = list(chunked(partsextractor(self.translation_dict, tuple(itertools.chain.from_iterable(edge_list))),2))
         else:
             self.edge_list = edge_list
         self.number_of_edges = len(edge_list)
 
     @staticmethod
     def is_range(variable_names):
-        for i, v in enumerate(variable_names):
-            if not isinstance(i, int):
-                return False
-        return np.array_equal(variable_names, range(len(variable_names)))
+        if all(isinstance(v, int) for v in variable_names):
+            return np.array_equal(variable_names, np.arange(len(variable_names)))
+        else:
+            return False
+
 
     @cached_property
     def as_tuples(self):
