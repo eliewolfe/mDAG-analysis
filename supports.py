@@ -24,7 +24,7 @@ else:
 
 class SupportTester(object):
     def __init__(self, parents_of, observed_cardinalities, nof_events):
-        print('Instantiating new object with nof_events=', nof_events, flush=True)
+        # print('Instantiating new object with nof_events=', nof_events, flush=True)
         self.parents_of = parents_of
         self.nof_events = nof_events
         self.nof_observed = len(self.parents_of)

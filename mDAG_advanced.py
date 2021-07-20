@@ -76,6 +76,12 @@ class mDAG:
         # Returns a unique identification number.
         return mdag_to_int(self.directed_structure_instance.as_bit_square_matrix, self.simplicial_complex_instance.as_bit_array)
 
+    def __hash__(self):
+        return self.unique_id
+
+    def __eq__(self, other):
+        return self.unique_id == other.unique_id
+
     @cached_property
     def unique_unlabelled_id(self):
         # Returns a unique identification number.
@@ -179,7 +185,6 @@ class mDAG:
                               n).unique_infeasible_supports_unlabelled(name='mgh', use_timer=False))
 
     def smart_infeasible_binary_supports_n_events_unlabelled(self, n):
-        print("n = :", n)
         return frozenset(SmartSupportTesting(self.parents_of_for_supports_analysis,
                                    np.broadcast_to(2, self.number_of_visible),
                                    n,

@@ -2,14 +2,14 @@ from __future__ import absolute_import
 import networkx as nx
 import numpy as np
 import itertools
-import scipy.special #For binomial coefficient
+# import scipy.special #For binomial coefficient
+import progressbar
 
 
-from operator import itemgetter
+# from operator import itemgetter
 from utilities import partsextractor
 from collections import defaultdict
-
-from radix import int_to_bitarray
+# from radix import int_to_bitarray
 
 from sys import hexversion
 
@@ -35,7 +35,7 @@ def evaluate_property_or_method(instance, attribute):
     elif isinstance(attribute, tuple):
         return getattr(instance, attribute[0])(*attribute[1:])
 
-def classify_by_attributes(representatives, attributes):
+def classify_by_attributes(representatives, attributes, verbose=False):
     """
     :param choice of either self.safe_representative_mDAGs_list or self.representative_mDAGs_list:
     :param attributes: list of attributes to classify mDAGs by. For a single attribute, use a list with one item.
@@ -43,9 +43,17 @@ def classify_by_attributes(representatives, attributes):
     :return: dictionary of mDAGS according to attributes.
     """
     d = defaultdict(set)
-    for mDAG in representatives:
-        d[tuple(evaluate_property_or_method(mDAG, prop) for prop in attributes)].add(mDAG)
+    if verbose:
+        for mDAG in progressbar.progressbar(
+            representatives, widgets=[progressbar.SimpleProgress(), progressbar.Bar(), ' (', progressbar.ETA(), ') ']):
+            d[tuple(evaluate_property_or_method(mDAG, prop) for prop in attributes)].add(mDAG)
+    else:
+        for mDAG in representatives:
+            d[tuple(evaluate_property_or_method(mDAG, prop) for prop in attributes)].add(mDAG)
     return tuple(d.values())
+
+def multiple_classifications(*args):
+    return list(filter(None, itertools.starmap(set.intersection, itertools.product(*args))))
 
 
 
@@ -162,31 +170,15 @@ class Observable_unlabelled_mDAGs:
 
     @property
     def HLP_edges(self):
-        # return [(self.dict_id_to_canonical_id[mDAG2], id) for
-        #  (id, mDAG) in self.dict_ind_unlabelled_mDAGs.items() for
-        #  mDAG2 in mDAG.generate_weaker_mDAG_HLP]
         for (id, mDAG) in self.dict_ind_unlabelled_mDAGs.items():  # NEW: Over graph patterns only
             for mDAG2 in mDAG.generate_weaker_mDAG_HLP:
                 yield (self.dict_id_to_canonical_id[mDAG2], id)
-                # if (id, self.dict_id_to_canonical_id[mDAG2]) not in self.unlabelled_dominances:
-                #     print((int_to_bitarray(id,4), int_to_bitarray(self.dict_id_to_canonical_id[mDAG2],4)))
-                # yield (id, self.dict_id_to_canonical_id[mDAG2]) #Not needed if directed dominances included
 
     def FaceSplitting_edges(self, unsafe=True):
-        # return [(self.dict_id_to_canonical_id[mDAG2], id) for
-        #  (id, mDAG) in self.dict_ind_unlabelled_mDAGs.items() for
-        #  mDAG2 in mDAG.generate_weaker_mDAGs_FaceSplitting(unsafe=unsafe)]
         for (id, mDAG) in self.dict_ind_unlabelled_mDAGs.items():  # NEW: Over graph patterns only
             for mDAG2 in mDAG.generate_weaker_mDAGs_FaceSplitting(unsafe=unsafe):
                 yield (self.dict_id_to_canonical_id[mDAG2], id)
-                # yield (id, self.dict_id_to_canonical_id[mDAG2]) #Not needed if hypergraph dominance relations included
-    #
-    # def meta_graph_undirected_edges(self, unsafe=True):
-    #     for (id, mDAG) in self.dict_ind_unlabelled_mDAGs.items():  # NEW: Over graph patterns only
-    #         for mDAG2 in mDAG.generate_weaker_mDAG_HLP:
-    #             yield (self.dict_id_to_canonical_id[mDAG2], id)
-    #         for mDAG2 in mDAG.generate_weaker_mDAGs_FaceSplitting(unsafe=unsafe):
-    #             yield (self.dict_id_to_canonical_id[mDAG2], id)
+
 
     @cached_property
     def meta_graph(self):
@@ -242,11 +234,9 @@ class Observable_unlabelled_mDAGs:
     # def safe_representative_mDAGs_list(self):
     #     return self.representatives(self.safe_equivalence_classes_as_mDAGs)
 
-    # @cached_property
-    # def representative_mDAGs_list(self):
-    #     return self.representatives(self.equivalence_classes_as_mDAGs)
     @cached_property
     def representative_mDAGs_list(self):
+    #     return self.representatives(self.equivalence_classes_as_mDAGs)
         return self.smart_representatives(self.foundational_eqclasses, 'relative_complexity_for_sat_solver')
 
     @property
@@ -302,16 +292,25 @@ if __name__ == '__main__':
 
     print("Number of Foundational CI classes: ", len(Observable_mDAGs.CI_classes))
     print("Number of Foundational Skeleton classes: ", len(Observable_mDAGs.Skeleton_classes))
-    print("Number of Foundational Skeleton+CI classes: ", len(Observable_mDAGs.Skeleton_and_CI))
+    print("Number of Foundational Skeleton+CI classes: ", len(
+        multiple_classifications(Observable_mDAGs.CI_classes, Observable_mDAGs.Skeleton_classes)))
     print("Number of Foundational ESEP classes: ", len(Observable_mDAGs.esep_classes))
-    print("Number of Foundational Skeleton+ESEP classes: ", len(Observable_mDAGs.Skeleton_and_esep))
-    print("Number of ESEP+Supports2 classes: ", len(classify_by_attributes(
-        Observable_mDAGs.representative_mDAGs_list,
-        ['all_esep_unlabelled', ('smart_infeasible_binary_supports_n_events_unlabelled',2)])))
+    print("Number of Foundational Skeleton+ESEP classes: ", len(
+        multiple_classifications(Observable_mDAGs.esep_classes, Observable_mDAGs.Skeleton_classes)))
 
-    same_esep_different_skeleton = Observable_mDAGs.groupby_then_split_by(
-        ['all_esep_unlabelled'], ['skeleton_unlabelled'])
-    same_skeleton_different_CI = Observable_mDAGs.groupby_then_split_by(
-        ['skeleton_unlabelled'], ['all_CI_unlabelled'])
-    same_CI_different_skeleton = Observable_mDAGs.groupby_then_split_by(
-        ['all_CI_unlabelled'], ['skeleton_unlabelled'])
+    max_nof_events = 6
+    smart_supports_dict = dict()
+    for k in range(2, max_nof_events+1):
+        print("[nof_events={}]".format(k))
+        smart_supports_dict[k] = classify_by_attributes(Observable_mDAGs.representative_mDAGs_list,
+            [('smart_infeasible_binary_supports_n_events_unlabelled', k)], verbose=True)
+        print("Number of ESEP+Supports Up To {} classes: ".format(k), len(
+            multiple_classifications(Observable_mDAGs.esep_classes,
+                                 *(smart_supports_dict[i] for i in range(2, k+1)))), flush=True)
+
+    # same_esep_different_skeleton = Observable_mDAGs.groupby_then_split_by(
+    #     ['all_esep_unlabelled'], ['skeleton_unlabelled'])
+    # same_skeleton_different_CI = Observable_mDAGs.groupby_then_split_by(
+    #     ['skeleton_unlabelled'], ['all_CI_unlabelled'])
+    # same_CI_different_skeleton = Observable_mDAGs.groupby_then_split_by(
+    #     ['all_CI_unlabelled'], ['skeleton_unlabelled'])
