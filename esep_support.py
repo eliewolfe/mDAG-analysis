@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 import numpy as np
 import itertools
-from radix import from_digits, to_digits
+from radix import to_digits
 from supports import SupportTesting
 
 """
@@ -119,7 +119,7 @@ if __name__ == '__main__':
 
     print(does_this_dsep_rule_out_this_support(ab, C, s))
 
-    from mDAG import mDAG
+    from mDAG_advanced import mDAG
     import networkx as nx
 
     #

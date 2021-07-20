@@ -127,7 +127,6 @@ class mDAG:
 
     def _all_CI_like_unlabelled_generator(self, attribute):
         for perm in itertools.permutations(self.visible_nodes):
-            relabelling = dict(zip(self.visible_nodes, perm))
             yield frozenset(
                 tuple(
                     frozenset(partsextractor(perm, variable_set))

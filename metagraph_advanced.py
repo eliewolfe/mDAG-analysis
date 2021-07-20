@@ -106,6 +106,9 @@ class Observable_unlabelled_mDAGs:
     def dict_ind_unlabelled_mDAGs(self):
         return {mDAG.unique_unlabelled_id: mDAG for mDAG in self.all_labelled_mDAGs}
 
+    def lookup_mDAG(self, indices):
+        return partsextractor(self.dict_ind_unlabelled_mDAGs, indices)
+
     @property
     def all_unlabelled_mDAGs(self):
         return self.dict_ind_unlabelled_mDAGs.values()
@@ -186,8 +189,92 @@ class Observable_unlabelled_mDAGs:
         return g
 
     @cached_property
-    def equivalence_classes(self):
+    def equivalence_classes_as_ids(self):
         return list(nx.strongly_connected_components(self.meta_graph))
+
+    # @cached_property
+    # def safe_equivalence_classes_as_mDAGs(self):
+    #     return [self.lookup_mDAG(eqclass) for eqclass in self.safe_equivalence_classes]
+
+    @cached_property
+    def equivalence_classes_as_mDAGs(self):
+        return [self.lookup_mDAG(eqclass) for eqclass in self.equivalence_classes_as_ids]
+
+
+    @cached_property
+    def singleton_equivalence_classes(self):
+        return [next(iter(eqclass)) for eqclass in self.equivalence_classes_as_mDAGs if len(eqclass) == 1]
+
+    @cached_property
+    def foundational_eqclasses(self):
+        return list(filter(lambda eqclass: all(mDAG.fundamental_graphQ for mDAG in eqclass),
+                           self.equivalence_classes_as_mDAGs))
+
+    @staticmethod
+    def representatives(eqclasses):
+        return [next(iter(eqclass)) for eqclass in eqclasses]
+
+    @staticmethod
+    def smart_representatives(eqclasses, attribute):
+        return [min(eqclass, key = lambda mDAG: mDAG.__getattribute__(attribute)) for eqclass in eqclasses]
+
+
+    # @cached_property
+    # def safe_representative_mDAGs_list(self):
+    #     return self.representatives(self.safe_equivalence_classes_as_mDAGs)
+
+    # @cached_property
+    # def representative_mDAGs_list(self):
+    #     return self.representatives(self.equivalence_classes_as_mDAGs)
+    @cached_property
+    def representative_mDAGs_list(self):
+        return self.smart_representatives(self.foundational_eqclasses, 'relative_complexity_for_sat_solver')
+
+    def classify_by_attributes(self, representatives, attributes):
+        """
+
+        :param choice of either self.safe_representative_mDAGs_list or self.representative_mDAGs_list:
+        :param attributes: list of attributes to classify mDAGs by. For a single attribute, use a list with one item.
+        Attributes are given as STRINGS, e.g. ['all_CI_unlabelled', 'skeleton_unlabelled']
+        :return: dictionary of mDAGS according to attributes.
+        """
+        d = defaultdict(set)
+        for mDAG in representatives:
+            d[tuple(mDAG.__getattribute__(prop) for prop in attributes)].add(mDAG)
+        return tuple(d.values())
+
+    @property
+    def CI_classes(self):
+        return self.classify_by_attributes(self.representative_mDAGs_list, ['all_CI_unlabelled'])
+
+    @property
+    def esep_classes(self):
+        return self.classify_by_attributes(self.representative_mDAGs_list, ['all_esep_unlabelled'])
+
+    @property
+    def Skeleton_classes(self):
+        return self.classify_by_attributes(self.representative_mDAGs_list, ['skeleton_unlabelled'])
+
+    @property
+    def Skeleton_and_CI(self):
+        return self.classify_by_attributes(self.representative_mDAGs_list, ['skeleton_unlabelled', 'all_CI_unlabelled'])
+
+    @property
+    def Skeleton_and_esep(self):
+        return self.classify_by_attributes(self.representative_mDAGs_list,
+                                           ['skeleton_unlabelled', 'all_esep_unlabelled'])
+
+    def groupby_then_split_by(self, level1attributes, level2attributes):
+        d = defaultdict(set)
+        joint_attributes = level1attributes + level2attributes
+        critical_range = len(level1attributes)
+        for mDAG in self.representative_mDAGs_list:
+            d[tuple(mDAG.__getattribute__(prop) for prop in joint_attributes)].add(mDAG)
+        d2 = defaultdict(dict)
+        for key_tuple, partition in d.items():
+            d2[key_tuple[:critical_range]][key_tuple] = tuple(partition)
+        return [val for val in d2.values() if len(val) > 1]
+
 
 
 
@@ -200,5 +287,22 @@ if __name__ == '__main__':
     fundamental_list = [mDAG.fundamental_graphQ for mDAG in Observable_mDAGs.all_unlabelled_mDAGs]
     print("Number of fundamental unlabelled graph patterns: ", len(np.flatnonzero(fundamental_list)), flush=True)
 
-    eqclasses = Observable_mDAGs.equivalence_classes
+    eqclasses = Observable_mDAGs.equivalence_classes_as_mDAGs
     print("Upper bound on number of equivalence classes: ", len(eqclasses), flush=True)
+
+    foundational_eqclasses = Observable_mDAGs.foundational_eqclasses
+    print("Upper bound on number of 100% foundational equivalence classes: ", len(foundational_eqclasses),
+          flush=True)
+
+    print("Number of Foundational CI classes: ", len(Observable_mDAGs.CI_classes))
+    print("Number of Foundational Skeleton classes: ", len(Observable_mDAGs.Skeleton_classes))
+    print("Number of Foundational Skeleton+CI classes: ", len(Observable_mDAGs.Skeleton_and_CI))
+    print("Number of Foundational ESEP classes: ", len(Observable_mDAGs.esep_classes))
+    print("Number of Foundational Skeleton+ESEP classes: ", len(Observable_mDAGs.Skeleton_and_esep))
+
+    same_esep_different_skeleton = Observable_mDAGs.groupby_then_split_by(
+        ['all_esep_unlabelled'], ['skeleton_unlabelled'])
+    same_skeleton_different_CI = Observable_mDAGs.groupby_then_split_by(
+        ['skeleton_unlabelled'], ['all_CI_unlabelled'])
+    same_CI_different_skeleton = Observable_mDAGs.groupby_then_split_by(
+        ['all_CI_unlabelled'], ['skeleton_unlabelled'])

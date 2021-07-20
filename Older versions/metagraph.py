@@ -1,11 +1,8 @@
 from __future__ import absolute_import
 import networkx as nx
-import numpy as np
-from itertools import combinations, repeat, chain, product, islice, permutations
-import itertools
+from itertools import combinations, chain, product, permutations
 import scipy.special #For binomial coefficient
 from mDAG import mDAG
-from operator import itemgetter
 # from radix import bitarray_to_int
 from utilities import partsextractor, nx_to_int, hypergraph_to_int, representatives
 
