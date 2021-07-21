@@ -4,10 +4,12 @@ import itertools
 from pysat.solvers import Solver
 from pysat.formula import IDPool  # I wonder if we can't get away without this, but it is SO convenient
 # from pysat.card import CardEnc, EncType
-from operator import itemgetter
+# from operator import itemgetter
 from radix import from_digits, to_digits, uniform_base_test
+from utilities import partsextractor
 import progressbar
 # from tqdm import tqdm
+import methodtools
 
 from sys import hexversion
 
@@ -45,7 +47,7 @@ class SupportTester(object):
 
         self.conceivable_events_range = np.arange(self.max_conceivable_events, dtype=np.uint)
 
-        self.relevant_parent_cardinalities = [self.partsextractor(self.observed_and_latent_cardinalities,
+        self.relevant_parent_cardinalities = [partsextractor(self.observed_and_latent_cardinalities,
                                                                   self.parents_of[idx]) for idx in
                                               range(self.nof_observed)]
 
@@ -57,14 +59,14 @@ class SupportTester(object):
             'v[{0}]_{2}==0'.format(idx, val, par)) if idx in self.binary_variables and val == 1 else self.vpool.id(
             'v[{0}]_{2}=={1}'.format(idx, val, par))
 
-    @staticmethod
-    def partsextractor(thing_to_take_parts_of, indices):
-        if len(indices) == 0:
-            return tuple()
-        elif len(indices) == 1:
-            return (itemgetter(*indices)(thing_to_take_parts_of),)
-        else:
-            return itemgetter(*indices)(thing_to_take_parts_of)
+    # @staticmethod
+    # def partsextractor(thing_to_take_parts_of, indices):
+    #     if len(indices) == 0:
+    #         return tuple()
+    #     elif len(indices) == 1:
+    #         return (itemgetter(*indices)(thing_to_take_parts_of),)
+    #     else:
+    #         return itemgetter(*indices)(thing_to_take_parts_of)
 
     @cached_property
     def at_least_one_outcome(self):
@@ -74,16 +76,47 @@ class SupportTester(object):
 
     @cached_property
     def _array_of_potentially_forbidden_events(self):
-        return np.asarray([[-self.var(idx, iterator[idx], self.partsextractor(iterator, self.parents_of[idx])) for idx
+        return np.asarray([[-self.var(idx, iterator[idx], partsextractor(iterator, self.parents_of[idx])) for idx
                             in range(self.nof_observed)]
                            for iterator in np.ndindex(self.observed_and_latent_cardinalities)], dtype=np.intp).reshape(
             (np.prod(self.observed_cardinalities), -1, self.nof_events ** self.nof_latent, self.nof_observed))
+
+    def from_list_to_matrix(self, supports_as_lists):
+        return to_digits(supports_as_lists, self.observed_cardinalities)
+
+    def from_matrix_to_list(self, supports_as_matrices):
+        return from_digits(supports_as_matrices, self.observed_cardinalities)
+
+    def from_list_to_integer(self, supports_as_lists):
+        return from_digits(supports_as_lists, self.event_cardinalities)
+
+    def from_integer_to_list(self, supports_as_integers):
+        return to_digits(supports_as_integers, self.event_cardinalities)
+
+    # def from_matrix_to_integer(self, supports_as_matrices):
+    #     return self.from_list_to_integer(self.from_matrix_to_list(supports_as_matrices))
+    #
+    # def from_integer_to_matrix(self, supports_as_integers):
+    #     return self.from_list_to_matrix(self.from_integer_to_list(supports_as_integers))
+
+    def from_matrix_to_integer(self, supports_as_matrices):
+        supports_as_matrices_as_array = np.asarray(supports_as_matrices, dtype=np.intp)
+        shape = supports_as_matrices_as_array.shape
+        return from_digits(
+            supports_as_matrices_as_array.reshape(shape[:-2] + (np.prod(shape[-2:]),)),
+            self.repeated_observed_cardinalities)
+
+    def from_integer_to_matrix(self, supports_as_integers):
+        # return self.from_list_to_matrix(self.from_integer_to_list(supports_as_integers))
+        return np.reshape(to_digits(
+            supports_as_integers, self.repeated_observed_cardinalities),
+            np.asarray(supports_as_integers, dtype=np.intp).shape + (self.nof_events, self.nof_observed))
 
     def forbidden_events_clauses(self, occurring_events):
         return self._array_of_potentially_forbidden_events[
             np.setdiff1d(
                 self.conceivable_events_range,
-                from_digits(np.asarray(occurring_events, dtype=np.intp), self.observed_cardinalities),
+                self.from_matrix_to_list(np.asarray(occurring_events, dtype=np.intp)),
                 assume_unique=True
             )].reshape((-1, self.nof_observed))
 
@@ -92,20 +125,24 @@ class SupportTester(object):
             iterator_plus = tuple(iterator) + tuple(np.repeat(i, self.nof_latent))
             for idx in self.nonbinary_variables:
                 # NEXT LINE IS OPTIONAL, CAN BE COMMENTED OUT
-                yield [self.var(idx, iterator[idx], self.partsextractor(iterator_plus, self.parents_of[idx]))]
+                yield [self.var(idx, iterator[idx], partsextractor(iterator_plus, self.parents_of[idx]))]
                 wrong_values = set(range(self.observed_cardinalities[idx]))
                 wrong_values.remove(iterator[idx])
                 for wrong_value in wrong_values:
                     # if wrong_value != iterator[idx]:
-                    yield [-self.var(idx, wrong_value, self.partsextractor(iterator_plus, self.parents_of[idx]))]
+                    yield [-self.var(idx, wrong_value, partsextractor(iterator_plus, self.parents_of[idx]))]
             for idx in self.binary_variables:
-                yield [self.var(idx, iterator[idx], self.partsextractor(iterator_plus, self.parents_of[idx]))]
+                yield [self.var(idx, iterator[idx], partsextractor(iterator_plus, self.parents_of[idx]))]
 
     def _sat_solver_clauses(self, occurring_events):
         assert self.nof_events == len(occurring_events), 'The number of events does not match the expected number.'
         return list(self.array_of_positive_outcomes(occurring_events)) + \
                self.at_least_one_outcome + \
                self.forbidden_events_clauses(occurring_events).tolist()
+
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def feasibleQ_from_integer(self, occurring_events_as_integer, **kwargs):
+        return self.feasibleQ(self.from_integer_to_matrix(occurring_events_as_integer), **kwargs)
 
     def feasibleQ(self, occurring_events, **kwargs):
         with Solver(bootstrap_with=self._sat_solver_clauses(occurring_events), **kwargs) as s:
@@ -122,10 +159,16 @@ class SupportTester(object):
                self.at_least_one_outcome + \
                self.forbidden_events_clauses(potentially_occurring_events).tolist()
 
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def infeasibleQ_from_integer(self, definitely_occurring_events_as_integer, potentially_occurring_events_as_integer, **kwargs):
+        return self.infeasibleQ(
+            self.from_integer_to_matrix(definitely_occurring_events_as_integer)
+            , self.from_integer_to_matrix(potentially_occurring_events_as_integer)
+            , **kwargs)
+
     def infeasibleQ(self, definitely_occurring_events, potentially_occurring_events, **kwargs):
         with Solver(bootstrap_with=self._sat_solver_clauses_bonus(definitely_occurring_events, potentially_occurring_events), **kwargs) as s:
             return (s.solve(), s.time())
-
 
 
 class SupportTesting(SupportTester):
@@ -181,72 +224,38 @@ class SupportTesting(SupportTester):
             itertools.combinations(self.conceivable_events_range[1:], self.nof_events - 1)), np.uint).reshape(
             (-1, self.nof_events - 1)), ((0, 0), (1, 0)), 'constant')
         return self.unique_supports_under_group(candidates, self.outcome_relabelling_group)
-        # compressed_candidates = from_digits(candidates, self.event_cardinalities)
-        # for group_element in self.outcome_relabelling_group[1:]:
-        #     new_candidates = group_element[candidates]
-        #     new_candidates.sort()
-        #     np.minimum(compressed_candidates,
-        #                from_digits(new_candidates, self.event_cardinalities),
-        #                out=compressed_candidates)
-        #     candidates = to_digits(compressed_candidates, self.event_cardinalities)
-        # return np.unique(candidates, axis=0)
 
-    def from_list_to_matrix(self, supports_as_lists):
-        return to_digits(supports_as_lists, self.observed_cardinalities)
-
-    def from_matrix_to_list(self, supports_as_matrices):
-        return from_digits(supports_as_matrices, self.observed_cardinalities)
-
-    def from_list_to_integer(self, supports_as_lists):
-        return from_digits(supports_as_lists, self.event_cardinalities)
-
-    def from_integer_to_list(self, supports_as_integers):
-        return to_digits(supports_as_integers, self.event_cardinalities)
-
-    # def from_matrix_to_integer(self, supports_as_matrices):
-    #     return self.from_list_to_integer(self.from_matrix_to_list(supports_as_matrices))
-    #
-    # def from_integer_to_matrix(self, supports_as_integers):
-    #     return self.from_list_to_matrix(self.from_integer_to_list(supports_as_integers))
-
-    def from_matrix_to_integer(self, supports_as_matrices):
-        supports_as_matrices_as_array = np.asarray(supports_as_matrices, dtype=np.intp)
-        shape = supports_as_matrices_as_array.shape
-        return from_digits(
-            supports_as_matrices_as_array.reshape(shape[:-2] + (np.prod(shape[-2:]),)),
-            self.repeated_observed_cardinalities)
-
-    def from_integer_to_matrix(self, supports_as_integers):
-        # return self.from_list_to_matrix(self.from_integer_to_list(supports_as_integers))
-        return np.reshape(to_digits(
-            supports_as_integers, self.repeated_observed_cardinalities),
-            np.asarray(supports_as_integers, dtype=np.intp).shape + (self.nof_events, self.nof_observed))
+    @cached_property
+    def unique_candidate_supports_as_integers(self):
+        return self.from_list_to_integer(self.unique_candidate_supports)
 
 
-
-
+    @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports(self, **kwargs):
         """
         Return a signature of infeasible support for a given parents_of, observed_cardinalities, and nof_events
         :param kwargs: optional arguments to pysat.Solver
         CHANGED: Now returns each infeasible support as a single integer.
         """
-        return self.from_matrix_to_integer(
-            [occuring_events for occuring_events in progressbar.progressbar(
-                self.from_list_to_matrix(self.unique_candidate_supports)
-                , widgets=['[nof_events=',str(self.nof_events),'] ',progressbar.SimpleProgress(), progressbar.Bar(),' (', progressbar.ETA(), ') ']
+        return [occuring_events_as_int for occuring_events_as_int in progressbar.progressbar(
+                self.unique_candidate_supports_as_integers
+                , widgets=['[nof_events=',str(self.nof_events), '] '
+                , progressbar.SimpleProgress(), progressbar.Bar(), ' (', progressbar.ETA(), ') ']
             ) if
-             not self.feasibleQ(occuring_events, **kwargs)[0]])
+             not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0]]
 
+    @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_unlabelled(self, **kwargs):
         return np.unique(np.amin(self.from_list_to_integer(
-            np.sort(self.universal_relabelling_group[:, self.from_integer_to_list(self.unique_infeasible_supports())])
+            np.sort(self.universal_relabelling_group[:, self.from_integer_to_list(self.unique_infeasible_supports(**kwargs))])
         ), axis=0))
 
+    @methodtools.lru_cache(maxsize=None, typed=False)
     def no_infeasible_supports(self, **kwargs):
-        return all(self.feasibleQ(occuring_events, **kwargs)[0] for occuring_events in progressbar.progressbar(
-                self.from_list_to_matrix(self.unique_candidate_supports)
-                , widgets=['[nof_events=',str(self.nof_events),'] ',progressbar.SimpleProgress(), progressbar.Bar(),' (', progressbar.ETA(), ') ']
+        return all(self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0] for occuring_events_as_int in progressbar.progressbar(
+                self.unique_candidate_supports_as_integers
+                , widgets=['[nof_events=', str(self.nof_events),'] '
+                , progressbar.SimpleProgress(), progressbar.Bar(),' (', progressbar.ETA(), ') ']
             ))
 
 

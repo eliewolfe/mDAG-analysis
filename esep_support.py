@@ -80,6 +80,7 @@ class SmartSupportTesting(SupportTesting):
         # print(self.extreme_devisualize_supports(to_filter[indices_to_keep]))
         return self.unique_candidate_supports[indices_to_keep]
 
+    @methodtools.lru_cache(maxsize=None, typed=False)
     def smart_unique_infeasible_supports(self, **kwargs):
         """
         Return a signature of infeasible support for a given parents_of, observed_cardinalities, and nof_events
@@ -87,21 +88,23 @@ class SmartSupportTesting(SupportTesting):
         CHANGED: Now returns each infeasible support as a single integer.
         """
         return self.from_matrix_to_integer(
-            [occuring_events for occuring_events in progressbar.progressbar(
-                self.from_list_to_matrix(self.smart_unique_infeasible_supports), widgets=[
+            [occuring_events_as_int for occuring_events_as_int in progressbar.progressbar(
+                self.unique_candidate_supports_as_integers, widgets=[
                     '[nof_events=',str(self.nof_events), '] '
                     , progressbar.SimpleProgress(), progressbar.Bar()
                     , ' (', progressbar.ETA(), ') ']) if
-             not self.feasibleQ(occuring_events, **kwargs)[0]])
+             not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0]])
 
+    @methodtools.lru_cache(maxsize=None, typed=False)
     def smart_unique_infeasible_supports_unlabelled(self, **kwargs):
         return np.unique(np.amin(self.from_list_to_integer(
-            np.sort(self.universal_relabelling_group[:, self.from_integer_to_list(self.smart_unique_infeasible_supports())])
+            np.sort(self.universal_relabelling_group[:, self.from_integer_to_list(self.smart_unique_infeasible_supports(**kwargs))])
         ), axis=0))
 
+    @methodtools.lru_cache(maxsize=None, typed=False)
     def no_infeasible_supports_beyond_esep(self, **kwargs):
-        return all(self.feasibleQ(occuring_events, **kwargs)[0] for occuring_events in progressbar.progressbar(
-                self.from_list_to_matrix(self.smart_unique_infeasible_supports), widgets=[
+        return all(self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0] for occuring_events_as_int in progressbar.progressbar(
+                self.unique_candidate_supports_as_integers, widgets=[
                     '[nof_events=',str(self.nof_events), '] '
                     , progressbar.SimpleProgress(), progressbar.Bar()
                     , ' (', progressbar.ETA(), ') ']))
