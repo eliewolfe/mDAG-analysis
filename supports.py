@@ -7,7 +7,7 @@ from pysat.formula import IDPool  # I wonder if we can't get away without this, 
 from operator import itemgetter
 from radix import from_digits, to_digits, uniform_base_test
 import progressbar
-from tqdm import tqdm
+# from tqdm import tqdm
 
 from sys import hexversion
 

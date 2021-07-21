@@ -3,6 +3,7 @@ import numpy as np
 import itertools
 from radix import to_digits
 from supports import SupportTesting
+import progressbar
 
 """
 Suppose that we see a d-sep relation of the form (a,b,C).
@@ -86,7 +87,11 @@ class SmartSupportTesting(SupportTesting):
         CHANGED: Now returns each infeasible support as a single integer.
         """
         return self.from_matrix_to_integer(
-            [occuring_events for occuring_events in self.from_list_to_matrix(self.smart_unique_candidate_supports) if
+            [occuring_events for occuring_events in progressbar.progressbar(
+                self.from_list_to_matrix(self.smart_unique_infeasible_supports), widgets=[
+                    '[nof_events=',str(self.nof_events), '] '
+                    , progressbar.SimpleProgress(), progressbar.Bar()
+                    , ' (', progressbar.ETA(), ') ']) if
              not self.feasibleQ(occuring_events, **kwargs)[0]])
 
     def smart_unique_infeasible_supports_unlabelled(self, **kwargs):
@@ -96,9 +101,10 @@ class SmartSupportTesting(SupportTesting):
 
     def no_infeasible_supports_beyond_esep(self, **kwargs):
         return all(self.feasibleQ(occuring_events, **kwargs)[0] for occuring_events in progressbar.progressbar(
-                self.from_list_to_matrix(self.smart_unique_infeasible_supports)
-                , widgets=['[nof_events=',str(self.nof_events),'] ',progressbar.SimpleProgress(), progressbar.Bar(),' (', progressbar.ETA(), ') ']
-            ))
+                self.from_list_to_matrix(self.smart_unique_infeasible_supports), widgets=[
+                    '[nof_events=',str(self.nof_events), '] '
+                    , progressbar.SimpleProgress(), progressbar.Bar()
+                    , ' (', progressbar.ETA(), ') ']))
 
 
 
