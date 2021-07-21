@@ -4,6 +4,20 @@ import itertools
 from radix import to_digits
 from supports import SupportTesting
 import progressbar
+import methodtools
+
+from sys import hexversion
+
+if hexversion >= 0x3080000:
+    from functools import cached_property
+elif hexversion >= 0x3060000:
+    # with io.capture_output() as captured:
+    #     !pip
+    #     install
+    #     backports.cached - property
+    from backports.cached_property import cached_property
+else:
+    cached_property = property
 
 """
 Suppose that we see a d-sep relation of the form (a,b,C).
@@ -70,15 +84,23 @@ class SmartSupportTesting(SupportTesting):
     #     for idx, candidate_s in enumerate(to_filter):
     #         if not self.trivial_infeasible_support_Q(candidate_s):
     #             yield idx
-
-    @property
-    def smart_unique_candidate_supports(self):
+    @cached_property
+    def _trivially_infeasible_support_picklist(self):
         to_filter = self.from_list_to_matrix(self.unique_candidate_supports)
-        indices_to_keep = [idx for idx, candidate_s in enumerate(to_filter) if
-                           not self.trivial_infeasible_support_Q(candidate_s)]
-        # indices_to_keep = list(self._smart_unique_candidate_supports)
-        # print(self.extreme_devisualize_supports(to_filter[indices_to_keep]))
-        return self.unique_candidate_supports[indices_to_keep]
+        return np.fromiter(map(self.trivial_infeasible_support_Q, to_filter), bool)
+
+    @cached_property
+    def trivially_infeasible_supports_as_integers(self):
+        return np.asarray(self.unique_candidate_supports_as_integers, dtype=np.intp)[self._trivially_infeasible_support_picklist]
+
+    @cached_property
+    def trivially_infeasible_supports_as_integers(self):
+        return self.from_list_to_integer(self._trivially_infeasible_support_picklist)
+
+    @cached_property
+    def smart_unique_candidate_supports_as_integers(self):
+        return np.asarray(self.unique_candidate_supports_as_integers, dtype=np.intp)[
+            np.logical_not(self._trivially_infeasible_support_picklist)]
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def smart_unique_infeasible_supports(self, **kwargs):
@@ -87,13 +109,12 @@ class SmartSupportTesting(SupportTesting):
         :param kwargs: optional arguments to pysat.Solver
         CHANGED: Now returns each infeasible support as a single integer.
         """
-        return self.from_matrix_to_integer(
-            [occuring_events_as_int for occuring_events_as_int in progressbar.progressbar(
-                self.unique_candidate_supports_as_integers, widgets=[
+        return [occuring_events_as_int for occuring_events_as_int in progressbar.progressbar(
+                self.smart_unique_candidate_supports_as_integers, widgets=[
                     '[nof_events=',str(self.nof_events), '] '
                     , progressbar.SimpleProgress(), progressbar.Bar()
                     , ' (', progressbar.ETA(), ') ']) if
-             not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0]])
+             not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0]]
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def smart_unique_infeasible_supports_unlabelled(self, **kwargs):
@@ -104,7 +125,7 @@ class SmartSupportTesting(SupportTesting):
     @methodtools.lru_cache(maxsize=None, typed=False)
     def no_infeasible_supports_beyond_esep(self, **kwargs):
         return all(self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0] for occuring_events_as_int in progressbar.progressbar(
-                self.unique_candidate_supports_as_integers, widgets=[
+                self.smart_unique_candidate_supports_as_integers, widgets=[
                     '[nof_events=',str(self.nof_events), '] '
                     , progressbar.SimpleProgress(), progressbar.Bar()
                     , ' (', progressbar.ETA(), ') ']))
@@ -154,9 +175,14 @@ if __name__ == '__main__':
 
     # # print(md1.all_esep)
     # # print(md1.all_esep.difference(md2.all_esep))
+    print(md2.all_esep)
     # #print(md1.infeasible_binary_supports_n_events(4))
     # print(md1.smart_infeasible_binary_supports_n_events(4))
     # print(md2.smart_infeasible_binary_supports_n_events(4))
     print(set(md2.smart_infeasible_binary_supports_n_events(4)).difference(md1.smart_infeasible_binary_supports_n_events(4)))
     print(to_digits(to_digits(9786, np.broadcast_to(2 ** 5, 4)), np.broadcast_to(2, 5)))
     # #Cool, it works great.
+
+    #Now testing memoization
+    print(set(md2.smart_infeasible_binary_supports_n_events_unlabelled(4)))
+    print(set(md2.infeasible_binary_supports_n_events_unlabelled(4)))

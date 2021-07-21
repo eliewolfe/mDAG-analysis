@@ -163,12 +163,13 @@ class mDAG:
     def all_esep_unlabelled(self):
         return min(self._all_CI_like_unlabelled_generator('all_esep'))
 
-    @methodtools.lru_cache(maxsize=None, typed=False)
-    def support_testing_instance(self, n):
-        return SupportTesting(self.parents_of_for_supports_analysis,
-                              np.broadcast_to(2, self.number_of_visible),
-                              n)
+    # @methodtools.lru_cache(maxsize=None, typed=False)
+    # def support_testing_instance(self, n):
+    #     return SupportTesting(self.parents_of_for_supports_analysis,
+    #                           np.broadcast_to(2, self.number_of_visible),
+    #                           n)
 
+    #Let's use smart support testing for both smart and not.
     @methodtools.lru_cache(maxsize=None, typed=False)
     def smart_support_testing_instance(self, n):
         return SmartSupportTesting(self.parents_of_for_supports_analysis,
@@ -177,13 +178,13 @@ class mDAG:
                                    )
 
     def infeasible_binary_supports_n_events(self, n):
-        return frozenset(self.support_testing_instance(n).unique_infeasible_supports(name='mgh', use_timer=False))
+        return frozenset(self.smart_support_testing_instance(n).unique_infeasible_supports(name='mgh', use_timer=False))
 
     def smart_infeasible_binary_supports_n_events(self, n):
         return frozenset(self.smart_support_testing_instance(n).smart_unique_infeasible_supports(name='mgh', use_timer=False))
 
     def infeasible_binary_supports_n_events_unlabelled(self, n):
-        return frozenset(self.support_testing_instance(n).unique_infeasible_supports_unlabelled(name='mgh', use_timer=False))
+        return frozenset(self.smart_support_testing_instance(n).unique_infeasible_supports_unlabelled(name='mgh', use_timer=False))
 
     def smart_infeasible_binary_supports_n_events_unlabelled(self, n):
         return frozenset(self.smart_support_testing_instance(n).smart_unique_infeasible_supports_unlabelled(name='mgh', use_timer=False))
