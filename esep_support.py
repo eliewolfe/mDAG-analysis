@@ -94,6 +94,12 @@ class SmartSupportTesting(SupportTesting):
             np.sort(self.universal_relabelling_group[:, self.from_integer_to_list(self.smart_unique_infeasible_supports())])
         ), axis=0))
 
+    def no_infeasible_supports_beyond_esep(self, **kwargs):
+        return all(self.feasibleQ(occuring_events, **kwargs)[0] for occuring_events in progressbar.progressbar(
+                self.from_list_to_matrix(self.smart_unique_infeasible_supports)
+                , widgets=['[nof_events=',str(self.nof_events),'] ',progressbar.SimpleProgress(), progressbar.Bar(),' (', progressbar.ETA(), ') ']
+            ))
+
 
 
 
