@@ -298,6 +298,16 @@ if __name__ == '__main__':
     print("Number of Foundational Skeleton+ESEP classes: ", len(
         multiple_classifications(Observable_mDAGs.esep_classes, Observable_mDAGs.Skeleton_classes)))
 
+    #MEMOIZATION TEST
+    print("Wasting time memoizing infeasible supports over 2 events...")
+    waste_time = classify_by_attributes(Observable_mDAGs.representative_mDAGs_list,
+            [('smart_infeasible_binary_supports_n_events_unlabelled', 2)], verbose=True)
+    print("Finding instances with no infeasible supports over 2 events:")
+    no_infeasible_support_over_2_events = [mDAG for mDAG in  Observable_mDAGs.representative_mDAGs_list if
+                                            mDAG.smart_support_testing_instance(2).no_infeasible_supports]
+    print(len(no_infeasible_support_over_2_events), " such instances found.\n")
+
+
     from more_itertools import ilen
     max_nof_events = 5
     smart_supports_dict = dict()

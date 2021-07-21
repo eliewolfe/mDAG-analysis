@@ -229,19 +229,25 @@ class SupportTesting(SupportTester):
     def unique_candidate_supports_as_integers(self):
         return self.from_list_to_integer(self.unique_candidate_supports)
 
+    def unique_candidate_supports_to_iterate(self, verbose=False):
+        if verbose:
+            return progressbar.progressbar(
+                        self.unique_candidate_supports_as_integers, widgets=[
+                            '[nof_events=', str(self.nof_events), '] '
+                            , progressbar.SimpleProgress(), progressbar.Bar()
+                            , ' (', progressbar.ETA(), ') '])
+        else:
+            return self.unique_candidate_supports_as_integers
+
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def unique_infeasible_supports(self, **kwargs):
+    def unique_infeasible_supports(self, verbose=False, **kwargs):
         """
         Return a signature of infeasible support for a given parents_of, observed_cardinalities, and nof_events
         :param kwargs: optional arguments to pysat.Solver
         CHANGED: Now returns each infeasible support as a single integer.
         """
-        return [occuring_events_as_int for occuring_events_as_int in progressbar.progressbar(
-                self.unique_candidate_supports_as_integers
-                , widgets=['[nof_events=',str(self.nof_events), '] '
-                , progressbar.SimpleProgress(), progressbar.Bar(), ' (', progressbar.ETA(), ') ']
-            ) if
+        return [occuring_events_as_int for occuring_events_as_int in self.unique_candidate_supports_to_iterate(verbose) if
              not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0]]
 
     @methodtools.lru_cache(maxsize=None, typed=False)
@@ -251,12 +257,9 @@ class SupportTesting(SupportTester):
         ), axis=0))
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def no_infeasible_supports(self, **kwargs):
-        return all(self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0] for occuring_events_as_int in progressbar.progressbar(
-                self.unique_candidate_supports_as_integers
-                , widgets=['[nof_events=', str(self.nof_events),'] '
-                , progressbar.SimpleProgress(), progressbar.Bar(),' (', progressbar.ETA(), ') ']
-            ))
+    def no_infeasible_supports(self, verbose=False, **kwargs):
+        return all(self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0] for occuring_events_as_int in
+                   self.unique_candidate_supports_to_iterate(verbose))
 
 
 

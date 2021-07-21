@@ -177,17 +177,17 @@ class mDAG:
                                    n, self.all_esep
                                    )
 
-    def infeasible_binary_supports_n_events(self, n):
-        return frozenset(self.smart_support_testing_instance(n).unique_infeasible_supports(name='mgh', use_timer=False))
+    def infeasible_binary_supports_n_events(self, n, **kwargs):
+        return frozenset(self.smart_support_testing_instance(n).unique_infeasible_supports(**kwargs, name='mgh', use_timer=False))
 
-    def smart_infeasible_binary_supports_n_events(self, n):
-        return frozenset(self.smart_support_testing_instance(n).smart_unique_infeasible_supports(name='mgh', use_timer=False))
+    def smart_infeasible_binary_supports_n_events(self, n, **kwargs):
+        return frozenset(self.smart_support_testing_instance(n).smart_unique_infeasible_supports(**kwargs, name='mgh', use_timer=False))
 
-    def infeasible_binary_supports_n_events_unlabelled(self, n):
-        return frozenset(self.smart_support_testing_instance(n).unique_infeasible_supports_unlabelled(name='mgh', use_timer=False))
+    def infeasible_binary_supports_n_events_unlabelled(self, n, **kwargs):
+        return frozenset(self.smart_support_testing_instance(n).unique_infeasible_supports_unlabelled(**kwargs, name='mgh', use_timer=False))
 
-    def smart_infeasible_binary_supports_n_events_unlabelled(self, n):
-        return frozenset(self.smart_support_testing_instance(n).smart_unique_infeasible_supports_unlabelled(name='mgh', use_timer=False))
+    def smart_infeasible_binary_supports_n_events_unlabelled(self, n, **kwargs):
+        return frozenset(self.smart_support_testing_instance(n).smart_unique_infeasible_supports_unlabelled(**kwargs, name='mgh', use_timer=False))
 
 
 
