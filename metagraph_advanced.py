@@ -298,15 +298,28 @@ if __name__ == '__main__':
     print("Number of Foundational Skeleton+ESEP classes: ", len(
         multiple_classifications(Observable_mDAGs.esep_classes, Observable_mDAGs.Skeleton_classes)))
 
-    max_nof_events = 6
+    from more_itertools import ilen
+    max_nof_events = 5
     smart_supports_dict = dict()
+    singletons_dict = dict({1: list(filter(lambda eqclass:len(eqclass)==1, Observable_mDAGs.esep_classes))})
+    non_singletons_dict = dict({1: sorted(filter(lambda eqclass:len(eqclass)>1, Observable_mDAGs.esep_classes), key=len)})
+    print("# of singleton classes from ESEP: ", len(singletons_dict[1]))
+    print("# of non-singleton classes from ESEP: ", len(non_singletons_dict[1]),
+          ", comprising {} total foundational graph patterns".format(ilen(itertools.chain.from_iterable(non_singletons_dict[1]))))
+
     for k in range(2, max_nof_events+1):
-        print("[nof_events={}]".format(k))
-        smart_supports_dict[k] = classify_by_attributes(Observable_mDAGs.representative_mDAGs_list,
+        print("[Working on nof_events={}]".format(k))
+        smart_supports_dict[k] = classify_by_attributes(itertools.chain.from_iterable(non_singletons_dict[k-1]),
             [('smart_infeasible_binary_supports_n_events_unlabelled', k)], verbose=True)
-        print("Number of ESEP+Supports Up To {} classes: ".format(k), len(
-            multiple_classifications(Observable_mDAGs.esep_classes,
-                                 *(smart_supports_dict[i] for i in range(2, k+1)))), flush=True)
+        singletons_dict[k] = list(filter(lambda eqclass: len(eqclass) == 1, smart_supports_dict[k])) + singletons_dict[k-1]
+        non_singletons_dict[k] = sorted(filter(lambda eqclass:len(eqclass)>1, smart_supports_dict[k]), key=len)
+        print("# of singleton classes from ESEP+Supports Up To {}: ".format(k), len(singletons_dict[k]))
+        print("# of non-singleton classes from ESEP+Supports Up To {}: ".format(k), len(non_singletons_dict[k]),
+              ", comprising {} total foundational graph patterns".format(ilen(itertools.chain.from_iterable(non_singletons_dict[k]))))
+
+        # print("Number of ESEP+Supports Up To {} classes: ".format(k), len(
+        #     multiple_classifications(Observable_mDAGs.esep_classes,
+        #                          *(smart_supports_dict[i] for i in range(2, k+1)))), flush=True)
 
     # same_esep_different_skeleton = Observable_mDAGs.groupby_then_split_by(
     #     ['all_esep_unlabelled'], ['skeleton_unlabelled'])

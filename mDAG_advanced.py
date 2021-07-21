@@ -198,7 +198,7 @@ class mDAG:
     @cached_property
     def droppable_edges(self):
         candidates = [tuple(pair) for pair in self.directed_structure_instance.edge_list if
-                      any(set(pair).issubset(hyperredge) for hyperredge in self.simplicial_complex_instance.compressed_simplicial_complex)]
+                      any(set(pair).issubset(hyperedge) for hyperedge in self.simplicial_complex_instance.compressed_simplicial_complex)]
         candidates = [pair for pair in candidates if set(self.as_graph.predecessors(pair[0])).issubset(
             self.as_graph.predecessors(pair[1]))]  # as_graph includes both visible at latent parents
         return candidates
