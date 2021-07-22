@@ -5,7 +5,7 @@ import itertools
 # import scipy.special #For binomial coefficient
 import progressbar
 
-
+from itertools import combinations
 # from operator import itemgetter
 from utilities import partsextractor
 from collections import defaultdict
@@ -274,19 +274,15 @@ class Observable_unlabelled_mDAGs:
     
     def Only_Hypergraphs_Rule(self, given_classification):  
         new_classification=list(given_classification)
-        for i in range(len(self.Only_Hypergraphs)):
-            only_hypergraphs_1=self.Only_Hypergraphs[i]
-            for j in range(i+1, len(self.Only_Hypergraphs)):
-                only_hypergraphs_2=self.Only_Hypergraphs[j]
-                k=1
-                for classif in new_classification:
-                    if only_hypergraphs_1 in classif and only_hypergraphs_2 in classif:
-                        new_classification.append(classif.remove(only_hypergraphs_1))
-                        new_classification.append(classif.remove(only_hypergraphs_2))
-                        new_classification.remove(classif)
+        for classif in given_classification:
+            only_hypergraphs_in_classif=list(set(classif) & set(self.Only_Hypergraphs))
+            if len(only_hypergraphs_in_classif)>1:
+                more_than_just_hypergraphs_in_classif= [element for element in classif if element not in only_hypergraphs_in_classif]
+                new_classifs=[[only_hypergraph]+more_than_just_hypergraphs_in_classif for only_hypergraph in only_hypergraphs_in_classif]
+                new_classification=new_classification+new_classifs
+                new_classification.remove(classif)
         return tuple(new_classification)
             
-    
         
 
     def groupby_then_split_by(self, level1attributes, level2attributes):
@@ -327,7 +323,6 @@ if __name__ == '__main__':
     print("Number of Foundational Skeleton+CI classes: ", len(multiple_classifications(Observable_mDAGs.CI_classes, Observable_mDAGs.Skeleton_classes)))
     print("Number of Foundational ESEP classes: ", len(Observable_mDAGs.esep_classes))
     print("Number of Foundational Skeleton+ESEP classes: ", len(multiple_classifications(Observable_mDAGs.esep_classes, Observable_mDAGs.Skeleton_classes)))
-    
     print("Number of Foundational Only_Hypergraphs_Rule+ESEP classes: ",len(Observable_mDAGs.Only_Hypergraphs_Rule(Observable_mDAGs.esep_classes)))
 
     #MEMOIZATION TEST
@@ -345,11 +340,16 @@ if __name__ == '__main__':
     from more_itertools import ilen
     max_nof_events = 3
     smart_supports_dict = dict()
-    singletons_dict = dict({1: list(filter(lambda eqclass:len(eqclass)==1, Observable_mDAGs.Only_Hypergraphs_Rule(Observable_mDAGs.esep_classes)))})
+    singletons_dict = dict({1: list(filter(lambda eqclass:len(eqclass)==1, Observable_mDAGs.esep_classes))})
     non_singletons_dict = dict({1: sorted(filter(lambda eqclass:len(eqclass)>1, Observable_mDAGs.esep_classes), key=len)})
     print("# of singleton classes from ESEP: ", len(singletons_dict[1]))
     print("# of non-singleton classes from ESEP: ", len(non_singletons_dict[1]),
           ", comprising {} total foundational graph patterns".format(ilen(itertools.chain.from_iterable(non_singletons_dict[1]))))
+    singletons_dict = dict({1: list(filter(lambda eqclass:len(eqclass)==1, Observable_mDAGs.Only_Hypergraphs_Rule(Observable_mDAGs.esep_classes)))})
+    non_singletons_dict = dict({1: sorted(filter(lambda eqclass:len(eqclass)>1,  Observable_mDAGs.Only_Hypergraphs_Rule(Observable_mDAGs.esep_classes)), key=len)})
+    print("# of singleton classes from ESEP+Only Hypergraphs Rule: ", len(singletons_dict[1]))
+    print("# of non-singleton classes from ESEP+Only Hypergraphs Rule: ", len(non_singletons_dict[1]),
+          ", comprising {} total foundational graph patterns (with repetitions)".format(ilen(itertools.chain.from_iterable(non_singletons_dict[1]))))
 
     for k in range(2, max_nof_events+1):
         print("[Working on nof_events={}]".format(k))
