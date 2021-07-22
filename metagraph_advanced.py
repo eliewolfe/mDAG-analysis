@@ -258,10 +258,18 @@ class Observable_unlabelled_mDAGs:
         return classify_by_attributes(self.representative_mDAGs_list,
                                            ['skeleton_unlabelled', 'all_esep_unlabelled'])
 
+
+
     @property
     def representatives_for_only_hypergraphs(self):
         #choosing representatives with the smaller number of edges will guarantee that hypergraph-only mDAGs are chosen
         return self.smart_representatives(self.foundational_eqclasses, 'n_of_edges')
+
+    @cached_property
+    def equivalent_to_only_hypergraph_representative(self):
+        return {mDAG_by_complexity: mDAG_by_hypergraph.n_of_edges==0 for
+                mDAG_by_hypergraph, mDAG_by_complexity in
+                zip(self.representatives_for_only_hypergraphs, self.representative_mDAGs_list)}
         
     @property 
     def Only_Hypergraphs(self):
