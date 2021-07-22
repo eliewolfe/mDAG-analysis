@@ -247,8 +247,8 @@ class SupportTesting(SupportTester):
         :param kwargs: optional arguments to pysat.Solver
         CHANGED: Now returns each infeasible support as a single integer.
         """
-        return [occuring_events_as_int for occuring_events_as_int in self.unique_candidate_supports_to_iterate(verbose) if
-             not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0]]
+        return [occurring_events_as_int for occurring_events_as_int in self.unique_candidate_supports_to_iterate(verbose) if
+             not self.feasibleQ_from_integer(occurring_events_as_int, **kwargs)[0]]
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_unlabelled(self, **kwargs):
@@ -258,7 +258,7 @@ class SupportTesting(SupportTester):
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def no_infeasible_supports(self, verbose=False, **kwargs):
-        return all(self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0] for occuring_events_as_int in
+        return all(self.feasibleQ_from_integer(occurring_events_as_int, **kwargs)[0] for occurring_events_as_int in
                    self.unique_candidate_supports_to_iterate(verbose))
 
 

@@ -304,12 +304,12 @@ if __name__ == '__main__':
             [('smart_infeasible_binary_supports_n_events_unlabelled', 2)], verbose=True)
     print("Finding instances with no infeasible supports over 2 events:")
     no_infeasible_support_over_2_events = [mDAG for mDAG in  Observable_mDAGs.representative_mDAGs_list if
-                                            mDAG.smart_support_testing_instance(2).no_infeasible_supports]
+                                            mDAG.smart_support_testing_instance(2).no_infeasible_supports(verbose=False)]
     print(len(no_infeasible_support_over_2_events), " such instances found.\n")
 
 
     from more_itertools import ilen
-    max_nof_events = 5
+    max_nof_events = 2
     smart_supports_dict = dict()
     singletons_dict = dict({1: list(filter(lambda eqclass:len(eqclass)==1, Observable_mDAGs.esep_classes))})
     non_singletons_dict = dict({1: sorted(filter(lambda eqclass:len(eqclass)>1, Observable_mDAGs.esep_classes), key=len)})
