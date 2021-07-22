@@ -267,6 +267,11 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def equivalent_to_only_hypergraph_representative(self):
+        #diagnostic:
+        for mDAG_by_hypergraph, mDAG_by_complexity in zip(
+                self.representatives_for_only_hypergraphs, self.representative_mDAGs_list):
+            if mDAG_by_hypergraph != mDAG_by_complexity and mDAG_by_hypergraph.n_of_edges==0:
+                print(mDAG_by_hypergraph, " =!= ", mDAG_by_complexity)
         return {mDAG_by_complexity: mDAG_by_hypergraph.n_of_edges==0 for
                 mDAG_by_hypergraph, mDAG_by_complexity in
                 zip(self.representatives_for_only_hypergraphs, self.representative_mDAGs_list)}
@@ -338,7 +343,7 @@ if __name__ == '__main__':
     print("Number of Foundational Skeleton+CI classes: ", len(multiple_classifications(Observable_mDAGs.CI_classes, Observable_mDAGs.Skeleton_classes)))
     print("Number of Foundational ESEP classes: ", len(Observable_mDAGs.esep_classes))
     print("Number of Foundational Skeleton+ESEP classes: ", len(multiple_classifications(Observable_mDAGs.esep_classes, Observable_mDAGs.Skeleton_classes)))
-    print("Number of Foundational Only_Hypergraphs_Rule+ESEP classes: ",len(Observable_mDAGs.Only_Hypergraphs_Rule(Observable_mDAGs.esep_classes)))
+    # print("Number of Foundational Only_Hypergraphs_Rule+ESEP classes: ",len(Observable_mDAGs.Only_Hypergraphs_Rule(Observable_mDAGs.esep_classes)))
 
     #MEMOIZATION TEST
     print("Wasting time memoizing infeasible supports over 2 events...")
@@ -349,8 +354,8 @@ if __name__ == '__main__':
                                             mDAG.smart_support_testing_instance(2).no_infeasible_supports()]
     print(len(no_infeasible_support_over_2_events), " such instances found.\n")
 
-    for i in Observable_mDAGs.Only_Hypergraphs:
-        print(i)
+    # for i in Observable_mDAGs.Only_Hypergraphs:
+    #     print(i)
         
     from more_itertools import ilen
     max_nof_events = 3
@@ -364,9 +369,9 @@ if __name__ == '__main__':
     # non_singletons_dict = dict({1: sorted(filter(lambda eqclass: (len(eqclass)>1 and not Observable_mDAGs.effectively_all_singletons(eqclass)),  Observable_mDAGs.Only_Hypergraphs_Rule(Observable_mDAGs.esep_classes)), key=len)})
     singletons_dict = dict({1: list(itertools.chain.from_iterable(filter(lambda eqclass: (len(eqclass)==1 or Observable_mDAGs.effectively_all_singletons(eqclass)), Observable_mDAGs.esep_classes)))})
     non_singletons_dict = dict({1: sorted(filter(lambda eqclass: (len(eqclass)>1 and not Observable_mDAGs.effectively_all_singletons(eqclass)),  Observable_mDAGs.esep_classes), key=len)})
-    print("# of singleton classes from ESEP+Only Hypergraphs Rule: ", len(singletons_dict[1]))
-    print("# of non-singleton classes from ESEP+Only Hypergraphs Rule: ", len(non_singletons_dict[1]),
-          ", comprising {} total foundational graph patterns (with repetitions)".format(ilen(itertools.chain.from_iterable(non_singletons_dict[1]))))
+    print("# of singleton classes from ESEP+Prop 6.8: ", len(singletons_dict[1]))
+    print("# of non-singleton classes from ESEP+Prop 6.8: ", len(non_singletons_dict[1]),
+          ", comprising {} total foundational graph patterns (no repetitions)".format(ilen(itertools.chain.from_iterable(non_singletons_dict[1]))))
 
     for k in range(2, max_nof_events+1):
         print("[Working on nof_events={}]".format(k))
@@ -378,8 +383,8 @@ if __name__ == '__main__':
         print("# of non-singleton classes from ESEP+Supports Up To {}: ".format(k), len(non_singletons_dict[k]),
               ", comprising {} total foundational graph patterns".format(ilen(itertools.chain.from_iterable(non_singletons_dict[k]))))
         
-        for i in singletons_dict[2]:
-            if i not in singletons_dict[1]:
+        for i in singletons_dict[k]:
+            if i not in singletons_dict[k-1]:
                 print(i)
         
         

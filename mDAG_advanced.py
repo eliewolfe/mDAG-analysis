@@ -63,12 +63,12 @@ class mDAG:
         return np.vstack((self.directed_structure_instance.as_bit_square_matrix, self.simplicial_complex_instance.as_extended_bit_array))
 
     @cached_property
-    def relative_complexity_for_sat_solver(self):  # choose eqclass representative which minimizes this
-        return self.as_extended_bit_array.sum()
-    
-    @cached_property
     def n_of_edges(self):
         return self.directed_structure_instance.number_of_edges
+
+    @cached_property
+    def relative_complexity_for_sat_solver(self):  # choose eqclass representative which minimizes this
+        return (self.as_extended_bit_array.sum(), self.n_of_edges, self.simplicial_complex_instance.tally)
                 
     @cached_property
     def parents_of_for_supports_analysis(self):
