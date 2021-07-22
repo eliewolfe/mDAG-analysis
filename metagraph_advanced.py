@@ -270,6 +270,9 @@ class Observable_unlabelled_mDAGs:
         return {mDAG_by_complexity: mDAG_by_hypergraph.n_of_edges==0 for
                 mDAG_by_hypergraph, mDAG_by_complexity in
                 zip(self.representatives_for_only_hypergraphs, self.representative_mDAGs_list)}
+
+    def effectively_all_singletons(self, eqclass):
+        return all(self.equivalent_to_only_hypergraph_representative[mDAG] for mDAG in eqclass)
         
     @property 
     def Only_Hypergraphs(self):
@@ -357,8 +360,8 @@ if __name__ == '__main__':
     print("# of singleton classes from ESEP: ", len(singletons_dict[1]))
     print("# of non-singleton classes from ESEP: ", len(non_singletons_dict[1]),
           ", comprising {} total foundational graph patterns".format(ilen(itertools.chain.from_iterable(non_singletons_dict[1]))))
-    singletons_dict = dict({1: list(filter(lambda eqclass:len(eqclass)==1, Observable_mDAGs.Only_Hypergraphs_Rule(Observable_mDAGs.esep_classes)))})
-    non_singletons_dict = dict({1: sorted(filter(lambda eqclass:len(eqclass)>1,  Observable_mDAGs.Only_Hypergraphs_Rule(Observable_mDAGs.esep_classes)), key=len)})
+    singletons_dict = dict({1: list(itertools.chain.from_iterable(filter(lambda eqclass: (len(eqclass)==1 or self.effectively_all_singletons(eqclass)), Observable_mDAGs.Only_Hypergraphs_Rule(Observable_mDAGs.esep_classes))))})
+    non_singletons_dict = dict({1: sorted(filter(lambda eqclass: (len(eqclass)>1 and not self.effectively_all_singletons(eqclass)),  Observable_mDAGs.Only_Hypergraphs_Rule(Observable_mDAGs.esep_classes)), key=len)})
     print("# of singleton classes from ESEP+Only Hypergraphs Rule: ", len(singletons_dict[1]))
     print("# of non-singleton classes from ESEP+Only Hypergraphs Rule: ", len(non_singletons_dict[1]),
           ", comprising {} total foundational graph patterns (with repetitions)".format(ilen(itertools.chain.from_iterable(non_singletons_dict[1]))))
@@ -367,8 +370,8 @@ if __name__ == '__main__':
         print("[Working on nof_events={}]".format(k))
         smart_supports_dict[k] = classify_by_attributes(itertools.chain.from_iterable(non_singletons_dict[k-1]),
             [('smart_infeasible_binary_supports_n_events_unlabelled', k)], verbose=True)
-        singletons_dict[k] = list(filter(lambda eqclass: len(eqclass) == 1, smart_supports_dict[k])) + singletons_dict[k-1]
-        non_singletons_dict[k] = sorted(filter(lambda eqclass:len(eqclass)>1, smart_supports_dict[k]), key=len)
+        singletons_dict[k] = list(itertools.chain.from_iterable(filter(lambda eqclass: (len(eqclass)==1 or self.effectively_all_singletons(eqclass)), smart_supports_dict[k]))) + singletons_dict[k-1]
+        non_singletons_dict[k] = sorted(filter(lambda eqclass: (len(eqclass)>1 and not self.effectively_all_singletons(eqclass)), smart_supports_dict[k]), key=len)
         print("# of singleton classes from ESEP+Supports Up To {}: ".format(k), len(singletons_dict[k]))
         print("# of non-singleton classes from ESEP+Supports Up To {}: ".format(k), len(non_singletons_dict[k]),
               ", comprising {} total foundational graph patterns".format(ilen(itertools.chain.from_iterable(non_singletons_dict[k]))))
