@@ -5,7 +5,7 @@ import itertools
 # import scipy.special #For binomial coefficient
 import progressbar
 
-from itertools import combinations
+# from itertools import combinations
 # from operator import itemgetter
 from utilities import partsextractor
 from collections import defaultdict
@@ -264,12 +264,14 @@ class Observable_unlabelled_mDAGs:
         
     @property 
     def Only_Hypergraphs(self):
-        only_hypergraphs=[]
-        for i in range(len(self.representatives_for_only_hypergraphs())):
-            mDAG=self.representatives_for_only_hypergraphs()[i]
-            if mDAG.n_of_edges==0:
-                only_hypergraphs.append(self.representative_mDAGs_list[i])
-        return only_hypergraphs
+    #     only_hypergraphs=[]
+    #     for i in range(len(self.representatives_for_only_hypergraphs())):
+    #         mDAG=self.representatives_for_only_hypergraphs()[i]
+    #         if mDAG.n_of_edges==0:
+    #             only_hypergraphs.append(self.representative_mDAGs_list[i])
+    #     return only_hypergraphs
+        return [mDAG for mDAG in self.smart_representatives(self.foundational_eqclasses, 'n_of_edges') if
+                mDAG.n_of_edges==0]
     
     
     def Only_Hypergraphs_Rule(self, given_classification):  
