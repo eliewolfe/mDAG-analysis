@@ -283,7 +283,7 @@ class Observable_unlabelled_mDAGs:
         # return only_hypergraphs
         return [mDAG_by_complexity for mDAG_by_hypergraph, mDAG_by_complexity in
             zip(self.representatives_for_only_hypergraphs, self.representative_mDAGs_list) if
-                mDAG_by_hypergraph.n_of_edges==0)]
+                mDAG_by_hypergraph.n_of_edges==0]
 
     
     
