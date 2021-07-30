@@ -85,7 +85,7 @@ def bitarrays_permutations(ds_bitarray, sc_bitarray):
         yield mdag_to_int(new_ds, new_sc)
 
 
-def mdag_to_canonical_int(ds_bitarray, sc_bitarray):
+def mdag_to_canonical_int(ds_bitarray, sc_bitarray) -> int:
     # nof_observed = len(ds_bitarray)
     # # print(sc_bitarray)
     # return min(mdag_to_int(
@@ -94,11 +94,11 @@ def mdag_to_canonical_int(ds_bitarray, sc_bitarray):
     #      perm in map(list, itertools.permutations(range(nof_observed))))
     return min(bitarrays_permutations(ds_bitarray, sc_bitarray))
 
-def stringify_in_tuple(l):
+def stringify_in_tuple(l) -> str:
     return '(' + ','.join(map(str, l)) + ')'
-def stringify_in_list(l):
+def stringify_in_list(l) -> str:
     return '[' + ','.join(map(str, l)) + ']'
-def stringify_in_set(l):
+def stringify_in_set(l) -> str:
     return '{' + ','.join(map(str, l)) + '}'
 
 

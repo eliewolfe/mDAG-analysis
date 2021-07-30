@@ -13,9 +13,9 @@ from radix import from_bits
 import networkx as nx
 from utilities import partsextractor
 from collections import defaultdict
-from supports import SupportTesting
-from esep_support import SmartSupportTesting
-from hypergraphs import undirected_graph, hypergraph
+# from supports import SupportTesting
+from supports_beyond_esep import SmartSupportTesting
+from hypergraphs import UndirectedGraph, Hypergraph
 import methodtools
 
 def mdag_to_int(ds_bitarray, sc_bitarray):
@@ -47,7 +47,7 @@ class mDAG:
         return self.as_string
 
     @cached_property
-    def as_graph(self):  # let directed_structure be a DAG initially without latents
+    def as_graph(self):  # let DirectedStructure be a DAG initially without latents
         g = self.directed_structure_instance.as_networkx_graph.copy()
         g.add_nodes_from(self.nonsingleton_latent_nodes)
         g.add_edges_from(itertools.chain.from_iterable(
@@ -97,7 +97,8 @@ class mDAG:
 
     @cached_property
     def skeleton_instance(self):
-        return undirected_graph(self.directed_structure_instance.as_tuples + self.simplicial_complex_instance.as_tuples)
+        return UndirectedGraph(self.directed_structure_instance.as_tuples + self.simplicial_complex_instance.as_tuples,
+                               self.number_of_visible)
 
     @cached_property
     def skeleton(self):
@@ -282,7 +283,7 @@ class mDAG:
             # new_simplicial_complex.sort()
             yield mdag_to_int(
                 self.directed_structure_instance.bit_square_matrix,
-                hypergraph(new_simplicial_complex).as_bit_array)
+                Hypergraph(new_simplicial_complex, self.number_of_visible).as_bit_array)
 
     @property  # Agressive conjucture of simultaneous face splitting
     def generate_weaker_mDAGs_FaceSplitting_Simultaneous(self):
@@ -303,9 +304,9 @@ class mDAG:
             # new_simplicial_complex.sort()
             yield mdag_to_int(
                 self.directed_structure_instance.as_bit_square_matrix,
-                hypergraph(new_simplicial_complex).as_bit_array)
+                Hypergraph(new_simplicial_complex, self.number_of_visible).as_bit_array)
 
-    #TODO: slightly speed up this by avoiding hypergraph creation. That is, directly modify the bit array.
+    #TODO: slightly speed up this by avoiding Hypergraph creation. That is, directly modify the bit array.
     #Or, if we are really fancy, we can modify the bits of the unique_id itself!!
 
 
@@ -336,3 +337,9 @@ class mDAG:
             if self.directed_structure_instance.as_bit_square_matrix[:, v].any():
                 return False
         return True
+
+class labelled_mDAG(mDAG):
+    def __init__(self, labelled_directed_structure_instance, labelled_simplicial_complex_instance):
+        assert labelled_directed_structure_instance.variable_names == labelled_simplicial_complex_instance.variable_names, "Name conflict."
+        self.variable_names = labelled_directed_structure_instance.variable_names
+        super().__init__(labelled_directed_structure_instance, labelled_simplicial_complex_instance)

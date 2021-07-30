@@ -13,11 +13,11 @@ from utilities import convert_eqclass_dict_to_representatives_dict
 if __name__ == '__main__':
     # # Testing example for Ilya conjecture proof.
     # directed_dict_of_lists = {"C":["A", "B"], "X":["C"], "D":["A", "B"]}
-    # directed_structure = nx.from_dict_of_lists(directed_dict_of_lists, create_using=nx.DiGraph)
+    # DirectedStructure = nx.from_dict_of_lists(directed_dict_of_lists, create_using=nx.DiGraph)
     # simplicial_complex2 = [("A", "X", "D"), ("B", "X", "D")]
     # simplicial_complex1 = [("A", "X", "D"), ("B", "X", "D"), ("A", "C")]
-    # esep1 = mDAG(directed_structure, simplicial_complex1).all_esep
-    # esep2 = mDAG(directed_structure, simplicial_complex2).all_esep
+    # esep1 = mDAG(DirectedStructure, simplicial_complex1).all_esep
+    # esep2 = mDAG(DirectedStructure, simplicial_complex2).all_esep
     # print(esep1.difference(esep2))
 
     n = 4

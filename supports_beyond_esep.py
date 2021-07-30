@@ -161,20 +161,22 @@ if __name__ == '__main__':
 
     from mDAG_advanced import mDAG
     import networkx as nx
-    from hypergraphs import hypergraph
-    from directed_structures import directed_structure
+    from hypergraphs import LabelledHypergraph
+    from directed_structures import LabelledDirectedStructure
 
     #
     # # Testing example for Ilya conjecture proof.
     directed_dict_of_lists = {"C": ["A", "B"], "X": ["C"], "D": ["A", "B"]}
-    ds = directed_structure(["X","A","B","C","D"], nx.from_dict_of_lists(directed_dict_of_lists, create_using=nx.DiGraph).edges())
-    # simplicial_complex1 = hypergraph([("A", "X", "D"), ("B", "X", "D"), ("A", "C")])
-    # simplicial_complex2 = hypergraph[("A", "X", "D"), ("B", "X", "D")])
-    simplicial_complex1 = hypergraph([(1, 0, 4), (2, 0, 4), (1, 3)])
-    simplicial_complex2 = hypergraph([(1, 0, 4), (2, 0, 4)])
+    ds = LabelledDirectedStructure(["X", "A", "B", "C", "D"], nx.from_dict_of_lists(directed_dict_of_lists, create_using=nx.DiGraph).edges())
+
+    simplicial_complex1 = LabelledHypergraph(["X", "A", "B", "C", "D"], [("A", "X", "D"), ("B", "X", "D"), ("A", "C")])
+    simplicial_complex2 = LabelledHypergraph(["X", "A", "B", "C", "D"], [("A", "X", "D"), ("B", "X", "D")])
+    # simplicial_complex1 = Hypergraph([(1, 0, 4), (2, 0, 4), (1, 3)])
+    # simplicial_complex2 = Hypergraph([(1, 0, 4), (2, 0, 4)])
     #
 
     md1 = mDAG(ds, simplicial_complex1)
+    # print(md1)
     md2 = mDAG(ds, simplicial_complex2)
 
     # # print(md1.all_esep)
