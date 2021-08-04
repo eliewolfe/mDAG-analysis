@@ -221,9 +221,15 @@ class Observable_unlabelled_mDAGs:
         return [next(iter(eqclass)) for eqclass in self.equivalence_classes_as_mDAGs if len(eqclass) == 1]
 
     @cached_property
+    def foundational_eqclasses_picklist(self):
+        return [all(mDAG.fundamental_graphQ for mDAG in eqclass) for eqclass in self.equivalence_classes_as_mDAGs]
+
+    @cached_property
     def foundational_eqclasses(self):
-        return list(filter(lambda eqclass: all(mDAG.fundamental_graphQ for mDAG in eqclass),
-                           self.equivalence_classes_as_mDAGs))
+        # return list(filter(lambda eqclass: all(mDAG.fundamental_graphQ for mDAG in eqclass),
+        #                    self.equivalence_classes_as_mDAGs))
+        return [eqclass for eqclass,foundational_Q in
+                zip(self.equivalence_classes_as_mDAGs,self.foundational_eqclasses_picklist) if foundational_Q]
 
     @staticmethod
     def representatives(eqclasses):
@@ -376,10 +382,26 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
 
 if __name__ == '__main__':
 
-    Observable_mDAGs = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=4)
+    Observable_mDAGs = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=1)
 
     for k in tuple(Observable_mDAGs.singletons_dict.keys())[1:]:
         print("mDAGs freshly recognized as singleton-classes from supports over ",k," events:")
         for i in Observable_mDAGs.singletons_dict[k]:
             if i not in Observable_mDAGs.singletons_dict[k-1]:
                 print(i)
+
+    metagraph_adjmat = nx.to_numpy_array(Observable_mDAGs.meta_graph, nodelist=list(
+        itertools.chain.from_iterable(Observable_mDAGs.equivalence_classes_as_ids)), dtype=bool)
+    for_codewords = np.add.accumulate(list(map(len,Observable_mDAGs.equivalence_classes_as_ids)))
+    codewords = itertools.starmap(np.arange,zip(np.hstack((0,for_codewords)), for_codewords))
+    #codewords = [np.arange(i1,i2) for i1,i2 in zip(np.hstack((0, for_codewords)), for_codewords)]
+    codewords = [codeword for codeword,foundational_Q in zip(codewords,Observable_mDAGs.foundational_eqclasses_picklist) if foundational_Q]
+    eqclass_adjmat = np.empty(np.broadcast_to(len(Observable_mDAGs.foundational_eqclasses),2), dtype=bool)
+    for i,c1 in enumerate(codewords):
+        for j,c2 in enumerate(codewords):
+            # eqclass_adjmat[i,j] = metagraph_adjmat[(c1,c2)].any()
+            eqclass_adjmat[i,j] = metagraph_adjmat[c1].any(axis=0)[c2].any()
+    print(eqclass_adjmat.astype(int))
+
+
+
