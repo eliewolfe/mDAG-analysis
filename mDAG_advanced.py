@@ -194,9 +194,17 @@ class mDAG:
     def smart_infeasible_binary_supports_n_events_unlabelled(self, n, **kwargs):
         return frozenset(self.smart_support_testing_instance(n).smart_unique_infeasible_supports_unlabelled(**kwargs, name='mgh', use_timer=False))
 
+    def no_infeasible_supports_n_events(self, n, **kwargs):
+        if len(self.all_esep)==0:
+            return self.smart_support_testing_instance(n).no_infeasible_supports(**kwargs, name='mgh', use_timer=False)
+        else:
+            return False
+
     def no_infeasible_supports_up_to(self, max_n, **kwargs):
-        return all(self.smart_support_testing_instance(n).no_infeasible_supports(**kwargs, name='mgh', use_timer=False) for
-                   n in range(2,max_n+1))
+        return all(self.no_infeasible_supports_n_events(n, **kwargs) for n in range(2,max_n+1))
+
+    # def no_infeasible_supports_up_to(self, max_n, **kwargs):
+    #     return all(len(self.infeasible_binary_supports_n_events(n, **kwargs))==0 for n in range(2,max_n+1))
 
 
 
