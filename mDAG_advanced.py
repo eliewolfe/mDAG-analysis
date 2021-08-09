@@ -196,7 +196,7 @@ class mDAG:
 
     def no_infeasible_supports_up_to(self, max_n, **kwargs):
         return all(self.smart_support_testing_instance(n).unique_infeasible_supports_unlabelled(**kwargs, name='mgh', use_timer=False) for
-                   n in range(2,n+1))
+                   n in range(2,max_n+1))
 
 
 
