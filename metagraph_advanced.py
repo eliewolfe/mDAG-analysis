@@ -412,30 +412,14 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
 <<<<<<< HEAD
 
 
-
-
-if __name__ == '__main__':
-
-    Observable_mDAGs = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=3)
-    Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=3)
-
-# =============================================================================
-#     
-#     for mDAG in Observable_mDAGs.singletons_dict[3]:
-#         infeasible = mDAG.smart_infeasible_binary_supports_n_events(5)
-#         if len(infeasible)==0:
-#             print(mDAG, "has no infeasible Supports at 5 events")
-# 
-#     
-# =============================================================================
-        
-    
+   
 =======
 if __name__ == '__main__':
 
     Observable_mDAGs = Observable_mDAGs_Analysis(
         nof_observed_variables=4,
         max_nof_events_for_supports=3)
+    Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=3)
 
     # for k in tuple(Observable_mDAGs.singletons_dict.keys())[1:]:
     #     print("mDAGs freshly recognized as singleton-classes from supports over ",k," events:")
@@ -455,25 +439,6 @@ if __name__ == '__main__':
     #         # eqclass_adjmat[i,j] = metagraph_adjmat[(c1,c2)].any()
     #         eqclass_adjmat[i,j] = metagraph_adjmat[c1].any(axis=0)[c2].any()
     # print(eqclass_adjmat.astype(int))
-
-    singleton_classes_with_no_infeasible_supports = [
-        mDAG for mDAG in
-        Observable_mDAGs.singletons_dict[3] if
-        mDAG.no_infeasible_supports_up_to(3)]
-
-    non_singleton_class_with_no_infeasible_supports = [mDAG for mDAG in
-                                                       next(iter([
-        non_singleton_set for non_singleton_set in Observable_mDAGs.non_singletons_dict[3] if
-        # any(mDAG.no_infeasible_supports_up_to(5) for mDAG in non_singleton_set)
-        next(iter(non_singleton_set)).no_infeasible_supports_up_to(4)
-    ])) if mDAG.no_infeasible_supports_up_to(4)]
-
-    print(len(non_singleton_class_with_no_infeasible_supports))
-    print(non_singleton_class_with_no_infeasible_supports)
-
-
-
-
 
 
 >>>>>>> 92e971daefa458241ae6e8e3f89f81fd6271f406
