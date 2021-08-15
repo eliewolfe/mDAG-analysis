@@ -11,7 +11,7 @@ else:
 
 from radix import from_bits
 from merge import merge_intersection
-from utilities import stringify_in_tuple, stringify_in_list
+from utilities import stringify_in_tuple, stringify_in_list, partsextractor
 
 from scipy.special import comb
 
@@ -34,13 +34,15 @@ def bit_array_permutations(bitarray):
 
 
 
-class hypergraph:
-    def __init__(self, extended_simplicial_complex):
+class Hypergraph:
+    def __init__(self, extended_simplicial_complex, n):
         #TODO: Adjust code to handle non-integer-values hypergraphs!
         self.simplicial_complex = extended_simplicial_complex
         self.simplicial_complex_as_sets = set(map(frozenset, self.simplicial_complex))
         self.number_of_latent = len(self.simplicial_complex)
-        self.number_of_visible = max(map(max, self.simplicial_complex)) + 1
+        self.number_of_visible = n
+        if self.simplicial_complex:
+            assert max(map(max, self.simplicial_complex)) + 1 <= self.number_of_visible, "More nodes referenced than expected."
         self.number_of_visible_plus_latent = self.number_of_visible + self.number_of_latent
         # self.max_number_of_latents = comb(self.number_of_visible, np.floor_divide(self.number_of_visible,2), exact=True)
 
@@ -138,9 +140,40 @@ class hypergraph:
     def __repr__(self):
         return self.as_string
 
-class undirected_graph:
-    def __init__(self, hyperedges):
-        self.nof_nodes = max(map(max, hyperedges)) + 1
+
+class LabelledHypergraph(Hypergraph):
+    """
+    This class is NOT meant to encode mDAGs. As such, we do not get into an implementation of predecessors or successors here.
+    """
+    def __init__(self, variable_names, simplicial_complex):
+        self.variable_names = variable_names
+        self.number_of_variables = len(variable_names)
+        self.variables_as_range = tuple(range(self.number_of_variables))
+        self.translation_dict = dict(zip(self.variable_names, self.variables_as_range))
+        if all(isinstance(v, int) for v in self.variable_names):
+            if np.array_equal(self.variable_names, self.variables_as_range):
+                self.variable_are_range = True
+                self.numerical_simplicial_complex = simplicial_complex
+        else:
+            self.variable_are_range = False
+            self.numerical_simplicial_complex = [partsextractor(self.translation_dict, hyperedge) for hyperedge in simplicial_complex]
+        super().__init__(self.numerical_simplicial_complex, self.number_of_variables)
+        self.as_string = stringify_in_list(map(stringify_in_tuple, simplicial_complex))
+
+    def __str__(self):
+        return self.as_string
+
+    def __repr__(self):
+        return self.as_string
+
+
+
+
+class UndirectedGraph:
+    def __init__(self, hyperedges, n):
+        self.nof_nodes = n
+        if hyperedges:
+            assert max(map(max, hyperedges)) + 1 <= self.nof_nodes, "More nodes referenced than expected."
         self.as_edges = tuple(set(itertools.chain.from_iterable(
             itertools.combinations(sorted(hyperedge), 2) for hyperedge in hyperedges)))
 

@@ -35,32 +35,29 @@ def transitive_closure(adjmat):
     return np.bitwise_and(closure_mat,np.invert(np.identity(len(adjmat), dtype=bool)))
 
 def transitive_reduction(adjmat):
-    n = len(adjmat)
+    # n = len(adjmat)
     closure_mat=transitive_closure(adjmat)
-    #closure_minus_identity = np.bitwise_and(transitive_closure(adjmat),np.invert(np.identity(n, dtype=bool)))
-    return np.bitwise_and(closure_mat,np.invert(np.matmul(closure_mat, closure_mat)))
+    # closure_minus_identity = np.bitwise_and(transitive_closure(adjmat),np.invert(np.identity(n, dtype=bool)))
+    return np.bitwise_and(closure_mat, np.invert(np.matmul(closure_mat, closure_mat)))
 
-class directed_structure:
+
+
+
+
+
+class DirectedStructure:
     """
     This class is NOT meant to encode mDAGs. As such, we do not get into an implementation of predecessors or successors here.
     """
-    def __init__(self, variable_names, edge_list):
-        self.variable_names = variable_names
-        self.number_of_visible = len(self.variable_names)
+    def __init__(self, numeric_edge_list, n):
+        self.number_of_visible = n
         self.visible_nodes = list(range(self.number_of_visible))
-        self.translation_dict = dict(zip(self.variable_names, self.visible_nodes))
-        if not self.is_range(variable_names):
-            self.edge_list = list(chunked(partsextractor(self.translation_dict, tuple(itertools.chain.from_iterable(edge_list))),2))
-        else:
-            self.edge_list = edge_list
-        self.number_of_edges = len(edge_list)
+        self.edge_list = numeric_edge_list
+        self.number_of_edges = len(numeric_edge_list)
+        if self.edge_list:
+            assert max(map(max, self.edge_list)) + 1 <= self.number_of_visible, "More nodes referenced than expected."
 
-    @staticmethod
-    def is_range(variable_names):
-        if all(isinstance(v, int) for v in variable_names):
-            return np.array_equal(variable_names, np.arange(len(variable_names)))
-        else:
-            return False
+
 
 
     @cached_property
@@ -112,8 +109,8 @@ class directed_structure:
     @cached_property
     def as_string(self):
         return stringify_in_set(
-            str(partsextractor(self.variable_names, i)) + ':' + stringify_in_list(partsextractor(self.variable_names, v))
-                # for i, v in nx.to_dict_of_lists(self.directed_structure).items()
+            str(partsextractor(self.visible_nodes, i)) + ':' + stringify_in_list(partsextractor(self.visible_nodes, v))
+                # for i, v in nx.to_dict_of_lists(self.DirectedStructure).items()
                 for i, v in enumerate(map(np.flatnonzero, self.as_bit_square_matrix))
                 )
 
@@ -144,3 +141,34 @@ class directed_structure:
 
 
 
+class LabelledDirectedStructure(DirectedStructure):
+    """
+    This class is NOT meant to encode mDAGs. As such, we do not get into an implementation of predecessors or successors here.
+    """
+    def __init__(self, variable_names, edge_list):
+        self.variable_names = variable_names
+        self.number_of_variables = len(variable_names)
+        self.variables_as_range = tuple(range(self.number_of_variables))
+        self.translation_dict = dict(zip(self.variable_names, self.variables_as_range))
+        if all(isinstance(v, int) for v in self.variable_names):
+            if np.array_equal(self.variable_names, self.variables_as_range):
+                self.variable_are_range = True
+                self.edge_list = edge_list
+        else:
+            self.variable_are_range = False
+            self.edge_list = list(chunked(partsextractor(self.translation_dict, tuple(itertools.chain.from_iterable(edge_list))),2))
+        super().__init__(self.edge_list, self.number_of_variables)
+
+    @cached_property
+    def as_string(self):
+        return stringify_in_set(
+            str(partsextractor(self.variable_names, i)) + ':' + stringify_in_list(partsextractor(self.variable_names, v))
+                # for i, v in nx.to_dict_of_lists(self.DirectedStructure).items()
+                for i, v in enumerate(map(np.flatnonzero, self.as_bit_square_matrix))
+                )
+
+    def __str__(self):
+        return self.as_string
+
+    def __repr__(self):
+        return self.as_string
