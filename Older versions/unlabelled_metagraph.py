@@ -64,8 +64,8 @@ class Observable_unlabelled_mDAGs:
 
 
     # def lookup_directed_structure_index(self, mDAG):
-    #     # return self.all_directed_structures_as_tuples.index(tuple(sorted(mDAG.directed_structure.edges())))
-    #     return nx_to_int(mDAG.directed_structure)
+    #     # return self.all_directed_structures_as_tuples.index(tuple(sorted(mDAG.DirectedStructure.edges())))
+    #     return nx_to_int(mDAG.DirectedStructure)
 
     @cached_property
     def all_simplicial_complices(self):
@@ -106,9 +106,9 @@ class Observable_unlabelled_mDAGs:
 
     # @cached_property
     # def all_indexed_mDAGs(self):
-    #     return [(mDAG(directed_structure, list(simplicial_complex), complex_extended=True), s, d)
+    #     return [(mDAG(DirectedStructure, list(simplicial_complex), complex_extended=True), s, d)
     #             for s, simplicial_complex in enumerate(self.all_simplicial_complices)
-    #             for d, directed_structure in enumerate(self.all_directed_structures)
+    #             for d, DirectedStructure in enumerate(self.all_directed_structures)
     #             ]
     #
     @cached_property

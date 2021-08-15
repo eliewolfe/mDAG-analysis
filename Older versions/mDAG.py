@@ -25,7 +25,7 @@ else:
 from collections import defaultdict
 from operator import itemgetter
 from supports import SupportTesting
-from esep_support import SmartSupportTesting
+from supports_beyond_esep import SmartSupportTesting
 
 
 class mDAG:
@@ -40,12 +40,12 @@ class mDAG:
         """
         self.directed_structure = directed_structure
         self.simplicial_complex = simplicial_complex
-        # self.hypergraph_instance = hypergraph(simplicial_complex) #TODO: initialize with hypegraph instance
+        # self.hypergraph_instance = Hypergraph(simplicial_complex)
         self.number_of_visible: int = self.directed_structure.number_of_nodes()
 
         self.directed_structure_as_list = sorted(self.directed_structure.edges())
         self.directed_structure_as_bitarray = nx_to_bitarray(self.directed_structure)
-        # self.directed_structure_as_int = nx_to_int(self.directed_structure)
+        # self.directed_structure_as_int = nx_to_int(self.DirectedStructure)
         self.visible_nodes = sorted(self.directed_structure.nodes())
 
         # Putting singleton latents on the nodes that originally have no latent parents:
@@ -63,7 +63,7 @@ class mDAG:
 
         #self.stringify = lambda l: '(' + ','.join(map(str, l)) + ')'
         # self.directed_structure_string = self.stringify(map(self.stringify,self.directed_structure_as_list))
-        # self.directed_structure_string = self.stringify(str(i)+':'+self.stringify(v) for i,v in nx.to_dict_of_lists(self.directed_structure).items() if len(v)>0)
+        # self.directed_structure_string = self.stringify(str(i)+':'+self.stringify(v) for i,v in nx.to_dict_of_lists(self.DirectedStructure).items() if len(v)>0)
         # self.simplicial_complex_string = self.stringify(map(self.stringify,sorted(self.simplicial_complex)))
 
     @cached_property
@@ -91,7 +91,7 @@ class mDAG:
         return self.mDAG_string
 
     @cached_property
-    def as_graph(self):  # let directed_structure be a DAG initially without latents
+    def as_graph(self):  # let DirectedStructure be a DAG initially without latents
         g = self.directed_structure.copy()
         g.add_nodes_from(self.latent_nodes, type="Latent")
         g.add_edges_from(itertools.chain.from_iterable(
@@ -188,7 +188,7 @@ class mDAG:
                                    ).smart_unique_infeasible_supports_unlabelled(name='mgh', use_timer=False)
 
     @cached_property
-    def simplicial_complex_as_graph(self):  # let directed_structure be a DAG initially without latents
+    def simplicial_complex_as_graph(self):  # let DirectedStructure be a DAG initially without latents
         g = nx.DiGraph()
         g.add_nodes_from(self.visible_nodes, type="Visible")
         g.add_nodes_from(self.latent_nodes, type="Latent")
@@ -281,7 +281,7 @@ class mDAG:
     # @property
     # def generate_weaker_mDAGs_HLP(self):
     #     for droppable_edge in self.droppable_edges:
-    #         new_directed_structure = self.directed_structure.copy()
+    #         new_directed_structure = self.DirectedStructure.copy()
     #         new_directed_structure.remove_edge(*droppable_edge)
     #         new_mDAG = self.__class__(new_directed_structure, self.extended_simplicial_complex, complex_extended=True)
     #         yield new_mDAG
