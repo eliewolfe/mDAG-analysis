@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 from __future__ import absolute_import
 import networkx as nx
 import numpy as np
@@ -14,7 +13,7 @@ infeasible = G_problem.smart_infeasible_binary_supports_n_events(9)
 G_problem.smart_support_testing_instance(4).from_integer_to_matrix(list(infeasible))
 
 G_problem
-=======
+
 from __future__ import absolute_import
 import networkx as nx
 import numpy as np
@@ -30,4 +29,3 @@ infeasible = G_problem.smart_infeasible_binary_supports_n_events(9)
 G_problem.smart_support_testing_instance(4).from_integer_to_matrix(list(infeasible))
 
 G_problem
->>>>>>> 92e971daefa458241ae6e8e3f89f81fd6271f406

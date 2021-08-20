@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import numpy as np
 import itertools
+import networkx as nx
 from sys import hexversion
 if hexversion >= 0x3080000:
     from functools import cached_property
@@ -15,9 +16,11 @@ from utilities import partsextractor
 from collections import defaultdict
 # from supports import SupportTesting
 from supports_beyond_esep import SmartSupportTesting
-from hypergraphs import UndirectedGraph, Hypergraph
+from hypergraphs import UndirectedGraph, Hypergraph, LabelledHypergraph
 import methodtools
+from directed_structures import LabelledDirectedStructure, DirectedStructure
 
+ 
 def mdag_to_int(ds_bitarray, sc_bitarray):
     return from_bits(np.vstack((sc_bitarray, ds_bitarray)).ravel()).astype(np.ulonglong).tolist()
 
@@ -203,7 +206,6 @@ class mDAG:
     def smart_infeasible_binary_supports_n_events_unlabelled(self, n, **kwargs):
         return frozenset(self.smart_support_testing_instance(n).smart_unique_infeasible_supports_unlabelled(**kwargs, name='mgh', use_timer=False))
 
-<<<<<<< HEAD
     def no_infeasible_supports_up_to(self, max_n, **kwargs):
         return all(self.smart_support_testing_instance(n).no_infeasible_supports(**kwargs, name='mgh', use_timer=False) for
                    n in range(2,max_n+1))
@@ -211,7 +213,6 @@ class mDAG:
     def no_infeasible_supports_beyond_esep_up_to(self, max_n, **kwargs):
         return all(self.smart_support_testing_instance(n).no_infeasible_supports_beyond_esep(**kwargs, name='mgh', use_timer=False) for
                    n in range(2,max_n+1))
-=======
     def no_infeasible_supports_n_events(self, n, **kwargs):
         if len(self.all_esep)==0:
             return self.smart_support_testing_instance(n).no_infeasible_supports(**kwargs, name='mgh', use_timer=False)
@@ -223,7 +224,6 @@ class mDAG:
 
     # def no_infeasible_supports_up_to(self, max_n, **kwargs):
     #     return all(len(self.infeasible_binary_supports_n_events(n, **kwargs))==0 for n in range(2,max_n+1))
->>>>>>> 92e971daefa458241ae6e8e3f89f81fd6271f406
 
 
 
@@ -340,14 +340,87 @@ class mDAG:
     #Or, if we are really fancy, we can modify the bits of the unique_id itself!!
 
 
-
-
-
-
-
     @property
     def districts(self):
         return self.simplicial_complex_instance.districts
+    
+    @property
+    def districts_arbitrary_names(self):
+        districts_translated=[]
+        for d in self.districts:
+            d_translated=set()
+            for node in d:
+                node_translated=list(self.simplicial_complex_instance.translation_dict.keys())[list(self.simplicial_complex_instance.translation_dict.values()).index(node)]
+                d_translated.add(node_translated)
+            districts_translated.append(d_translated)
+        return districts_translated
+    
+    def subgraph(self,list_of_nodes):
+        new_edges=[]
+        for edge in self.directed_structure_instance.edge_list:
+            if edge[0] in list_of_nodes and edge[1] in list_of_nodes:
+                new_edges.append(edge)
+        new_hypergraph=[]
+        for hyperedge in self.simplicial_complex_instance.simplicial_complex:
+            new_hyperedge=hyperedge
+            for node in hyperedge:
+                if node not in list_of_nodes:
+                    new_hyperedge_list=list(new_hyperedge)
+                    new_hyperedge_list.remove(node)
+                    new_hyperedge=tuple(new_hyperedge_list)
+            subset_of_already_hyp=False
+            for already_hyp in new_hypergraph:
+                if set(new_hyperedge).issubset(set(already_hyp)):
+                    subset_of_already_hyp=True
+                if set(already_hyp).issubset(set(new_hyperedge)):
+                    new_hypergraph.remove(already_hyp)
+            if not subset_of_already_hyp:
+                new_hypergraph.append(new_hyperedge)
+        return mDAG(LabelledDirectedStructure(list_of_nodes,new_edges),LabelledHypergraph(list_of_nodes,new_hypergraph))
+   
+   
+    def closure(self, B):
+        list_B=[self.visible_nodes]
+        graph=self.subgraph(list_B[0])
+        next_B=set()
+        for element in B:
+            for dist in graph.districts_arbitrary_names:
+                if element in dist:
+                    next_B=set(next_B).union(dist)
+        list_B.append(next_B)
+        graph=self.subgraph(list_B[1])
+        next_B=set()
+        for element in B:
+            next_B=set(list(next_B)+list(nx.ancestors(graph.directed_structure_instance.as_networkx_graph_arbitrary_names,element))+[element])
+        list_B.append(next_B)
+        i=2
+        while any([list_B[i]!=list_B[i-1],list_B[i]!=list_B[i-2]]):
+            graph=self.subgraph(list_B[-1])
+            for element in B:
+                for dist in graph.districts_arbitrary_names:
+                    if element in dist:
+                        next_B=set(next_B).union(dist)
+            list_B.append(next_B)
+            i=i+1
+            graph=self.subgraph(list_B[-1])
+            next_B=set()
+            for element in B:
+                next_B=set(list(next_B)+list(nx.ancestors(graph.directed_structure_instance.as_networkx_graph_arbitrary_names,element))+[element])
+            list_B.append(next_B)
+            i=i+1
+        return list_B[-1]
+    
+    def are_densely_connected(self,node1,node2):
+        for closure_node in self.closure([node1]):
+            if node2 in self.directed_structure_instance.as_networkx_graph.predecessors(closure_node):
+                return True
+        for closure_node in self.closure([node2]):
+            if node1 in self.directed_structure_instance.as_networkx_graph.predecessors(closure_node):
+                return True
+        for district in self.districts:
+            if self.closure([node1,node2]).issubset(district):
+                return True
+        return False
 
     @cached_property
     def fundamental_graphQ(self):

@@ -345,8 +345,6 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
     def __init__(self, nof_observed_variables=4, max_nof_events_for_supports=3):
         super().__init__(nof_observed_variables)
         self.max_nof_events = max_nof_events_for_supports
-<<<<<<< HEAD
-=======
 
         self.singletons_dict = dict({1: list(itertools.chain.from_iterable(
             filter(lambda eqclass: (len(eqclass) == 1 or self.effectively_all_singletons(eqclass)),
@@ -376,9 +374,6 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
                   ", comprising {} total foundational graph patterns".format(
                       ilen(itertools.chain.from_iterable(self.non_singletons_dict[k]))))
 
-
->>>>>>> 92e971daefa458241ae6e8e3f89f81fd6271f406
-
         self.singletons_dict = dict({1: list(itertools.chain.from_iterable(
             filter(lambda eqclass: (len(eqclass) == 1 or self.effectively_all_singletons(eqclass)),
                    self.esep_classes)))})
@@ -407,16 +402,9 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
                   ", comprising {} total foundational graph patterns".format(
                       ilen(itertools.chain.from_iterable(self.non_singletons_dict[k]))))
 
-
-
-<<<<<<< HEAD
-
-
-   
-=======
 if __name__ == '__main__':
 
-    Observable_mDAGs = Observable_mDAGs_Analysis(
+    Observable_mDAGs4 = Observable_mDAGs_Analysis(
         nof_observed_variables=4,
         max_nof_events_for_supports=3)
     Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=3)
@@ -441,21 +429,18 @@ if __name__ == '__main__':
     # print(eqclass_adjmat.astype(int))
 
 
->>>>>>> 92e971daefa458241ae6e8e3f89f81fd6271f406
-
     
-    no_inf_sups_beyond_esep=[]
+    no_inf_sups_beyond_esep4=[]
     i=0
-    for mDAG in Observable_mDAGs.representative_mDAGs_list:
-     print(i,"of",len(Observable_mDAGs.representative_mDAGs_list))
+    for mDAG in Observable_mDAGs4.representative_mDAGs_list:
+     print(i,"of",len(Observable_mDAGs4.representative_mDAGs_list))
      i=i+1
      if mDAG.no_infeasible_supports_beyond_esep_up_to(5):
-         no_inf_sups_beyond_esep.append(mDAG)
+         no_inf_sups_beyond_esep4.append(mDAG)
     
-    len(no_inf_sups_beyond_esep)
+    len(no_inf_sups_beyond_esep4)
     
 
-<<<<<<< HEAD
     no_inf_sups_beyond_esep3=[]
     i=0
     for mDAG in Observable_mDAGs3.representative_mDAGs_list:
@@ -509,5 +494,3 @@ if __name__ == '__main__':
 #     next(iter([non_singleton_set for non_singleton_set in Observable_mDAGs.non_singletons_dict[3] if next(iter(non_singleton_set)).no_infeasible_supports_up_to(3)]))
 # 
 # =============================================================================
-=======
->>>>>>> 92e971daefa458241ae6e8e3f89f81fd6271f406

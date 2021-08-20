@@ -140,7 +140,6 @@ class DirectedStructure:
 
 
 
-
 class LabelledDirectedStructure(DirectedStructure):
     """
     This class is NOT meant to encode mDAGs. As such, we do not get into an implementation of predecessors or successors here.
@@ -154,9 +153,9 @@ class LabelledDirectedStructure(DirectedStructure):
             if np.array_equal(self.variable_names, self.variables_as_range):
                 self.variable_are_range = True
                 self.edge_list = edge_list
-        else:
-            self.variable_are_range = False
-            self.edge_list = list(chunked(partsextractor(self.translation_dict, tuple(itertools.chain.from_iterable(edge_list))),2))
+            else:
+                self.variable_are_range = False
+                self.edge_list = list(chunked(partsextractor(self.translation_dict, tuple(itertools.chain.from_iterable(edge_list))),2))
         super().__init__(self.edge_list, self.number_of_variables)
 
     @cached_property
@@ -166,9 +165,17 @@ class LabelledDirectedStructure(DirectedStructure):
                 # for i, v in nx.to_dict_of_lists(self.DirectedStructure).items()
                 for i, v in enumerate(map(np.flatnonzero, self.as_bit_square_matrix))
                 )
+    @cached_property
+    def as_networkx_graph_arbitrary_names(self):
+        g=nx.DiGraph()
+        g.add_nodes_from(self.variable_names)
+        g.add_edges_from(self.edge_list)
+        return g
 
     def __str__(self):
         return self.as_string
 
     def __repr__(self):
         return self.as_string
+  
+  
