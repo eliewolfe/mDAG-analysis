@@ -370,7 +370,7 @@ class mDAG:
                     new_hyperedge=tuple(new_hyperedge_list)
             subset_of_already_hyp=False
             for already_hyp in new_hypergraph:
-                if set(new_hyperedge).issubset(set(already_hyp)):
+                if set(new_hyperedge).issubset(set(already_hyp)) and new_hyperedge!=already_hyp:
                     subset_of_already_hyp=True
                 if set(already_hyp).issubset(set(new_hyperedge)):
                     new_hypergraph.remove(already_hyp)
@@ -378,9 +378,8 @@ class mDAG:
                 new_hypergraph.append(new_hyperedge)
         return mDAG(LabelledDirectedStructure(list_of_nodes,new_edges),LabelledHypergraph(list_of_nodes,new_hypergraph))
    
-   
     def closure(self, B):
-        list_B=[self.visible_nodes]
+        list_B=[set(self.visible_nodes)]
         graph=self.subgraph(list_B[0])
         next_B=set()
         for element in B:
@@ -409,7 +408,7 @@ class mDAG:
             list_B.append(next_B)
             i=i+1
         return list_B[-1]
-    
+  
     def are_densely_connected(self,node1,node2):
         for closure_node in self.closure([node1]):
             if node2 in self.directed_structure_instance.as_networkx_graph.predecessors(closure_node):
@@ -421,6 +420,16 @@ class mDAG:
             if self.closure([node1,node2]).issubset(district):
                 return True
         return False
+    
+# Evans 2021: It is possible to have a distribution with 2 variables identical to one another and independent of all others iff they are densely connected
+# So, if node1 and node2 are densely connected in G1 but not in G2, we know that G1 is NOT equivalent to G2.
+
+    def all_densely_connected_pairs(self):
+        all_densely_connected_pairs=set()
+        for node1, node2 in itertools.combinations(self.visible_nodes,2):
+            if self.are_densely_connected(node1,node2):
+                all_densely_connected_pairs.add((node1,node2))
+        return all_densely_connected_pairs   
 
     @cached_property
     def fundamental_graphQ(self):
