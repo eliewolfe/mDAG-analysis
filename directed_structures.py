@@ -149,6 +149,7 @@ class LabelledDirectedStructure(DirectedStructure):
         self.number_of_variables = len(variable_names)
         self.variables_as_range = tuple(range(self.number_of_variables))
         self.translation_dict = dict(zip(self.variable_names, self.variables_as_range))
+        self.edge_list_variable_names=edge_list
         if all(isinstance(v, int) for v in self.variable_names):
             if np.array_equal(self.variable_names, self.variables_as_range):
                 self.variable_are_range = True
@@ -169,7 +170,7 @@ class LabelledDirectedStructure(DirectedStructure):
     def as_networkx_graph_arbitrary_names(self):
         g=nx.DiGraph()
         g.add_nodes_from(self.variable_names)
-        g.add_edges_from(self.edge_list)
+        g.add_edges_from(self.edge_list_variable_names)
         return g
 
     def __str__(self):

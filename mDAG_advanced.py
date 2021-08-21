@@ -378,7 +378,8 @@ class mDAG:
             if not subset_of_already_hyp:
                 new_hypergraph.append(new_hyperedge)
         return mDAG(LabelledDirectedStructure(list_of_nodes,new_edges),LabelledHypergraph(list_of_nodes,new_hypergraph))
-   
+  
+
     def closure(self, B):
         list_B=[set(self.visible_nodes)]
         graph=self.subgraph(list_B[0])
@@ -409,6 +410,7 @@ class mDAG:
             list_B.append(next_B)
             i=i+1
         return list_B[-1]
+    
   
     def are_densely_connected(self,node1,node2):
         for closure_node in self.closure([node1]):
@@ -422,6 +424,7 @@ class mDAG:
                 return True
         return False
     
+    
 # Evans 2021: It is possible to have a distribution with 2 variables identical to one another and independent of all others iff they are densely connected
 # So, if node1 and node2 are densely connected in G1 but not in G2, we know that G1 is NOT equivalent to G2.
 
@@ -432,7 +435,7 @@ class mDAG:
             if self.are_densely_connected(node1,node2):
                 all_densely_connected_pairs.add((node1,node2))
         return all_densely_connected_pairs   
-
+  
 
     def _all_densely_connected_pairs_unlabelled_generator(self):
         for perm in itertools.permutations(self.visible_nodes):
@@ -444,8 +447,7 @@ class mDAG:
     @cached_property
     def all_densely_connected_pairs_unlabelled(self):
         return min(self._all_densely_connected_pairs_unlabelled_generator())
-            
-    
+
     @cached_property
     def fundamental_graphQ(self):
         # Implement three conditions

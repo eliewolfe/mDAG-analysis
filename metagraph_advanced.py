@@ -429,24 +429,41 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
 if __name__ == '__main__':
 
     Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4,max_nof_events_for_supports=3)
-    Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=3)
+    #Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=3)
 
-    G1=mDAG(DirectedStructure([(2,0),(1,3)],4),Hypergraph([(0,1),(1,2),(2,3)],4))
+# =============================================================================
+#     G1=mDAG(DirectedStructure([(2,0),(1,3)],4),Hypergraph([(0,1),(1,2),(2,3)],4))
+#     not_all_densely_connected=[]
+#     for G in Observable_mDAGs4.representative_mDAGs_not_necessarily_foundational:
+#         if G.all_densely_connected_pairs_unlabelled != G1.all_densely_connected_pairs_unlabelled:
+#             not_all_densely_connected.append(G)
+#             print(G.all_densely_connected_pairs_unlabelled)
+#           
+# 
+#     print("If an mDAG have a pair that is not densely connected, then this mDAG is not fundamental=",set(not_all_densely_connected).issubset(set(Observable_mDAGs4.representatives_not_even_one_fundamental_in_class)))
+# 
+#     print("Number of mDAGs that have pairs of nodes that are not densely connected=",len(not_all_densely_connected))
+# 
+#     print("Number of classes that don't have any fundamental mDAG=",len(Observable_mDAGs4.representatives_not_even_one_fundamental_in_class))
+# 
+#        
+#     #However, G is fundamental but (0,1) are not densely connected in G:
+#     G=mDAG(DirectedStructure([(0,3)],4),Hypergraph([(0,),(1,2,3)],4))
+#     print("G is fundamental=",G.fundamental_graphQ )
+#     print("(0,1) are densely connected in G=",G.are_densely_connected(0,1))
+# =============================================================================
     
-    not_all_densely_connected=[]
-    for G in Observable_mDAGs4.representative_mDAGs_not_necessarily_foundational:
-        if G.all_densely_connected_pairs_unlabelled != G1.all_densely_connected_pairs_unlabelled:
-            not_all_densely_connected.append(G)
-            print(G.all_densely_connected_pairs_unlabelled)
-          
 
-    print("If an mDAG have a pair that is not densely connected, then this mDAG is not fundamental=",set(not_all_densely_connected).issubset(set(Observable_mDAGs4.representatives_not_even_one_fundamental_in_class)))
 
-    print("Number of mDAGs that have pairs of nodes that are not densely connected=",len(not_all_densely_connected))
 
-    print("Number of classes that don't have any fundamental mDAG=",len(Observable_mDAGs4.representatives_not_even_one_fundamental_in_class))
+    for mDAG in Observable_mDAGs4.foundational_eqclasses[0]:
+        print(mDAG)
+        print(mDAG.all_densely_connected_pairs)
 
-                 
+
+    
+
+     
 
 # ==================================
 
@@ -471,26 +488,28 @@ if __name__ == '__main__':
 
 
     
-    no_inf_sups_beyond_esep4=[]
-    i=0
-    for mDAG in Observable_mDAGs4.representative_mDAGs_list:
-     print(i,"of",len(Observable_mDAGs4.representative_mDAGs_list))
-     i=i+1
-     if mDAG.no_infeasible_supports_beyond_esep_up_to(5):
-         no_inf_sups_beyond_esep4.append(mDAG)
-    
-    len(no_inf_sups_beyond_esep4)
-    
-
-    no_inf_sups_beyond_esep3=[]
-    i=0
-    for mDAG in Observable_mDAGs3.representative_mDAGs_list:
-     print(i,"of",len(Observable_mDAGs3.representative_mDAGs_list))
-     i=i+1
-     if mDAG.no_infeasible_supports_beyond_esep_up_to(5):
-         no_inf_sups_beyond_esep3.append(mDAG)
-    
-    len(no_inf_sups_beyond_esep3)
+# =============================================================================
+#     no_inf_sups_beyond_esep4=[]
+#     i=0
+#     for mDAG in Observable_mDAGs4.representative_mDAGs_list:
+#      print(i,"of",len(Observable_mDAGs4.representative_mDAGs_list))
+#      i=i+1
+#      if mDAG.no_infeasible_supports_beyond_esep_up_to(5):
+#          no_inf_sups_beyond_esep4.append(mDAG)
+#     
+#     len(no_inf_sups_beyond_esep4)
+#     
+# 
+#     no_inf_sups_beyond_esep3=[]
+#     i=0
+#     for mDAG in Observable_mDAGs3.representative_mDAGs_list:
+#      print(i,"of",len(Observable_mDAGs3.representative_mDAGs_list))
+#      i=i+1
+#      if mDAG.no_infeasible_supports_beyond_esep_up_to(5):
+#          no_inf_sups_beyond_esep3.append(mDAG)
+#     
+#     len(no_inf_sups_beyond_esep3)
+# =============================================================================
                
     
   
@@ -504,7 +523,7 @@ if __name__ == '__main__':
 
 
 # =============================================================================
-#     for i in Observable_mDAGs.CI_classes:
+#     for i in Observable_mDAGs4.CI_classes:
 #         if len(i)==1:
 #              print("class of", i)
 #              for c in Observable_mDAGs.foundational_eqclasses:
