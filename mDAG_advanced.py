@@ -147,6 +147,7 @@ class mDAG:
                     frozenset(partsextractor(perm, variable_set))
                     for variable_set in relation)
                 for relation in self.__getattribute__(attribute))
+            
 
     @cached_property
     def all_CI_unlabelled(self):
@@ -424,6 +425,7 @@ class mDAG:
 # Evans 2021: It is possible to have a distribution with 2 variables identical to one another and independent of all others iff they are densely connected
 # So, if node1 and node2 are densely connected in G1 but not in G2, we know that G1 is NOT equivalent to G2.
 
+    @property
     def all_densely_connected_pairs(self):
         all_densely_connected_pairs=set()
         for node1, node2 in itertools.combinations(self.visible_nodes,2):
@@ -431,6 +433,19 @@ class mDAG:
                 all_densely_connected_pairs.add((node1,node2))
         return all_densely_connected_pairs   
 
+
+    def _all_densely_connected_pairs_unlabelled_generator(self):
+        for perm in itertools.permutations(self.visible_nodes):
+            yield frozenset(
+                tuple(partsextractor(perm, variable_set)
+                    for variable_set in relation)
+                for relation in self.__getattribute__('all_densely_connected_pairs'))
+            
+    @cached_property
+    def all_densely_connected_pairs_unlabelled(self):
+        return min(self._all_densely_connected_pairs_unlabelled_generator())
+            
+    
     @cached_property
     def fundamental_graphQ(self):
         # Implement three conditions

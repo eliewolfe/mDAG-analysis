@@ -239,6 +239,26 @@ class Observable_unlabelled_mDAGs:
     def smart_representatives(eqclasses, attribute):
         return [min(eqclass, key = lambda mDAG: mDAG.__getattribute__(attribute)) for eqclass in eqclasses]
 
+    @cached_property
+    def representative_mDAGs_not_necessarily_foundational(self):
+    #     return self.representatives(self.equivalence_classes_as_mDAGs)
+        return self.smart_representatives(self.equivalence_classes_as_mDAGs, 'relative_complexity_for_sat_solver')
+
+    @cached_property
+    def representatives_not_even_one_fundamental_in_class(self):
+        representatives_of_NOT_entirely_fundamental_classes=[element for element in self.representative_mDAGs_not_necessarily_foundational if element not in self.representative_mDAGs_list]   
+        not_even_one_fundamental_in_class=[]
+        for mDAG in representatives_of_NOT_entirely_fundamental_classes:
+            for c in self.equivalence_classes_as_mDAGs:
+                if mDAG in c:
+                    not_one_fund=True
+                    for equivalent_mDAG in c:
+                        if equivalent_mDAG.fundamental_graphQ:
+                            not_one_fund=False
+                    if not_one_fund:
+                        not_even_one_fundamental_in_class.append(mDAG)
+        return not_even_one_fundamental_in_class
+
 
     # @cached_property
     # def safe_representative_mDAGs_list(self):
@@ -253,6 +273,10 @@ class Observable_unlabelled_mDAGs:
     def CI_classes(self):
         return classify_by_attributes(self.representative_mDAGs_list, ['all_CI_unlabelled'])
  
+    @property
+    def Dense_connectedness_classes(self):
+        return classify_by_attributes(self.representative_mDAGs_list, ['all_densely_connected_pairs_unlabelled'])
+    
     @property
     def esep_classes(self):
         return classify_by_attributes(self.representative_mDAGs_list, ['all_esep_unlabelled'])
@@ -404,12 +428,29 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
 
 if __name__ == '__main__':
 
-    Observable_mDAGs4 = Observable_mDAGs_Analysis(
-        nof_observed_variables=4,
-        max_nof_events_for_supports=3)
+    Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4,max_nof_events_for_supports=3)
     Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=3)
 
-    # for k in tuple(Observable_mDAGs.singletons_dict.keys())[1:]:
+    G1=mDAG(DirectedStructure([(2,0),(1,3)],4),Hypergraph([(0,1),(1,2),(2,3)],4))
+    
+    not_all_densely_connected=[]
+    for G in Observable_mDAGs4.representative_mDAGs_not_necessarily_foundational:
+        if G.all_densely_connected_pairs_unlabelled != G1.all_densely_connected_pairs_unlabelled:
+            not_all_densely_connected.append(G)
+            print(G.all_densely_connected_pairs_unlabelled)
+          
+
+    print("If an mDAG have a pair that is not densely connected, then this mDAG is not fundamental=",set(not_all_densely_connected).issubset(set(Observable_mDAGs4.representatives_not_even_one_fundamental_in_class)))
+
+    print("Number of mDAGs that have pairs of nodes that are not densely connected=",len(not_all_densely_connected))
+
+    print("Number of classes that don't have any fundamental mDAG=",len(Observable_mDAGs4.representatives_not_even_one_fundamental_in_class))
+
+                 
+
+# ==================================
+
+# for k in tuple(Observable_mDAGs.singletons_dict.keys())[1:]:
     #     print("mDAGs freshly recognized as singleton-classes from supports over ",k," events:")
     #     for i in Observable_mDAGs.singletons_dict[k]:
     #         if i not in Observable_mDAGs.singletons_dict[k-1]:
