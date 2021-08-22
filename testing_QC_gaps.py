@@ -5,7 +5,6 @@ from hypergraphs import Hypergraph
 from directed_structures import DirectedStructure
 from mDAG_advanced import mDAG
 
-
 G_Bell=mDAG(DirectedStructure([(0,3),(1,2)],4),Hypergraph([(0,),(1,),(2,3)],4))
    
 for c in Observable_mDAGs4.foundational_eqclasses:

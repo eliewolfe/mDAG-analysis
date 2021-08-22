@@ -458,10 +458,18 @@ if __name__ == '__main__':
 
     for mDAG in Observable_mDAGs4.foundational_eqclasses[0]:
         print(mDAG)
-        print(mDAG.all_densely_connected_pairs)
+        print(mDAG.all_densely_connected_pairs_unlabelled)
 
+    # Need to fix all_densely_connected_pairs_unlabelled
 
+    G1=mDAG(DirectedStructure([(0,2),(1,3)],4),Hypergraph([(0,),(1,3),(2,3)],4))
+
+    G3=mDAG(DirectedStructure([(1,2),(0,3)],4),Hypergraph([(0,),(1,),(2,3)],4))
+   
+    print(G1.all_CI_unlabelled)
+    print(G3.all_CI_unlabelled)
     
+    #len(Observable_mDAGs4.Dense_connectedness_classes)
 
      
 

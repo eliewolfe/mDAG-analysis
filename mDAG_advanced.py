@@ -419,12 +419,11 @@ class mDAG:
         for closure_node in self.closure([node2]):
             if node1 in self.directed_structure_instance.as_networkx_graph.predecessors(closure_node):
                 return True
-        for district in self.districts:
+        for district in self.subgraph(self.closure([node1,node2])).districts_arbitrary_names:
             if self.closure([node1,node2]).issubset(district):
                 return True
         return False
-    
-    
+
 # Evans 2021: It is possible to have a distribution with 2 variables identical to one another and independent of all others iff they are densely connected
 # So, if node1 and node2 are densely connected in G1 but not in G2, we know that G1 is NOT equivalent to G2.
 
