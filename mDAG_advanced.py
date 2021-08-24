@@ -129,12 +129,16 @@ class mDAG:
                     for complimentary_subset in itertools.combinations(complimentary_set, r):
                         yield variables_to_partition[x], variables_to_partition[y], complimentary_subset
 
+    @staticmethod
+    def fake_frozenset(stuff):
+        return tuple(sorted(stuff))
+
     # We do not cache iterators, only their output, as iterators are consumed!
     @property
     def _all_CI_generator(self):
         for x, y, Z in self._all_2_vs_any_partitions(self.visible_nodes):
             if nx.d_separated(self.as_graph, {x}, {y}, set(Z)):
-                yield frozenset([x, y]), frozenset(Z)
+                yield (self.fake_frozenset([x, y]), self.fake_frozenset(Z))
 
     @cached_property
     def all_CI(self):
@@ -142,9 +146,9 @@ class mDAG:
 
     def _all_CI_like_unlabelled_generator(self, attribute):
         for perm in itertools.permutations(self.visible_nodes):
-            yield frozenset(
+            yield self.fake_frozenset(
                 tuple(
-                    frozenset(partsextractor(perm, variable_set))
+                    self.fake_frozenset(partsextractor(perm, variable_set))
                     for variable_set in relation)
                 for relation in self.__getattribute__(attribute))
             
@@ -162,7 +166,7 @@ class mDAG:
                 remaining = set(self.visible_nodes).difference(to_delete)
                 for x, y, Z in self._all_2_vs_any_partitions(tuple(remaining)):
                     if nx.d_separated(graph_copy, {x}, {y}, set(Z)):
-                        yield frozenset([x, y]), frozenset(Z), frozenset(to_delete)
+                        yield (self.fake_frozenset([x, y]), self.fake_frozenset(Z), self.fake_frozenset(to_delete))
 
     @cached_property  # Behaving weird, get consumed unless wrapped in tuple
     def all_esep(self):
@@ -187,7 +191,7 @@ class mDAG:
                                    n, self.all_esep
                                    )
     def smart_infeasible_supports_n_events_card_3(self, n, **kwargs):
-          return frozenset(self.smart_support_testing_instance_card_3(n).smart_unique_infeasible_supports(**kwargs, name='mgh', use_timer=False))
+          return self.fake_frozenset(self.smart_support_testing_instance_card_3(n).smart_unique_infeasible_supports(**kwargs, name='mgh', use_timer=False))
     
     def smart_support_testing_instance(self, n):
         return SmartSupportTesting(self.parents_of_for_supports_analysis,
@@ -196,16 +200,16 @@ class mDAG:
                                    )
 
     def infeasible_binary_supports_n_events(self, n, **kwargs):
-        return frozenset(self.smart_support_testing_instance(n).unique_infeasible_supports(**kwargs, name='mgh', use_timer=False))
+        return self.fake_frozenset(self.smart_support_testing_instance(n).unique_infeasible_supports(**kwargs, name='mgh', use_timer=False))
 
     def smart_infeasible_binary_supports_n_events(self, n, **kwargs):
-        return frozenset(self.smart_support_testing_instance(n).smart_unique_infeasible_supports(**kwargs, name='mgh', use_timer=False))
+        return self.fake_frozenset(self.smart_support_testing_instance(n).smart_unique_infeasible_supports(**kwargs, name='mgh', use_timer=False))
 
     def infeasible_binary_supports_n_events_unlabelled(self, n, **kwargs):
-        return frozenset(self.smart_support_testing_instance(n).unique_infeasible_supports_unlabelled(**kwargs, name='mgh', use_timer=False))
+        return self.fake_frozenset(self.smart_support_testing_instance(n).unique_infeasible_supports_unlabelled(**kwargs, name='mgh', use_timer=False))
 
     def smart_infeasible_binary_supports_n_events_unlabelled(self, n, **kwargs):
-        return frozenset(self.smart_support_testing_instance(n).smart_unique_infeasible_supports_unlabelled(**kwargs, name='mgh', use_timer=False))
+        return self.fake_frozenset(self.smart_support_testing_instance(n).smart_unique_infeasible_supports_unlabelled(**kwargs, name='mgh', use_timer=False))
 
     def no_infeasible_supports_up_to(self, max_n, **kwargs):
         return all(self.smart_support_testing_instance(n).no_infeasible_supports(**kwargs, name='mgh', use_timer=False) for
@@ -377,7 +381,7 @@ class mDAG:
                     new_hypergraph.remove(already_hyp)
             if not subset_of_already_hyp:
                 new_hypergraph.append(new_hyperedge)
-        return mDAG(LabelledDirectedStructure(list_of_nodes,new_edges),LabelledHypergraph(list_of_nodes,new_hypergraph))
+        return mDAG(LabelledDirectedStructure(list_of_nodes,new_edges), LabelledHypergraph(list_of_nodes,new_hypergraph))
   
 
     def closure(self, B):
@@ -412,15 +416,15 @@ class mDAG:
         return list_B[-1]
     
   
-    def are_densely_connected(self,node1,node2):
+    def are_densely_connected(self, node1, node2):
         for closure_node in self.closure([node1]):
             if node2 in self.directed_structure_instance.as_networkx_graph.predecessors(closure_node):
                 return True
         for closure_node in self.closure([node2]):
             if node1 in self.directed_structure_instance.as_networkx_graph.predecessors(closure_node):
                 return True
-        for district in self.subgraph(self.closure([node1,node2])).districts_arbitrary_names:
-            if self.closure([node1,node2]).issubset(district):
+        for district in self.subgraph(self.closure([node1, node2])).districts_arbitrary_names:
+            if self.closure([node1, node2]).issubset(district):
                 return True
         return False
 
@@ -429,19 +433,22 @@ class mDAG:
 
     @property
     def all_densely_connected_pairs(self):
-        all_densely_connected_pairs=set()
-        for node1, node2 in itertools.combinations(self.visible_nodes,2):
-            if self.are_densely_connected(node1,node2):
-                all_densely_connected_pairs.add((node1,node2))
-        return all_densely_connected_pairs   
+        return [nodepair for nodepair in itertools.combinations(self.visible_nodes, 2) if self.are_densely_connected(*nodepair)]
+        # all_densely_connected_pairs=set()
+        # for node1, node2 in itertools.combinations(self.visible_nodes, 2):
+        #     if self.are_densely_connected(node1, node2):
+        #         all_densely_connected_pairs.add((node1, node2))
+        # return all_densely_connected_pairs
+
   
 
     def _all_densely_connected_pairs_unlabelled_generator(self):
         for perm in itertools.permutations(self.visible_nodes):
-            yield frozenset(
-                tuple(partsextractor(perm, variable_set)
-                    for variable_set in relation)
-                for relation in self.__getattribute__('all_densely_connected_pairs'))
+            yield self.fake_frozenset(map(self.fake_frozenset, np.take(perm, self.all_densely_connected_pairs)))
+            # yield frozenset(
+            #     tuple(partsextractor(perm, variable_set)
+            #         for variable_set in relation)
+            #     for relation in self.__getattribute__('all_densely_connected_pairs'))
             
     @cached_property
     def all_densely_connected_pairs_unlabelled(self):

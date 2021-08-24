@@ -428,7 +428,7 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
 
 if __name__ == '__main__':
 
-    Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4,max_nof_events_for_supports=3)
+    Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=1)
     #Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=3)
 
 # =============================================================================
@@ -456,15 +456,15 @@ if __name__ == '__main__':
 
 
 
-    for mDAG in Observable_mDAGs4.foundational_eqclasses[0]:
-        print(mDAG)
-        print(mDAG.all_densely_connected_pairs_unlabelled)
+    # for mDAG in Observable_mDAGs4.foundational_eqclasses[0]:
+    #     print(mDAG)
+    #     print(mDAG.all_densely_connected_pairs_unlabelled)
 
     # Need to fix all_densely_connected_pairs_unlabelled
 
-    G1=mDAG(DirectedStructure([(0,2),(1,3)],4),Hypergraph([(0,),(1,3),(2,3)],4))
+    G1=mDAG(DirectedStructure([(0,2),(1,3)],4), Hypergraph([(0,),(1,3),(2,3)],4))
 
-    G3=mDAG(DirectedStructure([(1,2),(0,3)],4),Hypergraph([(0,),(1,),(2,3)],4))
+    G3=mDAG(DirectedStructure([(1,2),(0,3)],4), Hypergraph([(0,),(1,),(2,3)],4))
    
     print(G1.all_CI_unlabelled)
     print(G3.all_CI_unlabelled)
