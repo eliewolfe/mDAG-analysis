@@ -53,7 +53,7 @@ def to_bits(integers, mantissa):
 
 
 def from_bits(smooshed_bit_array):
-    mantissa = np.asarray(smooshed_bit_array).shape[-1]
+    mantissa = smooshed_bit_array.shape[-1]
     if mantissa > 0:
         possible_mantissas = np.array([8,16,32,64])
         effective_mantissa = possible_mantissas.compress(np.floor_divide(possible_mantissas, mantissa))[0]
@@ -84,19 +84,20 @@ def from_bits(smooshed_bit_array):
                     np.pad(ready_for_viewing, pad_width=npad, mode='constant', constant_values=0)
                 ).view(np.uint64), axis=-1)
     else:
-        return np.zeros(np.asarray([]).shape[:-2],dtype=int)
+        return np.zeros(smooshed_bit_array.shape[:-2], dtype=int)
 
 def _from_digits(digits_array, base):
-    return np.matmul(np.asarray(digits_array, np.uint), radix_converter(base))
+    return np.matmul(digits_array, radix_converter(base))
 
 def from_digits(digits_array, base):
-    if len(digits_array) > 0:
+    digits_array_as_array = np.asarray(digits_array)
+    if min(digits_array_as_array.shape) > 0:
         if binary_base_test(base):
-            return from_bits(digits_array)
+            return from_bits(digits_array_as_array)
         else:
-            return _from_digits(digits_array, base)
+            return _from_digits(digits_array_as_array, base)
     else:
-        return digits_array
+        return digits_array_as_array.reshape(digits_array_as_array.shape[:-1])
 
 
 
