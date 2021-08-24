@@ -4,9 +4,15 @@ import itertools
 from functools import lru_cache
 
 @lru_cache(maxsize=16)
+def _reversed_base(base):
+    return np.hstack((1, np.flipud(base[1:])))
+def reversed_base(base):
+    return _reversed_base(tuple(base))
+
+@lru_cache(maxsize=16)
 def _radix_converter(base):
-    return np.flip(np.multiply.accumulate(
-        np.hstack((1, np.flip(base[1:]))).astype(dtype=np.ulonglong)
+    return np.flipud(np.multiply.accumulate(
+        reversed_base(base).astype(dtype=np.ulonglong)
     ))
 def radix_converter(base):
     return _radix_converter(tuple(base))
@@ -24,16 +30,19 @@ def binary_base_test(base):
     return _binary_base_test(tuple(base))
 
 
+def flip_array_last_axis(m):
+    return m[..., ::-1]
+
 def to_bits(integers, mantissa):
     if mantissa<=8:
         bytes_array = np.expand_dims(np.asarray(integers,np.uint8), axis=-1)
     elif mantissa<=16:
-        bytes_array = np.flip(np.expand_dims(np.asarray(integers,np.uint16), axis=-1).view(np.uint8),axis=-1)
+        bytes_array = flip_array_last_axis(np.expand_dims(np.asarray(integers,np.uint16), axis=-1).view(np.uint8))
     elif mantissa <= 32:
-        bytes_array = np.flip(np.expand_dims(np.asarray(integers, np.uint32), axis=-1).view(np.uint8), axis=-1)
+        bytes_array = flip_array_last_axis(np.expand_dims(np.asarray(integers, np.uint32), axis=-1).view(np.uint8))
     elif mantissa <= 64:
-        bytes_array = np.flip(np.expand_dims(np.asarray(integers, np.uint64), axis=-1).view(np.uint8), axis=-1)
-    return np.unpackbits(bytes_array, axis=-1, bitorder='big')[...,-mantissa:]
+        bytes_array = flip_array_last_axis(np.expand_dims(np.asarray(integers, np.uint64), axis=-1).view(np.uint8))
+    return np.unpackbits(bytes_array, axis=-1, bitorder='big')[..., -mantissa:]
 
 # import numba
 # @numba.vectorize([
@@ -57,7 +66,7 @@ def from_bits(smooshed_bit_array):
     if mantissa > 0:
         possible_mantissas = np.array([8,16,32,64])
         effective_mantissa = possible_mantissas.compress(np.floor_divide(possible_mantissas, mantissa))[0]
-        ready_for_viewing = np.packbits(np.flip(smooshed_bit_array, axis=-1), axis=-1, bitorder='little')
+        ready_for_viewing = np.packbits(flip_array_last_axis(smooshed_bit_array), axis=-1, bitorder='little')
         final_dimension = ready_for_viewing.shape[-1]
         if mantissa<=8:
             return np.squeeze(ready_for_viewing, axis=-1)
@@ -113,11 +122,23 @@ def from_string_digits(string_digits_array, base):
 
 
 def _to_digits(integer, base):
-    return np.stack(np.unravel_index(np.asarray(integer, dtype=np.intp), base), axis=-1)
+    if len(base)<=32:
+        return np.stack(np.unravel_index(np.asarray(integer, dtype=np.intp), base), axis=-1)
+    else:
+        arrays = []
+        x = np.array(integer, copy=True)
+        #print(reversed_base(base))
+        for b in reversed(base):
+            x, remainder = np.divmod(x, b)
+            arrays.append(remainder)
+        return flip_array_last_axis(np.stack(arrays, axis=-1))
 
-def to_digits(integer, base):
+def to_digits(integer, base, sanity_check=False):
+    if sanity_check:
+        does_it_fit = np.amax(integer) < np.multiply.reduce(np.flipud(base).astype(dtype=np.ulonglong))
+        assert does_it_fit, "Base is too small to accommodate such large integers."
     if binary_base_test(base):
-        return to_bits(integer,len(base))
+        return to_bits(integer, len(base))
     else:
         return _to_digits(integer, base)
 
@@ -143,13 +164,16 @@ def bitarray_to_int(bit_array):
     return from_bits(bit_array_as_array.reshape(shape[:-2]+(numrows * numcolumns,)))
 
 def int_to_bitarray(integer, numcolumns):
-    numrows = -np.floor_divide(-np.log(integer+1), np.log(2**numcolumns)).astype(int).max() #Danger border case
+    numrows = -np.floor_divide(-np.log1p(integer), np.log(2**numcolumns)).astype(int).max() #Danger border case
     return np.reshape(to_bits(integer, numrows * numcolumns), np.asarray(integer).shape + (numrows, numcolumns))
 
 
 
 
 if __name__ == '__main__':
+    print(to_digits([3,5,12,100], base=np.hstack((np.repeat(1,32),(3,4,5)))))
+    print(to_digits([3, 5, 12, 100], base=np.hstack((np.repeat(1, 32), (3, 4, 5)))).shape)
+
     integers = [[234, 1237, 543, 23], [53, 234, 732, 123]]
     base = (2, 3, 2, 3, 4, 2, 2, 3, 2)
     # digits_array = to_digits(integers, base)
