@@ -293,7 +293,18 @@ class Observable_unlabelled_mDAGs:
     def Skeleton_and_esep(self):
         return classify_by_attributes(self.representative_mDAGs_list,
                                            ['skeleton_unlabelled', 'all_esep_unlabelled'])
-
+    @property
+    def Dense_connectedness_and_Skeleton(self):
+        return classify_by_attributes(self.representative_mDAGs_list,
+                                           ['all_densely_connected_pairs_unlabelled', 'skeleton_unlabelled'])
+    @property
+    def Dense_connectedness_and_CI(self):
+        return classify_by_attributes(self.representative_mDAGs_list,
+                                           ['all_densely_connected_pairs_unlabelled', 'all_CI_unlabelled'])
+    @property
+    def Dense_connectedness_and_esep(self):
+        return classify_by_attributes(self.representative_mDAGs_list,
+                                           ['all_densely_connected_pairs_unlabelled', 'all_esep_unlabelled'])
 
 
     @property
@@ -433,46 +444,51 @@ if __name__ == '__main__':
 
 # =============================================================================
 #     G1=mDAG(DirectedStructure([(2,0),(1,3)],4),Hypergraph([(0,1),(1,2),(2,3)],4))
+#     G1.all_densely_connected_pairs_unlabelled
 #     not_all_densely_connected=[]
 #     for G in Observable_mDAGs4.representative_mDAGs_not_necessarily_foundational:
 #         if G.all_densely_connected_pairs_unlabelled != G1.all_densely_connected_pairs_unlabelled:
 #             not_all_densely_connected.append(G)
 #             print(G.all_densely_connected_pairs_unlabelled)
 #           
-# 
-#     print("If an mDAG have a pair that is not densely connected, then this mDAG is not fundamental=",set(not_all_densely_connected).issubset(set(Observable_mDAGs4.representatives_not_even_one_fundamental_in_class)))
-# 
-#     print("Number of mDAGs that have pairs of nodes that are not densely connected=",len(not_all_densely_connected))
-# 
-#     print("Number of classes that don't have any fundamental mDAG=",len(Observable_mDAGs4.representatives_not_even_one_fundamental_in_class))
-# 
-#        
-#     #However, G is fundamental but (0,1) are not densely connected in G:
-#     G=mDAG(DirectedStructure([(0,3)],4),Hypergraph([(0,),(1,2,3)],4))
-#     print("G is fundamental=",G.fundamental_graphQ )
-#     print("(0,1) are densely connected in G=",G.are_densely_connected(0,1))
+#     print("Number of mDAGs that have at least one pair of nodes that are not densely connected=",len(not_all_densely_connected))
 # =============================================================================
+
+
     
 
+# =============================================================================
+#     i=0
+#     for ob_class in Observable_mDAGs4.foundational_eqclasses:
+#         p1=ob_class[0].all_densely_connected_pairs_unlabelled
+#         for mDAG in ob_class:
+#             if mDAG.all_densely_connected_pairs_unlabelled!=p1:
+#                 print(i)
+#         i=i+1
+# No problem here: all classes are consistent in terms of Dense Conectedness
+# =============================================================================
 
-
-    # for mDAG in Observable_mDAGs4.foundational_eqclasses[0]:
-    #     print(mDAG)
-    #     print(mDAG.all_densely_connected_pairs_unlabelled)
-
-    # Need to fix all_densely_connected_pairs_unlabelled
-
-    G1=mDAG(DirectedStructure([(0,2),(1,3)],4), Hypergraph([(0,),(1,3),(2,3)],4))
-
-    G3=mDAG(DirectedStructure([(1,2),(0,3)],4), Hypergraph([(0,),(1,),(2,3)],4))
-   
-    print(G1.all_CI_unlabelled)
-    print(G3.all_CI_unlabelled)
+ 
+        
+    Skeleton_classes4=Observable_mDAGs4.Skeleton_classes
+    print("Number of Skeleton classes=",len(Skeleton_classes4))
+    CI_classes4=Observable_mDAGs4.CI_classes
+    print("Number of CI classes=",len(CI_classes4))
+    esep_classes4=Observable_mDAGs4.esep_classes
+    print("Number of esep classes=",len(esep_classes4))
+    Dense_con_classes=Observable_mDAGs4.Dense_connectedness_classes
+    print("Number of Dense Conectedness Classes=",len(Dense_con_classes))
     
-    #len(Observable_mDAGs4.Dense_connectedness_classes)
+    print("Skeleton+CI=",len(Observable_mDAGs4.Skeleton_and_CI))
+    print("Skeleton+esep=",len(Observable_mDAGs4.Skeleton_and_esep))
+    print("Dense Conectedness+Skeleton=",len(Observable_mDAGs4.Dense_connectedness_and_Skeleton))
+    print("Dense Conectedness+CI=",len(Observable_mDAGs4.Dense_connectedness_and_CI))
+    print("Dense Conectedness+esep=",len(Observable_mDAGs4.Dense_connectedness_and_esep))
 
-     
 
+    
+    
+    
 # ==================================
 
 # for k in tuple(Observable_mDAGs.singletons_dict.keys())[1:]:

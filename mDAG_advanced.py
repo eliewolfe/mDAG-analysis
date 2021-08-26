@@ -401,6 +401,7 @@ class mDAG:
         i=2
         while any([list_B[i]!=list_B[i-1],list_B[i]!=list_B[i-2]]):
             graph=self.subgraph(list_B[-1])
+            next_B=set()
             for element in B:
                 for dist in graph.districts_arbitrary_names:
                     if element in dist:
