@@ -149,22 +149,22 @@ if __name__ == '__main__':
     from mDAG_advanced import mDAG
     from hypergraphs import LabelledHypergraph
     from directed_structures import LabelledDirectedStructure
-    from radix import to_bits
+    # from radix import to_bits
     # test_two_col_mat = np.asarray([[1, 0], [0, 1], [0, 1], [1, 1]])
-    instrumental = mDAG(
-        LabelledDirectedStructure([0,1,2],[(0,1),(1,2)]),
-        LabelledHypergraph([0,1,2], [(0,),(1,2)]))
-    UC = mDAG(LabelledDirectedStructure([0,1,2],[(1,0),(1,2)]),
-              LabelledHypergraph([0,1,2],[(0,1),(1,2)]))
-
-    print(instrumental.infeasible_binary_supports_n_events(3, verbose=False))
-    print(UC.infeasible_binary_supports_n_events(3, verbose=False))
-    print(instrumental.smart_infeasible_binary_supports_n_events(3, verbose=False))
-    print(UC.smart_infeasible_binary_supports_n_events(3, verbose=False))
-    print(instrumental.infeasible_binary_supports_n_events(4, verbose=False))
-    print(UC.infeasible_binary_supports_n_events(4, verbose=False))
-    print(instrumental.smart_infeasible_binary_supports_n_events(4, verbose=False))
-    print(UC.smart_infeasible_binary_supports_n_events(4, verbose=False))
+    # instrumental = mDAG(
+    #     LabelledDirectedStructure([0,1,2],[(0,1),(1,2)]),
+    #     LabelledHypergraph([0,1,2], [(0,),(1,2)]))
+    # UC = mDAG(LabelledDirectedStructure([0,1,2],[(1,0),(1,2)]),
+    #           LabelledHypergraph([0,1,2],[(0,1),(1,2)]))
+    #
+    # print(instrumental.infeasible_binary_supports_n_events(3, verbose=False))
+    # print(UC.infeasible_binary_supports_n_events(3, verbose=False))
+    # print(instrumental.smart_infeasible_binary_supports_n_events(3, verbose=False))
+    # print(UC.smart_infeasible_binary_supports_n_events(3, verbose=False))
+    # print(instrumental.infeasible_binary_supports_n_events(4, verbose=False))
+    # print(UC.infeasible_binary_supports_n_events(4, verbose=False))
+    # print(instrumental.smart_infeasible_binary_supports_n_events(4, verbose=False))
+    # print(UC.smart_infeasible_binary_supports_n_events(4, verbose=False))
     # print(to_bits(instrumental.infeasible_binary_supports_n_events(3, verbose=False), mantissa=3))
     # print(to_bits(UC.infeasible_binary_supports_n_events(3, verbose=False), mantissa=3))
     # print(to_bits(instrumental.smart_infeasible_binary_supports_n_events(3, verbose=False), mantissa=3))
@@ -181,41 +181,41 @@ if __name__ == '__main__':
     #     UC.smart_infeasible_binary_supports_n_events(4, verbose=False)))
 
 
-    # s = np.asarray(
-    #     [[0, 0, 0, 0, 0],
-    #      [1, 1, 0, 1, 0],
-    #      [0, 0, 1, 1, 1],
-    #      [1, 1, 0, 0, 0],
-    #      [1, 1, 1, 1, 1]])
-    # C = [1, 2]
-    # ab = [0, 4]
+    s = np.asarray(
+        [[0, 0, 0, 0, 0],
+         [1, 1, 0, 1, 0],
+         [0, 0, 1, 1, 1],
+         [1, 1, 0, 0, 0],
+         [1, 1, 1, 1, 1]])
+    C = [1, 2]
+    ab = [0, 4]
+
+
+    print(does_this_dsep_rule_out_this_support(ab, C, s))
+
+
+    import networkx as nx
+
+
     #
-    #
-    # print(does_this_dsep_rule_out_this_support(ab, C, s))
-    #
-    #
-    # import networkx as nx
-    #
-    #
-    # #
-    # # # Testing example for Ilya conjecture proof.
-    # directed_dict_of_lists = {"C": ["A", "B"], "X": ["C"], "D": ["A", "B"]}
-    # ds = LabelledDirectedStructure(["X", "A", "B", "C", "D"], nx.from_dict_of_lists(directed_dict_of_lists, create_using=nx.DiGraph).edges())
-    #
-    # simplicial_complex1 = LabelledHypergraph(["X", "A", "B", "C", "D"], [("A", "X", "D"), ("B", "X", "D"), ("A", "C")])
-    # simplicial_complex2 = LabelledHypergraph(["X", "A", "B", "C", "D"], [("A", "X", "D"), ("B", "X", "D")])
-    #
-    #
-    # md1 = mDAG(ds, simplicial_complex1)
-    # md2 = mDAG(ds, simplicial_complex2)
-    #
-    #
-    # print(md2.all_esep)
-    #
-    # print(set(md2.smart_infeasible_binary_supports_n_events(4, verbose=True)).difference(md1.smart_infeasible_binary_supports_n_events(4, verbose=True)))
-    # print(to_digits(to_digits(9786, np.broadcast_to(2 ** 5, 4)), np.broadcast_to(2, 5)))
-    # # #Cool, it works great.
-    #
-    # #Now testing memoization
-    # print(set(md2.smart_infeasible_binary_supports_n_events_unlabelled(4, verbose=True)))
-    # print(set(md2.infeasible_binary_supports_n_events_unlabelled(4, verbose=True)))
+    # # Testing example for Ilya conjecture proof.
+    directed_dict_of_lists = {"C": ["A", "B"], "X": ["C"], "D": ["A", "B"]}
+    ds = LabelledDirectedStructure(["X", "A", "B", "C", "D"], nx.from_dict_of_lists(directed_dict_of_lists, create_using=nx.DiGraph).edges())
+
+    simplicial_complex1 = LabelledHypergraph(["X", "A", "B", "C", "D"], [("A", "X", "D"), ("B", "X", "D"), ("A", "C")])
+    simplicial_complex2 = LabelledHypergraph(["X", "A", "B", "C", "D"], [("A", "X", "D"), ("B", "X", "D")])
+
+
+    md1 = mDAG(ds, simplicial_complex1)
+    md2 = mDAG(ds, simplicial_complex2)
+
+
+    print(md2.all_esep)
+
+    print(set(md2.smart_infeasible_binary_supports_n_events(4, verbose=True)).difference(md1.smart_infeasible_binary_supports_n_events(4, verbose=True)))
+    print(to_digits(to_digits(9786, np.broadcast_to(2 ** 5, 4)), np.broadcast_to(2, 5)))
+    # #Cool, it works great.
+
+    #Now testing memoization
+    print(set(md2.smart_infeasible_binary_supports_n_events_unlabelled(4, verbose=True)))
+    print(set(md2.infeasible_binary_supports_n_events_unlabelled(4, verbose=True)))
