@@ -58,16 +58,27 @@ def does_this_esep_rule_out_this_support(ab, C, D, s):
 
     # print(s)
     # print((ab, C, D))
-    columns_D = s[:, D]
-    if len(D) > 0 and np.array_equiv(columns_D[0], columns_D):
-        s_resorted = s[np.lexsort(columns_D.T)]
-        partitioned = [np.vstack(tuple(g)) for k, g in itertools.groupby(s_resorted, lambda e: tuple(e.take(D)))]
-        for fixedD in partitioned:
-            if does_this_dsep_rule_out_this_support(ab, C, fixedD):
-                return True
-        return False
-    else:
+    # columns_D = s[:, D]
+    # if len(D) > 0 and np.array_equiv(columns_D[0], columns_D):
+    #     s_resorted = s[np.lexsort(columns_D.T)]
+    #     partitioned = [np.vstack(tuple(g)) for k, g in itertools.groupby(s_resorted, lambda e: tuple(e.take(D)))]
+    #     print(s)
+    #     print(partitioned)
+    #     for fixedD in partitioned:
+    #         if does_this_dsep_rule_out_this_support(ab, C, fixedD):
+    #             return True
+    #     return False
+    # else:
+    #     return does_this_dsep_rule_out_this_support(ab, C, s)
+
+    if len(D) == 0:
         return does_this_dsep_rule_out_this_support(ab, C, s)
+    else:
+        columns_D = s[:, D]
+        if np.array_equiv(columns_D[0], columns_D):
+            return does_this_dsep_rule_out_this_support(ab, C, s)
+        else:
+            return False
 
 
 class SmartSupportTesting(SupportTesting):
@@ -94,11 +105,8 @@ class SmartSupportTesting(SupportTesting):
         return np.asarray(self.unique_candidate_supports_as_integers, dtype=np.intp)[self._trivially_infeasible_support_picklist]
 
     @cached_property
-    def trivially_infeasible_supports_as_integers(self):
-        return self.from_list_to_integer(self._trivially_infeasible_support_picklist)
-
-    @cached_property
     def smart_unique_candidate_supports_as_integers(self):
+        print("Supports detected as trivially infeasible:", self.trivially_infeasible_supports_as_integers)
         return np.asarray(self.unique_candidate_supports_as_integers, dtype=np.intp)[
             np.logical_not(self._trivially_infeasible_support_picklist)]
 
@@ -138,57 +146,76 @@ class SmartSupportTesting(SupportTesting):
 
 
 if __name__ == '__main__':
-    # test_two_col_mat = np.asarray([[1, 0], [0, 1], [0, 1], [1, 1]])
-
-    s = np.asarray(
-        [[0, 0, 0, 0, 0],
-         [1, 1, 0, 1, 0],
-         [0, 0, 1, 1, 1],
-         [1, 1, 0, 0, 0],
-         [1, 1, 1, 1, 1]])
-    C = [1, 2]
-    ab = [0, 4]
-    # s_resorted = s[np.lexsort(s[:,C].T)]
-    # partitioned = [np.vstack(tuple(g)) for k, g in itertools.groupby(s_resorted, lambda e: tuple(e.take(C)))]
-    # conditioning_sizes = range(1,2**2)
-    # for r in conditioning_sizes:
-    #     for partition_index in itertools.combinations(partitioned, r):
-    #         submat = np.vstack(tuple(partition_index))
-    #         if not product_support_test(submat[:,ab]):
-    #             print((submat[:,C], submat[:,ab], product_support_test(submat[:,ab])))
-
-    print(does_this_dsep_rule_out_this_support(ab, C, s))
-
     from mDAG_advanced import mDAG
-    import networkx as nx
     from hypergraphs import LabelledHypergraph
     from directed_structures import LabelledDirectedStructure
+    from radix import to_bits
+    # test_two_col_mat = np.asarray([[1, 0], [0, 1], [0, 1], [1, 1]])
+    instrumental = mDAG(
+        LabelledDirectedStructure([0,1,2],[(0,1),(1,2)]),
+        LabelledHypergraph([0,1,2], [(0,),(1,2)]))
+    UC = mDAG(LabelledDirectedStructure([0,1,2],[(1,0),(1,2)]),
+              LabelledHypergraph([0,1,2],[(0,1),(1,2)]))
 
+    print(instrumental.infeasible_binary_supports_n_events(3, verbose=False))
+    print(UC.infeasible_binary_supports_n_events(3, verbose=False))
+    print(instrumental.smart_infeasible_binary_supports_n_events(3, verbose=False))
+    print(UC.smart_infeasible_binary_supports_n_events(3, verbose=False))
+    print(instrumental.infeasible_binary_supports_n_events(4, verbose=False))
+    print(UC.infeasible_binary_supports_n_events(4, verbose=False))
+    print(instrumental.smart_infeasible_binary_supports_n_events(4, verbose=False))
+    print(UC.smart_infeasible_binary_supports_n_events(4, verbose=False))
+    # print(to_bits(instrumental.infeasible_binary_supports_n_events(3, verbose=False), mantissa=3))
+    # print(to_bits(UC.infeasible_binary_supports_n_events(3, verbose=False), mantissa=3))
+    # print(to_bits(instrumental.smart_infeasible_binary_supports_n_events(3, verbose=False), mantissa=3))
+    # print(to_bits(UC.smart_infeasible_binary_supports_n_events(3, verbose=False), mantissa=3))
+    # print(to_bits(instrumental.infeasible_binary_supports_n_events(4, verbose=False), mantissa=3))
+    # print(to_bits(UC.infeasible_binary_supports_n_events(4, verbose=False), mantissa=3))
+    # print(to_bits(instrumental.smart_infeasible_binary_supports_n_events(4, verbose=False), mantissa=3))
+    # print(to_bits(UC.smart_infeasible_binary_supports_n_events(4, verbose=False), mantissa=3))
+
+
+    # print(set(instrumental.infeasible_binary_supports_n_events(4, verbose=False)).difference(
+    #     UC.infeasible_binary_supports_n_events(4, verbose=False)))
+    # print(set(instrumental.smart_infeasible_binary_supports_n_events(4, verbose=False)).difference(
+    #     UC.smart_infeasible_binary_supports_n_events(4, verbose=False)))
+
+
+    # s = np.asarray(
+    #     [[0, 0, 0, 0, 0],
+    #      [1, 1, 0, 1, 0],
+    #      [0, 0, 1, 1, 1],
+    #      [1, 1, 0, 0, 0],
+    #      [1, 1, 1, 1, 1]])
+    # C = [1, 2]
+    # ab = [0, 4]
     #
-    # # Testing example for Ilya conjecture proof.
-    directed_dict_of_lists = {"C": ["A", "B"], "X": ["C"], "D": ["A", "B"]}
-    ds = LabelledDirectedStructure(["X", "A", "B", "C", "D"], nx.from_dict_of_lists(directed_dict_of_lists, create_using=nx.DiGraph).edges())
-
-    simplicial_complex1 = LabelledHypergraph(["X", "A", "B", "C", "D"], [("A", "X", "D"), ("B", "X", "D"), ("A", "C")])
-    simplicial_complex2 = LabelledHypergraph(["X", "A", "B", "C", "D"], [("A", "X", "D"), ("B", "X", "D")])
-    # simplicial_complex1 = Hypergraph([(1, 0, 4), (2, 0, 4), (1, 3)])
-    # simplicial_complex2 = Hypergraph([(1, 0, 4), (2, 0, 4)])
     #
-
-    md1 = mDAG(ds, simplicial_complex1)
-    # print(md1)
-    md2 = mDAG(ds, simplicial_complex2)
-
-    # # print(md1.all_esep)
-    # # print(md1.all_esep.difference(md2.all_esep))
-    print(md2.all_esep)
-    # #print(md1.infeasible_binary_supports_n_events(4))
-    # print(md1.smart_infeasible_binary_supports_n_events(4))
-    # print(md2.smart_infeasible_binary_supports_n_events(4))
-    print(set(md2.smart_infeasible_binary_supports_n_events(4, verbose=True)).difference(md1.smart_infeasible_binary_supports_n_events(4, verbose=True)))
-    print(to_digits(to_digits(9786, np.broadcast_to(2 ** 5, 4)), np.broadcast_to(2, 5)))
-    # #Cool, it works great.
-
-    #Now testing memoization
-    print(set(md2.smart_infeasible_binary_supports_n_events_unlabelled(4, verbose=True)))
-    print(set(md2.infeasible_binary_supports_n_events_unlabelled(4, verbose=True)))
+    # print(does_this_dsep_rule_out_this_support(ab, C, s))
+    #
+    #
+    # import networkx as nx
+    #
+    #
+    # #
+    # # # Testing example for Ilya conjecture proof.
+    # directed_dict_of_lists = {"C": ["A", "B"], "X": ["C"], "D": ["A", "B"]}
+    # ds = LabelledDirectedStructure(["X", "A", "B", "C", "D"], nx.from_dict_of_lists(directed_dict_of_lists, create_using=nx.DiGraph).edges())
+    #
+    # simplicial_complex1 = LabelledHypergraph(["X", "A", "B", "C", "D"], [("A", "X", "D"), ("B", "X", "D"), ("A", "C")])
+    # simplicial_complex2 = LabelledHypergraph(["X", "A", "B", "C", "D"], [("A", "X", "D"), ("B", "X", "D")])
+    #
+    #
+    # md1 = mDAG(ds, simplicial_complex1)
+    # md2 = mDAG(ds, simplicial_complex2)
+    #
+    #
+    # print(md2.all_esep)
+    #
+    # print(set(md2.smart_infeasible_binary_supports_n_events(4, verbose=True)).difference(md1.smart_infeasible_binary_supports_n_events(4, verbose=True)))
+    # print(to_digits(to_digits(9786, np.broadcast_to(2 ** 5, 4)), np.broadcast_to(2, 5)))
+    # # #Cool, it works great.
+    #
+    # #Now testing memoization
+    # print(set(md2.smart_infeasible_binary_supports_n_events_unlabelled(4, verbose=True)))
+    # print(set(md2.infeasible_binary_supports_n_events_unlabelled(4, verbose=True)))
