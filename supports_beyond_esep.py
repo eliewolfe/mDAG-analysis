@@ -106,7 +106,7 @@ class SmartSupportTesting(SupportTesting):
 
     @cached_property
     def smart_unique_candidate_supports_as_integers(self):
-        print("Supports detected as trivially infeasible:", self.trivially_infeasible_supports_as_integers)
+        # print("Supports detected as trivially infeasible:", self.trivially_infeasible_supports_as_integers)
         return np.asarray(self.unique_candidate_supports_as_integers, dtype=np.intp)[
             np.logical_not(self._trivially_infeasible_support_picklist)]
 
