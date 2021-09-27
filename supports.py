@@ -222,11 +222,11 @@ class SupportTesting(SupportTester):
     def unique_candidate_supports(self):
         if self.max_conceivable_events > self.nof_events:
             candidates = np.pad(np.fromiter(itertools.chain.from_iterable(
-                itertools.combinations(self.conceivable_events_range[1:], self.nof_events - 1)), np.uint).reshape(
+                itertools.combinations(self.conceivable_events_range[1:], self.nof_events - 1)), np.intp).reshape(
                 (-1, self.nof_events - 1)), ((0, 0), (1, 0)), 'constant')
             return self.unique_supports_under_group(candidates, self.outcome_relabelling_group)
         else:
-            return np.empty((0, 0), dtype=int)
+            return np.empty((0, 0), dtype=np.intp)
 
     @cached_property
     def unique_candidate_supports_as_integers(self):

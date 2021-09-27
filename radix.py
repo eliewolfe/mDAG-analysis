@@ -12,7 +12,7 @@ def reversed_base(base):
 @lru_cache(maxsize=16)
 def _radix_converter(base):
     return np.flipud(np.multiply.accumulate(
-        reversed_base(base).astype(dtype=np.ulonglong)
+        reversed_base(base).astype(dtype=np.intp)
     ))
 def radix_converter(base):
     return _radix_converter(tuple(base))
