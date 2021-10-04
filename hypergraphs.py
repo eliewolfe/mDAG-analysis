@@ -154,9 +154,9 @@ class LabelledHypergraph(Hypergraph):
             if np.array_equal(self.variable_names, self.variables_as_range):
                 self.variable_are_range = True
                 self.numerical_simplicial_complex = simplicial_complex
-        else:
-            self.variable_are_range = False
-            self.numerical_simplicial_complex = [partsextractor(self.translation_dict, hyperedge) for hyperedge in simplicial_complex]
+            else:
+                self.variable_are_range = False
+                self.numerical_simplicial_complex = [partsextractor(self.translation_dict, hyperedge) for hyperedge in simplicial_complex]
         super().__init__(self.numerical_simplicial_complex, self.number_of_variables)
         self.as_string = stringify_in_list(map(stringify_in_tuple, simplicial_complex))
         

@@ -154,9 +154,9 @@ class LabelledDirectedStructure(DirectedStructure):
             if np.array_equal(self.variable_names, self.variables_as_range):
                 self.variable_are_range = True
                 self.edge_list = edge_list
-        else:
-            self.variable_are_range = False
-            self.edge_list = list(chunked(partsextractor(self.translation_dict, tuple(itertools.chain.from_iterable(edge_list))),2))
+            else:
+                self.variable_are_range = False
+                self.edge_list = list(chunked(partsextractor(self.translation_dict, tuple(itertools.chain.from_iterable(edge_list))),2))
         super().__init__(self.edge_list, self.number_of_variables)
 
     @cached_property
