@@ -83,6 +83,7 @@ class DirectedStructure:
         #Used for computing parents_plus
         return np.bitwise_or(self.as_bit_square_matrix, np.identity(self.number_of_visible, dtype=bool))
 
+
     @cached_property
     def observable_parentsplus_list(self):
         return list(map(frozenset, map(np.flatnonzero, self.as_bit_square_matrix_plus_eye.T)))

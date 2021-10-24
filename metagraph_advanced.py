@@ -80,7 +80,8 @@ class Observable_unlabelled_mDAGs:
         return [DirectedStructure(edge_list, self.n) for r
                 in range(0, len(possible_node_pairs)+1) for edge_list
                 in itertools.combinations(possible_node_pairs, r)]
-
+    
+    
     @cached_property
     def all_unlabelled_directed_structures(self):
         d = defaultdict(list)
@@ -89,6 +90,7 @@ class Observable_unlabelled_mDAGs:
         return tuple(next(iter(eqclass)) for eqclass in d.values())
         # return [ds for ds in excessive_unlabelled_directed_structures
         #        if all(all(any((edge2[0]==edge[0]-i and edge2[1]==edge[1]-i) for edge2 in ds.edge_list) for i in range(1,edge[0])) for edge in ds.edge_list)]
+
 
     # @cached_property
     # def all_simplicial_complices_old(self):
@@ -126,6 +128,7 @@ class Observable_unlabelled_mDAGs:
         print("Computing canonical (unlabelled) graphs...", flush=True)
         return {mDAG.unique_id: mDAG.unique_unlabelled_id for mDAG in self.all_labelled_mDAGs}
 
+
     def mdag_int_pair_to_single_int(self, sc_int, ds_int):
         return ds_int + sc_int*(2**(self.n**2))
 
@@ -143,6 +146,7 @@ class Observable_unlabelled_mDAGs:
     @property
     def all_unlabelled_mDAGs(self):
         return self.dict_ind_unlabelled_mDAGs.values()
+    
 
     @cached_property
     def meta_graph_nodes(self):
@@ -178,11 +182,11 @@ class Observable_unlabelled_mDAGs:
             for mDAG2 in mDAG.generate_weaker_mDAG_HLP:
                 yield (self.dict_id_to_canonical_id[mDAG2], id)
 
-    def FaceSplitting_edges(self, unsafe=True):
+    def FaceSplitting_edges(self):
         for (id, mDAG) in self.dict_ind_unlabelled_mDAGs.items():  # NEW: Over graph patterns only
-            for mDAG2 in mDAG.generate_weaker_mDAGs_FaceSplitting(unsafe=unsafe):
+            for mDAG2 in mDAG.generate_weaker_mDAGs_FaceSplitting('strong'):
                 yield (self.dict_id_to_canonical_id[mDAG2], id)
-
+        
 
     @cached_property
     def meta_graph(self):
@@ -197,11 +201,12 @@ class Observable_unlabelled_mDAGs:
         print('Number of HLP equivalence relations added: ', new_edge_count-edge_count)
         edge_count = new_edge_count
         print('Adding FaceSplitting equivalence relations...', flush=True)
-        g.add_edges_from(self.FaceSplitting_edges(unsafe=True))
+        g.add_edges_from(self.FaceSplitting_edges())
         new_edge_count = g.number_of_edges()
         print('Number of FaceSplitting equivalence relations added: ', new_edge_count - edge_count)
         print('Metagraph has been constructed. Total edge count: ', g.number_of_edges(), flush=True)
         return g
+
 
     @cached_property
     def equivalence_classes_as_ids(self):
@@ -267,7 +272,7 @@ class Observable_unlabelled_mDAGs:
     @cached_property
     def representative_mDAGs_list(self):
     #     return self.representatives(self.equivalence_classes_as_mDAGs)
-        return self.smart_representatives(self.foundational_eqclasses, 'relative_complexity_for_sat_solver')
+        return self.smart_representatives(self.equivalence_classes_as_mDAGs, 'relative_complexity_for_sat_solver')
 
     @property
     def CI_classes(self):
@@ -310,7 +315,7 @@ class Observable_unlabelled_mDAGs:
     @property
     def representatives_for_only_hypergraphs(self):
         #choosing representatives with the smaller number of edges will guarantee that Hypergraph-only mDAGs are chosen
-        return self.smart_representatives(self.foundational_eqclasses, 'n_of_edges')
+        return self.smart_representatives(self.equivalence_classes_as_mDAGs, 'n_of_edges')
 
     @cached_property
     def equivalent_to_only_hypergraph_representative(self):
@@ -391,40 +396,25 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
         print("# of non-singleton classes from ESEP+Prop 6.8: ", self.lowerbound_count_accounting_for_hypergraph_inequivalence(self.non_singletons_dict[1]),
               ", comprising {} total foundational graph patterns (no repetitions)".format(
                   ilen(itertools.chain.from_iterable(self.non_singletons_dict[1]))))
-
-        smart_supports_dict = dict()
-        for k in range(2, self.max_nof_events + 1):
-            print("[Working on nof_events={}]".format(k))
-            smart_supports_dict[k] = further_classify_by_attributes(self.non_singletons_dict[k - 1],
-                                                            [('smart_infeasible_binary_supports_n_events_unlabelled',
-                                                              k)], verbose=True)
-            self.singletons_dict[k] = list(itertools.chain.from_iterable(
-                filter(lambda eqclass: (len(eqclass) == 1 or self.effectively_all_singletons(eqclass)),
-                       smart_supports_dict[k]))) + self.singletons_dict[k - 1]
-            self.non_singletons_dict[k] = sorted(
-                filter(lambda eqclass: (len(eqclass) > 1 and not self.effectively_all_singletons(eqclass)),
-                       smart_supports_dict[k]), key=len)
-            print("# of singleton classes from ESEP+Supports Up To {}: ".format(k), len(self.singletons_dict[k]))
-            print("# of non-singleton classes from ESEP+Supports Up To {}: ".format(k), self.lowerbound_count_accounting_for_hypergraph_inequivalence(self.non_singletons_dict[k]),
-                  ", comprising {} total foundational graph patterns".format(
-                      ilen(itertools.chain.from_iterable(self.non_singletons_dict[k]))))
-
+        
+        
         self.singletons_dict = dict({1: list(itertools.chain.from_iterable(
             filter(lambda eqclass: (len(eqclass) == 1 or self.effectively_all_singletons(eqclass)),
-                   self.esep_classes)))})
-        self. non_singletons_dict = dict({1: sorted(
+                   self.Dense_connectedness_and_esep)))})
+        self.non_singletons_dict = dict({1: sorted(
             filter(lambda eqclass: (len(eqclass) > 1 and not self.effectively_all_singletons(eqclass)),
-                   self.esep_classes), key=len)})
-        print("# of singleton classes from ESEP+Prop 6.8: ", len(self.singletons_dict[1]))
-        print("# of non-singleton classes from ESEP+Prop 6.8: ", self.lowerbound_count_accounting_for_hypergraph_inequivalence(self.non_singletons_dict[1]),
+                   self.Dense_connectedness_and_esep), key=len)})
+        print("# of singleton classes from ESEP+ Dense Conectedness + Prop 6.8: ", len(self.singletons_dict[1]))
+        print("# of non-singleton classes from ESEP+ Dense Conectedness + Prop 6.8: ", self.lowerbound_count_accounting_for_hypergraph_inequivalence(self.non_singletons_dict[1]),
               ", comprising {} total foundational graph patterns (no repetitions)".format(
                   ilen(itertools.chain.from_iterable(self.non_singletons_dict[1]))))
 
         smart_supports_dict = dict()
         for k in range(2, self.max_nof_events + 1):
             print("[Working on nof_events={}]".format(k))
+            # I changed the line below
             smart_supports_dict[k] = further_classify_by_attributes(self.non_singletons_dict[k - 1],
-                                                            [('smart_infeasible_binary_supports_n_events_unlabelled',
+                                                            [('infeasible_binary_supports_n_events_unlabelled',
                                                               k)], verbose=True)
             self.singletons_dict[k] = list(itertools.chain.from_iterable(
                 filter(lambda eqclass: (len(eqclass) == 1 or self.effectively_all_singletons(eqclass)),
@@ -432,15 +422,40 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
             self.non_singletons_dict[k] = sorted(
                 filter(lambda eqclass: (len(eqclass) > 1 and not self.effectively_all_singletons(eqclass)),
                        smart_supports_dict[k]), key=len)
-            print("# of singleton classes from ESEP+Supports Up To {}: ".format(k), len(self.singletons_dict[k]))
-            print("# of non-singleton classes from ESEP+Supports Up To {}: ".format(k), self.lowerbound_count_accounting_for_hypergraph_inequivalence(self.non_singletons_dict[k]),
+            print("# of singleton classes from ESEP+ Dense Conectedness + Prop 6.8+Supports Up To {}: ".format(k), len(self.singletons_dict[k]))
+            print("# of non-singleton classes from ESEP+ Dense Conectedness + Prop 6.8+Supports Up To {}: ".format(k), self.lowerbound_count_accounting_for_hypergraph_inequivalence(self.non_singletons_dict[k]),
                   ", comprising {} total foundational graph patterns".format(
-                      ilen(itertools.chain.from_iterable(self.non_singletons_dict[k]))))
+                      ilen(itertools.chain.from_iterable(self.non_singletons_dict[k]))))     
+   
 
 if __name__ == '__main__':
 
     Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=1)
-    #Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=3)
+    #Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=1)
+    
+
+
+        
+# =============================================================================
+#     n=0
+#     for ci_class in Observable_mDAGs4.esep_classes:
+#         if len(ci_class)==1:
+#             n=n+1
+#     print(n)
+# =============================================================================
+
+# =============================================================================
+#     G_Instr=mDAG(DirectedStructure([(1,2)],3),Hypergraph([(0,1),(1,2)],3))
+#     G_UC=mDAG(DirectedStructure([(0,1),(0,2)],3),Hypergraph([(0,1),(0,2)],3))
+#     print("G_Instr=",G_Instr)
+#     print("G_UC=",G_UC)
+#     print("Same esep=",G_Instr.all_esep_unlabelled== G_UC.all_esep_unlabelled)
+#     for k in range(2,9):
+#       print("Same Supports at",k,"events=",G_Instr.infeasible_binary_supports_n_events_unlabelled(k)==G_UC.infeasible_binary_supports_n_events_unlabelled(k))
+#       print("Same Smart Supports at",k,"events=",G_Instr.smart_infeasible_binary_supports_n_events_unlabelled(k)==G_UC.smart_infeasible_binary_supports_n_events_unlabelled(k))
+# =============================================================================
+
+
 
 # =============================================================================
 #     G1=mDAG(DirectedStructure([(2,0),(1,3)],4),Hypergraph([(0,1),(1,2),(2,3)],4))
@@ -453,10 +468,8 @@ if __name__ == '__main__':
 #           
 #     print("Number of mDAGs that have at least one pair of nodes that are not densely connected=",len(not_all_densely_connected))
 # =============================================================================
-
-
-    
-
+  
+  
 # =============================================================================
 #     i=0
 #     for ob_class in Observable_mDAGs4.foundational_eqclasses:
@@ -470,24 +483,31 @@ if __name__ == '__main__':
 
  
         
-    Skeleton_classes4=Observable_mDAGs4.Skeleton_classes
-    print("Number of Skeleton classes=",len(Skeleton_classes4))
-    CI_classes4=Observable_mDAGs4.CI_classes
-    print("Number of CI classes=",len(CI_classes4))
-    esep_classes4=Observable_mDAGs4.esep_classes
-    print("Number of esep classes=",len(esep_classes4))
-    Dense_con_classes=Observable_mDAGs4.Dense_connectedness_classes
-    print("Number of Dense Conectedness Classes=",len(Dense_con_classes))
-    
-    print("Skeleton+CI=",len(Observable_mDAGs4.Skeleton_and_CI))
-    print("Skeleton+esep=",len(Observable_mDAGs4.Skeleton_and_esep))
-    print("Dense Conectedness+Skeleton=",len(Observable_mDAGs4.Dense_connectedness_and_Skeleton))
-    print("Dense Conectedness+CI=",len(Observable_mDAGs4.Dense_connectedness_and_CI))
-    print("Dense Conectedness+esep=",len(Observable_mDAGs4.Dense_connectedness_and_esep))
-
-
-    
-    
+# =============================================================================
+#     Skeleton_classes4=Observable_mDAGs4.Skeleton_classes
+#     print("Number of Skeleton classes=",len(Skeleton_classes4))
+#     CI_classes4=Observable_mDAGs4.CI_classes
+#     print("Number of CI classes=",len(CI_classes4))
+#     esep_classes4=Observable_mDAGs4.esep_classes
+#     print("Number of esep classes=",len(esep_classes4))
+#     Dense_con_classes=Observable_mDAGs4.Dense_connectedness_classes
+#     print("Number of Dense Conectedness Classes=",len(Dense_con_classes))
+#     
+#     print("Skeleton+CI=",len(Observable_mDAGs4.Skeleton_and_CI))
+#     print("Skeleton+esep=",len(Observable_mDAGs4.Skeleton_and_esep))
+#     print("Dense Conectedness+Skeleton=",len(Observable_mDAGs4.Dense_connectedness_and_Skeleton))
+#     print("Dense Conectedness+CI=",len(Observable_mDAGs4.Dense_connectedness_and_CI))
+#     print("Dense Conectedness+esep=",len(Observable_mDAGs4.Dense_connectedness_and_esep))
+# 
+#     G_Pgraph=mDAG(DirectedStructure([(0,1),(1,2),(2,3)],5),Hypergraph([(0,),(1,3,4),(2,4)],5))
+#     G_Pgraph.are_densely_connected(0,3)    
+#     G_Pgraph.all_esep
+#     G_Pgraph.fundamental_graphQ
+#     G_modified_Pgraph=mDAG(DirectedStructure([(0,1),(1,2),(2,3),(1,3)],5),Hypergraph([(0,),(1,3,4),(2,4)],5))
+#     G_Pgraph.all_esep==G_modified_Pgraph.all_esep
+#     G_Pgraph4=mDAG(DirectedStructure([(0,1),(1,2),(2,3)],4),Hypergraph([(0,),(1,3),(2,)],4))
+#     G_Pgraph4.all_esep
+# =============================================================================
     
 # ==================================
 

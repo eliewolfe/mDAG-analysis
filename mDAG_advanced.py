@@ -193,6 +193,15 @@ class mDAG:
     def smart_infeasible_supports_n_events_card_3(self, n, **kwargs):
           return self.fake_frozenset(self.smart_support_testing_instance_card_3(n).smart_unique_infeasible_supports(**kwargs, name='mgh', use_timer=False))
     
+    def smart_support_testing_instance_card_4(self, n):
+        return SmartSupportTesting(self.parents_of_for_supports_analysis,
+                                   (4,2,2),
+                                   n, self.all_esep
+                                   )
+    def smart_infeasible_supports_n_events_card_4(self, n, **kwargs):
+          return self.fake_frozenset(self.smart_support_testing_instance_card_4(n).smart_unique_infeasible_supports(**kwargs, name='mgh', use_timer=False))
+    
+    
     def smart_support_testing_instance(self, n):
         return SmartSupportTesting(self.parents_of_for_supports_analysis,
                                    np.broadcast_to(2, self.number_of_visible),
@@ -297,14 +306,77 @@ class mDAG:
                       all(self.set_predecessors(C).issubset(self.singleton_predecessors(d)) for d in D)]
         # print(candidates)
         return candidates
+    
+    def set_visible_predecessors(self,X):
+        return frozenset(itertools.chain.from_iterable(partsextractor(self.directed_structure_instance.observable_parentsplus_list, X)))
 
-    def generate_weaker_mDAGs_FaceSplitting(self, unsafe=True):
-        if unsafe:
+    def singleton_visible_predecessors(self, x):
+        return partsextractor(self.directed_structure_instance.observable_parentsplus_list, x)
+    
+    @cached_property
+    def weak_splittable_faces(self):
+        candidates = itertools.chain.from_iterable(map(self._all_bipartitions, self.simplicial_complex_instance.compressed_simplicial_complex))
+        # candidates = [(C,D) for C,D in candidates if all(set(self.as_graph.predecessors(c).issubset(self.as_graph.predecessors(d)) for c in C for d in D)]
+        simp_complex=[]
+        for s in self.simplicial_complex_instance.compressed_simplicial_complex:
+            simp_complex.append(tuple(s))
+        candidates = [(C, D) for C, D in candidates if
+                      all(self.set_visible_predecessors(C).issubset(self.singleton_visible_predecessors(d)) for d in D) and all(c not in itertools.chain.from_iterable(set(simp_complex)-{tuple(set(C)|set(D))}) for c in C)]  
+        # print(candidates)
+        return candidates
+    
+# =============================================================================
+#     G_ev_prop=mDAG(DirectedStructure([(0,3),(0,1),(2,1),(2,3),(4,0),(4,3),(4,1),(5,2),(5,3),(5,1)],6),Hypergraph([(0,1,2,3),(4,),(5,)],6))
+#     for mDAG in G_ev_prop.generate_weaker_mDAGs_FaceSplitting('weak'):
+#         print (mDAG)
+#     candidates = itertools.chain.from_iterable(map(G_ev_prop._all_bipartitions, G_ev_prop.simplicial_complex_instance.compressed_simplicial_complex))
+#     [(C, D) for C, D in candidates if all(G_ev_prop.set_visible_predecessors(C).issubset(G_ev_prop.singleton_visible_predecessors(d)) for d in D) and all(c not in itertools.chain.from_iterable(set(G_ev_prop.simplicial_complex_instance.compressed_simplicial_complex)-{tuple(set(C)|set(D))}) for c in C)]  
+#     [(C, D) for C, D in candidates]
+#     C=frozenset({0,2})
+#     D=frozenset({1,3})
+#     all(c not in itertools.chain.from_iterable(set(G_ev_prop.simplicial_complex_instance.compressed_simplicial_complex)-{tuple(set(C)|set(D))}) for c in C)
+#     
+#     G_ev_prop3=mDAG(DirectedStructure([(0,1),(0,2),(1,2)],3),Hypergraph([(0,1),(1,2)],3))
+#     for mDAG in G_ev_prop3.generate_weaker_mDAGs_FaceSplitting('weak'):
+#         print(mDAG)
+#     
+# =============================================================================
+# =============================================================================
+#     G_ev_prop2=mDAG(DirectedStructure([(0,3),(0,2),(2,3),(3,1)],4),Hypergraph([(0,),(1,),(2,3)],4))
+#     for mDAG in G_ev_prop2.generate_weaker_mDAGs_FaceSplitting('weak'):
+#         print(mDAG)
+# =============================================================================
+
+    
+    @property  
+    def generate_weaker_mDAGs_FaceSplitting_Weak(self):
+        for C, D in self.weak_splittable_faces:
+            new_simplicial_complex = self.simplicial_complex_instance.simplicial_complex_as_sets.copy()
+            new_simplicial_complex.discard(C.union(D))
+            # setC = set(C)
+            # setD = set(D)
+            if not any(C.issubset(facet) for facet in new_simplicial_complex):
+                new_simplicial_complex.add(C)
+            if not any(D.issubset(facet) for facet in new_simplicial_complex):
+                new_simplicial_complex.add(D)
+            # new_simplicial_complex.sort()
+            yield mdag_to_int(
+                self.directed_structure_instance.as_bit_square_matrix,
+                Hypergraph(new_simplicial_complex, self.number_of_visible).as_bit_array)
+    
+    
+    def generate_weaker_mDAGs_FaceSplitting(self, version):
+        if version=='strong':
             return self.generate_weaker_mDAGs_FaceSplitting_Simultaneous
-        else:
+        if version=='moderate':
             return self.generate_weaker_mDAGs_FaceSplitting_Safe
+        if version=='weak':
+            return self.generate_weaker_mDAGs_FaceSplitting_Weak
+        else:
+            print('Version of Face Splitting unspecified')
 
     @property
+    #FaceSplitting_Safe = Moderate Face Splitting
     def generate_weaker_mDAGs_FaceSplitting_Safe(self):
         for C, D in self.splittable_faces:
             new_simplicial_complex = self.simplicial_complex_instance.simplicial_complex_as_sets.copy()
@@ -312,12 +384,12 @@ class mDAG:
             # setC = set(C)
             # setD = set(D)
             if not any(C.issubset(facet) for facet in new_simplicial_complex):
-                new_simplicial_complex.append(C)
+                new_simplicial_complex.add(C)
             if not any(D.issubset(facet) for facet in new_simplicial_complex):
-                new_simplicial_complex.append(D)
+                new_simplicial_complex.add(D)
             # new_simplicial_complex.sort()
             yield mdag_to_int(
-                self.directed_structure_instance.bit_square_matrix,
+                self.directed_structure_instance.as_bit_square_matrix,
                 Hypergraph(new_simplicial_complex, self.number_of_visible).as_bit_array)
 
     @property  # Agressive conjucture of simultaneous face splitting
