@@ -11,6 +11,9 @@ print(Observable_mDAGs3.representative_mDAGs_list[0].skeleton_instance)
 
 print(Observable_mDAGs3.representative_mDAGs_list[0].skeleton)
 
+print(Observable_mDAGs3.representative_mDAGs_list[-1].skeleton_instance)
+
+print(Observable_mDAGs3.representative_mDAGs_list[-1].skeleton)
 
 
 

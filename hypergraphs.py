@@ -176,11 +176,18 @@ class UndirectedGraph:
             assert max(map(max, hyperedges)) + 1 <= self.nof_nodes, "More nodes referenced than expected."
         self.as_edges = tuple(set(itertools.chain.from_iterable(
             itertools.combinations(sorted(hyperedge), 2) for hyperedge in hyperedges)))
+        self.as_string = stringify_in_list(map(stringify_in_tuple, self.as_edges))
 
     # @property
     # def as_edges(self):
     #     return itertools.chain.from_iterable(
     #         itertools.combinations(hyperedge, 2) for hyperedge in self.extended_simplicial_complex)
+    def __str__(self):
+        return self.as_string
+
+    def __repr__(self):
+        return self.as_string
+
 
     @property
     def as_edges_array(self):
@@ -199,8 +206,11 @@ class UndirectedGraph:
         Quick base conversion algorithm.
         """
         assert len(bitarray.shape) == 2, 'Not a bitarray!'
-        n = bitarray.shape[-1]
-        return np.frompyfunc(lambda a, b: n * a + b, 2, 1).reduce(np.where(bitarray)[-1])
+        (d,n) = bitarray.shape
+        if d:
+            return np.frompyfunc(lambda a, b: n * a + b, 2, 1).reduce(np.where(bitarray)[-1])
+        else:
+            return 0
 
     @cached_property
     def as_edges_integer(self):
