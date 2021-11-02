@@ -386,6 +386,15 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
         super().__init__(nof_observed_variables)
         self.max_nof_events = max_nof_events_for_supports
 
+        print("Number of unlabelled graph patterns: ", len(self.all_unlabelled_mDAGs), flush=True)
+        fundamental_list = [mDAG.fundamental_graphQ for mDAG in self.all_unlabelled_mDAGs]
+        print("Number of fundamental unlabelled graph patterns: ", len(np.flatnonzero(fundamental_list)), flush=True)
+        print("Upper bound on number of equivalence classes: ", len(self.equivalence_classes_as_mDAGs), flush=True)
+        print("Upper bound on number of 100% foundational equivalence classes: ", len(self.foundational_eqclasses),
+              flush=True)
+        print("Number of Foundational CI classes: ", len(self.CI_classes))
+
+
         self.singletons_dict = dict({1: list(itertools.chain.from_iterable(
             filter(lambda eqclass: (len(eqclass) == 1 or self.effectively_all_singletons(eqclass)),
                    self.esep_classes)))})
@@ -478,7 +487,7 @@ if __name__ == '__main__':
 #             if mDAG.all_densely_connected_pairs_unlabelled!=p1:
 #                 print(i)
 #         i=i+1
-# No problem here: all classes are consistent in terms of Dense Conectedness
+# No problem here: all classes are consistent in terms of Dense Connectedness
 # =============================================================================
 
  
