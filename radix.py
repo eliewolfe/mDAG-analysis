@@ -92,6 +92,8 @@ def from_bits(smooshed_bit_array):
                 return np.squeeze(np.ascontiguousarray(
                     np.pad(ready_for_viewing, pad_width=npad, mode='constant', constant_values=0)
                 ).view(np.uint64), axis=-1)
+        elif mantissa > 64:
+            assert False, "Integer overflow problem."
     else:
         return np.zeros(smooshed_bit_array.shape[:-2], dtype=int)
 
