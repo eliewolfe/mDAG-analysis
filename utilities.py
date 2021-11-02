@@ -2,7 +2,7 @@ from __future__ import absolute_import
 import networkx as nx
 import numpy as np
 from operator import itemgetter
-from radix import bitarray_to_int, int_to_bitarray
+from radix import bitarray_to_int
 import itertools
 
 
@@ -31,7 +31,9 @@ def nx_to_bitarray(g):
 
 def nx_to_int(g):
     # return nx_to_tuples(g)
-    return bitarray_to_int(nx_to_bitarray(g)).astype(np.ulonglong).tolist()
+    # return bitarray_to_int(nx_to_bitarray(g)).astype(np.ulonglong).tolist()
+    # Concern about int64 overflow.
+    return bitarray_to_int(nx_to_bitarray(g))
 
 
 def hypergraph_to_canonical_tuples(hypergraph):
@@ -48,19 +50,10 @@ def hypergraph_to_bitarray(integers_hypergraph): #Now works with sets.
     return r[np.lexsort(r.T)]
 
 
-# def hypergraph_to_bitarray(integers_hypergraph):
-#     nof_nodes = np.hstack(integers_hypergraph).max()+1
-#     r = np.zeros((len(integers_hypergraph), nof_nodes), dtype=bool)
-#     for i, lp in enumerate(hypergraph_to_canonical_tuples(integers_hypergraph)):
-#         r[i, list(lp)] = True
-#     return r
-
 def hypergraph_to_int(integers_hypergraph):
-    # # return hypergraph_to_canonical_tuples(integers_hypergraph)
-    # as_int = bitarray_to_int(hypergraph_to_bitarray(integers_hypergraph)).astype(np.ulonglong).tolist()
-    # nof_nodes = np.hstack(integers_hypergraph).max() + 1
-    # assert np.array_equal(int_to_bitarray(as_int, nof_nodes), hypergraph_to_bitarray(integers_hypergraph)), integers_hypergraph
-    return bitarray_to_int(hypergraph_to_bitarray(integers_hypergraph)).astype(np.ulonglong).tolist()
+    # Concern about int64 overflow
+    # return bitarray_to_int(hypergraph_to_bitarray(integers_hypergraph)).astype(np.ulonglong).tolist()
+    return bitarray_to_int(hypergraph_to_bitarray(integers_hypergraph))
 
 
 def representatives(eqclasses):
@@ -71,8 +64,11 @@ def convert_eqclass_dict_to_representatives_dict(d):
             d[k] = next(iter(v))
 
 def mdag_to_int(ds_bitarray, sc_bitarray):
-    return bitarray_to_int(np.vstack((sc_bitarray, ds_bitarray))).astype(np.ulonglong).tolist()
-    #return bitarray_to_int(np.vstack((ds_bitarray, sc_bitarray))).astype(np.ulonglong).tolist()
+    # Note simplicial complex ABOVE directed structure, as SC is always square
+    # Concern about int64 overflow
+    # return bitarray_to_int(np.vstack((sc_bitarray, ds_bitarray))).astype(np.ulonglong).tolist()
+    return bitarray_to_int(np.vstack((sc_bitarray, ds_bitarray)))
+
 
 def bitarrays_permutations(ds_bitarray, sc_bitarray):
     nof_observed = len(ds_bitarray)

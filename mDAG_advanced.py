@@ -10,7 +10,7 @@ elif hexversion >= 0x3060000:
 else:
     cached_property = property
 
-from radix import from_bits
+from radix import bitarray_to_int
 import networkx as nx
 from utilities import partsextractor
 from collections import defaultdict
@@ -22,7 +22,7 @@ from directed_structures import LabelledDirectedStructure, DirectedStructure
 
  
 def mdag_to_int(ds_bitarray, sc_bitarray):
-    return from_bits(np.vstack((sc_bitarray, ds_bitarray)).ravel()).astype(np.ulonglong).tolist()
+    return bitarray_to_int(np.vstack((sc_bitarray, ds_bitarray)))
 
 class mDAG:
     def __init__(self, directed_structure_instance, simplicial_complex_instance):

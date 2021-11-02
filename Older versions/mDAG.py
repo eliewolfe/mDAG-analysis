@@ -4,7 +4,7 @@ import numpy as np
 import itertools
 from merge import merge_intersection
 from more_itertools import ilen, chunked
-from radix import bitarray_to_int
+from radix import bitarrays_to_ints
 from utilities import partsextractor, nx_to_bitarray, hypergraph_to_bitarray, mdag_to_int, mdag_to_canonical_int
 from utilities import stringify_in_tuple, stringify_in_list, stringify_in_set
 
@@ -443,7 +443,9 @@ class mDAG:
 
     @cached_property
     def skeleton(self):
-        return bitarray_to_int(self.skeleton_bitarray).astype(np.ulonglong).tolist()
+        # Concern about int64 overflow
+        # return bitarray_to_int(self.skeleton_bitarray).astype(np.ulonglong).tolist()
+        return bitarrays_to_ints(self.skeleton_bitarray).tolist()
         # return frozentset(map(frozenset,merge_intersection(self.directed_structure_as_list +  self.simplicial_complex)))
 
     @cached_property
@@ -452,6 +454,6 @@ class mDAG:
         #              for perm in itertools.permutations(self.visible_nodes)])
         # return set([frozenset(map(frozenset, np.take(perm, self.skeleton))) for perm in
         # itertools.permutations(self.visible_nodes)]).pop()
-        return bitarray_to_int(
+        return bitarrays_to_ints(
             [self.skeleton_bitarray[np.lexsort(self.skeleton_bitarray[:, perm].T)][:, perm] for perm in
-             map(list, itertools.permutations(range(self.number_of_visible)))]).min().astype(np.ulonglong)
+             map(list, itertools.permutations(range(self.number_of_visible)))]).min() #.astype(np.ulonglong)

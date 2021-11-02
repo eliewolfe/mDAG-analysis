@@ -9,7 +9,7 @@ elif hexversion >= 0x3060000:
 else:
     cached_property = property
 
-from radix import from_bits
+from radix import bitarray_to_int
 import networkx as nx
 from utilities import stringify_in_set, stringify_in_list, partsextractor
 from more_itertools import chunked
@@ -89,8 +89,10 @@ class DirectedStructure:
         return list(map(frozenset, map(np.flatnonzero, self.as_bit_square_matrix_plus_eye.T)))
 
     @staticmethod
-    def bit_array_to_integer(bitarray):
-        return from_bits(bitarray.ravel()).astype(np.ulonglong).tolist()
+    def bit_array_to_integer(bit_array):
+        # Concern about int64 overflow
+        # return from_bits(bitarray.ravel()).astype(np.ulonglong).tolist()
+        return bitarray_to_int(bit_array)
 
     @cached_property
     def as_integer(self):

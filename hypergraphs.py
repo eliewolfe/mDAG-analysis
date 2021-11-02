@@ -9,7 +9,7 @@ elif hexversion >= 0x3060000:
 else:
     cached_property = property
 
-from radix import from_bits
+from radix import bitarray_to_int
 from merge import merge_intersection
 from utilities import stringify_in_tuple, stringify_in_list, partsextractor
 
@@ -93,8 +93,11 @@ class Hypergraph:
         return merge_intersection(self.simplicial_complex)
 
     @staticmethod
-    def bit_array_to_integer(bitarray):
-        return from_bits(bitarray.ravel()).astype(np.ulonglong).tolist()
+    def bit_array_to_integer(bit_array):
+        # Concern about int64 overflow
+        # return from_bits(bitarray.ravel()).astype(np.ulonglong).tolist()
+        return bitarray_to_int(bit_array)
+
 
     @cached_property
     def as_integer(self):
