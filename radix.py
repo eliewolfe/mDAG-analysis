@@ -65,7 +65,7 @@ def from_bits(smooshed_bit_array):
     mantissa = smooshed_bit_array.shape[-1]
     if mantissa > 0:
         possible_mantissas = np.array([8,16,32,64])
-        effective_mantissa = possible_mantissas.compress(np.floor_divide(possible_mantissas, mantissa))[0]
+        # effective_mantissa = possible_mantissas.compress(np.floor_divide(possible_mantissas, mantissa))[0]
         ready_for_viewing = np.packbits(flip_array_last_axis(smooshed_bit_array), axis=-1, bitorder='little')
         final_dimension = ready_for_viewing.shape[-1]
         if mantissa<=8:
