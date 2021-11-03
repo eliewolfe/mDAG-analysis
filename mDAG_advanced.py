@@ -439,7 +439,7 @@ class mDAG:
     #         districts_translated.append(d_translated)
     #     return districts_translated
 
-    @property
+    @cached_property
     def districts_arbitrary_names(self):
         if hasattr(self.simplicial_complex_instance, 'variable_names'):
             return self.simplicial_complex_instance.translated_districts
