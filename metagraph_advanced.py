@@ -121,7 +121,8 @@ class Observable_unlabelled_mDAGs:
                     # (len(simplicial_complex)==0 or max(map(tuple, simplicial_complex)) <= tuple(ch)) and
                     not any((ch.issubset(ch_list) or ch_list.issubset(ch)) for ch_list in sc))])
             #At this stage we have all the *compressed* simplicial complices.
-        return sorted((Hypergraph([frozenset({v}) for v in self.set_n.difference(*sc)] + sc, self.n) for sc in list_of_simplicial_complices), key = lambda sc:sc.tally)
+        # return sorted((Hypergraph([frozenset({v}) for v in self.set_n.difference(*sc)] + sc, self.n) for sc in list_of_simplicial_complices), key = lambda sc:sc.tally)
+        return sorted((Hypergraph(sc, self.n) for sc in list_of_simplicial_complices), key=lambda sc: sc.tally)
 
     @cached_property
     def all_labelled_mDAGs(self):

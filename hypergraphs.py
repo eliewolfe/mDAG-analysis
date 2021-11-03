@@ -27,6 +27,25 @@ def bit_array_permutations(bitarray):
     n = bitarray.shape[-1]
     return (permute_bit_array(bitarray, perm) for perm in map(list,itertools.permutations(range(n))))
 
+def hypergraph_canonicalize_without_deduplication(hypergraph):
+    return sorted(map(lambda s: tuple(sorted(s)), drop_singletons(hypergraph)))
+def hypergraph_canonicalize_with_deduplication(hypergraph):
+    hypergraph_copy = set(map(frozenset, hypergraph))
+    return hypergraph_canonicalize_without_deduplication(hypergraph_copy)
+def hypergraph_full_cleanup(hypergraph):
+    hypergraph_copy = set(map(frozenset, hypergraph))
+    cleaned_hypergraph_copy = hypergraph_copy.copy()
+    for dominating_hyperedge in hypergraph_copy:
+        if dominating_hyperedge in cleaned_hypergraph_copy:
+            dominated_hyperedges = []
+            for dominated_hyperedge in cleaned_hypergraph_copy:
+                if len(dominated_hyperedge) < len(dominating_hyperedge):
+                    if dominated_hyperedge.issubset(dominating_hyperedge):
+                        dominated_hyperedges.append(dominated_hyperedge)
+            cleaned_hypergraph_copy.difference_update(dominated_hyperedges)
+    return hypergraph_canonicalize_without_deduplication(cleaned_hypergraph_copy)
+
+
 
 
 
@@ -35,39 +54,56 @@ def bit_array_permutations(bitarray):
 
 
 class Hypergraph:
-    def __init__(self, extended_simplicial_complex, n):
-        #TODO: Adjust code to handle non-integer-values hypergraphs!
-        self.simplicial_complex = extended_simplicial_complex
-        self.simplicial_complex_as_sets = set(map(frozenset, self.simplicial_complex))
-        self.number_of_latent = len(self.simplicial_complex)
+    def __init__(self, any_simplicial_complex, n):
+        #Input format is list of tuples, including singletons. I'd like to change it to exclude singletons for convenience.
+        # self.simplicial_complex = hypergraph_canonicalize_without_deduplication(any_simplicial_complex)
         self.number_of_visible = n
-        if self.simplicial_complex:
-            assert max(map(max, self.simplicial_complex)) + 1 <= self.number_of_visible, "More nodes referenced than expected."
+
+        self.simplicial_complex_as_sets = set(map(frozenset, any_simplicial_complex))
+        self.number_of_nonsingleton_latent = len(self.simplicial_complex_as_sets)
+        self.compressed_simplicial_complex = hypergraph_canonicalize_without_deduplication(self.simplicial_complex_as_sets)
+
+        self.singleton_hyperedges = set(frozenset({v}) for v in set(range(self.number_of_visible)).difference(itertools.chain.from_iterable(self.simplicial_complex_as_sets)))
+        self.extended_simplicial_complex_as_sets = self.simplicial_complex_as_sets.union(self.singleton_hyperedges)
+        self.number_of_latent = len(self.extended_simplicial_complex_as_sets)
+
+
+        if self.number_of_nonsingleton_latent:
+            assert max(map(max, self.simplicial_complex_as_sets)) + 1 <= self.number_of_visible, "More nodes referenced than expected."
         self.number_of_visible_plus_latent = self.number_of_visible + self.number_of_latent
+        self.number_of_visible_plus_nonsingleton_latent = self.number_of_visible + self.number_of_nonsingleton_latent
         # self.max_number_of_latents = comb(self.number_of_visible, np.floor_divide(self.number_of_visible,2), exact=True)
+
+    # @cached_property
+    # def singleton_hyperedges(self):
+    #     return set(frozenset({v}) for v in set(range(self.number_of_visible)).difference(self.simplicial_complex))
+    #
+    # @cached_property
+    # def extended_simplicial_complex(self):
+    #     return self.simplicial_complex_as_sets.union(*self.singleton_hyperedges)
 
     @cached_property
     def tally(self):
         # absent_latent_count = self.max_number_of_latents - self.number_of_latent
         # return tuple(np.pad(np.flip(sorted(map(len, self.simplicial_complex))),(0,absent_latent_count)))
-        return tuple(np.flip(sorted(map(len, self.simplicial_complex))))
+        return tuple(np.flip(sorted(map(len, self.compressed_simplicial_complex))))
 
-    @cached_property
-    def compressed_simplicial_complex(self):
-        return list(drop_singletons(self.simplicial_complex))
+    # @cached_property
+    # def compressed_simplicial_complex(self):
+    #     return list(drop_singletons(self.simplicial_complex))
+    #
+    # @cached_property
+    # def number_of_nonsingleton_latent(self):
+    #     return len(self.compressed_simplicial_complex)
 
-    @cached_property
-    def number_of_nonsingleton_latent(self):
-        return len(self.compressed_simplicial_complex)
-
-    @cached_property
-    def number_of_visible_plus_nonsingleton_latent(self):
-        return self.number_of_visible + self.number_of_nonsingleton_latent
+    # @cached_property
+    # def number_of_visible_plus_nonsingleton_latent(self):
+    #     return self.number_of_visible + self.number_of_nonsingleton_latent
 
 
     @cached_property
     def as_tuples(self):
-        return tuple(sorted(map(lambda s: tuple(sorted(s)), self.simplicial_complex)))
+        return tuple(self.compressed_simplicial_complex)
 
     @cached_property
     def as_bit_array(self):
@@ -84,13 +120,17 @@ class Hypergraph:
     @cached_property
     def as_extended_bit_array(self):
         r = np.zeros((self.number_of_latent, self.number_of_visible), dtype=bool)
-        for i, lp in enumerate(self.simplicial_complex):
+        for i, lp in enumerate(self.extended_simplicial_complex_as_sets):
             r[i, tuple(lp)] = True
         return r[np.lexsort(r.T)]
 
     @cached_property
+    def nonsingleton_districts(self):
+        return merge_intersection(self.compressed_simplicial_complex)
+
+    @cached_property
     def districts(self):
-        return merge_intersection(self.simplicial_complex)
+        return self.nonsingleton_districts + list(map(set, self.singleton_hyperedges))
 
     @cached_property
     def as_integer(self):
@@ -107,7 +147,7 @@ class Hypergraph:
 
     @cached_property
     def as_string(self):
-        return stringify_in_list(map(stringify_in_tuple, sorted(self.simplicial_complex)))
+        return stringify_in_list(map(stringify_in_tuple, self.as_tuples))
 
     def can_S1_minimally_simulate_S2(S1, S2):
         """
@@ -140,22 +180,61 @@ class Hypergraph:
 class LabelledHypergraph(Hypergraph):
     """
     This class is NOT meant to encode mDAGs. As such, we do not get into an implementation of predecessors or successors here.
+    NEW: We can automatically extract SUBHYPERGRAPHS
     """
     def __init__(self, variable_names, simplicial_complex):
-        self.variable_names = variable_names
+        """
+        There may be MORE variable names than are referenced in the simplicial complex. These are considered unreferenced singletons.
+        There may be FEWER variable names than are referenced in the simplicial complex. In that case we take a subhypergraph.
+        """
+        self.variable_names = tuple(variable_names)
+        self.variable_names_as_frozenset = frozenset(self.variable_names)
         self.number_of_variables = len(variable_names)
+        assert self.number_of_variables == len(self.variable_names_as_frozenset), "A variable name appears in duplicate."
+
+        implicit_variable_names = set(itertools.chain.from_iterable(simplicial_complex))
+        if implicit_variable_names.issubset(self.variable_names_as_frozenset):
+            self.simplicial_complex_with_variable_names = hypergraph_canonicalize_without_deduplication(simplicial_complex)
+        else:
+            self.simplicial_complex_with_variable_names = hypergraph_full_cleanup(
+                [self.variable_names_as_frozenset.intersection(hyperedge) for hyperedge in simplicial_complex])
+        # self.simplicial_complex_with_variable_names_as_set = set(map(frozenset, simplicial_complex)) #To remove duplicates & partially canonicalize.
+        # if self.number_of_variables<len(implicit_variable_names):
+        #     #step 1: remove other variables from every hyperredge
+        #     self.simplicial_complex_with_variable_names_as_set = set(self.variable_names_as_frozenset.intersection(hyperedge)
+        #                                                    for hyperedge in simplicial_complex)
+        #     #step 2: remove dominated hyperredges:
+        #     for dominating_hyperedge in self.simplicial_complex_with_variable_names_as_set:
+        #         for dominated_hyperedge in self.simplicial_complex_with_variable_names_as_set:
+        #             if len(dominated_hyperedge) < len(dominating_hyperedge):
+        #                 if dominated_hyperedge.issubset(dominating_hyperedge):
+        #                     self.simplicial_complex_with_variable_names_as_set.discard(dominated_hyperedge)
+
+
         self.variables_as_range = tuple(range(self.number_of_variables))
         self.translation_dict = dict(zip(self.variable_names, self.variables_as_range))
         self.variable_are_range = False
         if all(isinstance(v, int) for v in self.variable_names):
             if np.array_equal(self.variable_names, self.variables_as_range):
                 self.variable_are_range = True
-                self.numerical_simplicial_complex = simplicial_complex
+                self.numerical_simplicial_complex = self.simplicial_complex_with_variable_names
         if not self.variable_are_range:
             self.variable_are_range = False
-            self.numerical_simplicial_complex = [partsextractor(self.translation_dict, hyperedge) for hyperedge in simplicial_complex]
+            self.numerical_simplicial_complex = [partsextractor(self.translation_dict, hyperedge) for hyperedge in self.simplicial_complex_with_variable_names]
         super().__init__(self.numerical_simplicial_complex, self.number_of_variables)
-        self.as_string = stringify_in_list(map(stringify_in_tuple, simplicial_complex))
+        self.as_string = stringify_in_list(map(stringify_in_tuple, self.simplicial_complex_with_variable_names))
+
+    @cached_property
+    def translated_nonsingleton_districts(self):
+        return [partsextractor(self.variable_names, district) for district in self.nonsingleton_districts]
+
+    @cached_property
+    def translated_districts(self):
+        return [partsextractor(self.variable_names, district) for district in self.districts]
+
+    @cached_property
+    def translated_extended_simplicial_complex(self):
+        return [partsextractor(self.variable_names, hyperedge) for hyperedge in self.extended_simplicial_complex_as_sets]
         
     def __str__(self):
         return self.as_string

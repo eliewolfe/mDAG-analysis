@@ -428,39 +428,54 @@ class mDAG:
     def districts(self):
         return self.simplicial_complex_instance.districts
     
+    # @property
+    # def districts_arbitrary_names(self):
+    #     districts_translated=[]
+    #     for d in self.districts:
+    #         d_translated=set()
+    #         for node in d:
+    #             node_translated=list(self.simplicial_complex_instance.translation_dict.keys())[list(self.simplicial_complex_instance.translation_dict.values()).index(node)]
+    #             d_translated.add(node_translated)
+    #         districts_translated.append(d_translated)
+    #     return districts_translated
+
     @property
     def districts_arbitrary_names(self):
-        districts_translated=[]
-        for d in self.districts:
-            d_translated=set()
-            for node in d:
-                node_translated=list(self.simplicial_complex_instance.translation_dict.keys())[list(self.simplicial_complex_instance.translation_dict.values()).index(node)]
-                d_translated.add(node_translated)
-            districts_translated.append(d_translated)
-        return districts_translated
+        if hasattr(self.simplicial_complex_instance, 'variable_names'):
+            return self.simplicial_complex_instance.translated_districts
+        else:
+            return self.simplicial_complex_instance.districts
     
+    # def subgraph(self, list_of_nodes):
+    #     new_edges=[]
+    #     for edge in self.directed_structure_instance.edge_list:
+    #         if edge[0] in list_of_nodes and edge[1] in list_of_nodes:
+    #             new_edges.append(edge)
+    #     new_hypergraph=[]
+    #     for hyperedge in self.simplicial_complex_instance.simplicial_complex:
+    #         new_hyperedge=hyperedge
+    #         for node in hyperedge:
+    #             if node not in list_of_nodes:
+    #                 new_hyperedge_list=list(new_hyperedge)
+    #                 new_hyperedge_list.remove(node)
+    #                 new_hyperedge=tuple(new_hyperedge_list)
+    #         subset_of_already_hyp=False
+    #         for already_hyp in new_hypergraph:
+    #             if set(new_hyperedge).issubset(set(already_hyp)) and new_hyperedge!=already_hyp:
+    #                 subset_of_already_hyp=True
+    #             if set(already_hyp).issubset(set(new_hyperedge)):
+    #                 new_hypergraph.remove(already_hyp)
+    #         if not subset_of_already_hyp:
+    #             new_hypergraph.append(new_hyperedge)
+    #     return mDAG(LabelledDirectedStructure(list_of_nodes,new_edges), LabelledHypergraph(list_of_nodes,new_hypergraph))
+
+    #Elie: I have integrated subgraph into both labelled directed structure and labelled hypergraph.
     def subgraph(self, list_of_nodes):
-        new_edges=[]
-        for edge in self.directed_structure_instance.edge_list:
-            if edge[0] in list_of_nodes and edge[1] in list_of_nodes:
-                new_edges.append(edge)
-        new_hypergraph=[]
-        for hyperedge in self.simplicial_complex_instance.simplicial_complex:
-            new_hyperedge=hyperedge
-            for node in hyperedge:
-                if node not in list_of_nodes:
-                    new_hyperedge_list=list(new_hyperedge)
-                    new_hyperedge_list.remove(node)
-                    new_hyperedge=tuple(new_hyperedge_list)
-            subset_of_already_hyp=False
-            for already_hyp in new_hypergraph:
-                if set(new_hyperedge).issubset(set(already_hyp)) and new_hyperedge!=already_hyp:
-                    subset_of_already_hyp=True
-                if set(already_hyp).issubset(set(new_hyperedge)):
-                    new_hypergraph.remove(already_hyp)
-            if not subset_of_already_hyp:
-                new_hypergraph.append(new_hyperedge)
-        return mDAG(LabelledDirectedStructure(list_of_nodes,new_edges), LabelledHypergraph(list_of_nodes,new_hypergraph))
+        return mDAG(
+            LabelledDirectedStructure(list_of_nodes, self.directed_structure_instance.edge_list),
+            LabelledHypergraph(list_of_nodes, self.simplicial_complex_instance.compressed_simplicial_complex)
+        )
+
   
 
     def closure(self, B):
@@ -537,12 +552,14 @@ class mDAG:
     @cached_property
     def fundamental_graphQ(self):
         # Implement three conditions
-        district_lengths = np.fromiter(map(len, self.districts), np.int_)
-        # district_lengths = np.asarray(list(map(len, self.districts)))
-        common_cause_district_positions = np.flatnonzero(district_lengths > 1)
-        if len(common_cause_district_positions) != 1:
+        common_cause_districts = self.simplicial_complex_instance.nonsingleton_districts
+        # district_lengths = np.fromiter(map(len, self.districts), np.int_)
+        # # district_lengths = np.asarray(list(map(len, self.districts)))
+        # common_cause_district_positions = np.flatnonzero(district_lengths > 1)
+        if len(common_cause_districts) != 1:
             return False
-        district_vertices = set(self.districts[common_cause_district_positions[0]])
+        # district_vertices = set(self.districts[common_cause_district_positions[0]])
+        district_vertices = set(common_cause_districts[0])
         non_district_vertices = set(range(self.number_of_visible)).difference(district_vertices)
         for v in non_district_vertices:
             # Does it have children outside the district

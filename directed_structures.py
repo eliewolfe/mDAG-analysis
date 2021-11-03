@@ -53,7 +53,7 @@ class DirectedStructure:
         self.number_of_visible = n
         self.visible_nodes = list(range(self.number_of_visible))
         self.as_set_of_tuples = set(map(nx.utils.to_tuple, numeric_edge_list))
-        self.edge_list = sorted(self.as_set_of_tuples)
+        self.edge_list = sorted(set(self.as_set_of_tuples))
         self.as_tuples = tuple(self.edge_list)
         self.number_of_edges = len(self.edge_list)
         if self.edge_list:
@@ -134,22 +134,29 @@ class LabelledDirectedStructure(DirectedStructure):
     This class is NOT meant to encode mDAGs. As such, we do not get into an implementation of predecessors or successors here.
     """
     def __init__(self, variable_names, edge_list):
-        self.variable_names = variable_names
-        assert len(variable_names)==len(set(variable_names)), "A variable name appears in duplicate."
+        self.variable_names = tuple(variable_names)
+        self.variable_names_as_frozenset = frozenset(self.variable_names)
         self.number_of_variables = len(variable_names)
+        assert self.number_of_variables == len(self.variable_names_as_frozenset), "A variable name appears in duplicate."
+
+        implicit_variable_names = set(itertools.chain.from_iterable(edge_list))
+        self.edge_list_with_variable_names = sorted(set(edge_list))
+        if not implicit_variable_names.issubset(self.variable_names_as_frozenset):
+            self.edge_list_with_variable_names = [edge for edge in self.edge_list_with_variable_names if self.variable_names_as_frozenset.issuperset(edge)]
+
         self.variables_as_range = tuple(range(self.number_of_variables))
         self.translation_dict = dict(zip(self.variable_names, self.variables_as_range))
 
 
-        self.edge_list_variable_names=sorted(set(edge_list))
+
         self.variable_are_range = False
         if all(isinstance(v, int) for v in self.variable_names):
             if np.array_equal(self.variable_names, self.variables_as_range):
                 self.variable_are_range = True
-                self.edge_list = edge_list
+                self.edge_list = self.edge_list_with_variable_names
         if not self.variable_are_range:
                 self.edge_list = list(chunked(partsextractor(self.translation_dict, tuple(
-                    itertools.chain.from_iterable(self.edge_list_variable_names))), 2))
+                    itertools.chain.from_iterable(self.edge_list_with_variable_names))), 2))
         super().__init__(self.edge_list, self.number_of_variables)
 
     @cached_property
@@ -164,7 +171,7 @@ class LabelledDirectedStructure(DirectedStructure):
     def as_networkx_graph_arbitrary_names(self):
         g=nx.DiGraph()
         g.add_nodes_from(self.variable_names)
-        g.add_edges_from(self.edge_list_variable_names)
+        g.add_edges_from(self.edge_list_with_variable_names)
         return g
 
     def __str__(self):
