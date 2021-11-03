@@ -52,21 +52,13 @@ class DirectedStructure:
     def __init__(self, numeric_edge_list, n):
         self.number_of_visible = n
         self.visible_nodes = list(range(self.number_of_visible))
-        self.edge_list = numeric_edge_list
-        self.number_of_edges = len(numeric_edge_list)
+        self.as_set_of_tuples = set(map(nx.utils.to_tuple, numeric_edge_list))
+        self.edge_list = sorted(self.as_set_of_tuples)
+        self.as_tuples = tuple(self.edge_list)
+        self.number_of_edges = len(self.edge_list)
         if self.edge_list:
             assert max(map(max, self.edge_list)) + 1 <= self.number_of_visible, "More nodes referenced than expected."
 
-
-
-
-    @cached_property
-    def as_tuples(self):
-        return tuple(sorted(map(nx.utils.to_tuple, self.edge_list)))
-
-    @cached_property
-    def as_set_of_tuples(self):
-        return set(map(nx.utils.to_tuple, self.edge_list))
 
     @property
     def as_edges_array(self):
@@ -88,15 +80,9 @@ class DirectedStructure:
     def observable_parentsplus_list(self):
         return list(map(frozenset, map(np.flatnonzero, self.as_bit_square_matrix_plus_eye.T)))
 
-    @staticmethod
-    def bit_array_to_integer(bit_array):
-        # Concern about int64 overflow
-        # return from_bits(bitarray.ravel()).astype(np.ulonglong).tolist()
-        return bitarray_to_int(bit_array)
-
     @cached_property
     def as_integer(self):
-        return self.bit_array_to_integer(self.as_bit_square_matrix)
+        return bitarray_to_int(self.as_bit_square_matrix)
 
     def permute_bit_square_matrix(self, perm):
         return self.as_bit_square_matrix[perm][:, perm]
@@ -107,7 +93,7 @@ class DirectedStructure:
 
     @cached_property
     def as_unlabelled_integer(self):
-        return min(self.bit_array_to_integer(ba) for ba in self.bit_square_matrix_permutations)
+        return min(bitarray_to_int(ba) for ba in self.bit_square_matrix_permutations)
 
     @cached_property
     def as_string(self):
@@ -149,17 +135,21 @@ class LabelledDirectedStructure(DirectedStructure):
     """
     def __init__(self, variable_names, edge_list):
         self.variable_names = variable_names
+        assert len(variable_names)==len(set(variable_names)), "A variable name appears in duplicate."
         self.number_of_variables = len(variable_names)
         self.variables_as_range = tuple(range(self.number_of_variables))
         self.translation_dict = dict(zip(self.variable_names, self.variables_as_range))
-        self.edge_list_variable_names=edge_list
+
+
+        self.edge_list_variable_names=sorted(set(edge_list))
+        self.variable_are_range = False
         if all(isinstance(v, int) for v in self.variable_names):
             if np.array_equal(self.variable_names, self.variables_as_range):
                 self.variable_are_range = True
                 self.edge_list = edge_list
-            else:
-                self.variable_are_range = False
-                self.edge_list = list(chunked(partsextractor(self.translation_dict, tuple(itertools.chain.from_iterable(edge_list))),2))
+        if not self.variable_are_range:
+                self.edge_list = list(chunked(partsextractor(self.translation_dict, tuple(
+                    itertools.chain.from_iterable(self.edge_list_variable_names))), 2))
         super().__init__(self.edge_list, self.number_of_variables)
 
     @cached_property
@@ -169,6 +159,7 @@ class LabelledDirectedStructure(DirectedStructure):
                 # for i, v in nx.to_dict_of_lists(self.DirectedStructure).items()
                 for i, v in enumerate(map(np.flatnonzero, self.as_bit_square_matrix))
                 )
+
     @cached_property
     def as_networkx_graph_arbitrary_names(self):
         g=nx.DiGraph()

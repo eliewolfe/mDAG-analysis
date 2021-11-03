@@ -17,12 +17,19 @@ from collections import defaultdict
 # from supports import SupportTesting
 from supports_beyond_esep import SmartSupportTesting
 from hypergraphs import UndirectedGraph, Hypergraph, LabelledHypergraph
-import methodtools
+# import methodtools
 from directed_structures import LabelledDirectedStructure, DirectedStructure
+
 
  
 def mdag_to_int(ds_bitarray, sc_bitarray):
-    return bitarray_to_int(np.vstack((sc_bitarray, ds_bitarray)))
+    sc_int = bitarray_to_int(sc_bitarray)
+    ds_int = bitarray_to_int(ds_bitarray)
+    #The directed structure is always a square matrix of size n^2.
+    offset = 2**(ds_bitarray.size)
+    # print(sc_int, ds_int, offset)
+    return ds_int + (sc_int * offset)
+    # return bitarray_to_int(np.vstack((sc_bitarray, ds_bitarray)))
 
 class mDAG:
     def __init__(self, directed_structure_instance, simplicial_complex_instance):
@@ -432,7 +439,7 @@ class mDAG:
             districts_translated.append(d_translated)
         return districts_translated
     
-    def subgraph(self,list_of_nodes):
+    def subgraph(self, list_of_nodes):
         new_edges=[]
         for edge in self.directed_structure_instance.edge_list:
             if edge[0] in list_of_nodes and edge[1] in list_of_nodes:

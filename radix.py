@@ -6,7 +6,10 @@ from functools import lru_cache
 
 @lru_cache(maxsize=16)
 def _reversed_base(base):
-    return np.hstack((1, np.flipud(base[1:])))
+    if len(base)>1:
+        return np.hstack((1, np.flipud(np.asarray(base)[1:])))
+    else:
+        return np.ones(len(base), dtype=int)
 def reversed_base(base):
     return _reversed_base(tuple(base))
 
@@ -16,12 +19,11 @@ def _radix_converter(base):
         reversed_base(base).astype(dtype=object)
     ))
     #We are concerned about integer overflow. To avoid this we perform the accumulation in Python, outside of Numpy.
-    as_object_list = as_object_array.tolist()
+    as_object_list = tuple(map(int, as_object_array.tolist()))
     if np.can_cast(np.min_scalar_type(as_object_list), np.uintp):
         return np.array(as_object_list, dtype=np.uintp)
     else:
         return as_object_array
-
 
 def radix_converter(base):
     return _radix_converter(tuple(base))
@@ -193,8 +195,20 @@ def to_string_digits(integer, base):
 #     #     np.broadcast_to(2**numcolumns, numrows))
 #     return from_bits(bit_array_as_array.reshape(shape[:-2]+(numrows * numcolumns,)))
 
+@lru_cache(maxsize=None)
+def _bitarray_to_int(bit_array):
+    if len(bit_array):
+        bit_array_as_array = np.asarray(bit_array, dtype=bool)
+        (numrows, numcolumns) = bit_array_as_array.shape
+        rows_basis = np.repeat(2**numcolumns, numrows)
+        first_conversion = from_bits(bit_array_as_array)
+        return _from_digits(first_conversion, rows_basis)
+    else:
+        return 0
+    # return from_bits(bit_array.ravel()).tolist()
+
 def bitarray_to_int(bit_array):
-    return from_bits(bit_array.ravel()).tolist()
+    return _bitarray_to_int(tuple(map(tuple, bit_array)))
 
 # def ints_to_bitarrays(integer, numcolumns):
 #     # numrows = -np.floor_divide(-np.log1p(integer), np.log(2**numcolumns)).astype(int).max() #Danger border case

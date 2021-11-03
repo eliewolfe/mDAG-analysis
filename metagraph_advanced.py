@@ -5,10 +5,9 @@ import itertools
 from more_itertools import ilen
 # import scipy.special #For binomial coefficient
 import progressbar
-# from operator import itemgetter
 from utilities import partsextractor
 from collections import defaultdict
-# from radix import int_to_bitarray
+
 
 from sys import hexversion
 
@@ -26,6 +25,11 @@ else:
 from hypergraphs import Hypergraph
 from directed_structures import DirectedStructure
 from mDAG_advanced import mDAG
+from functools import lru_cache
+
+# @lru_cache(maxsize=None)
+# def mDAG(directed_structure_instance, simplicial_complex_instance):
+#     return uncached_mDAG(directed_structure_instance, simplicial_complex_instance)
 
 
 def evaluate_property_or_method(instance, attribute):
@@ -130,6 +134,7 @@ class Observable_unlabelled_mDAGs:
 
 
     def mdag_int_pair_to_single_int(self, sc_int, ds_int):
+        #ELIE: Note that this MUST MATCH the function mdag_to_int in the mDAG class. All is good.
         return ds_int + sc_int*(2**(self.n**2))
 
     def mdag_int_pair_to_canonical_int(self, sc_int, ds_int):
@@ -146,7 +151,15 @@ class Observable_unlabelled_mDAGs:
     @property
     def all_unlabelled_mDAGs(self):
         return self.dict_ind_unlabelled_mDAGs.values()
-    
+
+    @cached_property
+    def all_unlabelled_mDAGs_faster(self):
+        d = defaultdict(list)
+        for ds in self.all_unlabelled_directed_structures:
+            for sc in self.all_simplicial_complices:
+                mdag = mDAG(ds, sc)
+                d[mdag.unique_unlabelled_id].append(mdag)
+        return tuple(next(iter(eqclass)) for eqclass in d.values())
 
     @cached_property
     def meta_graph_nodes(self):
@@ -438,9 +451,11 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
    
 
 if __name__ == '__main__':
+    Observable_mDAGs2 = Observable_mDAGs_Analysis(nof_observed_variables=2, max_nof_events_for_supports=0)
+    Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
+    Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
 
-    Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=1)
-    #Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=1)
+
     
 
 

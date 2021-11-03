@@ -202,12 +202,15 @@ if __name__ == '__main__':
     directed_dict_of_lists = {"C": ["A", "B"], "X": ["C"], "D": ["A", "B"]}
     ds = LabelledDirectedStructure(["X", "A", "B", "C", "D"], nx.from_dict_of_lists(directed_dict_of_lists, create_using=nx.DiGraph).edges())
 
+
     simplicial_complex1 = LabelledHypergraph(["X", "A", "B", "C", "D"], [("A", "X", "D"), ("B", "X", "D"), ("A", "C")])
     simplicial_complex2 = LabelledHypergraph(["X", "A", "B", "C", "D"], [("A", "X", "D"), ("B", "X", "D")])
 
 
     md1 = mDAG(ds, simplicial_complex1)
     md2 = mDAG(ds, simplicial_complex2)
+    print("Hashing test: ", hash(simplicial_complex1), hash(ds), hash(md1))
+    test = set([simplicial_complex1, simplicial_complex2])
 
 
     print(md2.all_esep)

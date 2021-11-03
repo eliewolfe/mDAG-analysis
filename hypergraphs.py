@@ -92,16 +92,9 @@ class Hypergraph:
     def districts(self):
         return merge_intersection(self.simplicial_complex)
 
-    @staticmethod
-    def bit_array_to_integer(bit_array):
-        # Concern about int64 overflow
-        # return from_bits(bitarray.ravel()).astype(np.ulonglong).tolist()
-        return bitarray_to_int(bit_array)
-
-
     @cached_property
     def as_integer(self):
-        return self.bit_array_to_integer(self.as_bit_array)
+        return bitarray_to_int(self.as_bit_array)
 
     @property
     def bit_array_permutations(self):
@@ -110,7 +103,7 @@ class Hypergraph:
 
     @cached_property
     def as_unlabelled_integer(self):
-        return min(self.bit_array_to_integer(ba) for ba in self.bit_array_permutations)
+        return min(bitarray_to_int(ba) for ba in self.bit_array_permutations)
 
     @cached_property
     def as_string(self):
@@ -153,13 +146,14 @@ class LabelledHypergraph(Hypergraph):
         self.number_of_variables = len(variable_names)
         self.variables_as_range = tuple(range(self.number_of_variables))
         self.translation_dict = dict(zip(self.variable_names, self.variables_as_range))
+        self.variable_are_range = False
         if all(isinstance(v, int) for v in self.variable_names):
             if np.array_equal(self.variable_names, self.variables_as_range):
                 self.variable_are_range = True
                 self.numerical_simplicial_complex = simplicial_complex
-            else:
-                self.variable_are_range = False
-                self.numerical_simplicial_complex = [partsextractor(self.translation_dict, hyperedge) for hyperedge in simplicial_complex]
+        if not self.variable_are_range:
+            self.variable_are_range = False
+            self.numerical_simplicial_complex = [partsextractor(self.translation_dict, hyperedge) for hyperedge in simplicial_complex]
         super().__init__(self.numerical_simplicial_complex, self.number_of_variables)
         self.as_string = stringify_in_list(map(stringify_in_tuple, simplicial_complex))
         
