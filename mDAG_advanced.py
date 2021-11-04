@@ -19,6 +19,8 @@ from supports_beyond_esep import SmartSupportTesting
 from hypergraphs import UndirectedGraph, Hypergraph, LabelledHypergraph
 # import methodtools
 from directed_structures import LabelledDirectedStructure, DirectedStructure
+from closure import closure as numeric_closure, is_this_subadjmat_densely_connected
+
 
 
  
@@ -301,9 +303,10 @@ class mDAG:
     def set_predecessors(self, X):
         # return frozenset().union(*partsextractor(self.directed_structure_instance.observable_parentsplus_list, X))
         return frozenset(itertools.chain.from_iterable(partsextractor(self.all_parentsplus_list, X)))
-
     def singleton_predecessors(self, x):
         return partsextractor(self.all_parentsplus_list, x)
+
+
 
     @cached_property
     def splittable_faces(self):
@@ -316,9 +319,34 @@ class mDAG:
     
     def set_visible_predecessors(self,X):
         return frozenset(itertools.chain.from_iterable(partsextractor(self.directed_structure_instance.observable_parentsplus_list, X)))
-
     def singleton_visible_predecessors(self, x):
         return partsextractor(self.directed_structure_instance.observable_parentsplus_list, x)
+
+
+
+    @cached_property
+    def districts(self):
+        #Districts are returned as a list of sets
+        return self.simplicial_complex_instance.districts
+
+    def set_district(self, X):
+        return frozenset(itertools.chain.from_iterable((district for district in self.districts if not district.isdisjoint(X))))
+    def singleton_district(self, x):
+        return frozenset(itertools.chain.from_iterable((district for district in self.districts if x in district)))
+
+
+
+
+
+    @cached_property
+    def districts_arbitrary_names(self):
+        if hasattr(self.simplicial_complex_instance, 'variable_names'):
+            return self.simplicial_complex_instance.translated_districts
+        else:
+            return self.simplicial_complex_instance.districts
+
+
+
     
     @cached_property
     def weak_splittable_faces(self):
@@ -424,9 +452,7 @@ class mDAG:
     #Or, if we are really fancy, we can modify the bits of the unique_id itself!!
 
 
-    @property
-    def districts(self):
-        return self.simplicial_complex_instance.districts
+
     
     # @property
     # def districts_arbitrary_names(self):
@@ -439,12 +465,7 @@ class mDAG:
     #         districts_translated.append(d_translated)
     #     return districts_translated
 
-    @cached_property
-    def districts_arbitrary_names(self):
-        if hasattr(self.simplicial_complex_instance, 'variable_names'):
-            return self.simplicial_complex_instance.translated_districts
-        else:
-            return self.simplicial_complex_instance.districts
+
     
     # def subgraph(self, list_of_nodes):
     #     new_edges=[]
@@ -478,50 +499,123 @@ class mDAG:
 
   
 
-    def closure(self, B):
-        list_B=[set(self.visible_nodes)]
-        graph=self.subgraph(list_B[0])
-        next_B=set()
-        for element in B:
-            for dist in graph.districts_arbitrary_names:
-                if element in dist:
-                    next_B=set(next_B).union(dist)
-        list_B.append(next_B)
-        graph=self.subgraph(list_B[1])
-        next_B=set()
-        for element in B:
-            next_B=set(list(next_B)+list(nx.ancestors(graph.directed_structure_instance.as_networkx_graph_arbitrary_names,element))+[element])
-        list_B.append(next_B)
-        i=2
-        while any([list_B[i]!=list_B[i-1],list_B[i]!=list_B[i-2]]):
-            graph=self.subgraph(list_B[-1])
-            next_B=set()
-            for element in B:
-                for dist in graph.districts_arbitrary_names:
-                    if element in dist:
-                        next_B=set(next_B).union(dist)
-            list_B.append(next_B)
-            i=i+1
-            graph=self.subgraph(list_B[-1])
-            next_B=set()
-            for element in B:
-                next_B=set(list(next_B)+list(nx.ancestors(graph.directed_structure_instance.as_networkx_graph_arbitrary_names,element))+[element])
-            list_B.append(next_B)
-            i=i+1
-        return list_B[-1]
-    
-  
+    # def closure_Marina(self, B):
+    #     list_B=[set(self.visible_nodes)]
+    #     graph=self.subgraph(list_B[0])
+    #     next_B=set()
+    #     for element in B:
+    #         for dist in graph.districts_arbitrary_names:
+    #             if element in dist:
+    #                 next_B=set(next_B).union(dist)
+    #     list_B.append(next_B)
+    #     graph=self.subgraph(list_B[1])
+    #     next_B=set()
+    #     for element in B:
+    #         next_B=set(list(next_B)+list(nx.ancestors(graph.directed_structure_instance.as_networkx_graph_arbitrary_names,element))+[element])
+    #     list_B.append(next_B)
+    #     i=2
+    #     while any([list_B[i]!=list_B[i-1],list_B[i]!=list_B[i-2]]):
+    #         graph=self.subgraph(list_B[-1])
+    #         next_B=set()
+    #         for element in B:
+    #             for dist in graph.districts_arbitrary_names:
+    #                 if element in dist:
+    #                     next_B=set(next_B).union(dist)
+    #         list_B.append(next_B)
+    #         i=i+1
+    #         graph=self.subgraph(list_B[-1])
+    #         next_B=set()
+    #         for element in B:
+    #             next_B=set(list(next_B)+list(nx.ancestors(graph.directed_structure_instance.as_networkx_graph_arbitrary_names,element))+[element])
+    #         list_B.append(next_B)
+    #         i=i+1
+    #     return list_B[-1]
+
+    def set_closure(self, X_set, return_bidirectedQ=False):
+        return numeric_closure(core_B=list(X_set),
+                               n=self.number_of_visible,
+                               ds_adjmat= self.directed_structure_instance.as_bit_square_matrix_plus_eye,
+                               sc_adjmat= self.simplicial_complex_instance.as_bidirected_adjmat,
+                               return_bidirectedQ= return_bidirectedQ)
+
+    # @cached_property
+    # def singeleton_closures_Marina(self):
+    #     return [frozenset(self.closure_Marina([i])) for i in range(self.number_of_visible)]
+
+    @cached_property
+    def singeleton_closures(self):
+        # list_of_closures = []
+        # for i in range(self.number_of_visible):
+        #     closure_Wolfe = frozenset(self.set_closure([i]))
+        #     closure_Marina = self.singeleton_closures_Marina[i]
+        #     if not closure_Wolfe == closure_Marina:
+        #         print("Possible bug found in closure calculations!")
+        #         print("mDAG: ", self.__repr__())
+        #         print("node: ", i)
+        #         print("closure_Marina: ", closure_Marina)
+        #         print("closure_Wolfe: ", closure_Wolfe)
+        #     list_of_closures.append(closure_Wolfe)
+        # return list_of_closures
+        return [frozenset(self.set_closure([i])) for i in range(self.number_of_visible)]
+
+
+
+    # def are_densely_connected_Marina(self, node1, node2):
+    #     if node1 in self.set_visible_predecessors(self.singeleton_closures[node2]):
+    #         return True
+    #     if node2 in self.set_visible_predecessors(self.singeleton_closures[node1]):
+    #         return True
+    #     double_closure = frozenset(self.set_closure([node1, node2]))
+    #     for district in self.subgraph(double_closure).districts_arbitrary_names:
+    #         if double_closure.issubset(district):
+    #             return True
+    #     return False
+
+    # def are_densely_connected_Marina(self, node1, node2):
+    #     if node1 in self.set_visible_predecessors(self.singeleton_closures_Marina[node2]):
+    #         return True
+    #     if node2 in self.set_visible_predecessors(self.singeleton_closures_Marina[node1]):
+    #         return True
+    #     combined_closure = list(set(itertools.chain.from_iterable([
+    #         self.singeleton_closures_Marina[node1],
+    #         self.singeleton_closures_Marina[node2]
+    #     ])))
+    #     # if self.set_closure([node1, node2], return_bidirectedQ=True)[-1]:
+    #     if is_this_subadjmat_densely_connected(self.simplicial_complex_instance.as_bidirected_adjmat, combined_closure):
+    #         return True
+    #     else:
+    #         return False
+
     def are_densely_connected(self, node1, node2):
-        for closure_node in self.closure([node1]):
-            if node2 in self.directed_structure_instance.as_networkx_graph.predecessors(closure_node):
-                return True
-        for closure_node in self.closure([node2]):
-            if node1 in self.directed_structure_instance.as_networkx_graph.predecessors(closure_node):
-                return True
-        for district in self.subgraph(self.closure([node1, node2])).districts_arbitrary_names:
-            if self.closure([node1, node2]).issubset(district):
-                return True
-        return False
+        if node1 in self.set_visible_predecessors(self.singeleton_closures[node2]):
+            return True
+        if node2 in self.set_visible_predecessors(self.singeleton_closures[node1]):
+            return True
+        combined_closure = list(set(itertools.chain.from_iterable([
+            self.singeleton_closures[node1],
+            self.singeleton_closures[node2]
+        ])))
+        if self.set_closure([node1, node2], return_bidirectedQ=True)[-1]:
+        # if is_this_subadjmat_densely_connected(self.simplicial_complex_instance.as_bidirected_adjmat, combined_closure):
+            return True
+        else:
+            return False
+
+    # #BUGFINDING!!
+    # def are_densely_connected(self, node1, node2):
+    #     result_Marina = self.are_densely_connected_Marina(node1, node2)
+    #     result_Wolfe = self.are_densely_connected_Wolfe(node1, node2)
+    #     if result_Marina != result_Wolfe:
+    #         print("Possible bug found in densely connected test!")
+    #         print("mDAG: ", self.__repr__())
+    #         print("node pair: ", (node1, node2))
+    #         print("Marina says: ", result_Marina)
+    #         print("Elie says: ", result_Wolfe)
+    #     return result_Wolfe
+
+
+
+
 
 # Evans 2021: It is possible to have a distribution with 2 variables identical to one another and independent of all others iff they are densely connected
 # So, if node1 and node2 are densely connected in G1 but not in G2, we know that G1 is NOT equivalent to G2.
@@ -529,25 +623,15 @@ class mDAG:
     @property
     def all_densely_connected_pairs(self):
         return [nodepair for nodepair in itertools.combinations(self.visible_nodes, 2) if self.are_densely_connected(*nodepair)]
-        # all_densely_connected_pairs=set()
-        # for node1, node2 in itertools.combinations(self.visible_nodes, 2):
-        #     if self.are_densely_connected(node1, node2):
-        #         all_densely_connected_pairs.add((node1, node2))
-        # return all_densely_connected_pairs
-
-  
 
     def _all_densely_connected_pairs_unlabelled_generator(self):
         for perm in itertools.permutations(self.visible_nodes):
             yield self.fake_frozenset(map(self.fake_frozenset, np.take(perm, self.all_densely_connected_pairs)))
-            # yield frozenset(
-            #     tuple(partsextractor(perm, variable_set)
-            #         for variable_set in relation)
-            #     for relation in self.__getattribute__('all_densely_connected_pairs'))
             
     @cached_property
     def all_densely_connected_pairs_unlabelled(self):
         return min(self._all_densely_connected_pairs_unlabelled_generator())
+
 
     @cached_property
     def fundamental_graphQ(self):

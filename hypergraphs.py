@@ -176,6 +176,15 @@ class Hypergraph:
     def __repr__(self):
         return self.as_string
 
+    @cached_property
+    def as_bidirected_adjmat(self):
+        adjmat = np.zeros((self.number_of_visible, self.number_of_visible), dtype=bool)
+        for hyperedge in self.compressed_simplicial_complex:
+            subindices = np.ix_(hyperedge, hyperedge)
+            adjmat[subindices] = True
+        return np.bitwise_and(adjmat, np.invert(np.identity(self.number_of_visible, dtype=bool)))
+
+
 
 class LabelledHypergraph(Hypergraph):
     """
@@ -265,10 +274,17 @@ class UndirectedGraph:
         return self.as_string
 
 
+
     @property
     def as_edges_array(self):
         # return np.fromiter(self.as_edges, int).reshape((-1,2))
         return np.asarray(self.as_edges, dtype=int).reshape((-1,2))
+
+    @property
+    def as_adjacency_matrix(self):
+        adjmat = np.zeros((self.nof_nodes, self.nof_nodes), dtype=bool)
+        adjmat[tuple(self.as_edges_array.T)] = True
+        return np.bitwise_or(adjmat, adjmat.T)
 
     @cached_property
     def as_edges_bit_array(self):
