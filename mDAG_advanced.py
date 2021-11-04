@@ -531,8 +531,8 @@ class mDAG:
     #         i=i+1
     #     return list_B[-1]
 
-    def set_closure(self, X_set, return_bidirectedQ=False):
-        return numeric_closure(core_B=list(X_set),
+    def set_closure(self, X_int_or_list, return_bidirectedQ=False):
+        return numeric_closure(core_B=X_int_or_list,
                                n=self.number_of_visible,
                                ds_adjmat= self.directed_structure_instance.as_bit_square_matrix_plus_eye,
                                sc_adjmat= self.simplicial_complex_instance.as_bidirected_adjmat,

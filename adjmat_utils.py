@@ -15,7 +15,10 @@ def _children_list(adjmat):
 def _parents_list(adjmat):
     return _children_list(np.transpose(adjmat))
 def _children_of(adjmat, X_indices):
-    return np.flatnonzero(np.any(adjmat[X_indices], axis=0))
+    if hasattr(X_indices, '__iter__'):
+        return np.flatnonzero(np.any(adjmat[X_indices], axis=0))
+    else:
+        return np.flatnonzero(adjmat[X_indices])
 def _parents_of(adjmat, X_indices):
     return _children_of(np.transpose(adjmat), X_indices)
 

@@ -25,8 +25,8 @@ def closure_district_step(core_B, working_B, ds_adjmat, sc_adjmat, return_bidire
             return working_B, (num_components==1)
     else:
         new_ds_adjmat = adjmat_utils.subadjmat(ds_adjmat, new_working_B)
-        new_sc_adjmat = adjmat_utils.subadjmat(sc_adjmat, new_working_B)
-        return closure_ancestors_step(core_B, new_working_B, new_ds_adjmat, new_sc_adjmat, num_components, return_bidirectedQ=return_bidirectedQ)
+        # new_sc_adjmat = adjmat_utils.subadjmat(sc_adjmat, new_working_B)
+        return closure_ancestors_step(core_B, new_working_B, new_ds_adjmat, sc_adjmat, num_components, return_bidirectedQ=return_bidirectedQ)
 
 def closure_ancestors_step(core_B, working_B, ds_adjmat, sc_adjmat, num_components, return_bidirectedQ=False):
     new_working_B = adjmat_utils.ancestorsplus_of(ds_adjmat, core_B)
@@ -37,9 +37,10 @@ def closure_ancestors_step(core_B, working_B, ds_adjmat, sc_adjmat, num_componen
         else:
             return working_B, (num_components==1)
     else:
-        new_ds_adjmat = adjmat_utils.subadjmat(ds_adjmat, new_working_B)
+        # new_ds_adjmat = adjmat_utils.subadjmat(ds_adjmat, new_working_B)
         new_sc_adjmat = adjmat_utils.subadjmat(sc_adjmat, new_working_B)
-        return closure_district_step(core_B, new_working_B, new_ds_adjmat, new_sc_adjmat, return_bidirectedQ=return_bidirectedQ)
+        return closure_district_step(core_B, new_working_B, ds_adjmat, new_sc_adjmat, return_bidirectedQ=return_bidirectedQ)
+
 
 def closure(core_B, n, ds_adjmat, sc_adjmat, return_bidirectedQ=False):
     return closure_district_step(core_B, np.arange(n+1), ds_adjmat, sc_adjmat, return_bidirectedQ=return_bidirectedQ)
