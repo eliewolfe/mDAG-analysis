@@ -250,19 +250,19 @@ class mDAG:
                                    )
 
     def infeasible_binary_supports_n_events(self, n, **kwargs):
-        return self.fake_frozenset(self.support_testing_instance_binary(n).unique_infeasible_supports_as_integers(**kwargs, name='mgh', use_timer=False))
+        return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_as_integers(**kwargs, name='mgh', use_timer=False))
     def infeasible_binary_supports_n_events_beyond_esep(self, n, **kwargs):
-        return self.fake_frozenset(self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_integers(**kwargs, name='mgh', use_timer=False))
+        return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_integers(**kwargs, name='mgh', use_timer=False))
 
     def infeasible_binary_supports_n_events_as_matrices(self, n, **kwargs):
-        return self.fake_frozenset(self.support_testing_instance_binary(n).unique_infeasible_supports_as_matrices(**kwargs, name='mgh', use_timer=False))
+        return self.support_testing_instance_binary(n).unique_infeasible_supports_as_matrices(**kwargs, name='mgh', use_timer=False)
     def infeasible_binary_supports_n_events_beyond_esep_as_matrices(self, n, **kwargs):
-        return self.fake_frozenset(self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_matrices(**kwargs, name='mgh', use_timer=False))
+        return self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_matrices(**kwargs, name='mgh', use_timer=False)
 
     def infeasible_binary_supports_n_events_unlabelled(self, n, **kwargs):
-        return self.fake_frozenset(self.support_testing_instance_binary(n).unique_infeasible_supports_unlabelled(**kwargs, name='mgh', use_timer=False))
+        return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_unlabelled(**kwargs, name='mgh', use_timer=False))
     def infeasible_binary_supports_n_events_beyond_esep_unlabelled(self, n, **kwargs):
-        return self.fake_frozenset(self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_integers_unlabelled(**kwargs, name='mgh', use_timer=False))
+        return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_integers_unlabelled(**kwargs, name='mgh', use_timer=False))
 
     def no_infeasible_binary_supports_beyond_esep(self, n, **kwargs):
         return self.support_testing_instance_binary(n).no_infeasible_supports_beyond_esep(**kwargs, name='mgh', use_timer=False)
