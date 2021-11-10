@@ -14,14 +14,11 @@ from radix import bitarray_to_int
 import networkx as nx
 from utilities import partsextractor
 from collections import defaultdict
-# from supports import SupportTesting
 from supports_beyond_esep import SmartSupportTesting
-from hypergraphs import UndirectedGraph, Hypergraph, LabelledHypergraph
+from hypergraphs import Hypergraph, LabelledHypergraph, UndirectedGraph, LabelledUndirectedGraph
 import methodtools
 from directed_structures import LabelledDirectedStructure, DirectedStructure
 from closure import closure as numeric_closure, is_this_subadjmat_densely_connected
-
-
 
  
 def mdag_to_int(ds_bitarray, sc_bitarray):
@@ -38,8 +35,14 @@ class mDAG:
         self.directed_structure_instance = directed_structure_instance
         self.simplicial_complex_instance = simplicial_complex_instance
         assert directed_structure_instance.number_of_visible == simplicial_complex_instance.number_of_visible, 'Different number of nodes in directed structure vs simplicial complex.'
-        self.number_of_visible = directed_structure_instance.number_of_visible
-        self.visible_nodes = directed_structure_instance.visible_nodes
+        if hasattr(self.directed_structure_instance, 'variable_names'):
+            self.variable_names = self.directed_structure_instance.variable_names
+            if hasattr(self.simplicial_complex_instance, 'variable_names'):
+                assert frozenset(self.variable_names) == frozenset(self.simplicial_complex_instance.variable_names), 'Error: Inconsistent node names.'
+                if not tuple(self.variable_names) == tuple(self.simplicial_complex_instance.variable_names):
+                    print('Warning: Inconsistent node ordering. Following ordering of directed structure!')
+        self.number_of_visible = self.directed_structure_instance.number_of_visible
+        self.visible_nodes = self.directed_structure_instance.visible_nodes
         self.latent_nodes = tuple(range(self.number_of_visible, self.simplicial_complex_instance.number_of_visible_plus_latent))
         self.nonsingleton_latent_nodes = tuple(range(self.number_of_visible, self.simplicial_complex_instance.number_of_visible_plus_nonsingleton_latent))
 
@@ -109,7 +112,10 @@ class mDAG:
 
     @cached_property
     def skeleton_instance(self):
-        return UndirectedGraph(self.directed_structure_instance.as_tuples + self.simplicial_complex_instance.as_tuples,
+        if hasattr(self, 'variable_names'):
+            return LabelledUndirectedGraph(self.variable_names, self.directed_structure_instance.edge_list_with_variable_names + self.simplicial_complex_instance.simplicial_complex_with_variable_names)
+        else:
+            return UndirectedGraph(self.directed_structure_instance.as_tuples + self.simplicial_complex_instance.as_tuples,
                                self.number_of_visible)
 
     @cached_property
@@ -144,14 +150,13 @@ class mDAG:
 
     # We do not cache iterators, only their output, as iterators are consumed!
     @property
-    def _all_CI_generator(self):
+    def _all_CI_generator_numeric(self):
         for x, y, Z in self._all_2_vs_any_partitions(self.visible_nodes):
             if nx.d_separated(self.as_graph, {x}, {y}, set(Z)):
                 yield (self.fake_frozenset([x, y]), self.fake_frozenset(Z))
-
     @cached_property
-    def all_CI(self):
-        return set(self._all_CI_generator)
+    def all_CI_numeric(self):
+        return set(self._all_CI_generator_numeric)
 
     def _all_CI_like_unlabelled_generator(self, attribute):
         for perm in itertools.permutations(self.visible_nodes):
@@ -160,14 +165,27 @@ class mDAG:
                     self.fake_frozenset(partsextractor(perm, variable_set))
                     for variable_set in relation)
                 for relation in self.__getattribute__(attribute))
-            
+
+    def convert_to_named_set_of_tuples_of_tuples(self, attribute):
+        if hasattr(self, 'variable_names'):
+            return set(
+                tuple(
+                    self.fake_frozenset(partsextractor(self.variable_names, variable_set))
+                    for variable_set in relation)
+                for relation in self.__getattribute__(attribute))
+        else:
+            return self.__getattribute__(attribute)
+
+    @cached_property
+    def all_CI(self):
+        return self.convert_to_named_set_of_tuples_of_tuples('all_CI_numeric')
 
     @cached_property
     def all_CI_unlabelled(self):
-        return min(self._all_CI_like_unlabelled_generator('all_CI'))
+        return min(self._all_CI_like_unlabelled_generator('all_CI_numeric'))
 
     @property
-    def _all_e_sep_generator(self):
+    def _all_e_sep_generator_numeric(self):
         for r in range(self.number_of_visible - 1):
             for to_delete in itertools.combinations(self.visible_nodes, r):
                 graph_copy = self.as_graph.copy()  # Don't forget to copy!
@@ -176,14 +194,18 @@ class mDAG:
                 for x, y, Z in self._all_2_vs_any_partitions(tuple(remaining)):
                     if nx.d_separated(graph_copy, {x}, {y}, set(Z)):
                         yield (self.fake_frozenset([x, y]), self.fake_frozenset(Z), self.fake_frozenset(to_delete))
+    @cached_property
+    def all_esep_numeric(self):
+        return set(self._all_e_sep_generator_numeric)
 
-    @cached_property  # Behaving weird, get consumed unless wrapped in tuple
+    @cached_property
     def all_esep(self):
-        return set(self._all_e_sep_generator)
+        # return set(self._all_e_sep_generator_numeric)
+        return self.convert_to_named_set_of_tuples_of_tuples('all_esep_numeric')
 
     @cached_property
     def all_esep_unlabelled(self):
-        return min(self._all_CI_like_unlabelled_generator('all_esep'))
+        return min(self._all_CI_like_unlabelled_generator('all_esep_numeric'))
 
     # @methodtools.lru_cache(maxsize=None, typed=False)
     # def support_testing_instance(self, n):
@@ -215,7 +237,7 @@ class mDAG:
     def smart_support_testing_instance(self, n):
         return SmartSupportTesting(self.parents_of_for_supports_analysis,
                                    np.broadcast_to(2, self.number_of_visible),
-                                   n, self.all_esep
+                                   n, self.all_esep_numeric
                                    )
 
     def infeasible_binary_supports_n_events(self, n, **kwargs):
@@ -238,7 +260,7 @@ class mDAG:
         return all(self.smart_support_testing_instance(n).no_infeasible_supports_beyond_esep(**kwargs, name='mgh', use_timer=False) for
                    n in range(2,max_n+1))
     def no_infeasible_supports_n_events(self, n, **kwargs):
-        if len(self.all_esep)==0:
+        if len(self.all_esep_numeric)==0:
             return self.smart_support_testing_instance(n).no_infeasible_supports(**kwargs, name='mgh', use_timer=False)
         else:
             return False
@@ -326,9 +348,16 @@ class mDAG:
 
 
     @cached_property
+    def numerical_districts(self):
+        return self.simplicial_complex_instance.districts
+
+    @cached_property
     def districts(self):
         #Districts are returned as a list of sets
-        return self.simplicial_complex_instance.districts
+        if hasattr(self, 'variable_names'):
+            [partsextractor(self.variable_names, district) for district in self.numerical_districts]
+        else:
+            return self.numerical_districts
 
     def set_district(self, X):
         return frozenset(itertools.chain.from_iterable((district for district in self.districts if not district.isdisjoint(X))))
@@ -337,14 +366,14 @@ class mDAG:
 
 
 
-
-
-    @cached_property
-    def districts_arbitrary_names(self):
-        if hasattr(self.simplicial_complex_instance, 'variable_names'):
-            return self.simplicial_complex_instance.translated_districts
-        else:
-            return self.simplicial_complex_instance.districts
+    #
+    #
+    # @cached_property
+    # def districts_arbitrary_names(self):
+    #     if hasattr(self.simplicial_complex_instance, 'variable_names'):
+    #         return self.simplicial_complex_instance.translated_districts
+    #     else:
+    #         return self.simplicial_complex_instance.districts
 
 
 
@@ -621,13 +650,20 @@ class mDAG:
 # Evans 2021: It is possible to have a distribution with 2 variables identical to one another and independent of all others iff they are densely connected
 # So, if node1 and node2 are densely connected in G1 but not in G2, we know that G1 is NOT equivalent to G2.
 
-    @property
+    @cached_property
+    def all_densely_connected_pairs_numeric(self):
+        return np.array([nodepair for nodepair in itertools.combinations(self.visible_nodes, 2) if self.are_densely_connected(*nodepair)])
+    @cached_property
     def all_densely_connected_pairs(self):
-        return [nodepair for nodepair in itertools.combinations(self.visible_nodes, 2) if self.are_densely_connected(*nodepair)]
+        if hasattr(self, 'variable_names'):
+            [partsextractor(self.variable_names, nodepair) for nodepair in self.all_densely_connected_pairs_numeric]
+            return set(map(self.fake_frozenset, np.take(self.variable_names, self.all_densely_connected_pairs_numeric)))
+        else:
+            return set(map(self.fake_frozenset, self.numerical_districts))
 
     def _all_densely_connected_pairs_unlabelled_generator(self):
         for perm in itertools.permutations(self.visible_nodes):
-            yield self.fake_frozenset(map(self.fake_frozenset, np.take(perm, self.all_densely_connected_pairs)))
+            yield self.fake_frozenset(map(self.fake_frozenset, np.take(perm, self.all_densely_connected_pairs_numeric)))
             
     @cached_property
     def all_densely_connected_pairs_unlabelled(self):
@@ -655,8 +691,8 @@ class mDAG:
                 return False
         return True
 
-class labelled_mDAG(mDAG):
-    def __init__(self, labelled_directed_structure_instance, labelled_simplicial_complex_instance):
-        assert labelled_directed_structure_instance.variable_names == labelled_simplicial_complex_instance.variable_names, "Name conflict."
-        self.variable_names = labelled_directed_structure_instance.variable_names
-        super().__init__(labelled_directed_structure_instance, labelled_simplicial_complex_instance)
+# class labelled_mDAG(mDAG):
+#     def __init__(self, labelled_directed_structure_instance, labelled_simplicial_complex_instance):
+#         assert labelled_directed_structure_instance.variable_names == labelled_simplicial_complex_instance.variable_names, "Name conflict."
+#         self.variable_names = labelled_directed_structure_instance.variable_names
+#         super().__init__(labelled_directed_structure_instance, labelled_simplicial_complex_instance)

@@ -312,3 +312,41 @@ class UndirectedGraph:
     def as_edges_unlabelled_integer(self):
         return min(self.edges_bit_array_to_integer(ba) for ba in bit_array_permutations(self.as_edges_bit_array))
 
+class LabelledUndirectedGraph(UndirectedGraph):
+     def __init__(self, variable_names, hyperedges):
+        """
+        There may be MORE variable names than are referenced in the simplicial complex. These are considered unreferenced singletons.
+        There may be FEWER variable names than are referenced in the simplicial complex. In that case we take a subhypergraph.
+        """
+        self.variable_names = tuple(variable_names)
+        self.variable_names_as_frozenset = frozenset(self.variable_names)
+        self.number_of_variables = len(variable_names)
+        assert self.number_of_variables == len(
+            self.variable_names_as_frozenset), "A variable name appears in duplicate."
+        self.edges_with_variable_names = tuple(set(itertools.chain.from_iterable(
+            itertools.combinations(sorted(hyperedge), 2) for hyperedge in hyperedges)))
+        # self.simplicial_complex_with_variable_names_as_set = set(map(frozenset, simplicial_complex)) #To remove duplicates & partially canonicalize.
+        # if self.number_of_variables<len(implicit_variable_names):
+        #     #step 1: remove other variables from every hyperredge
+        #     self.simplicial_complex_with_variable_names_as_set = set(self.variable_names_as_frozenset.intersection(hyperedge)
+        #                                                    for hyperedge in simplicial_complex)
+        #     #step 2: remove dominated hyperredges:
+        #     for dominating_hyperedge in self.simplicial_complex_with_variable_names_as_set:
+        #         for dominated_hyperedge in self.simplicial_complex_with_variable_names_as_set:
+        #             if len(dominated_hyperedge) < len(dominating_hyperedge):
+        #                 if dominated_hyperedge.issubset(dominating_hyperedge):
+        #                     self.simplicial_complex_with_variable_names_as_set.discard(dominated_hyperedge)
+
+        self.variables_as_range = tuple(range(self.number_of_variables))
+        self.translation_dict = dict(zip(self.variable_names, self.variables_as_range))
+        self.variable_are_range = False
+        if all(isinstance(v, int) for v in self.variable_names):
+            if np.array_equal(self.variable_names, self.variables_as_range):
+                self.variable_are_range = True
+                self.numerical_edges = self.edges_with_variable_names
+        if not self.variable_are_range:
+            self.numerical_edges = [partsextractor(self.translation_dict, edge) for edge in
+                                                 self.edges_with_variable_names]
+        super().__init__(self.numerical_edges, self.number_of_variables)
+        self.as_string = stringify_in_list(map(stringify_in_tuple, self.edges_with_variable_names))
+
