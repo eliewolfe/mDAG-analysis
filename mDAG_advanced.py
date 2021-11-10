@@ -222,7 +222,7 @@ class mDAG:
     #                                n, self.all_esep
     #                                )
     # def smart_infeasible_supports_n_events_card_3(self, n, **kwargs):
-    #       return self.fake_frozenset(self.smart_support_testing_instance_card_3(n).smart_unique_infeasible_supports(**kwargs, name='mgh', use_timer=False))
+    #       return self.fake_frozenset(self.smart_support_testing_instance_card_3(n).unique_infeasible_supports_beyond_esep_as_integers(**kwargs, name='mgh', use_timer=False))
     #
     # def smart_support_testing_instance_card_4(self, n):
     #     return SmartSupportTesting(self.parents_of_for_supports_analysis,
@@ -230,45 +230,67 @@ class mDAG:
     #                                n, self.all_esep
     #                                )
     # def smart_infeasible_supports_n_events_card_4(self, n, **kwargs):
-    #       return self.fake_frozenset(self.smart_support_testing_instance_card_4(n).smart_unique_infeasible_supports(**kwargs, name='mgh', use_timer=False))
+    #       return self.fake_frozenset(self.smart_support_testing_instance_card_4(n).unique_infeasible_supports_beyond_esep_as_integers(**kwargs, name='mgh', use_timer=False))
     #
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def smart_support_testing_instance(self, n):
-        return SmartSupportTesting(self.parents_of_for_supports_analysis,
-                                   np.broadcast_to(2, self.number_of_visible),
-                                   n, self.all_esep_numeric
+    def support_testing_instance_binary(self, n):
+        return SmartSupportTesting(parents_of=self.parents_of_for_supports_analysis,
+                                   observed_cardinalities=np.broadcast_to(2, self.number_of_visible),
+                                   nof_events=n,
+                                   esep_relations=self.all_esep_numeric
+                                   )
+
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def support_testing_instance(self, observed_cardinalities, n):
+        return SmartSupportTesting(parents_of=self.parents_of_for_supports_analysis,
+                                   observed_cardinalities=observed_cardinalities,
+                                   nof_events=n,
+                                   esep_relations=self.all_esep_numeric
                                    )
 
     def infeasible_binary_supports_n_events(self, n, **kwargs):
-        return self.fake_frozenset(self.smart_support_testing_instance(n).unique_infeasible_supports(**kwargs, name='mgh', use_timer=False))
+        return self.fake_frozenset(self.support_testing_instance_binary(n).unique_infeasible_supports_as_integers(**kwargs, name='mgh', use_timer=False))
+    def infeasible_binary_supports_n_events_beyond_esep(self, n, **kwargs):
+        return self.fake_frozenset(self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_integers(**kwargs, name='mgh', use_timer=False))
 
-    def smart_infeasible_binary_supports_n_events(self, n, **kwargs):
-        return self.fake_frozenset(self.smart_support_testing_instance(n).smart_unique_infeasible_supports(**kwargs, name='mgh', use_timer=False))
+    def infeasible_binary_supports_n_events_as_matrices(self, n, **kwargs):
+        return self.fake_frozenset(self.support_testing_instance_binary(n).unique_infeasible_supports_as_matrices(**kwargs, name='mgh', use_timer=False))
+    def infeasible_binary_supports_n_events_beyond_esep_as_matrices(self, n, **kwargs):
+        return self.fake_frozenset(self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_matrices(**kwargs, name='mgh', use_timer=False))
 
     def infeasible_binary_supports_n_events_unlabelled(self, n, **kwargs):
-        return self.fake_frozenset(self.smart_support_testing_instance(n).unique_infeasible_supports_unlabelled(**kwargs, name='mgh', use_timer=False))
+        return self.fake_frozenset(self.support_testing_instance_binary(n).unique_infeasible_supports_unlabelled(**kwargs, name='mgh', use_timer=False))
+    def infeasible_binary_supports_n_events_beyond_esep_unlabelled(self, n, **kwargs):
+        return self.fake_frozenset(self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_integers_unlabelled(**kwargs, name='mgh', use_timer=False))
 
-    def smart_infeasible_binary_supports_n_events_unlabelled(self, n, **kwargs):
-        return self.fake_frozenset(self.smart_support_testing_instance(n).smart_unique_infeasible_supports_unlabelled(**kwargs, name='mgh', use_timer=False))
+    def no_infeasible_binary_supports_beyond_esep(self, n, **kwargs):
+        return self.support_testing_instance_binary(n).no_infeasible_supports_beyond_esep(**kwargs, name='mgh', use_timer=False)
+    def no_infeasible_binary_supports_beyond_esep_up_to(self, max_n, **kwargs):
+        return all(self.no_infeasible_binary_supports_beyond_esep(n, **kwargs) for n in range(2, max_n + 1))
 
-    def no_infeasible_supports_up_to(self, max_n, **kwargs):
-        return all(self.smart_support_testing_instance(n).no_infeasible_supports(**kwargs, name='mgh', use_timer=False) for
-                   n in range(2,max_n+1))
+    def infeasible_binary_supports_beyond_esep_up_to(self, max_n, **kwargs):
+        return np.fromiter(itertools.chain.from_iterable(
+            (self.infeasible_binary_supports_n_events_beyond_esep(n, **kwargs) for n in range(2, max_n + 1))),
+            dtype=int)
+    def infeasible_binary_supports_up_to(self, max_n, **kwargs):
+        return np.fromiter(itertools.chain.from_iterable(
+            (self.infeasible_binary_supports_n_events(n, **kwargs) for n in range(2, max_n + 1))),
+            dtype=int)
 
-    def no_infeasible_supports_beyond_esep_up_to(self, max_n, **kwargs):
-        return all(self.smart_support_testing_instance(n).no_infeasible_supports_beyond_esep(**kwargs, name='mgh', use_timer=False) for
-                   n in range(2,max_n+1))
-    def no_infeasible_supports_n_events(self, n, **kwargs):
-        if len(self.all_esep_numeric)==0:
-            return self.smart_support_testing_instance(n).no_infeasible_supports(**kwargs, name='mgh', use_timer=False)
-        else:
-            return False
+    def infeasible_binary_supports_beyond_esep_as_matrices_up_to(self, max_n, **kwargs):
+        return list(itertools.chain.from_iterable(
+            (self.infeasible_binary_supports_n_events_beyond_esep_as_matrices(n, **kwargs) for n in range(2, max_n + 1))))
+    def infeasible_binary_supports_as_matrices_up_to(self, max_n, **kwargs):
+        return list(itertools.chain.from_iterable(
+            (self.infeasible_binary_supports_n_events(n, **kwargs) for n in range(2, max_n + 1))))
 
-    def no_infeasible_supports_up_to(self, max_n, **kwargs):
-        return all(self.no_infeasible_supports_n_events(n, **kwargs) for n in range(2,max_n+1))
+    def no_infeasible_binary_supports_n_events(self, n, **kwargs):
+        return self.support_testing_instance_binary(n).no_infeasible_supports(**kwargs, name='mgh', use_timer=False)
+    def no_infeasible_binary_supports_up_to(self, max_n, **kwargs):
+        return all(self.no_infeasible_binary_supports_n_events(n, **kwargs) for n in range(2, max_n + 1))
 
-    # def no_infeasible_supports_up_to(self, max_n, **kwargs):
+    # def no_infeasible_binary_supports_up_to(self, max_n, **kwargs):
     #     return all(len(self.infeasible_binary_supports_n_events(n, **kwargs))==0 for n in range(2,max_n+1))
 
 

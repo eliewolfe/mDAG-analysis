@@ -142,9 +142,9 @@ class SupportTester(object):
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def feasibleQ_from_integer(self, occurring_events_as_integer, **kwargs):
-        return self.feasibleQ(self.from_integer_to_matrix(occurring_events_as_integer), **kwargs)
+        return self.feasibleQ_from_matrix(self.from_integer_to_matrix(occurring_events_as_integer), **kwargs)
 
-    def feasibleQ(self, occurring_events, **kwargs):
+    def feasibleQ_from_matrix(self, occurring_events, **kwargs):
         with Solver(bootstrap_with=self._sat_solver_clauses(occurring_events), **kwargs) as s:
             return (s.solve(), s.time())
 
@@ -252,19 +252,23 @@ class SupportTesting(SupportTester):
 
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def unique_infeasible_supports(self, verbose=False, **kwargs):
+    def unique_infeasible_supports_as_integers(self, verbose=False, **kwargs):
         """
         Return a signature of infeasible support for a given parents_of, observed_cardinalities, and nof_events
         :param kwargs: optional arguments to pysat.Solver
         CHANGED: Now returns each infeasible support as a single integer.
         """
-        return [occuring_events_as_int for occuring_events_as_int in self.unique_candidate_supports_to_iterate(verbose) if
-             not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0]]
+        return np.fromiter((occuring_events_as_int for occuring_events_as_int in self.unique_candidate_supports_to_iterate(verbose) if
+             not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0]), dtype=int)
+
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def unique_infeasible_supports_as_matrices(self, **kwargs):
+        return self.from_integer_to_matrix(self.unique_infeasible_supports_as_integers(**kwargs))
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_unlabelled(self, **kwargs):
         return np.unique(np.amin(self.from_list_to_integer(
-            np.sort(self.universal_relabelling_group[:, self.from_integer_to_list(self.unique_infeasible_supports(**kwargs))])
+            np.sort(self.universal_relabelling_group[:, self.from_integer_to_list(self.unique_infeasible_supports_as_integers(**kwargs))])
         ), axis=0))
 
     @methodtools.lru_cache(maxsize=None, typed=False)
@@ -292,7 +296,7 @@ class CumulativeSupportTesting:
     def _all_infeasible_supports(self):
         for nof_events in range(2, self.max_nof_events+1):
             yield SupportTesting(self.parents_of, self.observed_cardinalities, nof_events
-                                 ).unique_infeasible_supports(name='mgh', use_timer=False)
+                                 ).unique_infeasible_supports_as_integers(name='mgh', use_timer=False)
 
     @property
     def _all_infeasible_supports_unlabelled(self):
@@ -349,9 +353,9 @@ if __name__ == '__main__':
     # st = SupportTesting(parents_of, observed_cardinalities, nof_events)
     #
     # occuring_events_temp = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
-    # print(st.feasibleQ(occuring_events_temp, name='mgh', use_timer=True))
+    # print(st.feasibleQ_from_matrix(occuring_events_temp, name='mgh', use_timer=True))
     # occuring_events_temp = [(0, 0, 0), (0, 1, 0), (0, 0, 1)]
-    # print(st.feasibleQ(occuring_events_temp, name='mgh', use_timer=True))
+    # print(st.feasibleQ_from_matrix(occuring_events_temp, name='mgh', use_timer=True))
 
     st = SupportTesting(parents_of, observed_cardinalities, 3)
     inf = st.unique_infeasible_supports_unlabelled(name='mgh', use_timer=False)
@@ -360,13 +364,13 @@ if __name__ == '__main__':
     # sample2 = st.unique_candidate_supports
     # print(st.unique_candidate_supports)
     # print(st.visualize_supports(st.unique_candidate_supports))
-    # inf2 = st.unique_infeasible_supports(name='mgh', use_timer=False)
+    # inf2 = st.unique_infeasible_supports_as_integers(name='mgh', use_timer=False)
     # print(inf2)
     # print(st.devisualize_supports(inf2))
     # print(st.extreme_devisualize_supports(inf2))
     # st = SupportTesting(parents_of, observed_cardinalities, 3)
     # # sample3 = st.unique_candidate_supports
-    # inf3 = st.unique_infeasible_supports(name='mgh', use_timer=False)
+    # inf3 = st.unique_infeasible_supports_as_integers(name='mgh', use_timer=False)
     # print(inf3)
     # print(st.devisualize_supports(inf3))
     # print(st.extreme_devisualize_supports(inf3))

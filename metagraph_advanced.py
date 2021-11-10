@@ -477,7 +477,7 @@ if __name__ == '__main__':
 #     print("Same esep=",G_Instr.all_esep_unlabelled== G_UC.all_esep_unlabelled)
 #     for k in range(2,9):
 #       print("Same Supports at",k,"events=",G_Instr.infeasible_binary_supports_n_events_unlabelled(k)==G_UC.infeasible_binary_supports_n_events_unlabelled(k))
-#       print("Same Smart Supports at",k,"events=",G_Instr.smart_infeasible_binary_supports_n_events_unlabelled(k)==G_UC.smart_infeasible_binary_supports_n_events_unlabelled(k))
+#       print("Same Smart Supports at",k,"events=",G_Instr.infeasible_binary_supports_n_events_beyond_esep_unlabelled(k)==G_UC.infeasible_binary_supports_n_events_beyond_esep_unlabelled(k))
 # =============================================================================
 
 
@@ -563,7 +563,7 @@ if __name__ == '__main__':
 #     for mDAG in Observable_mDAGs4.representative_mDAGs_list:
 #      print(i,"of",len(Observable_mDAGs4.representative_mDAGs_list))
 #      i=i+1
-#      if mDAG.no_infeasible_supports_beyond_esep_up_to(5):
+#      if mDAG.no_infeasible_binary_supports_beyond_esep_up_to(5):
 #          no_inf_sups_beyond_esep4.append(mDAG)
 #     
 #     len(no_inf_sups_beyond_esep4)
@@ -574,7 +574,7 @@ if __name__ == '__main__':
 #     for mDAG in Observable_mDAGs3.representative_mDAGs_list:
 #      print(i,"of",len(Observable_mDAGs3.representative_mDAGs_list))
 #      i=i+1
-#      if mDAG.no_infeasible_supports_beyond_esep_up_to(5):
+#      if mDAG.no_infeasible_binary_supports_beyond_esep_up_to(5):
 #          no_inf_sups_beyond_esep3.append(mDAG)
 #     
 #     len(no_inf_sups_beyond_esep3)
@@ -616,10 +616,10 @@ if __name__ == '__main__':
 #             eqclass_adjmat[i,j] = metagraph_adjmat[c1].any(axis=0)[c2].any()
 #     print(eqclass_adjmat.astype(int))
 # 
-#     [mDAG for mDAG in Observable_mDAGs.singletons_dict[3] if mDAG.no_infeasible_supports_up_to(4)]
+#     [mDAG for mDAG in Observable_mDAGs.singletons_dict[3] if mDAG.no_infeasible_binary_supports_up_to(4)]
 # 
-#    [non_singleton_set for non_singleton_set in Observable_mDAGs.non_singletons_dict[3] if next(iter(non_singleton_set)).smart_support_testing_instance(5).no_infeasible_supports()]
+#    [non_singleton_set for non_singleton_set in Observable_mDAGs.non_singletons_dict[3] if next(iter(non_singleton_set)).support_testing_instance_binary(5).no_infeasible_supports()]
 # 
-#     next(iter([non_singleton_set for non_singleton_set in Observable_mDAGs.non_singletons_dict[3] if next(iter(non_singleton_set)).no_infeasible_supports_up_to(3)]))
+#     next(iter([non_singleton_set for non_singleton_set in Observable_mDAGs.non_singletons_dict[3] if next(iter(non_singleton_set)).no_infeasible_binary_supports_up_to(3)]))
 # 
 # =============================================================================

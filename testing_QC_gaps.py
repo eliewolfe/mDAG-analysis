@@ -35,7 +35,7 @@ for c in Observable_mDAGs4.foundational_eqclasses:
 G_Instrumental=mDAG(DirectedStructure( [(0,1),(1,2)],3),Hypergraph([(0,),(1,2)],3))
 
 for i in range(2,9):
-    infeasible = G_Instrumental.smart_infeasible_binary_supports_n_events(i)
+    infeasible = G_Instrumental.infeasible_binary_supports_n_events_beyond_esep(i)
     print(infeasible)
     
 for c in Observable_mDAGs3.foundational_eqclasses:
@@ -57,7 +57,7 @@ for c in Observable_mDAGs3.foundational_eqclasses:
             print(element in no_inf_sups_beyond_esep3)
 
 for i in range(2,9):
-    infeasible = G_Evans.smart_infeasible_binary_supports_n_events(i)
+    infeasible = G_Evans.infeasible_binary_supports_n_events_beyond_esep(i)
     print(infeasible)
 
 for i in range(2,9):

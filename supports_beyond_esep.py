@@ -86,23 +86,34 @@ class SmartSupportTesting(SupportTesting):
         super().__init__(parents_of, observed_cardinalities, nof_events)
         self.esep_relations = tuple(esep_relations)
 
-    def trivial_infeasible_support_Q(self, candidate_s):
+    def trivial_infeasible_support_Q_from_matrix(self, candidate_s):
         return any(does_this_esep_rule_out_this_support(*map(list,e_sep), candidate_s) for e_sep in self.esep_relations)
+
+    #REDEFINITION!
+    def feasibleQ_from_matrix(self, occurring_events, **kwargs):
+        if not self.trivial_infeasible_support_Q_from_matrix(occurring_events):
+            return super().feasibleQ_from_matrix(occurring_events, **kwargs)
+        else:
+            return False
 
     # @property
     # def _smart_unique_candidate_supports(self):
     #     to_filter = self.visualize_supports(self.unique_candidate_supports)
     #     for idx, candidate_s in enumerate(to_filter):
-    #         if not self.trivial_infeasible_support_Q(candidate_s):
+    #         if not self.trivial_infeasible_support_Q_from_matrix(candidate_s):
     #             yield idx
     @cached_property
     def _trivially_infeasible_support_picklist(self):
         to_filter = self.from_list_to_matrix(self.unique_candidate_supports)
-        return np.fromiter(map(self.trivial_infeasible_support_Q, to_filter), bool)
+        return np.fromiter(map(self.trivial_infeasible_support_Q_from_matrix, to_filter), bool)
 
     @cached_property
     def trivially_infeasible_supports_as_integers(self):
         return np.asarray(self.unique_candidate_supports_as_integers, dtype=np.intp)[self._trivially_infeasible_support_picklist]
+
+    @cached_property
+    def trivially_infeasible_supports_as_matrices(self):
+        return self.from_integer_to_matrix(self.trivially_infeasible_supports_as_integers)
 
     @cached_property
     def smart_unique_candidate_supports_as_integers(self):
@@ -122,25 +133,51 @@ class SmartSupportTesting(SupportTesting):
 
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def smart_unique_infeasible_supports(self, verbose=False, **kwargs):
+    def unique_infeasible_supports_beyond_esep_as_integers(self, verbose=False, **kwargs):
         """
         Return a signature of infeasible support for a given parents_of, observed_cardinalities, and nof_events
         :param kwargs: optional arguments to pysat.Solver
         CHANGED: Now returns each infeasible support as a single integer.
         """
-        return [occuring_events_as_int for occuring_events_as_int in self.smart_unique_candidate_supports_to_iterate(verbose) if
-             not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0]]
+        return np.fromiter((occuring_events_as_int for occuring_events_as_int in self.smart_unique_candidate_supports_to_iterate(verbose) if
+             not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0]), dtype=int)
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def smart_unique_infeasible_supports_unlabelled(self, **kwargs):
+    def unique_infeasible_supports_beyond_esep_as_matrices(self, **kwargs):
+        return self.from_integer_to_matrix(self.unique_infeasible_supports_beyond_esep_as_integers(**kwargs))
+
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def unique_infeasible_supports_beyond_esep_as_integers_unlabelled(self, **kwargs):
         return np.unique(np.amin(self.from_list_to_integer(
-            np.sort(self.universal_relabelling_group[:, self.from_integer_to_list(self.smart_unique_infeasible_supports(**kwargs))])
+            np.sort(self.universal_relabelling_group[:, self.from_integer_to_list(self.unique_infeasible_supports_beyond_esep_as_integers(**kwargs))])
         ), axis=0))
+
+
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def unique_infeasible_supports_as_integers(self, **kwargs):
+        """
+        Return a signature of infeasible support for a given parents_of, observed_cardinalities, and nof_events
+        :param kwargs: optional arguments to pysat.Solver
+        CHANGED: Now returns each infeasible support as a single integer.
+        """
+        return np.sort(np.hstack((self.unique_infeasible_supports_beyond_esep_as_integers(**kwargs),
+                          self.trivially_infeasible_supports_as_integers)))
+
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def unique_infeasible_supports_as_matrices(self, **kwargs):
+        return self.from_integer_to_matrix(self.unique_infeasible_supports_as_integers(**kwargs))
+
+    def unique_infeasible_supports_as_integers_unlabelled(self, **kwargs):
+        return np.unique(np.amin(self.from_list_to_integer(
+            np.sort(self.universal_relabelling_group[:, self.from_integer_to_list(self.unique_infeasible_supports_as_integers(**kwargs))])
+        ), axis=0))
+
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def no_infeasible_supports_beyond_esep(self, verbose=False, **kwargs):
         return all(self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0] for occuring_events_as_int in
                    self.smart_unique_candidate_supports_to_iterate(verbose))
+
 
 
 
@@ -159,26 +196,26 @@ if __name__ == '__main__':
     #
     # print(instrumental.infeasible_binary_supports_n_events(3, verbose=False))
     # print(UC.infeasible_binary_supports_n_events(3, verbose=False))
-    # print(instrumental.smart_infeasible_binary_supports_n_events(3, verbose=False))
-    # print(UC.smart_infeasible_binary_supports_n_events(3, verbose=False))
+    # print(instrumental.infeasible_binary_supports_n_events_beyond_esep(3, verbose=False))
+    # print(UC.infeasible_binary_supports_n_events_beyond_esep(3, verbose=False))
     # print(instrumental.infeasible_binary_supports_n_events(4, verbose=False))
     # print(UC.infeasible_binary_supports_n_events(4, verbose=False))
-    # print(instrumental.smart_infeasible_binary_supports_n_events(4, verbose=False))
-    # print(UC.smart_infeasible_binary_supports_n_events(4, verbose=False))
+    # print(instrumental.infeasible_binary_supports_n_events_beyond_esep(4, verbose=False))
+    # print(UC.infeasible_binary_supports_n_events_beyond_esep(4, verbose=False))
     # print(to_bits(instrumental.infeasible_binary_supports_n_events(3, verbose=False), mantissa=3))
     # print(to_bits(UC.infeasible_binary_supports_n_events(3, verbose=False), mantissa=3))
-    # print(to_bits(instrumental.smart_infeasible_binary_supports_n_events(3, verbose=False), mantissa=3))
-    # print(to_bits(UC.smart_infeasible_binary_supports_n_events(3, verbose=False), mantissa=3))
+    # print(to_bits(instrumental.infeasible_binary_supports_n_events_beyond_esep(3, verbose=False), mantissa=3))
+    # print(to_bits(UC.infeasible_binary_supports_n_events_beyond_esep(3, verbose=False), mantissa=3))
     # print(to_bits(instrumental.infeasible_binary_supports_n_events(4, verbose=False), mantissa=3))
     # print(to_bits(UC.infeasible_binary_supports_n_events(4, verbose=False), mantissa=3))
-    # print(to_bits(instrumental.smart_infeasible_binary_supports_n_events(4, verbose=False), mantissa=3))
-    # print(to_bits(UC.smart_infeasible_binary_supports_n_events(4, verbose=False), mantissa=3))
+    # print(to_bits(instrumental.infeasible_binary_supports_n_events_beyond_esep(4, verbose=False), mantissa=3))
+    # print(to_bits(UC.infeasible_binary_supports_n_events_beyond_esep(4, verbose=False), mantissa=3))
 
 
     # print(set(instrumental.infeasible_binary_supports_n_events(4, verbose=False)).difference(
     #     UC.infeasible_binary_supports_n_events(4, verbose=False)))
-    # print(set(instrumental.smart_infeasible_binary_supports_n_events(4, verbose=False)).difference(
-    #     UC.smart_infeasible_binary_supports_n_events(4, verbose=False)))
+    # print(set(instrumental.infeasible_binary_supports_n_events_beyond_esep(4, verbose=False)).difference(
+    #     UC.infeasible_binary_supports_n_events_beyond_esep(4, verbose=False)))
 
 
     s = np.asarray(
@@ -215,10 +252,10 @@ if __name__ == '__main__':
 
     print(md2.all_esep)
 
-    print(set(md2.smart_infeasible_binary_supports_n_events(4, verbose=True)).difference(md1.smart_infeasible_binary_supports_n_events(4, verbose=True)))
+    print(set(md2.infeasible_binary_supports_n_events_beyond_esep(4, verbose=True)).difference(md1.infeasible_binary_supports_n_events_beyond_esep(4, verbose=True)))
     print(to_digits(to_digits(9786, np.broadcast_to(2 ** 5, 4)), np.broadcast_to(2, 5)))
     # #Cool, it works great.
 
     #Now testing memoization
-    print(set(md2.smart_infeasible_binary_supports_n_events_unlabelled(4, verbose=True)))
+    print(set(md2.infeasible_binary_supports_n_events_beyond_esep_unlabelled(4, verbose=True)))
     print(set(md2.infeasible_binary_supports_n_events_unlabelled(4, verbose=True)))

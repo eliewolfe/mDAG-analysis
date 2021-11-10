@@ -25,7 +25,7 @@ G.all_CI==G_relabeled.all_CI
 
 G.all_esep==G_relabeled.all_esep
 
-G.smart_infeasible_binary_supports_n_events(4)==G_relabeled.smart_infeasible_binary_supports_n_events(4)
+G.infeasible_binary_supports_n_events_beyond_esep(4) == G_relabeled.infeasible_binary_supports_n_events_beyond_esep(4)
 
 G1=mDAG(DirectedStructure([],4),Hypergraph([(0,3),(1,2),(1,3),(2,3)],4))
 G1.all_CI   #symmetry: 2 <-> 3
@@ -38,7 +38,7 @@ G1.all_CI==G1_relabeled.all_CI
 
 G1.all_esep==G1_relabeled.all_esep
 
-G1.smart_infeasible_binary_supports_n_events(4)==G1_relabeled.smart_infeasible_binary_supports_n_events(4)
+G1.infeasible_binary_supports_n_events_beyond_esep(4) == G1_relabeled.infeasible_binary_supports_n_events_beyond_esep(4)
 
 =======
 # -*- coding: utf-8 -*-
@@ -67,7 +67,7 @@ G.all_CI==G_relabeled.all_CI
 
 G.all_esep==G_relabeled.all_esep
 
-G.smart_infeasible_binary_supports_n_events(4)==G_relabeled.smart_infeasible_binary_supports_n_events(4)
+G.infeasible_binary_supports_n_events_beyond_esep(4) == G_relabeled.infeasible_binary_supports_n_events_beyond_esep(4)
 
 G1=mDAG(DirectedStructure([],4),Hypergraph([(0,3),(1,2),(1,3),(2,3)],4))
 G1.all_CI   #symmetry: 2 <-> 3
@@ -80,6 +80,6 @@ G1.all_CI==G1_relabeled.all_CI
 
 G1.all_esep==G1_relabeled.all_esep
 
-G1.smart_infeasible_binary_supports_n_events(4)==G1_relabeled.smart_infeasible_binary_supports_n_events(4)
+G1.infeasible_binary_supports_n_events_beyond_esep(4) == G1_relabeled.infeasible_binary_supports_n_events_beyond_esep(4)
 
 >>>>>>> 92e971daefa458241ae6e8e3f89f81fd6271f406
