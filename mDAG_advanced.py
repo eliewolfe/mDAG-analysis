@@ -17,7 +17,7 @@ from collections import defaultdict
 # from supports import SupportTesting
 from supports_beyond_esep import SmartSupportTesting
 from hypergraphs import UndirectedGraph, Hypergraph, LabelledHypergraph
-# import methodtools
+import methodtools
 from directed_structures import LabelledDirectedStructure, DirectedStructure
 from closure import closure as numeric_closure, is_this_subadjmat_densely_connected
 
@@ -194,23 +194,24 @@ class mDAG:
     #Let's use smart support testing for both smart and not.
     #@methodtools.lru_cache(maxsize=None, typed=False)
     
-    def smart_support_testing_instance_card_3(self, n):
-        return SmartSupportTesting(self.parents_of_for_supports_analysis,
-                                   (3,2,2),
-                                   n, self.all_esep
-                                   )
-    def smart_infeasible_supports_n_events_card_3(self, n, **kwargs):
-          return self.fake_frozenset(self.smart_support_testing_instance_card_3(n).smart_unique_infeasible_supports(**kwargs, name='mgh', use_timer=False))
-    
-    def smart_support_testing_instance_card_4(self, n):
-        return SmartSupportTesting(self.parents_of_for_supports_analysis,
-                                   (4,2,2),
-                                   n, self.all_esep
-                                   )
-    def smart_infeasible_supports_n_events_card_4(self, n, **kwargs):
-          return self.fake_frozenset(self.smart_support_testing_instance_card_4(n).smart_unique_infeasible_supports(**kwargs, name='mgh', use_timer=False))
-    
-    
+    # def smart_support_testing_instance_card_3(self, n):
+    #     return SmartSupportTesting(self.parents_of_for_supports_analysis,
+    #                                (3,2,2),
+    #                                n, self.all_esep
+    #                                )
+    # def smart_infeasible_supports_n_events_card_3(self, n, **kwargs):
+    #       return self.fake_frozenset(self.smart_support_testing_instance_card_3(n).smart_unique_infeasible_supports(**kwargs, name='mgh', use_timer=False))
+    #
+    # def smart_support_testing_instance_card_4(self, n):
+    #     return SmartSupportTesting(self.parents_of_for_supports_analysis,
+    #                                (4,2,2),
+    #                                n, self.all_esep
+    #                                )
+    # def smart_infeasible_supports_n_events_card_4(self, n, **kwargs):
+    #       return self.fake_frozenset(self.smart_support_testing_instance_card_4(n).smart_unique_infeasible_supports(**kwargs, name='mgh', use_timer=False))
+    #
+
+    @methodtools.lru_cache(maxsize=None, typed=False)
     def smart_support_testing_instance(self, n):
         return SmartSupportTesting(self.parents_of_for_supports_analysis,
                                    np.broadcast_to(2, self.number_of_visible),
