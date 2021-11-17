@@ -672,7 +672,7 @@ class mDAG:
 
     @cached_property
     def all_densely_connected_pairs_numeric(self):
-        return np.array([nodepair for nodepair in itertools.combinations(self.visible_nodes, 2) if self.are_densely_connected(*nodepair)])
+        return np.array([nodepair for nodepair in itertools.combinations(self.visible_nodes, 2) if self.are_densely_connected(*nodepair)], dtype=int)
     @cached_property
     def all_densely_connected_pairs(self):
         if hasattr(self, 'variable_names'):

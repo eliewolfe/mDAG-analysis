@@ -58,8 +58,13 @@ def classify_by_attributes(representatives, attributes, verbose=False):
     else:
         return tuple(representatives)
 
-def further_classify_by_attributes(eqclasses, attributes, verbose=False):
-    return tuple(itertools.chain.from_iterable((classify_by_attributes(representatives, attributes, verbose) for representatives in eqclasses)))
+def further_classify_by_attributes(eqclasses, attributes, verbose=True):
+    if verbose:
+        return tuple(itertools.chain.from_iterable(
+            (classify_by_attributes(representatives, attributes, verbose=False) for representatives in progressbar.progressbar(
+                eqclasses, widgets=[progressbar.SimpleProgress(), progressbar.Bar(), ' (', progressbar.ETA(), ') ']))))
+    else:
+        return tuple(itertools.chain.from_iterable((classify_by_attributes(representatives, attributes, verbose=False) for representatives in eqclasses)))
 
 
 def multiple_classifications(*args):
@@ -427,8 +432,8 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
         self.non_singletons_dict = dict({1: sorted(
             filter(lambda eqclass: (len(eqclass) > 1 and not self.effectively_all_singletons(eqclass)),
                    self.Dense_connectedness_and_esep), key=len)})
-        print("# of singleton classes from ESEP+ Dense Conectedness + Prop 6.8: ", len(self.singletons_dict[1]))
-        print("# of non-singleton classes from ESEP+ Dense Conectedness + Prop 6.8: ", self.lowerbound_count_accounting_for_hypergraph_inequivalence(self.non_singletons_dict[1]),
+        print("# of singleton classes from also considering Dense Connectedness: ", len(self.singletons_dict[1]))
+        print("# of non-singleton classes from also considering Dense Connectedness: ", self.lowerbound_count_accounting_for_hypergraph_inequivalence(self.non_singletons_dict[1]),
               ", comprising {} total foundational graph patterns (no repetitions)".format(
                   ilen(itertools.chain.from_iterable(self.non_singletons_dict[1]))))
 
@@ -445,16 +450,16 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
             self.non_singletons_dict[k] = sorted(
                 filter(lambda eqclass: (len(eqclass) > 1 and not self.effectively_all_singletons(eqclass)),
                        smart_supports_dict[k]), key=len)
-            print("# of singleton classes from ESEP+ Dense Conectedness + Prop 6.8+Supports Up To {}: ".format(k), len(self.singletons_dict[k]))
-            print("# of non-singleton classes from ESEP+ Dense Conectedness + Prop 6.8+Supports Up To {}: ".format(k), self.lowerbound_count_accounting_for_hypergraph_inequivalence(self.non_singletons_dict[k]),
+            print("# of singleton classes from also considering Supports Up To {}: ".format(k), len(self.singletons_dict[k]))
+            print("# of non-singleton classes from also considering Supports Up To {}: ".format(k), self.lowerbound_count_accounting_for_hypergraph_inequivalence(self.non_singletons_dict[k]),
                   ", comprising {} total foundational graph patterns".format(
                       ilen(itertools.chain.from_iterable(self.non_singletons_dict[k]))))     
    
 
 if __name__ == '__main__':
-    Observable_mDAGs2 = Observable_mDAGs_Analysis(nof_observed_variables=2, max_nof_events_for_supports=0)
-    Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
-    Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
+    # Observable_mDAGs2 = Observable_mDAGs_Analysis(nof_observed_variables=2, max_nof_events_for_supports=0)
+    # Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
+    Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=3)
 
 
     
