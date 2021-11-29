@@ -442,7 +442,7 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
             print("[Working on nof_events={}]".format(k))
             # I changed the line below
             smart_supports_dict[k] = further_classify_by_attributes(self.non_singletons_dict[k - 1],
-                                                            [('infeasible_binary_supports_n_events_unlabelled',
+                                                            [('infeasible_binary_supports_n_events_beyond_esep_unlabelled',
                                                               k)], verbose=True)
             self.singletons_dict[k] = list(itertools.chain.from_iterable(
                 filter(lambda eqclass: (len(eqclass) == 1 or self.effectively_all_singletons(eqclass)),
@@ -459,7 +459,7 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
 if __name__ == '__main__':
     # Observable_mDAGs2 = Observable_mDAGs_Analysis(nof_observed_variables=2, max_nof_events_for_supports=0)
     # Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
-    Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=3)
+    Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=2)
 
 
     
