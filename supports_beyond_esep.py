@@ -94,7 +94,7 @@ class SmartSupportTesting(SupportTesting):
         if not self.trivial_infeasible_support_Q_from_matrix(occurring_events):
             return super().feasibleQ_from_matrix(occurring_events, **kwargs)
         else:
-            return False
+            return (False, 0) #Timing of zero.
 
     # @property
     # def _smart_unique_candidate_supports(self):
@@ -176,6 +176,12 @@ class SmartSupportTesting(SupportTesting):
         :param kwargs: optional arguments to pysat.Solver
         CHANGED: Now returns each infeasible support as a single integer.
         """
+        # new_method = np.sort(np.hstack((self.unique_infeasible_supports_beyond_esep_as_integers(**kwargs),
+        #                   self.trivially_infeasible_supports_as_integers)))
+        # old_method = np.fromiter((occuring_events_as_int for occuring_events_as_int in self.unique_candidate_supports_as_integers if
+        #      not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0]), dtype=int)
+        # assert np.array_equal(new_method, old_method), "We have a problem!"
+        # return new_method
         return np.sort(np.hstack((self.unique_infeasible_supports_beyond_esep_as_integers(**kwargs),
                           self.trivially_infeasible_supports_as_integers)))
 
