@@ -374,6 +374,7 @@ class Observable_unlabelled_mDAGs:
             zip(self.representatives_for_only_hypergraphs, self.representative_mDAGs_list) if
                 mDAG_by_hypergraph.n_of_edges==0]
 
+
     
     
     def Only_Hypergraphs_Rule(self, given_classification):  
@@ -458,12 +459,36 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
 
 if __name__ == '__main__':
     # Observable_mDAGs2 = Observable_mDAGs_Analysis(nof_observed_variables=2, max_nof_events_for_supports=0)
-    # Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
-    Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=3)
+    #Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
+    Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
 
-
+    no_hypergraph_classes=[]    
+    for eqclass in Observable_mDAGs4.equivalence_classes_as_mDAGs:
+        for mDAG in eqclass:
+            if len(mDAG.simplicial_complex_instance.compressed_simplicial_complex)==0:
+                no_hypergraph_classes.append(eqclass)
+                break
+            
+    len(no_hypergraph_classes)
+            
+    CI_alone=[]
+    for CIclass in Observable_mDAGs4.CI_classes:
+        if len(CIclass)==1:
+            CI_alone.append(CIclass)
     
+    len(CI_alone)
 
+
+# =============================================================================
+#     len(Observable_mDAGs3.Skeleton_classes)
+#     len(Observable_mDAGs3.Dense_connectedness_classes)
+#     len(Observable_mDAGs3.Skeleton_and_CI)
+#     len(Observable_mDAGs3.Dense_connectedness_and_Skeleton)
+#     len(Observable_mDAGs3.Skeleton_and_esep)
+#     len(Observable_mDAGs3.Dense_connectedness_and_esep)
+#     len(Observable_mDAGs3.esep_classes)
+# 
+# =============================================================================
 
         
 # =============================================================================

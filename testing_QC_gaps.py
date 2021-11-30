@@ -6,6 +6,7 @@ from directed_structures import DirectedStructure
 from mDAG_advanced import mDAG
 
 G_Bell=mDAG(DirectedStructure([(0,3),(1,2)],4),Hypergraph([(0,),(1,),(2,3)],4))
+len(G_Bell.simplicial_complex_instance.compressed_simplicial_complex)
 
 for c in Observable_mDAGs4.foundational_eqclasses:
     if G_Bell in c:
