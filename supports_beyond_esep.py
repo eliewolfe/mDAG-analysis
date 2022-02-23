@@ -94,7 +94,7 @@ class SmartSupportTesting(SupportTesting):
         if not self.trivial_infeasible_support_Q_from_matrix(occurring_events):
             return super().feasibleQ_from_matrix(occurring_events, **kwargs)
         else:
-            return False
+            return (False, 0) #Timing of zero.
 
     # @property
     # def _smart_unique_candidate_supports(self):
@@ -148,9 +148,25 @@ class SmartSupportTesting(SupportTesting):
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_beyond_esep_as_integers_unlabelled(self, **kwargs):
-        return np.unique(np.amin(self.from_list_to_integer(
-            np.sort(self.universal_relabelling_group[:, self.from_integer_to_list(self.unique_infeasible_supports_beyond_esep_as_integers(**kwargs))])
-        ), axis=0))
+        # return np.unique(np.amin(self.from_list_to_integer(
+        #     np.sort(self.universal_relabelling_group[:, self.from_integer_to_list(self.unique_infeasible_supports_beyond_esep_as_integers(**kwargs))])
+        # ), axis=0))
+        labelled_infeasible_as_integers = self.unique_infeasible_supports_beyond_esep_as_integers(**kwargs)
+        if len(labelled_infeasible_as_integers) > 0:
+            labelled_infeasible_as_lists = self.from_integer_to_list(labelled_infeasible_as_integers)
+            labelled_variants = self.universal_relabelling_group[:, labelled_infeasible_as_lists]
+            labelled_variants.sort(axis=-1)
+            labelled_variants = self.from_list_to_integer(labelled_variants).astype(int)
+            labelled_variants.sort(axis=-1)
+            # print(labelled_variants.shape, labelled_variants.dtype)
+            # print(np.unique(labelled_variants, axis=0))
+            lexsort = np.lexsort(labelled_variants.T)
+            # print(labelled_variants[lexsort[0]])
+            return labelled_variants[lexsort[0]]
+        else:
+            return labelled_infeasible_as_integers
+
+
 
 
     @methodtools.lru_cache(maxsize=None, typed=False)
@@ -160,6 +176,12 @@ class SmartSupportTesting(SupportTesting):
         :param kwargs: optional arguments to pysat.Solver
         CHANGED: Now returns each infeasible support as a single integer.
         """
+        # new_method = np.sort(np.hstack((self.unique_infeasible_supports_beyond_esep_as_integers(**kwargs),
+        #                   self.trivially_infeasible_supports_as_integers)))
+        # old_method = np.fromiter((occuring_events_as_int for occuring_events_as_int in self.unique_candidate_supports_as_integers if
+        #      not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0]), dtype=int)
+        # assert np.array_equal(new_method, old_method), "We have a problem!"
+        # return new_method
         return np.sort(np.hstack((self.unique_infeasible_supports_beyond_esep_as_integers(**kwargs),
                           self.trivially_infeasible_supports_as_integers)))
 
@@ -168,9 +190,23 @@ class SmartSupportTesting(SupportTesting):
         return self.from_integer_to_matrix(self.unique_infeasible_supports_as_integers(**kwargs))
 
     def unique_infeasible_supports_as_integers_unlabelled(self, **kwargs):
-        return np.unique(np.amin(self.from_list_to_integer(
-            np.sort(self.universal_relabelling_group[:, self.from_integer_to_list(self.unique_infeasible_supports_as_integers(**kwargs))])
-        ), axis=0))
+        # return np.unique(np.amin(self.from_list_to_integer(
+        #     np.sort(self.universal_relabelling_group[:, self.from_integer_to_list(self.unique_infeasible_supports_as_integers(**kwargs))])
+        # ), axis=0))
+        labelled_infeasible_as_integers = self.unique_infeasible_supports_as_integers(**kwargs)
+        if len(labelled_infeasible_as_integers) > 0:
+            labelled_infeasible_as_lists = self.from_integer_to_list(labelled_infeasible_as_integers)
+            labelled_variants = self.universal_relabelling_group[:, labelled_infeasible_as_lists]
+            labelled_variants.sort(axis=-1)
+            labelled_variants = self.from_list_to_integer(labelled_variants).astype(int)
+            labelled_variants.sort(axis=-1)
+            # print(labelled_variants.shape, labelled_variants.dtype)
+            # print(np.unique(labelled_variants, axis=0))
+            lexsort = np.lexsort(labelled_variants.T)
+            # print(labelled_variants[lexsort[0]])
+            return labelled_variants[lexsort[0]]
+        else:
+            return labelled_infeasible_as_integers
 
 
     @methodtools.lru_cache(maxsize=None, typed=False)

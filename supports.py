@@ -183,7 +183,7 @@ class SupportTesting(SupportTester):
                         itertools.product,
                         itertools.product(*map(itertools.permutations, map(range, self.observed_cardinalities)))
                     ))),
-                np.uint).reshape((-1, self.max_conceivable_events, self.nof_observed)),
+                int).reshape((-1, self.max_conceivable_events, self.nof_observed)),
                                self.observed_cardinalities)
 
     @cached_property
@@ -193,7 +193,7 @@ class SupportTesting(SupportTester):
         return np.fromiter(
             itertools.chain.from_iterable(
                 to_reshape.transpose(perm).ravel() for perm in itertools.permutations(range(self.nof_observed))
-            ), np.uint
+            ), int
         ).reshape((-1, self.max_conceivable_events,))
 
     @cached_property
@@ -266,10 +266,25 @@ class SupportTesting(SupportTester):
         return self.from_integer_to_matrix(self.unique_infeasible_supports_as_integers(**kwargs))
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def unique_infeasible_supports_unlabelled(self, **kwargs):
-        return np.unique(np.amin(self.from_list_to_integer(
-            np.sort(self.universal_relabelling_group[:, self.from_integer_to_list(self.unique_infeasible_supports_as_integers(**kwargs))])
-        ), axis=0))
+    def unique_infeasible_supports_as_integers_unlabelled(self, **kwargs):
+        # return np.unique(np.amin(self.from_list_to_integer(
+        #     np.sort(self.universal_relabelling_group[:, self.from_integer_to_list(self.unique_infeasible_supports_as_integers(**kwargs))])
+        # ), axis=0))
+        labelled_infeasible_as_integers = self.unique_infeasible_supports_as_integers(**kwargs)
+        if len(labelled_infeasible_as_integers) > 0:
+            labelled_infeasible_as_lists = self.from_integer_to_list(labelled_infeasible_as_integers)
+            labelled_variants = self.universal_relabelling_group[:, labelled_infeasible_as_lists]
+            labelled_variants.sort(axis=-1)
+            labelled_variants = self.from_list_to_integer(labelled_variants).astype(int)
+            labelled_variants.sort(axis=-1)
+            # print(labelled_variants.shape, labelled_variants.dtype)
+            # print(np.unique(labelled_variants, axis=0))
+            lexsort = np.lexsort(labelled_variants.T)
+            # print(labelled_variants[lexsort[0]])
+            return labelled_variants[lexsort[0]]
+        else:
+            return labelled_infeasible_as_integers
+
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def no_infeasible_supports(self, verbose=False, **kwargs):
@@ -302,7 +317,7 @@ class CumulativeSupportTesting:
     def _all_infeasible_supports_unlabelled(self):
         for nof_events in range(2, self.max_nof_events+1):
             yield SupportTesting(self.parents_of, self.observed_cardinalities, nof_events
-                                 ).unique_infeasible_supports_unlabelled(name='mgh', use_timer=False)
+                                 ).unique_infeasible_supports_as_integers_unlabelled(name='mgh', use_timer=False)
 
     @cached_property
     def all_infeasible_supports(self):
@@ -358,7 +373,7 @@ if __name__ == '__main__':
     # print(st.feasibleQ_from_matrix(occuring_events_temp, name='mgh', use_timer=True))
 
     st = SupportTesting(parents_of, observed_cardinalities, 3)
-    inf = st.unique_infeasible_supports_unlabelled(name='mgh', use_timer=False)
+    inf = st.unique_infeasible_supports_as_integers_unlabelled(name='mgh', use_timer=False)
     print(inf)
     print(st.from_integer_to_matrix(inf))
     # sample2 = st.unique_candidate_supports

@@ -260,7 +260,7 @@ class mDAG:
         return self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_matrices(**kwargs, name='mgh', use_timer=False)
 
     def infeasible_binary_supports_n_events_unlabelled(self, n, **kwargs):
-        return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_unlabelled(**kwargs, name='mgh', use_timer=False))
+        return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_as_integers_unlabelled(**kwargs, name='mgh', use_timer=False))
     def infeasible_binary_supports_n_events_beyond_esep_unlabelled(self, n, **kwargs):
         return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_integers_unlabelled(**kwargs, name='mgh', use_timer=False))
 
@@ -348,8 +348,16 @@ class mDAG:
         return frozenset(itertools.chain.from_iterable(partsextractor(self.all_parentsplus_list, X)))
     def singleton_predecessors(self, x):
         return partsextractor(self.all_parentsplus_list, x)
+    
+    def singleton_visible_predecessors(self,x):
+        return partsextractor(self.directed_structure_instance.observable_parentsplus_list, x)
 
-
+    def children(self,node):
+        c=[]
+        for v in self.visible_nodes:
+            if node in self.singleton_visible_predecessors(v) and node!=v:
+                c.append(v)
+        return c
 
     @cached_property
     def splittable_faces(self):
@@ -710,6 +718,38 @@ class mDAG:
             if self.directed_structure_instance.as_bit_square_matrix[:, v].any():
                 return False
         return True
+    
+    def marginalize_node(self,marginalized_node):
+        variable_names=[node for node in self.visible_nodes if node!=marginalized_node]
+        new_edge_list=[edge for edge in self.directed_structure_instance.edge_list if edge[0]!=marginalized_node and edge[1]!=marginalized_node]
+        for parent_node in self.singleton_visible_predecessors(marginalized_node):
+            if parent_node != marginalized_node:
+                for child in self.children(marginalized_node):
+                    new_edge_list.append((parent_node,child))
+        new_simplicial_complex=[]                  
+        marginalized_node_in_some_facet=False
+        for facet in self.simplicial_complex_instance.simplicial_complex_as_sets:
+            if len(facet)>1:
+                if marginalized_node in facet:
+                    marginalized_node_in_some_facet=True
+                    new_facet=(element for element in facet if element!=marginalized_node)
+                    new_facet=tuple(set(new_facet).union(set(self.children(marginalized_node))))
+                else: 
+                    new_facet=tuple(facet)
+                already_there=False
+                for facet_element in new_simplicial_complex:
+                    if set(new_facet).issubset(set(facet_element)):
+                        already_there=True
+                if already_there==False and len(new_facet)>1:  
+                    for facet_element in new_simplicial_complex:
+                        if set(facet_element).issubset(set(new_facet)):
+                            new_simplicial_complex.remove(facet_element)
+                    new_simplicial_complex.append(new_facet)
+        if marginalized_node_in_some_facet==False and len(self.children(marginalized_node))>1:
+            new_simplicial_complex.append(tuple(self.children(marginalized_node)))
+        return new_edge_list, new_simplicial_complex, variable_names
+
+        
 
 # class labelled_mDAG(mDAG):
 #     def __init__(self, labelled_directed_structure_instance, labelled_simplicial_complex_instance):
