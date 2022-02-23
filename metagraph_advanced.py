@@ -515,11 +515,14 @@ if __name__ == '__main__':
             #analyzing if the marginalized mDAG is equivalent to Instrumental
             if len(s)==1 and len(d)==2 and set(s).issubset(d) and s[0][0]==list(set(d)-set(s))[0][1]:
                 mDAGs_that_reduce_to_Instrumental.append((representative_mDAG,marginalized_node))
+                break
             #alternatively, looking if it is equivalent to one of the other mDAGs in the instrumental equivalence class
             elif len(s)==2 and len(d)==1 and set(d).issubset(s) and d[0][0]==list(set(s)-set(d))[0][1]:
                 mDAGs_that_reduce_to_Instrumental.append((representative_mDAG,marginalized_node))
+                break
             elif len(s)==len(d)==2 and [set(ele) for ele in s]==[set(ele) for ele in d] and any((d[0][1]==d[1][0],d[1][1]==d[0][0])):
                 mDAGs_that_reduce_to_Instrumental.append((representative_mDAG,marginalized_node))
+                break
 
     len(mDAGs_that_reduce_to_Instrumental)
     
