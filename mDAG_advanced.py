@@ -11,6 +11,7 @@ else:
     cached_property = property
 
 from radix import bitarray_to_int
+import matplotlib.pyplot as plt      
 import networkx as nx
 from utilities import partsextractor
 from collections import defaultdict
@@ -404,7 +405,44 @@ class mDAG:
     #         return self.simplicial_complex_instance.districts
 
 
-
+        
+    def networkx_plot_mDAG(self):
+        G=nx.DiGraph()
+        G.add_nodes_from(self.visible_nodes)
+        G.add_nodes_from(self.nonsingleton_latent_nodes)
+        pos=nx.spring_layout(G)
+        nx.draw_networkx_nodes(G, pos, nodelist=self.visible_nodes, node_color="tab:blue")
+        nx.draw_networkx_nodes(G, pos, nodelist=self.nonsingleton_latent_nodes, node_color="tab:red")
+        nx.draw_networkx_labels(G, pos)
+        nx.draw_networkx_edges(G,pos,edgelist=self.directed_structure_instance.edge_list)
+        latent_edges=[]
+        f=0
+        for facet in self.simplicial_complex_instance.simplicial_complex_as_sets:
+            for element in facet:
+                latent_edges.append((self.latent_nodes[f],element))
+            f=f+1
+        nx.draw_networkx_edges(G,pos,edgelist=latent_edges)
+        plt.show()
+        
+    def plot_mDAG_indicating_one_node(self,node):
+        G=nx.DiGraph()
+        G.add_nodes_from(self.visible_nodes)
+        G.add_nodes_from(self.nonsingleton_latent_nodes)
+        pos=nx.spring_layout(G)
+        v=self.visible_nodes.copy()
+        nx.draw_networkx_nodes(G, pos, nodelist=v.remove(node), node_color="tab:blue")
+        nx.draw_networkx_nodes(G, pos, nodelist=[node], node_color="tab:green")
+        nx.draw_networkx_nodes(G, pos, nodelist=self.nonsingleton_latent_nodes, node_color="tab:red")
+        nx.draw_networkx_labels(G, pos)
+        nx.draw_networkx_edges(G,pos,edgelist=self.directed_structure_instance.edge_list)
+        latent_edges=[]
+        f=0
+        for facet in self.simplicial_complex_instance.simplicial_complex_as_sets:
+            for element in facet:
+                latent_edges.append((self.latent_nodes[f],element))
+            f=f+1
+        nx.draw_networkx_edges(G,pos,edgelist=latent_edges)
+        plt.show()
     
     @cached_property
     def weak_splittable_faces(self):
@@ -748,6 +786,7 @@ class mDAG:
         if marginalized_node_in_some_facet==False and len(self.children(marginalized_node))>1:
             new_simplicial_complex.append(tuple(self.children(marginalized_node)))
         return new_edge_list, new_simplicial_complex, variable_names
+
 
         
 

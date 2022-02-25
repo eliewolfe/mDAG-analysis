@@ -536,26 +536,47 @@ if __name__ == '__main__':
             if marginalized_node in facet:
                 X_contains_latent_parents=True
                 break
-        shares_facet_with_children=False
+        share_facet_with_children=[]
         if X_contains_latent_parents:
-            for facet in mDAG.simplicial_complex_instance.simplicial_complex_as_sets:
-                if marginalized_node in facet and set(mDAG.children(marginalized_node)).issubset(set(facet)):
-                    shares_facet_with_children=True
-        if X_contains_latent_parents==False or shares_facet_with_children:
+            for c in mDAG.children(marginalized_node):
+                X_share_facet_with_c=False
+                for facet in mDAG.simplicial_complex_instance.simplicial_complex_as_sets:
+                    if marginalized_node in facet and c in facet:
+                        X_share_facet_with_c=True
+                share_facet_with_children.append(X_share_facet_with_c)
+        if X_contains_latent_parents==False or all(share_facet_with_children):
             quantumly_valid.append((mDAG, marginalized_node))
                 
     len(quantumly_valid)
         
-        
+    not_quantumly_valid=list(set(mDAGs_that_reduce_to_Instrumental)-set(quantumly_valid))
     
-   G_HLP=mDAG(DirectedStructure([(0,1),(1,3),(2,3)],4),Hypergraph([(1,2),(2,3)],4))
-   G_HLP.marginalize_node(2)
-   for marginalized_node in G_HLP.visible_nodes:
-            (d,s,variable_names)=G_HLP.marginalize_node(marginalized_node)
-            #analyzing if the marginalized mDAG is equivalent to Instrumental
-            if len(s)==1 and len(d)==2 and set(s).issubset(d) and s[0][0]==list(set(d)-set(s))[0][1]:
-                print(marginalized_node)
+    for (G,node) in not_quantumly_valid:
+        G.plot_mDAG_indicating_one_node(node)
         
+    no_children=[]
+    for (G,node) in quantumly_valid:
+        if len(G.children(node))==0:
+            no_children.append((G,node))
+            
+   with_children=list(set(quantumly_valid)-set(no_children))
+
+    for (G,node) in with_children:
+        print(G.marginalize_node(node))
+            
+
+
+    G_HLP=mDAG(DirectedStructure([(0,1),(1,3),(2,3)],4),Hypergraph([(1,2),(2,3)],4))
+    G= mDAG(DirectedStructure([(0,1),(1,2),(1,3)],4),Hypergraph([(0,1),(0,2),(2,3),(1,3)],4))
+    networkx_plot_mDAG(G)
+
+    G_HLP.plot_mDAG_indicating_one_node(2)
+
+
+    G_HLP.networkx_plot_mDAG()
+    G_HLP.latent_nodes 
+    
+    
 # =============================================================================
 #     n=0
 #     for ci_class in Observable_mDAGs4.esep_classes:
