@@ -482,99 +482,103 @@ if __name__ == '__main__':
     
 
 
-    two_latents=[]
-    for i in range(len(Observable_mDAGs4.foundational_eqclasses)):
-        for mDAG in Observable_mDAGs4.equivalence_classes_as_mDAGs[i]:
-            if len(mDAG.latent_nodes)==2 or len(mDAG.latent_nodes)==1:
-                two_latents.append(mDAG)
-                break
-    len(two_latents)
-    
-
-                
-    G_Bell=mDAG(DirectedStructure([(0,3),(1,2)],4),Hypergraph([(0,),(1,),(2,3)],4))
-    G_HLP=mDAG(DirectedStructure([(0,1),(1,3),(2,3)],4),Hypergraph([(1,2),(2,3)],4))
-
-
-    (edge_list,simplicial_complex,variable_names)=G_HLP.marginalize_node(2)
-    marginalized_G_HLP=mDAG(LabelledDirectedStructure(variable_names,edge_list),LabelledHypergraph(variable_names,simplicial_complex))
-    
-    G_Instrumental=mDAG(DirectedStructure( [(0,1),(1,2)],3),Hypergraph([(1,2)],3))
-    for eqclass in Observable_mDAGs3.foundational_eqclasses:
-        if G_Instrumental in eqclass:
-            Instrumental_class=eqclass
-
-    G= mDAG(DirectedStructure([(0,1),(1,2),(1,3)],4),Hypergraph([(0,1),(0,2),(2,3),(1,3)],4))
-    G.marginalize_node(2)    
-    
-    #APPLYING MARGINALIZATION TO REDUCE TO INSTRUMENTAL:    
-    mDAGs_that_reduce_to_Instrumental=[]
-    for representative_mDAG in Observable_mDAGs4.representative_mDAGs_list:
-        for marginalized_node in representative_mDAG.visible_nodes:
-            (d,s,variable_names)=representative_mDAG.marginalize_node(marginalized_node)
-            #analyzing if the marginalized mDAG is equivalent to Instrumental
-            if len(s)==1 and len(d)==2 and set(s).issubset(d) and s[0][0]==list(set(d)-set(s))[0][1]:
-                mDAGs_that_reduce_to_Instrumental.append((representative_mDAG,marginalized_node))
-                break
-            #alternatively, looking if it is equivalent to one of the other mDAGs in the instrumental equivalence class
-            elif len(s)==2 and len(d)==1 and set(d).issubset(s) and d[0][0]==list(set(s)-set(d))[0][1]:
-                mDAGs_that_reduce_to_Instrumental.append((representative_mDAG,marginalized_node))
-                break
-            elif len(s)==len(d)==2 and [set(ele) for ele in s]==[set(ele) for ele in d] and any((d[0][1]==d[1][0],d[1][1]==d[0][0])):
-                mDAGs_that_reduce_to_Instrumental.append((representative_mDAG,marginalized_node))
-                break
-
-    len(mDAGs_that_reduce_to_Instrumental)
-    
-    len(Observable_mDAGs4.foundational_eqclasses)
-  
-  
-    quantumly_valid=[]
-    for (mDAG, marginalized_node) in mDAGs_that_reduce_to_Instrumental:
-        X_contains_latent_parents=False
-        for facet in mDAG.simplicial_complex_instance.simplicial_complex_as_sets:
-            if marginalized_node in facet:
-                X_contains_latent_parents=True
-                break
-        share_facet_with_children=[]
-        if X_contains_latent_parents:
-            for c in mDAG.children(marginalized_node):
-                X_share_facet_with_c=False
-                for facet in mDAG.simplicial_complex_instance.simplicial_complex_as_sets:
-                    if marginalized_node in facet and c in facet:
-                        X_share_facet_with_c=True
-                share_facet_with_children.append(X_share_facet_with_c)
-        if X_contains_latent_parents==False or all(share_facet_with_children):
-            quantumly_valid.append((mDAG, marginalized_node))
-                
-    len(quantumly_valid)
-        
-    not_quantumly_valid=list(set(mDAGs_that_reduce_to_Instrumental)-set(quantumly_valid))
-    
-    for (G,node) in not_quantumly_valid:
-        G.plot_mDAG_indicating_one_node(node)
-        
-    no_children=[]
-    for (G,node) in quantumly_valid:
-        if len(G.children(node))==0:
-            no_children.append((G,node))
-            
-   with_children=list(set(quantumly_valid)-set(no_children))
-
-    for (G,node) in with_children:
-        print(G.marginalize_node(node))
-            
-
-
-    G_HLP=mDAG(DirectedStructure([(0,1),(1,3),(2,3)],4),Hypergraph([(1,2),(2,3)],4))
-    G= mDAG(DirectedStructure([(0,1),(1,2),(1,3)],4),Hypergraph([(0,1),(0,2),(2,3),(1,3)],4))
-    networkx_plot_mDAG(G)
-
-    G_HLP.plot_mDAG_indicating_one_node(2)
-
-
-    G_HLP.networkx_plot_mDAG()
-    G_HLP.latent_nodes 
+# =============================================================================
+#     two_latents=[]
+#     for i in range(len(Observable_mDAGs4.foundational_eqclasses)):
+#         for mDAG in Observable_mDAGs4.equivalence_classes_as_mDAGs[i]:
+#             if len(mDAG.latent_nodes)==2 or len(mDAG.latent_nodes)==1:
+#                 two_latents.append(mDAG)
+#                 break
+#     len(two_latents)
+#     
+# 
+#                 
+#     G_Bell=mDAG(DirectedStructure([(0,3),(1,2)],4),Hypergraph([(0,),(1,),(2,3)],4))
+#     G_HLP=mDAG(DirectedStructure([(0,1),(1,3),(2,3)],4),Hypergraph([(1,2),(2,3)],4))
+# 
+# 
+#     (edge_list,simplicial_complex,variable_names)=G_HLP.marginalize_node(2)
+#     marginalized_G_HLP=mDAG(LabelledDirectedStructure(variable_names,edge_list),LabelledHypergraph(variable_names,simplicial_complex))
+#     
+#     G_Instrumental=mDAG(DirectedStructure( [(0,1),(1,2)],3),Hypergraph([(1,2)],3))
+#     for eqclass in Observable_mDAGs3.foundational_eqclasses:
+#         if G_Instrumental in eqclass:
+#             Instrumental_class=eqclass
+# 
+#     G= mDAG(DirectedStructure([(0,1),(1,2),(1,3)],4),Hypergraph([(0,1),(0,2),(2,3),(1,3)],4))
+#     G.marginalize_node(2)    
+#     
+#     #APPLYING MARGINALIZATION TO REDUCE TO INSTRUMENTAL:    
+#     mDAGs_that_reduce_to_Instrumental=[]
+#     for representative_mDAG in Observable_mDAGs4.representative_mDAGs_list:
+#         for marginalized_node in representative_mDAG.visible_nodes:
+#             (d,s,variable_names)=representative_mDAG.marginalize_node(marginalized_node)
+#             #analyzing if the marginalized mDAG is equivalent to Instrumental
+#             if len(s)==1 and len(d)==2 and set(s).issubset(d) and s[0][0]==list(set(d)-set(s))[0][1]:
+#                 mDAGs_that_reduce_to_Instrumental.append((representative_mDAG,marginalized_node))
+#                 break
+#             #alternatively, looking if it is equivalent to one of the other mDAGs in the instrumental equivalence class
+#             elif len(s)==2 and len(d)==1 and set(d).issubset(s) and d[0][0]==list(set(s)-set(d))[0][1]:
+#                 mDAGs_that_reduce_to_Instrumental.append((representative_mDAG,marginalized_node))
+#                 break
+#             elif len(s)==len(d)==2 and [set(ele) for ele in s]==[set(ele) for ele in d] and any((d[0][1]==d[1][0],d[1][1]==d[0][0])):
+#                 mDAGs_that_reduce_to_Instrumental.append((representative_mDAG,marginalized_node))
+#                 break
+# 
+#     len(mDAGs_that_reduce_to_Instrumental)
+#     
+#     len(Observable_mDAGs4.foundational_eqclasses)
+#   
+#   
+#     quantumly_valid=[]
+#     for (mDAG, marginalized_node) in mDAGs_that_reduce_to_Instrumental:
+#         X_contains_latent_parents=False
+#         for facet in mDAG.simplicial_complex_instance.simplicial_complex_as_sets:
+#             if marginalized_node in facet:
+#                 X_contains_latent_parents=True
+#                 break
+#         share_facet_with_children=[]
+#         if X_contains_latent_parents:
+#             for c in mDAG.children(marginalized_node):
+#                 X_share_facet_with_c=False
+#                 for facet in mDAG.simplicial_complex_instance.simplicial_complex_as_sets:
+#                     if marginalized_node in facet and c in facet:
+#                         X_share_facet_with_c=True
+#                 share_facet_with_children.append(X_share_facet_with_c)
+#         if X_contains_latent_parents==False or all(share_facet_with_children):
+#             quantumly_valid.append((mDAG, marginalized_node))
+#                 
+#     len(quantumly_valid)
+#         
+#     not_quantumly_valid=list(set(mDAGs_that_reduce_to_Instrumental)-set(quantumly_valid))
+#     
+#     for (G,node) in not_quantumly_valid:
+#         print("G=",G)
+#         print("node=",node)
+#         print(G.marginalize_node(node))
+#         
+#     no_children=[]
+#     for (G,node) in quantumly_valid:
+#         if len(G.children(node))==0:
+#             no_children.append((G,node))
+#             
+#    with_children=list(set(quantumly_valid)-set(no_children))
+# 
+#     for (G,node) in with_children:
+#         print(G.marginalize_node(node))
+#             
+# 
+# 
+#     G_HLP=mDAG(DirectedStructure([(0,1),(1,3),(2,3)],4),Hypergraph([(1,2),(2,3)],4))
+#     G= mDAG(DirectedStructure([(0,1),(1,2),(1,3)],4),Hypergraph([(0,1),(0,2),(2,3),(1,3)],4))
+#     networkx_plot_mDAG(G)
+# 
+#     G_HLP.plot_mDAG_indicating_one_node(2)
+# 
+# 
+#     G_HLP.networkx_plot_mDAG()
+#     G_HLP.latent_nodes 
+# =============================================================================
     
     
 # =============================================================================

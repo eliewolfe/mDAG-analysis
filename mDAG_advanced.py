@@ -779,7 +779,8 @@ class mDAG:
                     if set(new_facet).issubset(set(facet_element)):
                         already_there=True
                 if already_there==False and len(new_facet)>1:  
-                    for facet_element in new_simplicial_complex:
+                    new_simp_comp_copy=new_simplicial_complex.copy()
+                    for facet_element in new_simp_comp_copy:
                         if set(facet_element).issubset(set(new_facet)):
                             new_simplicial_complex.remove(facet_element)
                     new_simplicial_complex.append(new_facet)
@@ -788,7 +789,6 @@ class mDAG:
         return new_edge_list, new_simplicial_complex, variable_names
 
 
-        
 
 # class labelled_mDAG(mDAG):
 #     def __init__(self, labelled_directed_structure_instance, labelled_simplicial_complex_instance):
