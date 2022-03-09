@@ -253,21 +253,30 @@ class mDAG:
         return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_as_integers(**kwargs, name='mgh', use_timer=False))
     def infeasible_binary_supports_n_events_beyond_esep(self, n, **kwargs):
         return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_integers(**kwargs, name='mgh', use_timer=False))
+    def infeasible_binary_supports_n_events_beyond_dsep(self, n, **kwargs):
+        return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_dsep_as_integers(**kwargs, name='mgh', use_timer=False))
 
     def infeasible_binary_supports_n_events_as_matrices(self, n, **kwargs):
         return self.support_testing_instance_binary(n).unique_infeasible_supports_as_matrices(**kwargs, name='mgh', use_timer=False)
     def infeasible_binary_supports_n_events_beyond_esep_as_matrices(self, n, **kwargs):
         return self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_matrices(**kwargs, name='mgh', use_timer=False)
+    def infeasible_binary_supports_n_events_beyond_dsep_as_matrices(self, n, **kwargs):
+        return self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_dsep_as_matrices(**kwargs, name='mgh', use_timer=False)
 
     def infeasible_binary_supports_n_events_unlabelled(self, n, **kwargs):
         return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_as_integers_unlabelled(**kwargs, name='mgh', use_timer=False))
     def infeasible_binary_supports_n_events_beyond_esep_unlabelled(self, n, **kwargs):
         return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_integers_unlabelled(**kwargs, name='mgh', use_timer=False))
 
+
     def no_infeasible_binary_supports_beyond_esep(self, n, **kwargs):
         return self.support_testing_instance_binary(n).no_infeasible_supports_beyond_esep(**kwargs, name='mgh', use_timer=False)
     def no_infeasible_binary_supports_beyond_esep_up_to(self, max_n, **kwargs):
         return all(self.no_infeasible_binary_supports_beyond_esep(n, **kwargs) for n in range(2, max_n + 1))
+    def no_infeasible_binary_supports_beyond_dsep(self, n, **kwargs):
+        return self.support_testing_instance_binary(n).no_infeasible_supports_beyond_dsep(**kwargs, name='mgh', use_timer=False)
+    def no_infeasible_binary_supports_beyond_dsep_up_to(self, max_n, **kwargs):
+        return all(self.no_infeasible_binary_supports_beyond_dsep(n, **kwargs) for n in range(2, max_n + 1))
 
     def infeasible_binary_supports_beyond_esep_up_to(self, max_n, **kwargs):
         return np.fromiter(itertools.chain.from_iterable(
