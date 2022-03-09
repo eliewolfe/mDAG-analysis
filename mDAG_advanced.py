@@ -11,6 +11,7 @@ else:
     cached_property = property
 
 from radix import bitarray_to_int
+import matplotlib.pyplot as plt      
 import networkx as nx
 from utilities import partsextractor
 from collections import defaultdict
@@ -357,8 +358,16 @@ class mDAG:
         return frozenset(itertools.chain.from_iterable(partsextractor(self.all_parentsplus_list, X)))
     def singleton_predecessors(self, x):
         return partsextractor(self.all_parentsplus_list, x)
+    
+    def singleton_visible_predecessors(self,x):
+        return partsextractor(self.directed_structure_instance.observable_parentsplus_list, x)
 
-
+    def children(self,node):
+        c=[]
+        for v in self.visible_nodes:
+            if node in self.singleton_visible_predecessors(v) and node!=v:
+                c.append(v)
+        return c
 
     @cached_property
     def splittable_faces(self):
@@ -405,7 +414,44 @@ class mDAG:
     #         return self.simplicial_complex_instance.districts
 
 
-
+        
+    def networkx_plot_mDAG(self):
+        G=nx.DiGraph()
+        G.add_nodes_from(self.visible_nodes)
+        G.add_nodes_from(self.nonsingleton_latent_nodes)
+        pos=nx.spring_layout(G)
+        nx.draw_networkx_nodes(G, pos, nodelist=self.visible_nodes, node_color="tab:blue")
+        nx.draw_networkx_nodes(G, pos, nodelist=self.nonsingleton_latent_nodes, node_color="tab:red")
+        nx.draw_networkx_labels(G, pos)
+        nx.draw_networkx_edges(G,pos,edgelist=self.directed_structure_instance.edge_list)
+        latent_edges=[]
+        f=0
+        for facet in self.simplicial_complex_instance.simplicial_complex_as_sets:
+            for element in facet:
+                latent_edges.append((self.latent_nodes[f],element))
+            f=f+1
+        nx.draw_networkx_edges(G,pos,edgelist=latent_edges)
+        plt.show()
+        
+    def plot_mDAG_indicating_one_node(self,node):
+        G=nx.DiGraph()
+        G.add_nodes_from(self.visible_nodes)
+        G.add_nodes_from(self.nonsingleton_latent_nodes)
+        pos=nx.spring_layout(G)
+        v=self.visible_nodes.copy()
+        nx.draw_networkx_nodes(G, pos, nodelist=v.remove(node), node_color="tab:blue")
+        nx.draw_networkx_nodes(G, pos, nodelist=[node], node_color="tab:green")
+        nx.draw_networkx_nodes(G, pos, nodelist=self.nonsingleton_latent_nodes, node_color="tab:red")
+        nx.draw_networkx_labels(G, pos)
+        nx.draw_networkx_edges(G,pos,edgelist=self.directed_structure_instance.edge_list)
+        latent_edges=[]
+        f=0
+        for facet in self.simplicial_complex_instance.simplicial_complex_as_sets:
+            for element in facet:
+                latent_edges.append((self.latent_nodes[f],element))
+            f=f+1
+        nx.draw_networkx_edges(G,pos,edgelist=latent_edges)
+        plt.show()
     
     @cached_property
     def weak_splittable_faces(self):
@@ -719,6 +765,39 @@ class mDAG:
             if self.directed_structure_instance.as_bit_square_matrix[:, v].any():
                 return False
         return True
+    
+    def marginalize_node(self,marginalized_node):
+        variable_names=[node for node in self.visible_nodes if node!=marginalized_node]
+        new_edge_list=[edge for edge in self.directed_structure_instance.edge_list if edge[0]!=marginalized_node and edge[1]!=marginalized_node]
+        for parent_node in self.singleton_visible_predecessors(marginalized_node):
+            if parent_node != marginalized_node:
+                for child in self.children(marginalized_node):
+                    new_edge_list.append((parent_node,child))
+        new_simplicial_complex=[]                  
+        marginalized_node_in_some_facet=False
+        for facet in self.simplicial_complex_instance.simplicial_complex_as_sets:
+            if len(facet)>1:
+                if marginalized_node in facet:
+                    marginalized_node_in_some_facet=True
+                    new_facet=(element for element in facet if element!=marginalized_node)
+                    new_facet=tuple(set(new_facet).union(set(self.children(marginalized_node))))
+                else: 
+                    new_facet=tuple(facet)
+                already_there=False
+                for facet_element in new_simplicial_complex:
+                    if set(new_facet).issubset(set(facet_element)):
+                        already_there=True
+                if already_there==False and len(new_facet)>1:  
+                    new_simp_comp_copy=new_simplicial_complex.copy()
+                    for facet_element in new_simp_comp_copy:
+                        if set(facet_element).issubset(set(new_facet)):
+                            new_simplicial_complex.remove(facet_element)
+                    new_simplicial_complex.append(new_facet)
+        if marginalized_node_in_some_facet==False and len(self.children(marginalized_node))>1:
+            new_simplicial_complex.append(tuple(self.children(marginalized_node)))
+        return new_edge_list, new_simplicial_complex, variable_names
+
+
 
 # class labelled_mDAG(mDAG):
 #     def __init__(self, labelled_directed_structure_instance, labelled_simplicial_complex_instance):

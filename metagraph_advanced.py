@@ -22,8 +22,8 @@ elif hexversion >= 0x3060000:
 else:
     cached_property = property
 
-from hypergraphs import Hypergraph
-from directed_structures import DirectedStructure
+from hypergraphs import Hypergraph, LabelledHypergraph
+from directed_structures import DirectedStructure, LabelledDirectedStructure
 from mDAG_advanced import mDAG
 from functools import lru_cache
 
@@ -291,7 +291,7 @@ class Observable_unlabelled_mDAGs:
     @cached_property
     def representative_mDAGs_list(self):
     #     return self.representatives(self.equivalence_classes_as_mDAGs)
-        return self.smart_representatives(self.equivalence_classes_as_mDAGs, 'relative_complexity_for_sat_solver')
+        return self.smart_representatives(self.foundational_eqclasses, 'relative_complexity_for_sat_solver')
 
     @property
     def CI_classes(self):
@@ -458,14 +458,129 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
 
 if __name__ == '__main__':
     # Observable_mDAGs2 = Observable_mDAGs_Analysis(nof_observed_variables=2, max_nof_events_for_supports=0)
-    # Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
-    Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=2)
+    Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
+    Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
 
-
+# =============================================================================
+#     for i in range(len(Observable_mDAGs4.foundational_eqclasses)):
+#          print(Observable_mDAGs4.foundational_eqclasses[i][0])
+# 
+#     G_Bell=mDAG(DirectedStructure([(0,3),(1,2)],4),Hypergraph([(0,),(1,),(2,3)],4))
+#     import networkx as nx
+#     G_Bell_nx = nx.DiGraph()
+#     G_Bell_nx.add_nodes_from(G_Bell.visible_nodes)
+#     l=len(G_Bell.visible_nodes)
+#     for facet in G_Bell.simplicial_complex_instance.compressed_simplicial_complex:
+#         G_Bell_nx.add_node(l)
+#         for node in facet:
+#             G_Bell_nx.add_edge(l,node)
+#     nx.draw(G_Bell_nx)
+#         
+#     G_Bell_nx.add_nodes_from(G_Bell.latent_nodes)
+#     G.add_edges_from([(1, 2), (1, 3)])
+# =============================================================================
     
 
 
-        
+# =============================================================================
+#     two_latents=[]
+#     for i in range(len(Observable_mDAGs4.foundational_eqclasses)):
+#         for mDAG in Observable_mDAGs4.equivalence_classes_as_mDAGs[i]:
+#             if len(mDAG.latent_nodes)==2 or len(mDAG.latent_nodes)==1:
+#                 two_latents.append(mDAG)
+#                 break
+#     len(two_latents)
+#     
+# 
+#                 
+#     G_Bell=mDAG(DirectedStructure([(0,3),(1,2)],4),Hypergraph([(0,),(1,),(2,3)],4))
+#     G_HLP=mDAG(DirectedStructure([(0,1),(1,3),(2,3)],4),Hypergraph([(1,2),(2,3)],4))
+# 
+# 
+#     (edge_list,simplicial_complex,variable_names)=G_HLP.marginalize_node(2)
+#     marginalized_G_HLP=mDAG(LabelledDirectedStructure(variable_names,edge_list),LabelledHypergraph(variable_names,simplicial_complex))
+#     
+#     G_Instrumental=mDAG(DirectedStructure( [(0,1),(1,2)],3),Hypergraph([(1,2)],3))
+#     for eqclass in Observable_mDAGs3.foundational_eqclasses:
+#         if G_Instrumental in eqclass:
+#             Instrumental_class=eqclass
+# 
+#     G= mDAG(DirectedStructure([(0,1),(1,2),(1,3)],4),Hypergraph([(0,1),(0,2),(2,3),(1,3)],4))
+#     G.marginalize_node(2)    
+#     
+#     #APPLYING MARGINALIZATION TO REDUCE TO INSTRUMENTAL:    
+#     mDAGs_that_reduce_to_Instrumental=[]
+#     for representative_mDAG in Observable_mDAGs4.representative_mDAGs_list:
+#         for marginalized_node in representative_mDAG.visible_nodes:
+#             (d,s,variable_names)=representative_mDAG.marginalize_node(marginalized_node)
+#             #analyzing if the marginalized mDAG is equivalent to Instrumental
+#             if len(s)==1 and len(d)==2 and set(s).issubset(d) and s[0][0]==list(set(d)-set(s))[0][1]:
+#                 mDAGs_that_reduce_to_Instrumental.append((representative_mDAG,marginalized_node))
+#                 break
+#             #alternatively, looking if it is equivalent to one of the other mDAGs in the instrumental equivalence class
+#             elif len(s)==2 and len(d)==1 and set(d).issubset(s) and d[0][0]==list(set(s)-set(d))[0][1]:
+#                 mDAGs_that_reduce_to_Instrumental.append((representative_mDAG,marginalized_node))
+#                 break
+#             elif len(s)==len(d)==2 and [set(ele) for ele in s]==[set(ele) for ele in d] and any((d[0][1]==d[1][0],d[1][1]==d[0][0])):
+#                 mDAGs_that_reduce_to_Instrumental.append((representative_mDAG,marginalized_node))
+#                 break
+# 
+#     len(mDAGs_that_reduce_to_Instrumental)
+#     
+#     len(Observable_mDAGs4.foundational_eqclasses)
+#   
+#   
+#     quantumly_valid=[]
+#     for (mDAG, marginalized_node) in mDAGs_that_reduce_to_Instrumental:
+#         X_contains_latent_parents=False
+#         for facet in mDAG.simplicial_complex_instance.simplicial_complex_as_sets:
+#             if marginalized_node in facet:
+#                 X_contains_latent_parents=True
+#                 break
+#         share_facet_with_children=[]
+#         if X_contains_latent_parents:
+#             for c in mDAG.children(marginalized_node):
+#                 X_share_facet_with_c=False
+#                 for facet in mDAG.simplicial_complex_instance.simplicial_complex_as_sets:
+#                     if marginalized_node in facet and c in facet:
+#                         X_share_facet_with_c=True
+#                 share_facet_with_children.append(X_share_facet_with_c)
+#         if X_contains_latent_parents==False or all(share_facet_with_children):
+#             quantumly_valid.append((mDAG, marginalized_node))
+#                 
+#     len(quantumly_valid)
+#         
+#     not_quantumly_valid=list(set(mDAGs_that_reduce_to_Instrumental)-set(quantumly_valid))
+#     
+#     for (G,node) in not_quantumly_valid:
+#         print("G=",G)
+#         print("node=",node)
+#         print(G.marginalize_node(node))
+#         
+#     no_children=[]
+#     for (G,node) in quantumly_valid:
+#         if len(G.children(node))==0:
+#             no_children.append((G,node))
+#             
+#    with_children=list(set(quantumly_valid)-set(no_children))
+# 
+#     for (G,node) in with_children:
+#         print(G.marginalize_node(node))
+#             
+# 
+# 
+#     G_HLP=mDAG(DirectedStructure([(0,1),(1,3),(2,3)],4),Hypergraph([(1,2),(2,3)],4))
+#     G= mDAG(DirectedStructure([(0,1),(1,2),(1,3)],4),Hypergraph([(0,1),(0,2),(2,3),(1,3)],4))
+#     networkx_plot_mDAG(G)
+# 
+#     G_HLP.plot_mDAG_indicating_one_node(2)
+# 
+# 
+#     G_HLP.networkx_plot_mDAG()
+#     G_HLP.latent_nodes 
+# =============================================================================
+    
+    
 # =============================================================================
 #     n=0
 #     for ci_class in Observable_mDAGs4.esep_classes:
