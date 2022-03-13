@@ -85,13 +85,18 @@ class SmartSupportTesting(SupportTesting):
     def __init__(self, parents_of, observed_cardinalities, nof_events, esep_relations):
         super().__init__(parents_of, observed_cardinalities, nof_events)
         self.esep_relations = tuple(esep_relations)
+        self.dsep_relations = tuple(((ab, C) for (ab, C, D) in self.esep_relations if len(D)==0))
 
-    def trivial_infeasible_support_Q_from_matrix(self, candidate_s):
+
+    def infeasible_support_Q_due_to_esep_from_matrix(self, candidate_s):
         return any(does_this_esep_rule_out_this_support(*map(list,e_sep), candidate_s) for e_sep in self.esep_relations)
+
+    def infeasible_support_Q_due_to_dsep_from_matrix(self, candidate_s):
+        return any(does_this_dsep_rule_out_this_support(*map(list,d_sep), candidate_s) for d_sep in self.dsep_relations)
 
     #REDEFINITION!
     def feasibleQ_from_matrix(self, occurring_events, **kwargs):
-        if not self.trivial_infeasible_support_Q_from_matrix(occurring_events):
+        if not self.infeasible_support_Q_due_to_esep_from_matrix(occurring_events):
             return super().feasibleQ_from_matrix(occurring_events, **kwargs)
         else:
             return (False, 0) #Timing of zero.
@@ -100,36 +105,55 @@ class SmartSupportTesting(SupportTesting):
     # def _smart_unique_candidate_supports(self):
     #     to_filter = self.visualize_supports(self.unique_candidate_supports)
     #     for idx, candidate_s in enumerate(to_filter):
-    #         if not self.trivial_infeasible_support_Q_from_matrix(candidate_s):
+    #         if not self.infeasible_support_Q_due_to_esep_from_matrix(candidate_s):
     #             yield idx
     @cached_property
-    def _trivially_infeasible_support_picklist(self):
+    def _infeasible_support_due_to_esep_picklist(self):
         to_filter = self.from_list_to_matrix(self.unique_candidate_supports)
-        return np.fromiter(map(self.trivial_infeasible_support_Q_from_matrix, to_filter), bool)
+        return np.fromiter(map(self.infeasible_support_Q_due_to_esep_from_matrix, to_filter), bool)
 
     @cached_property
-    def trivially_infeasible_supports_as_integers(self):
-        return np.asarray(self.unique_candidate_supports_as_integers, dtype=np.intp)[self._trivially_infeasible_support_picklist]
+    def infeasible_supports_due_to_esep_as_integers(self):
+        return np.asarray(self.unique_candidate_supports_as_integers, dtype=np.intp)[self._infeasible_support_due_to_esep_picklist]
 
     @cached_property
-    def trivially_infeasible_supports_as_matrices(self):
-        return self.from_integer_to_matrix(self.trivially_infeasible_supports_as_integers)
+    def _infeasible_support_due_to_dsep_picklist(self):
+        to_filter = self.from_list_to_matrix(self.unique_candidate_supports)
+        return np.fromiter(map(self.infeasible_support_Q_due_to_dsep_from_matrix, to_filter), bool)
 
     @cached_property
-    def smart_unique_candidate_supports_as_integers(self):
-        # print("Supports detected as trivially infeasible:", self.trivially_infeasible_supports_as_integers)
+    def infeasible_supports_due_to_dsep_as_integers(self):
+        return np.asarray(self.unique_candidate_supports_as_integers, dtype=np.intp)[self._infeasible_support_due_to_dsep_picklist]
+
+    @cached_property
+    def infeasible_supports_due_to_esep_as_matrices(self):
+        return self.from_integer_to_matrix(self.infeasible_supports_due_to_esep_as_integers)
+
+    @cached_property
+    def infeasible_supports_due_to_dsep_as_matrices(self):
+        return self.from_integer_to_matrix(self.infeasible_supports_due_to_dsep_as_integers)
+
+    @cached_property
+    def unique_candidate_supports_not_infeasible_due_to_esep_as_integers(self):
+        # print("Supports detected as trivially infeasible:", self.infeasible_supports_due_to_esep_as_integers)
         return np.asarray(self.unique_candidate_supports_as_integers, dtype=np.intp)[
-            np.logical_not(self._trivially_infeasible_support_picklist)]
+            np.logical_not(self._infeasible_support_due_to_esep_picklist)]
+
+    @cached_property
+    def unique_candidate_supports_not_infeasible_due_to_dsep_as_integers(self):
+        # print("Supports detected as trivially infeasible:", self.infeasible_supports_due_to_esep_as_integers)
+        return np.asarray(self.unique_candidate_supports_as_integers, dtype=np.intp)[
+            np.logical_not(self._infeasible_support_due_to_dsep_picklist)]
 
     def smart_unique_candidate_supports_to_iterate(self, verbose=False):
         if verbose:
             return progressbar.progressbar(
-                        self.smart_unique_candidate_supports_as_integers, widgets=[
+                        self.unique_candidate_supports_not_infeasible_due_to_esep_as_integers, widgets=[
                             '[nof_events=', str(self.nof_events), '] '
                             , progressbar.SimpleProgress(), progressbar.Bar()
                             , ' (', progressbar.ETA(), ') '])
         else:
-            return self.smart_unique_candidate_supports_as_integers
+            return self.unique_candidate_supports_not_infeasible_due_to_esep_as_integers
 
 
     @methodtools.lru_cache(maxsize=None, typed=False)
@@ -143,8 +167,16 @@ class SmartSupportTesting(SupportTesting):
              not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0]), dtype=int)
 
     @methodtools.lru_cache(maxsize=None, typed=False)
+    def unique_infeasible_supports_beyond_dsep_as_integers(self, verbose=False, **kwargs):
+        return np.fromiter((occuring_events_as_int for occuring_events_as_int in self.unique_candidate_supports_not_infeasible_due_to_dsep_as_integers if
+             not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0]), dtype=int)
+
+    @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_beyond_esep_as_matrices(self, **kwargs):
         return self.from_integer_to_matrix(self.unique_infeasible_supports_beyond_esep_as_integers(**kwargs))
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def unique_infeasible_supports_beyond_dsep_as_matrices(self, **kwargs):
+        return self.from_integer_to_matrix(self.unique_infeasible_supports_beyond_dsep_as_integers(**kwargs))
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_beyond_esep_as_integers_unlabelled(self, **kwargs):
@@ -177,13 +209,13 @@ class SmartSupportTesting(SupportTesting):
         CHANGED: Now returns each infeasible support as a single integer.
         """
         # new_method = np.sort(np.hstack((self.unique_infeasible_supports_beyond_esep_as_integers(**kwargs),
-        #                   self.trivially_infeasible_supports_as_integers)))
+        #                   self.infeasible_supports_due_to_esep_as_integers)))
         # old_method = np.fromiter((occuring_events_as_int for occuring_events_as_int in self.unique_candidate_supports_as_integers if
         #      not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0]), dtype=int)
         # assert np.array_equal(new_method, old_method), "We have a problem!"
         # return new_method
         return np.sort(np.hstack((self.unique_infeasible_supports_beyond_esep_as_integers(**kwargs),
-                          self.trivially_infeasible_supports_as_integers)))
+                          self.infeasible_supports_due_to_esep_as_integers)))
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_as_matrices(self, **kwargs):
@@ -214,6 +246,10 @@ class SmartSupportTesting(SupportTesting):
         return all(self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0] for occuring_events_as_int in
                    self.smart_unique_candidate_supports_to_iterate(verbose))
 
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def no_infeasible_supports_beyond_dsep(self, verbose=False, **kwargs):
+        return all(self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0] for occuring_events_as_int in
+                   self.unique_candidate_supports_not_infeasible_due_to_dsep_as_integers)
 
 
 
