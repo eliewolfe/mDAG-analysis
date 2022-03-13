@@ -14,7 +14,7 @@ from radix import bitarray_to_int
 import matplotlib.pyplot as plt      
 import networkx as nx
 from utilities import partsextractor
-from collections import defaultdict
+#from collections import defaultdictS
 from supports_beyond_esep import SmartSupportTesting
 from hypergraphs import Hypergraph, LabelledHypergraph, UndirectedGraph, LabelledUndirectedGraph
 import methodtools

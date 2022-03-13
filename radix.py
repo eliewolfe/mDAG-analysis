@@ -215,9 +215,6 @@ def bitarray_to_int(bit_array):
 #     # return np.reshape(to_bits(integer, numrows * numcolumns), np.asarray(integer).shape + (numrows, numcolumns))
 #     return to_bits(integer, numcolumns)
 
-
-
-
 if __name__ == '__main__':
     print(to_digits([3,5,12,100], base=np.hstack((np.repeat(1,32),(3,4,5)))))
     print(to_digits([3, 5, 12, 100], base=np.hstack((np.repeat(1, 32), (3, 4, 5)))).shape)
