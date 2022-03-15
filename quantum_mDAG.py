@@ -14,15 +14,26 @@ else:
     cached_property = property
 
 
+def C_facets_not_dominated_by_Q(c_facets, q_facets):
+    c_facets_copy = c_facets.copy()
+    for Q_facet in q_facets:
+        dominated_by_quantum = set(filter(Q_facet.issuperset, c_facets_copy))
+        c_facets_copy.difference_update(dominated_by_quantum)
+    return c_facets_copy
+
 #This class does NOT represent every possible quantum causal structure. It only represents the causal structures where every quantum latent is exogenized. This is the case, for example, of the known QC Gaps.
 class QmDAG:
     def __init__(self, directed_structure_instance, C_simplicial_complex_instance, Q_simplicial_complex_instance):
         self.directed_structure_instance = directed_structure_instance
         self.number_of_visible = self.directed_structure_instance.number_of_visible
-        self.C_simplicial_complex_instance = C_simplicial_complex_instance
-        self.Q_simplicial_complex_instance = Q_simplicial_complex_instance
         assert directed_structure_instance.number_of_visible == C_simplicial_complex_instance.number_of_visible, 'Different number of nodes in directed structure vs classical simplicial complex.'
         assert directed_structure_instance.number_of_visible == Q_simplicial_complex_instance.number_of_visible, 'Different number of nodes in directed structure vs quantum simplicial complex.'
+
+        self.Q_simplicial_complex_instance = Q_simplicial_complex_instance
+        self.C_simplicial_complex_instance = Hypergraph(C_facets_not_dominated_by_Q(
+            C_simplicial_complex_instance.simplicial_complex_as_sets,
+            Q_simplicial_complex_instance.simplicial_complex_as_sets
+        ), self.number_of_visible)
         if hasattr(self.directed_structure_instance, 'variable_names'):
             self.variable_names = self.directed_structure_instance.variable_names
             if hasattr(self.C_simplicial_complex_instance, 'variable_names'):
@@ -43,7 +54,9 @@ class QmDAG:
 
     @cached_property
     def as_string(self):
-        return self.directed_structure_instance.as_string + '|' + self.C_simplicial_complex_instance.as_string+ '|' + self.Q_simplicial_complex_instance.as_string
+        return 'Children'.ljust(10) + ': ' + self.directed_structure_instance.as_string\
+               + '\nClassical'.ljust(11) + ': '  + self.C_simplicial_complex_instance.as_string\
+               + '\nQuantum'.ljust(11) + ': ' + self.Q_simplicial_complex_instance.as_string + '\n'
     
     def __str__(self):
         return self.as_string
@@ -127,9 +140,10 @@ class QmDAG:
    #get the number that corresponds to mDAG
             
 if __name__ == '__main__':
-    QG= QmDAG(DirectedStructure([(1,2),(2,3)],4),Hypergraph([(0,2),(1,2),(2,3)],4),Hypergraph([(1,2,3)],4))
-    QGc=QG.clean_C_simplicial_complex()
-
+    QG = QmDAG(DirectedStructure([(1,2),(2,3)],4),Hypergraph([(0,2),(1,2),(2,3)],4),Hypergraph([(1,2,3)],4))
+    print(QG)
+    print(QG.unique_id)
+    print(QG.unique_unlabelled_id)
 
     print(DirectedStructure([(1,2),(2,3)],4).as_bit_square_matrix.astype(int))
 
