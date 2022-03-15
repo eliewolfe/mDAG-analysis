@@ -141,9 +141,13 @@ class Hypergraph:
         return (permute_bit_array(self.as_bit_array, perm)
                 for perm in map(list, itertools.permutations(range(self.number_of_visible))))
 
+    @property
+    def as_integer_permutations(self):
+        return [bitarray_to_int(ba) for ba in self.bit_array_permutations]
+
     @cached_property
     def as_unlabelled_integer(self):
-        return min(bitarray_to_int(ba) for ba in self.bit_array_permutations)
+        return min(bitarray_to_int(ba) for ba in self.as_integer_permutations)
 
     @cached_property
     def as_string(self):

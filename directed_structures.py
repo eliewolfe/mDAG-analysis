@@ -91,6 +91,10 @@ class DirectedStructure:
     def bit_square_matrix_permutations(self):
         return (self.permute_bit_square_matrix(perm) for perm in map(list,itertools.permutations(self.visible_nodes)))
 
+    @property
+    def as_integer_permutations(self):
+        return [bitarray_to_int(ba) for ba in self.bit_square_matrix_permutations]
+
     @cached_property
     def as_unlabelled_integer(self):
         return min(bitarray_to_int(ba) for ba in self.bit_square_matrix_permutations)
