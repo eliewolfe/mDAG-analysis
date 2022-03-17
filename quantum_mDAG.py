@@ -67,27 +67,13 @@ class QmDAG:
     
     # When finding the unique Quantum idetification tuple, remember to do it for the CLEAN classical simplicial complex
 
-    
-    def fix_to_point_distribution(self,node):  #returns a smaller QmDAG
-        ds=self.directed_structure_instance.edge_list.copy()
-        Csc=self.C_simplicial_complex_instance.simplicial_complex_as_sets.copy()
-        Qsc=self.Q_simplicial_complex_instance.simplicial_complex_as_sets.copy()
-        for edge in self.directed_structure_instance.edge_list:
-            if node in edge:
-                ds.remove(edge)
-        for C_facet in self.C_simplicial_complex_instance.simplicial_complex_as_sets:
-            if node in C_facet:
-                Csc.remove(C_facet)
-                if len(set(C_facet)-set((node)))>1:
-                    Csc.append(set(C_facet)-set((node)))
-        for Q_facet in self.Q_simplicial_complex_instance.simplicial_complex_as_sets:
-            if node in Q_facet:
-                Qsc.remove(Q_facet)
-                if len(set(Q_facet)-set((node)))>1:
-                    Qsc.append(set(Q_facet)-set((node)))
-        not_clean_QmDAG=QmDAG(DirectedStructure(ds,self.number_of_visible-1),Hypergraph(Csc,self.number_of_visible-1),Hypergraph(Qsc,self.number_of_visible-1)) 
-        clean_QmDAG=QmDAG(not_clean_QmDAG.directed_structure_instance,not_clean_QmDAG.clean_C_simplicial_complex,not_clean_QmDAG.Q_simplicial_complex_instance)
-        return clean_QmDAG
+    def fix_to_point_distribution(self, node):  #returns a smaller QmDAG
+        new_node_list = self.visible_nodes[:node]+self.visible_nodes[(node+1):]
+        return QmDAG(
+            LabelledDirectedStructure(new_node_list, self.directed_structure_instance.edge_list),
+            LabelledHypergraph(new_node_list, self.C_simplicial_complex_instance.compressed_simplicial_complex),
+            LabelledHypergraph(new_node_list, self.Q_simplicial_complex_instance.compressed_simplicial_complex),
+        )
     
     
    #can you simulate one of the simple ones (Instrumental with 1 quantum, 1 classical latent)
@@ -95,8 +81,9 @@ class QmDAG:
    #get the number that corresponds to mDAG
             
 
-QG= QmDAG(DirectedStructure([(1,2),(2,3)],4),Hypergraph([(0,2),(1,2),(2,3)],4),Hypergraph([(1,2,3)],4))    
+QG= QmDAG(DirectedStructure([(1,2),(2,3)],4),Hypergraph([(0,2)],4),Hypergraph([(1,2,3)],4))    
 QGc=QG.clean_C_simplicial_complex()
+QG.fix_to_point_distribution(1)
 
 
 DirectedStructure([(1,2),(2,3)],4).as_bit_square_matrix
