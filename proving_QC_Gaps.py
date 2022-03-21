@@ -31,8 +31,8 @@ if __name__ == '__main__':
         return False
     
     QC_gap_by_Intervention=[]
-    for eqclass in Observable_mDAGs4.equivalence_classes_as_mDAGs:
-        smart_representative=Observable_mDAGs4.representative_mDAGs_not_necessarily_foundational[Observable_mDAGs4.equivalence_classes_as_mDAGs.index(eqclass)]
+    for eqclass in Observable_mDAGs4.foundational_eqclasses:
+        smart_representative=Observable_mDAGs4.representative_mDAGs_list[Observable_mDAGs4.foundational_eqclasses.index(eqclass)]
         for mDAG in eqclass:
             if reduces_to_knownQCGap_by_intervention(mDAG):
                 QC_gap_by_Intervention.append(smart_representative)
