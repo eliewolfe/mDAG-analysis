@@ -14,7 +14,7 @@ from radix import bitarray_to_int
 import matplotlib.pyplot as plt      
 import networkx as nx
 from utilities import partsextractor
-#from collections import defaultdictS
+from collections import defaultdict
 from supports_beyond_esep import SmartSupportTesting
 from hypergraphs import Hypergraph, LabelledHypergraph, UndirectedGraph, LabelledUndirectedGraph
 import methodtools
@@ -796,7 +796,13 @@ class mDAG:
         if marginalized_node_in_some_facet==False and len(self.children(marginalized_node))>1:
             new_simplicial_complex.append(tuple(self.children(marginalized_node)))
         return new_edge_list, new_simplicial_complex, variable_names
-
+    
+    def fix_to_point_distribution(self, node):  #returns a smaller mDAG
+        new_node_list = self.visible_nodes[:node]+self.visible_nodes[(node+1):]
+        return mDAG(
+            LabelledDirectedStructure(new_node_list, self.directed_structure_instance.edge_list),
+            LabelledHypergraph(new_node_list, self.simplicial_complex_instance.compressed_simplicial_complex),
+        )
 
 
 # class labelled_mDAG(mDAG):
