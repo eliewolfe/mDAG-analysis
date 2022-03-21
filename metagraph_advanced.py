@@ -292,7 +292,7 @@ class Observable_unlabelled_mDAGs:
     def representative_mDAGs_list(self):
     #     return self.representatives(self.equivalence_classes_as_mDAGs)
         return self.smart_representatives(self.foundational_eqclasses, 'relative_complexity_for_sat_solver')
-
+    
     @property
     def CI_classes(self):
         return classify_by_attributes(self.representative_mDAGs_list, ['all_CI_unlabelled'])

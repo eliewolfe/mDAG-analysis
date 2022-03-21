@@ -24,12 +24,21 @@ if __name__ == '__main__':
     known_QC_Gaps_QmDAGs_id=[QG_Instrumental.unique_unlabelled_id,QG_Bell.unique_unlabelled_id]
 
 # For the trick of fixing to point distribution, we can simply compare mDAGs. The QmDAG structure is going to be useful only in the marginalization case (where classical and quantum latents appear)
-    QC_gap_by_Intervention=[]
-    for mDAG in Observable_mDAGs4.representative_mDAGs_not_necessarily_foundational:
+    def reduces_to_knownQCGap_by_intervention(mDAG):
         for node in mDAG.visible_nodes:
-            if mDAG.fix_to_point_distribution(node).unique_unlabelled_id in known_QC_Gaps_mDAGs_id:
-                QC_gap_by_Intervention.append(mDAG)
-                break
+                if mDAG.fix_to_point_distribution(node).unique_unlabelled_id in known_QC_Gaps_mDAGs_id:
+                    return True
+        return False
     
-    print(len(Observable_mDAGs4.representative_mDAGs_not_necessarily_foundational))
+    QC_gap_by_Intervention=[]
+    for eqclass in Observable_mDAGs4.equivalence_classes_as_mDAGs:
+        smart_representative=Observable_mDAGs4.representative_mDAGs_not_necessarily_foundational[Observable_mDAGs4.equivalence_classes_as_mDAGs.index(eqclass)]
+        for mDAG in eqclass:
+            if reduces_to_knownQCGap_by_intervention(mDAG):
+                QC_gap_by_Intervention.append(smart_representative)
+                break
+            
+    
+    print(len(Observable_mDAGs4.representative_mDAGs_list))
     print(len(QC_gap_by_Intervention))
+
