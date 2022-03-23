@@ -338,11 +338,11 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def equivalent_to_only_hypergraph_representative(self):
-        #diagnostic:
-        for mDAG_by_hypergraph, mDAG_by_complexity in zip(
-                self.representatives_for_only_hypergraphs, self.representative_mDAGs_list):
-            if mDAG_by_hypergraph != mDAG_by_complexity and mDAG_by_hypergraph.n_of_edges==0:
-                print(mDAG_by_hypergraph, " =!= ", mDAG_by_complexity)
+        # #diagnostic:
+        # for mDAG_by_hypergraph, mDAG_by_complexity in zip(
+        #         self.representatives_for_only_hypergraphs, self.representative_mDAGs_list):
+        #     if mDAG_by_hypergraph != mDAG_by_complexity and mDAG_by_hypergraph.n_of_edges==0:
+        #         print(mDAG_by_hypergraph, " =!= ", mDAG_by_complexity)
         return {mDAG_by_complexity: mDAG_by_hypergraph.n_of_edges==0 for
                 mDAG_by_hypergraph, mDAG_by_complexity in
                 zip(self.representatives_for_only_hypergraphs, self.representative_mDAGs_list)}

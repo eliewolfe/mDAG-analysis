@@ -1,9 +1,9 @@
 from __future__ import absolute_import
-import numpy as np
+# import numpy as np
 import itertools
 from hypergraphs import Hypergraph, LabelledHypergraph
 from directed_structures import DirectedStructure, LabelledDirectedStructure
-from radix import bitarray_to_int
+# from radix import bitarray_to_int
 from mDAG_advanced import mDAG
 from sys import hexversion
 if hexversion >= 0x3080000:
@@ -20,6 +20,12 @@ def C_facets_not_dominated_by_Q(c_facets, q_facets):
         dominated_by_quantum = set(filter(Q_facet.issuperset, c_facets_copy))
         c_facets_copy.difference_update(dominated_by_quantum)
     return c_facets_copy
+
+def upgrade_to_QmDAG(mDAG):
+    return QmDAG(
+        mDAG.directed_structure_instance,
+        Hypergraph([], mDAG.number_of_visible),
+        mDAG.simplicial_complex_instance)
 
 #This class does NOT represent every possible quantum causal structure. It only represents the causal structures where every quantum latent is exogenized. This is the case, for example, of the known QC Gaps.
 class QmDAG:
@@ -68,13 +74,14 @@ class QmDAG:
     def unique_id(self):
         # Returns a unique identification tuple.
         return (
+            self.number_of_visible,
             self.directed_structure_instance.as_integer,
             self.C_simplicial_complex_instance.as_integer,
             self.Q_simplicial_complex_instance.as_integer,
         )
 
     def __hash__(self):
-        return self.unique_id
+        return hash(self.unique_id)
 
     def __eq__(self, other):
         return self.unique_id == other.unique_id
@@ -90,29 +97,47 @@ class QmDAG:
 
 
     def quantum_parents(self, node):
-        return [quantum_facet for quantum_facet in self.quantum_simplicial_complex_instance.simplicial_complex_as_sets if node in quantum_facet]
+        return [quantum_facet for quantum_facet in self.Q_simplicial_complex_instance.simplicial_complex_as_sets if node in quantum_facet]
    
-    def clean_C_simplicial_complex(self):  #remove classical facets that are redundant to quantum facets
-        new_C_simplicial_complex=self.C_simplicial_complex_instance.simplicial_complex_as_sets.copy()
-        for Q_facet in self.Q_simplicial_complex_instance.simplicial_complex_as_sets:
-            dominated_by_quantum = set(filter(Q_facet.issuperset, new_C_simplicial_complex))
-            new_C_simplicial_complex.difference_update(dominated_by_quantum)
-            # for C_facet in self.C_simplicial_complex_instance.simplicial_complex_as_sets:
-            #     if set(C_facet).issubset(Q_facet):
-            #         new_C_simplicial_complex.remove(C_facet)
-            #         break
-        return Hypergraph(new_C_simplicial_complex, self.number_of_visible)
+    # def clean_C_simplicial_complex(self):  #remove classical facets that are redundant to quantum facets
+    #     new_C_simplicial_complex=self.C_simplicial_complex_instance.simplicial_complex_as_sets.copy()
+    #     for Q_facet in self.Q_simplicial_complex_instance.simplicial_complex_as_sets:
+    #         dominated_by_quantum = set(filter(Q_facet.issuperset, new_C_simplicial_complex))
+    #         new_C_simplicial_complex.difference_update(dominated_by_quantum)
+    #     return Hypergraph(new_C_simplicial_complex, self.number_of_visible)
          
     
     # When finding the unique Quantum idetification tuple, remember to do it for the CLEAN classical simplicial complex
+    def subgraph(self, list_of_nodes):
+        return QmDAG(
+            LabelledDirectedStructure(list_of_nodes, self.directed_structure_instance.edge_list),
+            LabelledHypergraph(list_of_nodes, self.C_simplicial_complex_instance.simplicial_complex_as_sets),
+            LabelledHypergraph(list_of_nodes, self.Q_simplicial_complex_instance.simplicial_complex_as_sets),
+        )
 
     def fix_to_point_distribution_QmDAG(self, node):  #returns a smaller QmDAG
-        new_node_list = self.visible_nodes[:node]+self.visible_nodes[(node+1):]
-        return QmDAG(
-            LabelledDirectedStructure(new_node_list, self.directed_structure_instance.edge_list),
-            LabelledHypergraph(new_node_list, self.C_simplicial_complex_instance.compressed_simplicial_complex),
-            LabelledHypergraph(new_node_list, self.Q_simplicial_complex_instance.compressed_simplicial_complex),
+        return self.subgraph(self.visible_nodes[:node]+self.visible_nodes[(node+1):])
+
+    @cached_property
+    def as_mDAG(self):
+        return mDAG(
+            self.directed_structure_instance,
+            Hypergraph(C_facets_not_dominated_by_Q(
+                self.Q_simplicial_complex_instance.simplicial_complex_as_sets,
+                self.C_simplicial_complex_instance.simplicial_complex_as_sets
+            ).union(
+                self.C_simplicial_complex_instance.simplicial_complex_as_sets
+            ), self.number_of_visible)
         )
+
+    def _subgraphs_generator(self):
+        for r in range(3, self.number_of_visible):
+            for to_keep in itertools.combinations(self.visible_nodes, r):
+                yield self.subgraph(to_keep)
+
+    @cached_property
+    def unique_unlabelled_ids_obtainable_by_PD_trick(self):
+        return [subQmDAG.unique_unlabelled_id for subQmDAG in self._subgraphs_generator()]
 
     
    #can you simulate one of the simple ones (Instrumental with 1 quantum, 1 classical latent)

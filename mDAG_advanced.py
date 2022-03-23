@@ -11,11 +11,22 @@ else:
     cached_property = property
 
 from radix import bitarray_to_int
-import matplotlib.pyplot as plt      
-import networkx as nx
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    print("Visualization with matplotlib is disabled.")
+try:
+    import networkx as nx
+except ImportError:
+    print("Functions which depend on networkx are not available.")
+
+
 from utilities import partsextractor
 from collections import defaultdict
-from supports_beyond_esep import SmartSupportTesting
+try:
+    from supports_beyond_esep import SmartSupportTesting
+except:
+    print("Testing infeasible supports requires pysat.")
 from hypergraphs import Hypergraph, LabelledHypergraph, UndirectedGraph, LabelledUndirectedGraph
 import methodtools
 from directed_structures import LabelledDirectedStructure, DirectedStructure
@@ -599,7 +610,7 @@ class mDAG:
     def subgraph(self, list_of_nodes):
         return mDAG(
             LabelledDirectedStructure(list_of_nodes, self.directed_structure_instance.edge_list),
-            LabelledHypergraph(list_of_nodes, self.simplicial_complex_instance.compressed_simplicial_complex)
+            LabelledHypergraph(list_of_nodes, self.simplicial_complex_instance.simplicial_complex_as_sets)
         )
 
   
@@ -798,11 +809,7 @@ class mDAG:
         return new_edge_list, new_simplicial_complex, variable_names
     
     def fix_to_point_distribution(self, node):  #returns a smaller mDAG
-        new_node_list = self.visible_nodes[:node]+self.visible_nodes[(node+1):]
-        return mDAG(
-            LabelledDirectedStructure(new_node_list, self.directed_structure_instance.edge_list),
-            LabelledHypergraph(new_node_list, self.simplicial_complex_instance.compressed_simplicial_complex),
-        )
+        return self.subgraph(self.visible_nodes[:node]+self.visible_nodes[(node+1):])
 
 
 # class labelled_mDAG(mDAG):
