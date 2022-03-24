@@ -53,19 +53,19 @@ known_QC_Gaps_QmDAGs_id = set(special_QmDAG.unique_unlabelled_id for special_QmD
 
 
 
-print(len(QmDAGs4_representatives))
+print("Total number of qmDAGs to analyze: ", len(QmDAGs4_representatives))
 
 def reduces_to_knownQCGap_by_PD_trick(qmDAG):
     return not known_QC_Gaps_QmDAGs_id.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_PD_trick)
 QC_gap_by_PD_trick = list(filter(reduces_to_knownQCGap_by_PD_trick, QmDAGs4_representatives))
 
-print(len(QC_gap_by_PD_trick))
+print("# of QC gaps seen via PD trick: ", len(QC_gap_by_PD_trick))
 
 def reduces_to_knownQCGap_by_naive_marginalization(qmDAG):
     return not known_QC_Gaps_QmDAGs_id.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_naive_marginalization)
 QC_gap_by_naive_marginalization = list(filter(reduces_to_knownQCGap_by_naive_marginalization, set(QmDAGs4_representatives).difference(QC_gap_by_PD_trick)))
 
-print(len(QC_gap_by_naive_marginalization))
+print("# of ADDITIONAL QC gaps seen via naive marginalization: ", len(QC_gap_by_naive_marginalization))
 print(QC_gap_by_naive_marginalization)
 
 # debug_QmDAG = QmDAG(
@@ -84,7 +84,7 @@ QC_gap_by_marginalization = list(filter(reduces_to_knownQCGap_by_marginalization
     QC_gap_by_naive_marginalization
 )))
 
-print(len(QC_gap_by_marginalization))
+print("# of ADDITIONAL QC gaps seen via teleporation marginalization: ", len(QC_gap_by_marginalization))
 print(QC_gap_by_marginalization)
 
 # def reduces_to_knownQCGap_by_PD_or_teleportation(qmDAG):

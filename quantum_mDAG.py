@@ -110,7 +110,8 @@ class QmDAG:
     #         new_C_simplicial_complex.difference_update(dominated_by_quantum)
     #     return Hypergraph(new_C_simplicial_complex, self.number_of_visible)
 
-    # When finding the unique Quantum idetification tuple, remember to do it for the CLEAN classical simplicial complex
+    #ON THE POINT DISTRIBUTION TRICK
+
     def subgraph(self, list_of_nodes):
         return QmDAG(
             LabelledDirectedStructure(list_of_nodes, self.directed_structure_instance.edge_list),
@@ -121,6 +122,17 @@ class QmDAG:
     def fix_to_point_distribution_QmDAG(self, node):  # returns a smaller QmDAG
         return self.subgraph(self.visible_nodes[:node] + self.visible_nodes[(node + 1):])
 
+    def _subgraphs_generator(self):
+        for r in range(3, self.number_of_visible):
+            for to_keep in itertools.combinations(self.visible_nodes, r):
+                yield self.subgraph(to_keep)
+
+    @cached_property
+    def unique_unlabelled_ids_obtainable_by_PD_trick(self):
+        return [subQmDAG.unique_unlabelled_id for subQmDAG in self._subgraphs_generator()]
+
+    # ON THE MARGINALIZATION TRICK
+
     def classical_sibling_sets_of(self, node):
         return [facet.difference({node}) for facet in self.C_simplicial_complex_instance.simplicial_complex_as_sets if
                 node in facet]
@@ -128,9 +140,9 @@ class QmDAG:
     def quantum_sibling_sets_of(self, node):
         return [facet.difference({node}) for facet in self.Q_simplicial_complex_instance.simplicial_complex_as_sets if
                 node in facet]
-
-    def quantum_siblings_of(self, node):
-        return set(itertools.chain.from_iterable(self.quantum_sibling_sets_of(node)))
+    #
+    # def quantum_siblings_of(self, node):
+    #     return set(itertools.chain.from_iterable(self.quantum_sibling_sets_of(node)))
 
     def marginalize(self, node, apply_teleportation=False):  # returns a smaller QmDAG
         remaining_nodes = self.visible_nodes[:node] + self.visible_nodes[(node + 1):]
@@ -151,22 +163,32 @@ class QmDAG:
         for C_facet_to_grow in C_facets_to_grow:
             new_C_facets.add(C_facet_to_grow.union(visible_children))
 
-        new_Q_facets = self.Q_simplicial_complex_instance.simplicial_complex_as_sets.copy()
-        Q_facets_to_grow = self.quantum_sibling_sets_of(node)
-        # print("Quantum Siblings: ", self.quantum_siblings_of(node))
-        teleportable_children = visible_children.intersection(self.quantum_siblings_of(node))
-        # if len(teleportable_children) == 1:
-        if True:
-            for Q_facet_to_grow in Q_facets_to_grow:
-                new_C_facets.add(Q_facet_to_grow.union(visible_children))
-                if apply_teleportation and (len(Q_facets_to_grow)==2):
-                    new_Q_facets.add(Q_facet_to_grow.union(teleportable_children))
 
-        return QmDAG(
+        Q_facets_to_grow = self.quantum_sibling_sets_of(node)
+        for Q_facet_to_grow in Q_facets_to_grow:
+            new_C_facets.add(Q_facet_to_grow.union(visible_children))
+        new_C_facets = hypergraph_full_cleanup(new_C_facets)
+
+        yield QmDAG(
             LabelledDirectedStructure(remaining_nodes, list(new_directed_edges)),
-            LabelledHypergraph(remaining_nodes, hypergraph_full_cleanup(new_C_facets)),
-            LabelledHypergraph(remaining_nodes, hypergraph_full_cleanup(new_Q_facets)),
-        )
+            LabelledHypergraph(remaining_nodes, new_C_facets),
+            LabelledHypergraph(remaining_nodes, self.Q_simplicial_complex_instance.simplicial_complex_as_sets),
+            )
+
+        if apply_teleportation:
+            teleportation_children_possibilities = list(filter(visible_children.issuperset, Q_facets_to_grow))
+            for teleportable_children in teleportation_children_possibilities:
+                new_Q_facets = self.Q_simplicial_complex_instance.simplicial_complex_as_sets.copy()
+                for Q_facet_to_grow in Q_facets_to_grow:
+                    new_Q_facets.add(Q_facet_to_grow.union(teleportable_children))
+                new_Q_facets = hypergraph_full_cleanup(new_Q_facets)
+                if not frozenset(new_Q_facets) == frozenset(self.Q_simplicial_complex_instance.simplicial_complex_as_sets):
+                    yield QmDAG(
+                        LabelledDirectedStructure(remaining_nodes, list(new_directed_edges)),
+                        LabelledHypergraph(remaining_nodes, new_C_facets),
+                        LabelledHypergraph(remaining_nodes, new_Q_facets),
+                        )
+
 
 
     @cached_property
@@ -181,22 +203,19 @@ class QmDAG:
             ), self.number_of_visible)
         )
 
-    def _subgraphs_generator(self):
-        for r in range(3, self.number_of_visible):
-            for to_keep in itertools.combinations(self.visible_nodes, r):
-                yield self.subgraph(to_keep)
 
-    @cached_property
-    def unique_unlabelled_ids_obtainable_by_PD_trick(self):
-        return [subQmDAG.unique_unlabelled_id for subQmDAG in self._subgraphs_generator()]
+    def _unique_unlabelled_ids_obtainable_by_marginalization(self, **kwargs):
+        for node in self.visible_nodes:
+            for sub_QmDAG in self.marginalize(node, **kwargs):
+                yield sub_QmDAG.unique_unlabelled_id
 
     @cached_property
     def unique_unlabelled_ids_obtainable_by_naive_marginalization(self):
-        return [self.marginalize(node, apply_teleportation=False).unique_unlabelled_id for node in self.visible_nodes]
+        return set(self._unique_unlabelled_ids_obtainable_by_marginalization(apply_teleportation=False))
 
     @cached_property
     def unique_unlabelled_ids_obtainable_by_marginalization(self):
-        return [self.marginalize(node, apply_teleportation=True).unique_unlabelled_id for node in self.visible_nodes]
+        return set(self._unique_unlabelled_ids_obtainable_by_marginalization(apply_teleportation=True))
 
 
 
