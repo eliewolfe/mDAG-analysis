@@ -17,7 +17,8 @@ if __name__ == '__main__':
     G_Bell= mDAG(DirectedStructure([(0,1),(2,3)],4),Hypergraph([(1,2)],4))
     G_Triangle=mDAG(DirectedStructure([],3),Hypergraph([(1,2),(2,0),(0,1)],3))
     G_Evans=mDAG(DirectedStructure([(0,1),(0,2)],3),Hypergraph([(0,1),(0,2)],3))
-    known_QC_Gaps_mDAGs_id=[G_Instrumental1.unique_unlabelled_id,G_Instrumental2.unique_unlabelled_id,G_Instrumental3.unique_unlabelled_id,G_Bell.unique_unlabelled_id,G_Triangle.unique_unlabelled_id]
+    known_QC_Gaps_mDAGs_id=[G_Bell.unique_unlabelled_id,G_Instrumental1.unique_unlabelled_id,G_Instrumental2.unique_unlabelled_id,G_Instrumental3.unique_unlabelled_id,G_Triangle.unique_unlabelled_id]
+    #known_QC_Gaps_mDAGs_id=[G_Instrumental1.unique_unlabelled_id,G_Instrumental2.unique_unlabelled_id,G_Instrumental3.unique_unlabelled_id,G_Bell.unique_unlabelled_id,G_Triangle.unique_unlabelled_id]
     #known_QC_Gaps_mDAGs_id=[G_Evans.unique_unlabelled_id,G_Instrumental.unique_unlabelled_id,G_Bell.unique_unlabelled_id,G_Triangle.unique_unlabelled_id]
 
     
