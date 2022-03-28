@@ -124,20 +124,24 @@ QC_gap_by_marginalization = list(filter(reduces_to_knownQCGap_by_marginalization
 print("# of ADDITIONAL QC gaps seen via teleporation marginalization: ", len(QC_gap_by_marginalization))
 print(QC_gap_by_marginalization)
 
+updated_known_QC_Gaps_QmDAGs=set(list(known_QC_Gaps_QmDAGs)+QC_gap_by_PD_trick+QC_gap_by_naive_marginalization+QC_gap_by_marginalization)
+updated_known_QC_Gaps_QmDAGs_id=set(QmDAG.unique_unlabelled_id for QmDAG in updated_known_QC_Gaps_QmDAGs)
 def reduces_to_knownQCGap_by_Fritz_without_node_splitting(qmDAG):
-    return not known_QC_Gaps_QmDAGs_id.isdisjoint(set(new_qmDAG for target, Y, new_qmDAG in qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting))
+    return not updated_known_QC_Gaps_QmDAGs_id.isdisjoint(set(new_qmDAG for target, Y, new_qmDAG in qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting))
+
+len(updated_known_QC_Gaps_QmDAGs)
 
 QC_gap_by_Fritz_without_node_splitting = list(filter(reduces_to_knownQCGap_by_Fritz_without_node_splitting, set(QmDAGs4_representatives).difference(
-    known_QC_Gaps_QmDAGs,
-    QC_gap_by_PD_trick,
-    QC_gap_by_naive_marginalization,
-    QC_gap_by_marginalization
+    updated_known_QC_Gaps_QmDAGs,
 )))
 
 len(QC_gap_by_Fritz_without_node_splitting)
 
-# for QmDAG in QC_gap_by_Fritz_without_node_splitting:
-#     QmDAG.as_mDAG.networkx_plot_mDAG()
+for QmDAG in QC_gap_by_Fritz_without_node_splitting:
+    (target, Y, new_qmDAG)=list(QmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting)[0]
+    print("target=",target)
+    print("Y=",Y)
+    QmDAG.as_mDAG.networkx_plot_mDAG()
 
 QG_Square=QmDAG(DirectedStructure([], 4), Hypergraph([], 4), Hypergraph([(2,3),(1,3),(0,1),(0,2)], 4))
 reduces_to_knownQCGap_by_Fritz_without_node_splitting(QG_Square)
