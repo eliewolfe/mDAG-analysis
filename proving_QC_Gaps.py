@@ -46,31 +46,31 @@ QG_Instrumental3 = QmDAG(DirectedStructure([(1, 2)], 3), Hypergraph([], 3), Hype
 QG_Instrumental2b = QmDAG(DirectedStructure([(0, 1), (1, 2)], 3), Hypergraph([(0, 1)], 3), Hypergraph([(1, 2)], 3))
 QG_Instrumental3b = QmDAG(DirectedStructure([(1, 2)], 3), Hypergraph([(0, 1)], 3), Hypergraph([(1, 2)], 3))
 
-QG_Bell1 = QmDAG(DirectedStructure([(0, 1), (2, 3)], 4), Hypergraph([], 4), Hypergraph([(1, 2)], 4))
-QG_Bell2 = QmDAG(DirectedStructure([(0, 1), (2, 3)], 4), Hypergraph([(0,1)], 4), Hypergraph([(1, 2)], 4))
-QG_Bell2b = QmDAG(DirectedStructure([(0, 1), (2, 3)], 4), Hypergraph([], 4), Hypergraph([(0,1),(1, 2)], 4))
-QG_Bell3 = QmDAG(DirectedStructure([(0, 1), (2, 3)], 4), Hypergraph([(2,3)], 4), Hypergraph([(1, 2)], 4))
-QG_Bell3b = QmDAG(DirectedStructure([(0, 1), (2, 3)], 4), Hypergraph([], 4), Hypergraph([(1, 2),(2,3)], 4))
-QG_Bell4 = QmDAG(DirectedStructure([(0, 1), (2, 3)], 4), Hypergraph([(0,1),(2,3)], 4), Hypergraph([(1, 2)], 4))
-QG_Bell4b = QmDAG(DirectedStructure([(0, 1), (2, 3)], 4), Hypergraph([(0,1)], 4), Hypergraph([(1, 2),(2,3)], 4))
-QG_Bell4c = QmDAG(DirectedStructure([(0, 1), (2, 3)], 4), Hypergraph([(2,3)], 4), Hypergraph([(0,1),(1, 2)], 4))
-QG_Bell4d = QmDAG(DirectedStructure([(0, 1), (2, 3)], 4), Hypergraph([], 4), Hypergraph([(0,1),(1, 2),(2,3)], 4))
-QG_Bell5 = QmDAG(DirectedStructure([(2, 3)], 4), Hypergraph([(0,1)], 4), Hypergraph([(1, 2)], 4))
-QG_Bell5b = QmDAG(DirectedStructure([(2, 3)], 4), Hypergraph([], 4), Hypergraph([(1, 2),(0,1)], 4))
-QG_Bell6 = QmDAG(DirectedStructure([], 4), Hypergraph([(0,1),(2,3)], 4), Hypergraph([(1, 2)], 4))
-QG_Bell6b = QmDAG(DirectedStructure([], 4), Hypergraph([(2,3)], 4), Hypergraph([(0,1),(1, 2)], 4))
-QG_Bell6c = QmDAG(DirectedStructure([], 4), Hypergraph([(0,1)], 4), Hypergraph([(1, 2),(2,3)], 4))
-QG_Bell6d = QmDAG(DirectedStructure([], 4), Hypergraph([], 4), Hypergraph([(1, 2),(0,1),(2,3)], 4))
-QG_Bell7 = QmDAG(DirectedStructure([(2, 3)], 4), Hypergraph([(0,1),(2,3)], 4), Hypergraph([(1, 2)], 4))
-QG_Bell7b = QmDAG(DirectedStructure([(2, 3)], 4), Hypergraph([(2,3)], 4), Hypergraph([(0,1),(1, 2)], 4))
-QG_Bell7c = QmDAG(DirectedStructure([(2, 3)], 4), Hypergraph([(0,1)], 4), Hypergraph([(1, 2),(2,3)], 4))
-QG_Bell7d = QmDAG(DirectedStructure([(2, 3)], 4), Hypergraph([], 4), Hypergraph([(1, 2),(0,1),(2,3)], 4))
-QG_Bell8 = QmDAG(DirectedStructure([(0, 1)], 4), Hypergraph([(0,1),(2,3)], 4), Hypergraph([(1, 2)], 4))
-QG_Bell8b = QmDAG(DirectedStructure([(0, 1)], 4), Hypergraph([(2,3)], 4), Hypergraph([(0,1),(1, 2)], 4))
-QG_Bell8c = QmDAG(DirectedStructure([(0, 1)], 4), Hypergraph([(0,1)], 4), Hypergraph([(1, 2),(2,3)], 4))
-QG_Bell8d = QmDAG(DirectedStructure([(0, 1)], 4), Hypergraph([], 4), Hypergraph([(1, 2),(0,1),(2,3)], 4))
-QG_Bell9 = QmDAG(DirectedStructure([(0, 1)], 4), Hypergraph([(2,3)], 4), Hypergraph([(1, 2)], 4))
-QG_Bell9b = QmDAG(DirectedStructure([(0, 1)], 4), Hypergraph([], 4), Hypergraph([(1, 2),(2,3)], 4))
+QG_Bell1 = QmDAG(DirectedStructure([(0, 2), (1, 3)], 4), Hypergraph([], 4), Hypergraph([(2, 3)], 4))
+QG_Bell2 = QmDAG(DirectedStructure([(0, 2), (1, 3)], 4), Hypergraph([(0,2)], 4), Hypergraph([(2, 3)], 4))
+QG_Bell2b = QmDAG(DirectedStructure([(0, 2), (1, 3)], 4), Hypergraph([], 4), Hypergraph([(0,1),(2, 3)], 4))
+QG_Bell3 = QmDAG(DirectedStructure([(0, 2), (1, 3)], 4), Hypergraph([(1,3)], 4), Hypergraph([(2, 3)], 4))
+QG_Bell3b = QmDAG(DirectedStructure([(0, 2), (1, 3)], 4), Hypergraph([], 4), Hypergraph([(2, 3),(2,3)], 4))
+QG_Bell4 = QmDAG(DirectedStructure([(0, 2), (1, 3)], 4), Hypergraph([(0, 2), (1, 3)], 4), Hypergraph([(2, 3)], 4))
+QG_Bell4b = QmDAG(DirectedStructure([(0, 2), (1, 3)], 4), Hypergraph([(0,2)], 4), Hypergraph([(1, 3),(2,3)], 4))
+QG_Bell4c = QmDAG(DirectedStructure([(0, 2), (1, 3)], 4), Hypergraph([(1,3)], 4), Hypergraph([(0,2),(2, 3)], 4))
+QG_Bell4d = QmDAG(DirectedStructure([(0, 2), (1, 3)], 4), Hypergraph([], 4), Hypergraph([(0, 2), (1, 3),(2,3)], 4))
+QG_Bell5 = QmDAG(DirectedStructure([(1, 3)], 4), Hypergraph([(0,2)], 4), Hypergraph([(2, 3)], 4))
+QG_Bell5b = QmDAG(DirectedStructure([(1, 3)], 4), Hypergraph([], 4), Hypergraph([(2, 3),(0,2)], 4))
+QG_Bell6 = QmDAG(DirectedStructure([], 4), Hypergraph([(1,3),(0,2)], 4), Hypergraph([(2, 3)], 4))
+QG_Bell6b = QmDAG(DirectedStructure([], 4), Hypergraph([(1,3)], 4), Hypergraph([(0,2),(2, 3)], 4))
+QG_Bell6c = QmDAG(DirectedStructure([], 4), Hypergraph([(0,2)], 4), Hypergraph([(1, 3),(2,3)], 4))
+QG_Bell6d = QmDAG(DirectedStructure([], 4), Hypergraph([], 4), Hypergraph([(1, 3),(0,2),(2,3)], 4))
+QG_Bell7 = QmDAG(DirectedStructure([(1, 3)], 4), Hypergraph([(0, 2), (1, 3)], 4), Hypergraph([(2, 3)], 4))
+QG_Bell7b = QmDAG(DirectedStructure([(1, 3)], 4), Hypergraph([(1,3)], 4), Hypergraph([(0,2),(2, 3)], 4))
+QG_Bell7c = QmDAG(DirectedStructure([(1, 3)], 4), Hypergraph([(0,2)], 4), Hypergraph([(1,3),(2,3)], 4))
+QG_Bell7d = QmDAG(DirectedStructure([(1, 3)], 4), Hypergraph([], 4), Hypergraph([(0, 2), (1, 3),(2,3)], 4))
+QG_Bell8 = QmDAG(DirectedStructure([(0, 2)], 4), Hypergraph([(0, 2), (1, 3)], 4), Hypergraph([(2, 3)], 4))
+QG_Bell8b = QmDAG(DirectedStructure([(0, 2)], 4), Hypergraph([(1,3)], 4), Hypergraph([(0,2),(2, 3)], 4))
+QG_Bell8c = QmDAG(DirectedStructure([(0, 2)], 4), Hypergraph([(0,2)], 4), Hypergraph([(1, 3),(2,3)], 4))
+QG_Bell8d = QmDAG(DirectedStructure([(0, 2)], 4), Hypergraph([], 4), Hypergraph([(0, 2), (1, 3),(2,3)], 4))
+QG_Bell9 = QmDAG(DirectedStructure([(0, 2)], 4), Hypergraph([(1,3)], 4), Hypergraph([(2, 3)], 4))
+QG_Bell9b = QmDAG(DirectedStructure([(0, 2)], 4), Hypergraph([], 4), Hypergraph([(1, 3),(2,3)], 4))
 
 # QG_Bell_wComm = QmDAG(DirectedStructure([(0, 1), (2, 3), (1, 2)], 4), Hypergraph([], 4), Hypergraph([(1, 2)], 4))
 ###
@@ -92,13 +92,14 @@ print("Total number of qmDAGs to analyze: ", len(QmDAGs4_representatives))
 
 def reduces_to_knownQCGap_by_PD_trick(qmDAG):
     return not known_QC_Gaps_QmDAGs_id.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_PD_trick)
-QC_gap_by_PD_trick = list(filter(reduces_to_knownQCGap_by_PD_trick, QmDAGs4_representatives))
+
+QC_gap_by_PD_trick = list(filter(reduces_to_knownQCGap_by_PD_trick, set(QmDAGs4_representatives).difference(known_QC_Gaps_QmDAGs)))
 
 print("# of QC gaps seen via PD trick: ", len(QC_gap_by_PD_trick))
 
 def reduces_to_knownQCGap_by_naive_marginalization(qmDAG):
     return not known_QC_Gaps_QmDAGs_id.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_naive_marginalization)
-QC_gap_by_naive_marginalization = list(filter(reduces_to_knownQCGap_by_naive_marginalization, set(QmDAGs4_representatives).difference(QC_gap_by_PD_trick)))
+QC_gap_by_naive_marginalization = list(filter(reduces_to_knownQCGap_by_naive_marginalization, set(QmDAGs4_representatives).difference(known_QC_Gaps_QmDAGs,QC_gap_by_PD_trick)))
 
 print("# of ADDITIONAL QC gaps seen via naive marginalization: ", len(QC_gap_by_naive_marginalization))
 print(QC_gap_by_naive_marginalization)
@@ -115,6 +116,7 @@ print(QC_gap_by_naive_marginalization)
 def reduces_to_knownQCGap_by_marginalization(qmDAG):
     return not known_QC_Gaps_QmDAGs_id.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_marginalization)
 QC_gap_by_marginalization = list(filter(reduces_to_knownQCGap_by_marginalization, set(QmDAGs4_representatives).difference(
+    known_QC_Gaps_QmDAGs,
     QC_gap_by_PD_trick,
     QC_gap_by_naive_marginalization
 )))
@@ -123,9 +125,10 @@ print("# of ADDITIONAL QC gaps seen via teleporation marginalization: ", len(QC_
 print(QC_gap_by_marginalization)
 
 def reduces_to_knownQCGap_by_Fritz_without_node_splitting(qmDAG):
-    return not known_QC_Gaps_QmDAGs_id.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting)
+    return not known_QC_Gaps_QmDAGs_id.isdisjoint(set(new_qmDAG for target, Y, new_qmDAG in qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting))
 
 QC_gap_by_Fritz_without_node_splitting = list(filter(reduces_to_knownQCGap_by_Fritz_without_node_splitting, set(QmDAGs4_representatives).difference(
+    known_QC_Gaps_QmDAGs,
     QC_gap_by_PD_trick,
     QC_gap_by_naive_marginalization,
     QC_gap_by_marginalization
@@ -133,13 +136,21 @@ QC_gap_by_Fritz_without_node_splitting = list(filter(reduces_to_knownQCGap_by_Fr
 
 len(QC_gap_by_Fritz_without_node_splitting)
 
+for QmDAG in QC_gap_by_Fritz_without_node_splitting:
+    QmDAG.as_mDAG.networkx_plot_mDAG()
+
+QG_Square=QmDAG(DirectedStructure([], 4), Hypergraph([], 4), Hypergraph([(2,3),(1,3),(0,1),(0,2)], 4))
+reduces_to_knownQCGap_by_Fritz_without_node_splitting(QG_Square)
+reduces_to_knownQCGap_by_marginalization(QG_Square)
+
 QG_Ghost = QmDAG(DirectedStructure([(0,1),(0,2)], 4), Hypergraph([(1,3)], 4), Hypergraph([(2,3)], 4))
 reduces_to_knownQCGap_by_Fritz_without_node_splitting(QG_Ghost)
 
 for eqclass in Observable_mDAGs4.foundational_eqclasses:
     if QG_Ghost.as_mDAG in eqclass:
         for mDAG in eqclass:
-            print(upgrade_to_QmDAG(mDAG).unique_unlabelled_id in set(QmDAG.unique_unlabelled_id for QmDAG in QC_gap_by_naive_marginalization))
+            print(mDAG)
+            print(reduces_to_knownQCGap_by_naive_marginalization(upgrade_to_QmDAG(mDAG)))
 
 
 
