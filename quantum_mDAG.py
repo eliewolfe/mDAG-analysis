@@ -160,14 +160,18 @@ class QmDAG:
                 new_directed_edges.add((parent, child))
 
         new_C_facets = self.C_simplicial_complex_instance.simplicial_complex_as_sets.copy()
+        # print(new_C_facets)
         C_facets_to_grow = self.classical_sibling_sets_of(node)
-        for C_facet_to_grow in C_facets_to_grow:
-            new_C_facets.add(C_facet_to_grow.union(visible_children))
-
-
         Q_facets_to_grow = self.quantum_sibling_sets_of(node)
-        for Q_facet_to_grow in Q_facets_to_grow:
-            new_C_facets.add(Q_facet_to_grow.union(visible_children))
+        C_facets_to_grow = C_facets_to_grow + Q_facets_to_grow
+        if len(C_facets_to_grow)>0:
+            for C_facet_to_grow in C_facets_to_grow:
+                new_C_facets.add(C_facet_to_grow.union(visible_children))
+        else:
+            new_C_facets.add(frozenset(visible_children))
+        # Q_facets_to_grow = self.quantum_sibling_sets_of(node)
+        # for Q_facet_to_grow in Q_facets_to_grow:
+        #     new_C_facets.add(Q_facet_to_grow.union(visible_children))
         new_C_facets = hypergraph_full_cleanup(new_C_facets)
 
         if not apply_teleportation:
@@ -298,7 +302,10 @@ if __name__ == '__main__':
     QG=QmDAG(DirectedStructure([(1,3),(0,2)], 4), Hypergraph([], 4), Hypergraph([(1,2),(1,3),(0,3)], 4))
     #print(QG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting)
     QG.Fritz(1,frozenset(),frozenset(),{frozenset({1, 3}), frozenset({1, 2})})
-    
+
+    QG_Ghost = QmDAG(DirectedStructure([(0, 1), (0, 2)], 4), Hypergraph([], 4), Hypergraph([(1, 3), (2, 3)], 4))
+    print(QG_Ghost)
+    print(QG_Ghost.marginalize(0))
 # =============================================================================
 #     for id in QG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting:
 #         if id in known_QC_Gaps_QmDAGs_id:

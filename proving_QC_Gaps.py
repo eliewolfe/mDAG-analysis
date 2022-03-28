@@ -136,8 +136,8 @@ QC_gap_by_Fritz_without_node_splitting = list(filter(reduces_to_knownQCGap_by_Fr
 
 len(QC_gap_by_Fritz_without_node_splitting)
 
-for QmDAG in QC_gap_by_Fritz_without_node_splitting:
-    QmDAG.as_mDAG.networkx_plot_mDAG()
+# for QmDAG in QC_gap_by_Fritz_without_node_splitting:
+#     QmDAG.as_mDAG.networkx_plot_mDAG()
 
 QG_Square=QmDAG(DirectedStructure([], 4), Hypergraph([], 4), Hypergraph([(2,3),(1,3),(0,1),(0,2)], 4))
 reduces_to_knownQCGap_by_Fritz_without_node_splitting(QG_Square)
