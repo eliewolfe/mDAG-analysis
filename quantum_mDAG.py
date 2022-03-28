@@ -219,7 +219,7 @@ class QmDAG:
         return set(self._unique_unlabelled_ids_obtainable_by_marginalization(apply_teleportation=True))
 
     #Iterate over sets of parents that we want to disconnect from the target
-    def Fritz_without_node_splitting(self, target,set_of_visible_parents_to_delete,set_of_C_facets_to_delete, set_of_Q_facets_to_delete):
+    def Fritz(self, target,set_of_visible_parents_to_delete,set_of_C_facets_to_delete, set_of_Q_facets_to_delete):
         if not set_of_visible_parents_to_delete.issubset(set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, target]))):
             return "Visible parents are not correct"
         if not set_of_C_facets_to_delete.issubset(self.C_simplicial_complex_instance.simplicial_complex_as_sets) or not set_of_Q_facets_to_delete.issubset(self.Q_simplicial_complex_instance.simplicial_complex_as_sets):
@@ -227,7 +227,8 @@ class QmDAG:
         dict_latents={i:children for i, children in zip(self.as_mDAG.nonsingleton_latent_nodes, self.as_mDAG.simplicial_complex_instance.compressed_simplicial_complex)}
         visible_parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, target]))
         latent_parents=set(i for i in dict_latents.keys() if target in dict_latents[i])
-        siblings_by_latent=set(node for facet in self.C_simplicial_complex_instance.simplicial_complex_as_sets.union(self.Q_simplicial_complex_instance.simplicial_complex_as_sets) for node in facet if node!=target)
+        facets_with_target=set(facet for facet in self.C_simplicial_complex_instance.simplicial_complex_as_sets.union(self.Q_simplicial_complex_instance.simplicial_complex_as_sets) if target in facet)
+        siblings_by_latent=set(node for facet in facets_with_target for node in facet if node!=target)
         set_of_latent_parents_to_delete=set(i for i in dict_latents.keys() if frozenset(dict_latents[i]) in set_of_C_facets_to_delete.union(set_of_Q_facets_to_delete))
         parents_not_to_delete=visible_parents.difference(set_of_visible_parents_to_delete).union(latent_parents.difference(set_of_latent_parents_to_delete))
         s=visible_parents.difference(set_of_visible_parents_to_delete).union(siblings_by_latent)
@@ -253,15 +254,44 @@ class QmDAG:
                         Y_satisfies_condition2=False
                         break
                 if Y_satisfies_condition2:
-                    return Y
+                    return True
         return False
                     
+    def _unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting(self):
+        for target in self.visible_nodes:
+            visible_parents=set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, target]))
+            C_facets_with_target=set(facet for facet in self.C_simplicial_complex_instance.simplicial_complex_as_sets if target in facet)
+            Q_facets_with_target=set(facet for facet in self.Q_simplicial_complex_instance.simplicial_complex_as_sets if target in facet)
+            for set_of_visible_parents_to_delete in [set(subset) for i in range(0, len(visible_parents) + 1) for subset in itertools.combinations(visible_parents, i)]:
+                for set_of_C_facets_to_delete in [set(subset) for i in range(0, len(C_facets_with_target) + 1) for subset in itertools.combinations(C_facets_with_target, i)]:
+                    for set_of_Q_facets_to_delete in [set(subset) for i in range(0, len(Q_facets_with_target) + 1) for subset in itertools.combinations(Q_facets_with_target, i)]:
+                        if self.Fritz(target,set_of_visible_parents_to_delete,set_of_C_facets_to_delete,set_of_Q_facets_to_delete):
+                            new_directed_structure=self.directed_structure_instance.as_tuples
+                            for p in set_of_visible_parents_to_delete:
+                                new_directed_structure=tuple(t for t in new_directed_structure if t!=(p,target))
+                            new_C_simplicial_complex=self.C_simplicial_complex_instance.simplicial_complex_as_sets.copy()
+                            for C_facet in set_of_C_facets_to_delete:
+                                new_C_simplicial_complex.remove(C_facet)
+                                new_C_facet=frozenset(i for i in C_facet if i!=target)
+                                if len(new_C_facet)>1:
+                                    new_C_simplicial_complex.add(new_C_facet)
+                            new_Q_simplicial_complex=self.Q_simplicial_complex_instance.simplicial_complex_as_sets.copy()
+                            for Q_facet in set_of_Q_facets_to_delete:
+                                new_Q_simplicial_complex.remove(Q_facet)
+                                new_Q_facet=frozenset(i for i in Q_facet if i!=target)
+                                if len(new_Q_facet)>1:
+                                    new_Q_simplicial_complex.add(new_Q_facet)
+                            yield QmDAG(DirectedStructure(new_directed_structure, self.number_of_visible),Hypergraph(new_C_simplicial_complex, self.number_of_visible), Hypergraph(new_Q_simplicial_complex, self.number_of_visible)).unique_unlabelled_id
 
+    @cached_property
+    def unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting(self):
+        return set(self._unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting())
 
 if __name__ == '__main__': 
     QG_Ghost = QmDAG(DirectedStructure([(0,1),(0,3)], 4), Hypergraph([(1,2)], 4), Hypergraph([(2,3)], 4))
-    print(QG_Ghost.Fritz_without_node_splitting(1,{0},set(),set()))
-    print(QG_Ghost.Fritz_without_node_splitting(1,set(),{frozenset((1,2))},set()))
+    print(QG_Ghost.Fritz(1,{0},set(),set()))
+    print(QG_Ghost.Fritz(1,set(),{frozenset((1,2))},set()))
+    print(QG_Ghost.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting)
     # QG = QmDAG(DirectedStructure([(1, 2), (2, 3)], 4), Hypergraph([(0, 2), (1, 2), (2, 3)], 4),
     #            Hypergraph([(1, 2, 3)], 4))
     # print(QG)
