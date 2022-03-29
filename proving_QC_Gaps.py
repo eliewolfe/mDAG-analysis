@@ -12,31 +12,26 @@ QmDAGs4_representatives = list(map(upgrade_to_QmDAG, mDAGs4_representatives))
 
 
 
-#if __name__ == '__main__':
-# Observable_mDAGs2 = Observable_mDAGs_Analysis(nof_observed_variables=2, max_nof_events_for_supports=0)
-#Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
-Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
-
-print("Marina style: ")
-G_Instrumental1 = mDAG(DirectedStructure([(0, 1), (1, 2)], 3), Hypergraph([(1, 2)], 3))
-G_Instrumental2 = mDAG(DirectedStructure([(0, 1), (1, 2)], 3), Hypergraph([(0, 1), (1, 2)], 3))
-G_Instrumental3 = mDAG(DirectedStructure([(1, 2)], 3), Hypergraph([(0, 1), (1, 2)], 3))
-G_Bell = mDAG(DirectedStructure([(0, 1), (2, 3)], 4), Hypergraph([(1, 2)], 4))
-#G_Bell_wComm = mDAG(DirectedStructure([(0, 1), (2, 3), (1, 2)], 4), Hypergraph([], 4))
-G_Triangle = mDAG(DirectedStructure([], 3), Hypergraph([(1, 2), (2, 0), (0, 1)], 3))
-G_Evans = mDAG(DirectedStructure([(0, 1), (0, 2)], 3), Hypergraph([(0, 1), (0, 2)], 3))
-known_QC_Gaps_mDAGs = [G_Instrumental1, G_Instrumental2, G_Instrumental3, G_Bell, G_Triangle]
-known_QC_Gaps_mDAGs_id = set(special_mDAG.unique_unlabelled_id for special_mDAG in known_QC_Gaps_mDAGs)
-
-# For the trick of fixing to point distribution, we can simply compare mDAGs. The QmDAG structure is going to be useful only in the marginalization case (where classical and quantum latents appear)
-def reduces_to_knownQCGap_by_intervention(mDAG):
-    for node in mDAG.visible_nodes:
-        if mDAG.fix_to_point_distribution(node).unique_unlabelled_id in known_QC_Gaps_mDAGs_id:
-            return True
-    return False
-QC_gap_by_Intervention = list(filter(reduces_to_knownQCGap_by_intervention, mDAGs4_representatives))
-print(len(mDAGs4_representatives))
-print(len(QC_gap_by_Intervention))
+# print("Marina style: ")
+# G_Instrumental1 = mDAG(DirectedStructure([(0, 1), (1, 2)], 3), Hypergraph([(1, 2)], 3))
+# G_Instrumental2 = mDAG(DirectedStructure([(0, 1), (1, 2)], 3), Hypergraph([(0, 1), (1, 2)], 3))
+# G_Instrumental3 = mDAG(DirectedStructure([(1, 2)], 3), Hypergraph([(0, 1), (1, 2)], 3))
+# G_Bell = mDAG(DirectedStructure([(0, 1), (2, 3)], 4), Hypergraph([(1, 2)], 4))
+# #G_Bell_wComm = mDAG(DirectedStructure([(0, 1), (2, 3), (1, 2)], 4), Hypergraph([], 4))
+# G_Triangle = mDAG(DirectedStructure([], 3), Hypergraph([(1, 2), (2, 0), (0, 1)], 3))
+# G_Evans = mDAG(DirectedStructure([(0, 1), (0, 2)], 3), Hypergraph([(0, 1), (0, 2)], 3))
+# known_QC_Gaps_mDAGs = [G_Instrumental1, G_Instrumental2, G_Instrumental3, G_Bell, G_Triangle]
+# known_QC_Gaps_mDAGs_id = set(special_mDAG.unique_unlabelled_id for special_mDAG in known_QC_Gaps_mDAGs)
+#
+# # For the trick of fixing to point distribution, we can simply compare mDAGs. The QmDAG structure is going to be useful only in the marginalization case (where classical and quantum latents appear)
+# def reduces_to_knownQCGap_by_intervention(mDAG):
+#     for node in mDAG.visible_nodes:
+#         if mDAG.fix_to_point_distribution(node).unique_unlabelled_id in known_QC_Gaps_mDAGs_id:
+#             return True
+#     return False
+# QC_gap_by_Intervention = list(filter(reduces_to_knownQCGap_by_intervention, mDAGs4_representatives))
+# print(len(mDAGs4_representatives))
+# print(len(QC_gap_by_Intervention))
 
 
 print("Elie style: ")
@@ -131,21 +126,38 @@ def reduces_to_knownQCGap_by_Fritz_without_node_splitting(qmDAG):
     # return not updated_known_QC_Gaps_QmDAGs_id.isdisjoint(obtained_ids)
     return not known_QC_Gaps_QmDAGs_id.isdisjoint(obtained_ids)
 
+def reduces_to_knownQCGap_by_Fritz_without_node_splitting(qmDAG):
+    # obtained_ids = [debug_info[-1] for debug_info in qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting]
+    # return not updated_known_QC_Gaps_QmDAGs_id.isdisjoint(obtained_ids)
+    return not known_QC_Gaps_QmDAGs_id.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_with_node_splitting(node_decomposition=False))
+def reduces_to_knownQCGap_by_Fritz_with_node_splitting(qmDAG):
+    # obtained_ids = [debug_info[-1] for debug_info in qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting]
+    # return not updated_known_QC_Gaps_QmDAGs_id.isdisjoint(obtained_ids)
+    return not known_QC_Gaps_QmDAGs_id.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_with_node_splitting(node_decomposition=True))
+
+
 print("# of QC Gaps discovered so far: ", len(updated_known_QC_Gaps_QmDAGs))
 remaining_representatives = set(QmDAGs4_representatives).difference(updated_known_QC_Gaps_QmDAGs)
 print("# of QC Gaps still to be assessed: ", len(remaining_representatives))
 
 
-# QG_Square = QmDAG(DirectedStructure([], 4), Hypergraph([], 4), Hypergraph([(2,3),(1,3),(0,1),(0,2)], 4))
-# print("Are we going to discover the square? ", reduces_to_knownQCGap_by_Fritz_without_node_splitting(QG_Square))
+QG_Square = QmDAG(DirectedStructure([], 4), Hypergraph([], 4), Hypergraph([(2,3),(1,3),(0,1),(0,2)], 4))
+print("Are we going to discover the square? ", reduces_to_knownQCGap_by_Fritz_without_node_splitting(QG_Square))
 # # reduces_to_knownQCGap_by_marginalization(QG_Square)
 # print("Is the square in the remaining set? ", QG_Square in remaining_representatives)
 
 QC_gap_by_Fritz_without_node_splitting = list(filter(reduces_to_knownQCGap_by_Fritz_without_node_splitting,
                                                      remaining_representatives))
+remaining_representatives.difference_update(QC_gap_by_Fritz_without_node_splitting)
 
-print("# of QC Gaps discovered via Fritz: ", len(QC_gap_by_Fritz_without_node_splitting))
+print("# of QC Gaps discovered via Fritz without splitting: ", len(QC_gap_by_Fritz_without_node_splitting))
 
+QC_gap_by_Fritz_with_node_splitting = list(filter(reduces_to_knownQCGap_by_Fritz_with_node_splitting,
+                                                     remaining_representatives))
+remaining_representatives.difference_update(QC_gap_by_Fritz_with_node_splitting)
+
+print("# of QC Gaps discovered via Fritz without splitting: ", len(QC_gap_by_Fritz_with_node_splitting))
+print("# of QC Gaps still to be assessed: ", len(remaining_representatives))
 # n=1
 # for new_QmDAG in QC_gap_by_Fritz_without_node_splitting:
 #     for i in range(0,len(new_QmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting)):
@@ -168,14 +180,6 @@ for eqclass in Observable_mDAGs4.foundational_eqclasses:
             print(reduces_to_knownQCGap_by_Fritz_without_node_splitting(upgrade_to_QmDAG(mDAG)))
 
 
-
-# def reduces_to_knownQCGap_by_PD_or_teleportation(qmDAG):
-#     return not known_QC_Gaps_QmDAGs_id.isdisjoint(
-#         set(qmDAG.unique_unlabelled_ids_obtainable_by_marginalization).difference(
-#             qmDAG.unique_unlabelled_ids_obtainable_by_marginalization
-#         ))
-# QC_gaps_where_teleportation_is_relevant = list(filter(reduces_to_knownQCGap_by_marginalization, QmDAGs4_representatives))
-# print(len(QC_gaps_where_teleportation_is_relevant))
 
 
 

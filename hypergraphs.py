@@ -27,11 +27,12 @@ def bit_array_permutations(bitarray):
     n = bitarray.shape[-1]
     return (permute_bit_array(bitarray, perm) for perm in map(list,itertools.permutations(range(n))))
 
-def hypergraph_canonicalize_without_deduplication(hypergraph):
-    return sorted(map(lambda s: tuple(sorted(s)), drop_singletons(hypergraph)))
+
 def hypergraph_canonicalize_with_deduplication(hypergraph):
-    hypergraph_copy = set(map(frozenset, hypergraph))
-    return hypergraph_canonicalize_without_deduplication(hypergraph_copy)
+    # hypergraph_copy = set(map(frozenset, drop_singletons(hypergraph)))
+    return set(map(frozenset, drop_singletons(hypergraph)))
+def hypergraph_to_list_of_tuples(hypergraph):
+    return sorted(map(lambda s: tuple(sorted(s)), hypergraph_canonicalize_with_deduplication(hypergraph)))
 def hypergraph_full_cleanup(hypergraph):
     hypergraph_copy = set(map(frozenset, hypergraph))
     cleaned_hypergraph_copy = hypergraph_copy.copy()
@@ -55,13 +56,11 @@ def hypergraph_full_cleanup(hypergraph):
 
 class Hypergraph:
     def __init__(self, any_simplicial_complex, n):
-        #Input format is list of tuples, including singletons. I'd like to change it to exclude singletons for convenience.
-        # self.simplicial_complex = hypergraph_canonicalize_without_deduplication(any_simplicial_complex)
         self.number_of_visible = n
 
-        self.simplicial_complex_as_sets = set(map(frozenset, any_simplicial_complex))
+        self.simplicial_complex_as_sets = hypergraph_canonicalize_with_deduplication(any_simplicial_complex)
+        self.compressed_simplicial_complex = hypergraph_to_list_of_tuples(self.simplicial_complex_as_sets)
         self.number_of_nonsingleton_latent = len(self.simplicial_complex_as_sets)
-        self.compressed_simplicial_complex = hypergraph_canonicalize_without_deduplication(self.simplicial_complex_as_sets)
 
         self.singleton_hyperedges = set(frozenset({v}) for v in set(range(self.number_of_visible)).difference(itertools.chain.from_iterable(self.simplicial_complex_as_sets)))
         self.extended_simplicial_complex_as_sets = self.simplicial_complex_as_sets.union(self.singleton_hyperedges)
@@ -69,7 +68,7 @@ class Hypergraph:
 
 
         if self.number_of_nonsingleton_latent:
-            assert max(map(max, self.simplicial_complex_as_sets)) + 1 <= self.number_of_visible, "More nodes referenced than expected."
+            assert max(map(max, self.compressed_simplicial_complex)) + 1 <= self.number_of_visible, "More nodes referenced than expected."
         self.number_of_visible_plus_latent = self.number_of_visible + self.number_of_latent
         self.number_of_visible_plus_nonsingleton_latent = self.number_of_visible + self.number_of_nonsingleton_latent
         # self.max_number_of_latents = comb(self.number_of_visible, np.floor_divide(self.number_of_visible,2), exact=True)
@@ -183,7 +182,7 @@ class Hypergraph:
     @cached_property
     def as_bidirected_adjmat(self):
         adjmat = np.zeros((self.number_of_visible, self.number_of_visible), dtype=bool)
-        for hyperedge in self.compressed_simplicial_complex:
+        for hyperedge in map(list, self.compressed_simplicial_complex):
             subindices = np.ix_(hyperedge, hyperedge)
             adjmat[subindices] = True
         return np.bitwise_and(adjmat, np.invert(np.identity(self.number_of_visible, dtype=bool)))
@@ -207,7 +206,7 @@ class LabelledHypergraph(Hypergraph):
 
         implicit_variable_names = set(itertools.chain.from_iterable(simplicial_complex))
         if implicit_variable_names.issubset(self.variable_names_as_frozenset):
-            self.simplicial_complex_with_variable_names = hypergraph_canonicalize_without_deduplication(simplicial_complex)
+            self.simplicial_complex_with_variable_names = hypergraph_canonicalize_with_deduplication(simplicial_complex)
         else:
             self.simplicial_complex_with_variable_names = hypergraph_full_cleanup(
                 [self.variable_names_as_frozenset.intersection(hyperedge) for hyperedge in simplicial_complex])
@@ -235,7 +234,11 @@ class LabelledHypergraph(Hypergraph):
             self.variable_are_range = False
             self.numerical_simplicial_complex = [partsextractor(self.translation_dict, hyperedge) for hyperedge in self.simplicial_complex_with_variable_names]
         super().__init__(self.numerical_simplicial_complex, self.number_of_variables)
-        self.as_string = stringify_in_list(map(stringify_in_tuple, self.simplicial_complex_with_variable_names))
+        # self.as_string = stringify_in_list(map(stringify_in_tuple, self.simplicial_complex_with_variable_names))
+
+    @cached_property
+    def as_string(self):
+        return stringify_in_list(map(stringify_in_tuple, self.simplicial_complex_with_variable_names))
 
     @cached_property
     def translated_nonsingleton_districts(self):
@@ -247,7 +250,11 @@ class LabelledHypergraph(Hypergraph):
 
     @cached_property
     def translated_extended_simplicial_complex(self):
-        return [partsextractor(self.variable_names, hyperedge) for hyperedge in self.extended_simplicial_complex_as_sets]
+        return set(frozenset(partsextractor(self.variable_names, hyperedge)) for hyperedge in self.extended_simplicial_complex_as_sets)
+
+    @cached_property
+    def translated_simplicial_complex(self):
+        return set(frozenset(partsextractor(self.variable_names, hyperedge)) for hyperedge in self.simplicial_complex_as_sets)
         
     def __str__(self):
         return self.as_string

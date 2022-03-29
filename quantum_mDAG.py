@@ -40,10 +40,20 @@ class QmDAG:
         assert directed_structure_instance.number_of_visible == Q_simplicial_complex_instance.number_of_visible, 'Different number of nodes in directed structure vs quantum simplicial complex.'
 
         self.Q_simplicial_complex_instance = Q_simplicial_complex_instance
-        self.C_simplicial_complex_instance = Hypergraph(C_facets_not_dominated_by_Q(
-            C_simplicial_complex_instance.simplicial_complex_as_sets,
-            Q_simplicial_complex_instance.simplicial_complex_as_sets
-        ), self.number_of_visible)
+        # print("Raw C_simp_complex:", C_simplicial_complex_instance.simplicial_complex_as_sets)
+        if hasattr(C_simplicial_complex_instance, 'variable_names'):
+            self.C_simplicial_complex_instance = LabelledHypergraph(
+                C_simplicial_complex_instance.variable_names,
+                C_facets_not_dominated_by_Q(
+                C_simplicial_complex_instance.translated_simplicial_complex,
+                Q_simplicial_complex_instance.translated_simplicial_complex
+            ))
+        else:
+            self.C_simplicial_complex_instance = Hypergraph(C_facets_not_dominated_by_Q(
+                C_simplicial_complex_instance.simplicial_complex_as_sets,
+                Q_simplicial_complex_instance.simplicial_complex_as_sets
+            ), self.number_of_visible)
+        # print("Utilized C_simp_complex:", self.C_simplicial_complex_instance.simplicial_complex_as_sets)
         if hasattr(self.directed_structure_instance, 'variable_names'):
             self.variable_names = self.directed_structure_instance.variable_names
             if hasattr(self.C_simplicial_complex_instance, 'variable_names'):
@@ -288,8 +298,15 @@ class QmDAG:
         #If everything has worked as planned...
         return [True, candidate_Y]
 
-    def _unique_unlabelled_ids_obtainable_by_Fritz_with_node_splitting(self):
+    def apply_Fritz_trick(self, node_decomposition=True):
+        new_directed_structure = [tuple(map(str,edge)) for edge in self.directed_structure_instance.edge_list]
+        new_C_simplicial_complex = set(frozenset(map(str, h)) for h in self.C_simplicial_complex_instance.simplicial_complex_as_sets)
+        new_Q_simplicial_complex = set(frozenset(map(str, h)) for h in self.Q_simplicial_complex_instance.simplicial_complex_as_sets)
+        new_node_names = list(map(str, self.visible_nodes))
+        allnode_name_variants = []
+
         for target in self.visible_nodes:
+            target_name_variants = [str(target)]
             visible_parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, target]))
             C_facets_with_target = set(
                 facet for facet in self.C_simplicial_complex_instance.simplicial_complex_as_sets if target in facet)
@@ -302,11 +319,80 @@ class QmDAG:
                     for set_of_Q_facets_to_delete in [set(subset) for i in range(0, len(Q_facets_with_target) + 1)
                                                       for subset in
                                                       itertools.combinations(Q_facets_with_target, i)]:
-                        Fritz_assessment = self.Fritz(target, set_of_visible_parents_to_delete,
-                                                      set_of_C_facets_to_delete, set_of_Q_facets_to_delete)
-                        if Fritz_assessment[0]:
-                            Y = Fritz_assessment[1]
-                            #TODO: Add new node corresponding to a perfectly predicted subvariable
+                        if not ((len(set_of_visible_parents_to_delete)==len(visible_parents)
+                        ) and (len(set_of_C_facets_to_delete)==len(C_facets_with_target)
+                        ) and (len(set_of_Q_facets_to_delete)==len(Q_facets_with_target)
+                        )) and not ((len(set_of_visible_parents_to_delete)==0
+                        ) and (len(set_of_C_facets_to_delete)==0
+                        ) and (len(set_of_Q_facets_to_delete)==0
+                        )):
+
+                            Fritz_assessment = self.assess_Fritz_Wolfe_style(target, set_of_visible_parents_to_delete,
+                                                          set_of_C_facets_to_delete, set_of_Q_facets_to_delete)
+                            if Fritz_assessment[0]:
+
+                                Y = Fritz_assessment[1]
+                                # print(target, set_of_Q_facets_to_delete, Q_facets_with_target, Y)
+                                sub_target = str(target) + "_" + str(Y)
+                                target_name_variants.append(sub_target)
+                                new_node_names.append(sub_target)
+                                for facet in C_facets_with_target:
+                                    if facet not in set_of_C_facets_to_delete:
+                                        facet_copy = set(facet)
+                                        facet_copy.remove(target)
+                                        facet_copy = set(map(str, facet_copy))
+                                        facet_copy.add(sub_target)
+                                        new_C_simplicial_complex.add(frozenset(facet_copy))
+                                for facet in Q_facets_with_target:
+                                    if facet not in set_of_Q_facets_to_delete:
+                                        facet_copy = set(facet)
+                                        facet_copy.remove(target)
+                                        facet_copy = set(map(str, facet_copy))
+                                        facet_copy.add(sub_target)
+                                        new_C_simplicial_complex.add(frozenset(facet_copy))
+                                for p in visible_parents:
+                                    if p not in set_of_visible_parents_to_delete:
+                                        new_directed_structure.append((str(p), sub_target))
+            allnode_name_variants.append(target_name_variants)
+        if not node_decomposition:
+            for choice_of_nodes in itertools.product(*allnode_name_variants):
+                yield QmDAG(
+                    LabelledDirectedStructure(choice_of_nodes, new_directed_structure),
+                    LabelledHypergraph(choice_of_nodes, new_C_simplicial_complex),
+                    LabelledHypergraph(choice_of_nodes, new_Q_simplicial_complex))
+        else:
+            core_nodes = tuple(map(str, self.visible_nodes))
+            bonus_node_variants = [name_variants[1:] for name_variants in allnode_name_variants if len(name_variants)>=2]
+            for bonus_nodes in itertools.product(*bonus_node_variants):
+                new_nodes = core_nodes + bonus_nodes
+                yield QmDAG(
+                    LabelledDirectedStructure(new_nodes, new_directed_structure),
+                    LabelledHypergraph(new_nodes, new_C_simplicial_complex),
+                    LabelledHypergraph(new_nodes, new_Q_simplicial_complex))
+
+        # if node_decomposition:
+        #     yield QmDAG(
+        #         LabelledDirectedStructure(tuple(new_node_names), new_directed_structure),
+        #         LabelledHypergraph(tuple(new_node_names), new_C_simplicial_complex),
+        #         LabelledHypergraph(tuple(new_node_names), new_Q_simplicial_complex))
+        # else:
+        #     for choice_of_nodes in itertools.product(*allnode_name_variants):
+        #         yield QmDAG(
+        #             LabelledDirectedStructure(choice_of_nodes, new_directed_structure),
+        #             LabelledHypergraph(choice_of_nodes, new_C_simplicial_complex),
+        #             LabelledHypergraph(choice_of_nodes, new_Q_simplicial_complex))
+
+    def _unique_unlabelled_ids_obtainable_by_Fritz_with_node_splitting(self, **kwargs):
+        for new_QmDAG in self.apply_Fritz_trick(**kwargs):
+            yield new_QmDAG.unique_unlabelled_id
+            subgraph_unlabelled_ids = set(new_QmDAG.unique_unlabelled_ids_obtainable_by_PD_trick)
+            subgraph_unlabelled_ids.update(new_QmDAG.unique_unlabelled_ids_obtainable_by_marginalization)
+            for unlabelled_id in subgraph_unlabelled_ids:
+                yield unlabelled_id
+    def unique_unlabelled_ids_obtainable_by_Fritz_with_node_splitting(self, **kwargs):
+        return set(self._unique_unlabelled_ids_obtainable_by_Fritz_with_node_splitting(**kwargs))
+
+
 
 
 
@@ -348,6 +434,8 @@ class QmDAG:
     #             if Y_satisfies_condition2:
     #                 return [True, Y]
     #     return [False,False]
+
+
                     
     def _unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting(self):
         for target in self.visible_nodes:
@@ -431,10 +519,17 @@ if __name__ == '__main__':
     #QG_Ghost = QmDAG(DirectedStructure([(0, 1), (0, 2)], 4), Hypergraph([], 4), Hypergraph([(1, 3), (2, 3)], 4))
     #print(QG_Ghost)
     #print(QG_Ghost.marginalize(0))
-    QG=QmDAG(DirectedStructure([(0,3),(1,2)], 4), Hypergraph([], 4), Hypergraph([(0,2),(1,2,3),(0,3),(0,1)], 4))
-    print(QG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting)
+    # QG=QmDAG(DirectedStructure([(0,3),(1,2)], 4), Hypergraph([], 4), Hypergraph([(0,2),(1,2,3),(0,3),(0,1)], 4))
+    # print(QG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting)
+    #
+    # QG.Fritz(0,frozenset(),frozenset(), {frozenset((0,2)),frozenset((0,3)),frozenset((0,1))})
 
-    QG.Fritz(0,frozenset(),frozenset(), {frozenset((0,2)),frozenset((0,3)),frozenset((0,1))})
+    QG_Square = QmDAG(DirectedStructure([], 4), Hypergraph([], 4), Hypergraph([(2, 3), (1, 3), (0, 1), (0, 2)], 4))
+    i=0
+    for qmDAG in QG_Square.apply_Fritz_trick(node_decomposition=False):
+        if 1<=i<=3:
+            print(qmDAG)
+        i+=1
 # =============================================================================
 #     for id in QG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting:
 #         if id in known_QC_Gaps_QmDAGs_id:
