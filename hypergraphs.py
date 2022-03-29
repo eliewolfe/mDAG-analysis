@@ -43,7 +43,7 @@ def hypergraph_full_cleanup(hypergraph):
                     if dominated_hyperedge.issubset(dominating_hyperedge):
                         dominated_hyperedges.append(dominated_hyperedge)
             cleaned_hypergraph_copy.difference_update(dominated_hyperedges)
-    return hypergraph_canonicalize_without_deduplication(cleaned_hypergraph_copy)
+    return cleaned_hypergraph_copy
 
 
 

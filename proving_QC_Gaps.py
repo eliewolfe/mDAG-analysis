@@ -125,31 +125,37 @@ print("# of ADDITIONAL QC gaps seen via teleporation marginalization: ", len(QC_
 print(QC_gap_by_marginalization)
 
 updated_known_QC_Gaps_QmDAGs=set(list(known_QC_Gaps_QmDAGs)+QC_gap_by_PD_trick+QC_gap_by_naive_marginalization+QC_gap_by_marginalization)
-updated_known_QC_Gaps_QmDAGs_id=set(QmDAG.unique_unlabelled_id for QmDAG in updated_known_QC_Gaps_QmDAGs)
+updated_known_QC_Gaps_QmDAGs_id=set(known_QmDAG.unique_unlabelled_id for known_QmDAG in updated_known_QC_Gaps_QmDAGs)
 def reduces_to_knownQCGap_by_Fritz_without_node_splitting(qmDAG):
-    return not updated_known_QC_Gaps_QmDAGs_id.isdisjoint(set(new_qmDAG for target, Y,set_of_visible_parents_to_delete,set_of_Q_facets_to_delete, new_qmDAG in qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting))
+    obtained_ids = [debug_info[-1] for debug_info in qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting]
+    # return not updated_known_QC_Gaps_QmDAGs_id.isdisjoint(obtained_ids)
+    return not known_QC_Gaps_QmDAGs_id.isdisjoint(obtained_ids)
 
-len(updated_known_QC_Gaps_QmDAGs)
+print("# of QC Gaps discovered so far: ", len(updated_known_QC_Gaps_QmDAGs))
+remaining_representatives = set(QmDAGs4_representatives).difference(updated_known_QC_Gaps_QmDAGs)
+print("# of QC Gaps still to be assessed: ", len(remaining_representatives))
 
-QC_gap_by_Fritz_without_node_splitting = list(filter(reduces_to_knownQCGap_by_Fritz_without_node_splitting, set(QmDAGs4_representatives).difference(
-    updated_known_QC_Gaps_QmDAGs,
-)))
 
-len(QC_gap_by_Fritz_without_node_splitting)
+# QG_Square = QmDAG(DirectedStructure([], 4), Hypergraph([], 4), Hypergraph([(2,3),(1,3),(0,1),(0,2)], 4))
+# print("Are we going to discover the square? ", reduces_to_knownQCGap_by_Fritz_without_node_splitting(QG_Square))
+# # reduces_to_knownQCGap_by_marginalization(QG_Square)
+# print("Is the square in the remaining set? ", QG_Square in remaining_representatives)
 
-n=1
-for QmDAG in QC_gap_by_Fritz_without_node_splitting:
-    for i in range(0,len(QmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting)):
-        (target, Y,set_of_visible_parents_to_delete,set_of_Q_facets_to_delete, new_qmDAG)=list(QmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting)[i]
-        if new_qmDAG in updated_known_QC_Gaps_QmDAGs_id:
-            print(n,"target=",target)
-            print(n,"Y=",Y)
-    QmDAG.as_mDAG.networkx_plot_mDAG()
-    n=n+1
+QC_gap_by_Fritz_without_node_splitting = list(filter(reduces_to_knownQCGap_by_Fritz_without_node_splitting,
+                                                     remaining_representatives))
 
-QG_Square=QmDAG(DirectedStructure([], 4), Hypergraph([], 4), Hypergraph([(2,3),(1,3),(0,1),(0,2)], 4))
-reduces_to_knownQCGap_by_Fritz_without_node_splitting(QG_Square)
-reduces_to_knownQCGap_by_marginalization(QG_Square)
+print("# of QC Gaps discovered via Fritz: ", len(QC_gap_by_Fritz_without_node_splitting))
+
+# n=1
+# for new_QmDAG in QC_gap_by_Fritz_without_node_splitting:
+#     for i in range(0,len(new_QmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting)):
+#         (target, Y,set_of_visible_parents_to_delete,set_of_Q_facets_to_delete, new_qmDAG)=list(new_QmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting)[i]
+#         if new_qmDAG in updated_known_QC_Gaps_QmDAGs_id:
+#             print(n,"target=",target)
+#             print(n,"Y=",Y)
+#     new_QmDAG.as_mDAG.networkx_plot_mDAG()
+#     n=n+1
+
 
 QG_Ghost = QmDAG(DirectedStructure([(0,1),(0,2)], 4), Hypergraph([(1,3)], 4), Hypergraph([(2,3)], 4))
 reduces_to_knownQCGap_by_Fritz_without_node_splitting(QG_Ghost)
@@ -159,6 +165,7 @@ for eqclass in Observable_mDAGs4.foundational_eqclasses:
         for mDAG in eqclass:
             print(mDAG)
             print(reduces_to_knownQCGap_by_naive_marginalization(upgrade_to_QmDAG(mDAG)))
+            print(reduces_to_knownQCGap_by_Fritz_without_node_splitting(upgrade_to_QmDAG(mDAG)))
 
 
 

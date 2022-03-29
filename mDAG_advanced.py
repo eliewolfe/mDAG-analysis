@@ -27,7 +27,7 @@ try:
     from supports_beyond_esep import SmartSupportTesting
 except:
     print("Testing infeasible supports requires pysat.")
-from hypergraphs import Hypergraph, LabelledHypergraph, UndirectedGraph, LabelledUndirectedGraph
+from hypergraphs import Hypergraph, LabelledHypergraph, UndirectedGraph, LabelledUndirectedGraph, hypergraph_full_cleanup
 import methodtools
 from directed_structures import LabelledDirectedStructure, DirectedStructure
 from closure import closure as numeric_closure, is_this_subadjmat_densely_connected
@@ -140,6 +140,10 @@ class mDAG:
 
 
 
+    @cached_property
+    def common_cause_connected_sets(self):
+        return hypergraph_full_cleanup([self.directed_structure_instance.adjMat.descendantsplus_of(list(facet))
+                                       for facet in self.simplicial_complex_instance.extended_simplicial_complex_as_sets])
 
 
 

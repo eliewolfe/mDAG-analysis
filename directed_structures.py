@@ -15,6 +15,7 @@ from utilities import stringify_in_set, stringify_in_list, partsextractor
 from more_itertools import chunked
 
 from functools import lru_cache
+from adjmat_class import AdjMat
 
 @lru_cache(maxsize=5)
 def empty_digraph(n):
@@ -22,23 +23,23 @@ def empty_digraph(n):
     baseg.add_nodes_from(range(n))
     return baseg
 
-def transitive_closure(adjmat):
-    n=len(adjmat)
-    closure_mat = np.bitwise_or(np.asarray(adjmat, dtype=bool),np.identity(n, dtype=bool))
-    while n>0:
-        n = np.floor_divide(n,2)
-        next_closure_mat = np.matmul(closure_mat, closure_mat)
-        if np.array_equal(closure_mat,next_closure_mat):
-            break
-        else:
-            closure_mat=next_closure_mat
-    return np.bitwise_and(closure_mat,np.invert(np.identity(len(adjmat), dtype=bool)))
-
-def transitive_reduction(adjmat):
-    # n = len(adjmat)
-    closure_mat=transitive_closure(adjmat)
-    # closure_minus_identity = np.bitwise_and(transitive_closure(adjmat),np.invert(np.identity(n, dtype=bool)))
-    return np.bitwise_and(closure_mat, np.invert(np.matmul(closure_mat, closure_mat)))
+# def transitive_closure(adjmat):
+#     n=len(adjmat)
+#     closure_mat = np.bitwise_or(np.asarray(adjmat, dtype=bool),np.identity(n, dtype=bool))
+#     while n>0:
+#         n = np.floor_divide(n,2)
+#         next_closure_mat = np.matmul(closure_mat, closure_mat)
+#         if np.array_equal(closure_mat,next_closure_mat):
+#             break
+#         else:
+#             closure_mat=next_closure_mat
+#     return np.bitwise_and(closure_mat,np.invert(np.identity(len(adjmat), dtype=bool)))
+#
+# def transitive_reduction(adjmat):
+#     # n = len(adjmat)
+#     closure_mat=transitive_closure(adjmat)
+#     # closure_minus_identity = np.bitwise_and(transitive_closure(adjmat),np.invert(np.identity(n, dtype=bool)))
+#     return np.bitwise_and(closure_mat, np.invert(np.matmul(closure_mat, closure_mat)))
 
 
 
@@ -79,6 +80,10 @@ class DirectedStructure:
     @cached_property
     def observable_parentsplus_list(self):
         return list(map(frozenset, map(np.flatnonzero, self.as_bit_square_matrix_plus_eye.T)))
+
+    @cached_property
+    def adjMat(self):
+        return AdjMat(self.as_bit_square_matrix)
 
     @cached_property
     def as_integer(self):
