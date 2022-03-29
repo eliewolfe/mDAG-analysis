@@ -289,7 +289,14 @@ class QmDAG:
                                 new_Q_facet=frozenset(i for i in Q_facet if i!=target)
                                 if len(new_Q_facet)>1:
                                     new_Q_simplicial_complex.add(new_Q_facet)
-                            yield target, frozenset(Y), QmDAG(DirectedStructure(new_directed_structure, self.number_of_visible),Hypergraph(new_C_simplicial_complex, self.number_of_visible), Hypergraph(new_Q_simplicial_complex, self.number_of_visible)).unique_unlabelled_id
+# =============================================================================
+#                             print("v=",set_of_visible_parents_to_delete)
+#                             print("c=",set_of_C_facets_to_delete)
+#                             print("q=",set_of_Q_facets_to_delete)
+#                             print("target=",target,"Y=",Y)
+#                             print(QmDAG(DirectedStructure(new_directed_structure, self.number_of_visible),Hypergraph(new_C_simplicial_complex, self.number_of_visible), Hypergraph(new_Q_simplicial_complex, self.number_of_visible)))
+# =============================================================================
+                            yield target, frozenset(Y), frozenset(set_of_visible_parents_to_delete),frozenset(frozenset(i) for i in set_of_Q_facets_to_delete), QmDAG(DirectedStructure(new_directed_structure, self.number_of_visible),Hypergraph(new_C_simplicial_complex, self.number_of_visible), Hypergraph(new_Q_simplicial_complex, self.number_of_visible)).unique_unlabelled_id
 
     @cached_property
     def unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting(self):
@@ -299,13 +306,17 @@ if __name__ == '__main__':
     #QG_Ghost = QmDAG(DirectedStructure([(0,1),(0,3)], 4), Hypergraph([(1,2)], 4), Hypergraph([(2,3)], 4))
     #print(QG_Ghost.Fritz(1,{0},set(),set()))
     #print(QG_Ghost.Fritz(1,set(),{frozenset((1,2))},set()))
-    QG=QmDAG(DirectedStructure([(1,3),(0,2)], 4), Hypergraph([], 4), Hypergraph([(1,2),(1,3),(0,3)], 4))
+    #QG=QmDAG(DirectedStructure([(1,3),(0,2)], 4), Hypergraph([], 4), Hypergraph([(1,2),(1,3),(0,3)], 4))
     #print(QG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting)
-    QG.Fritz(1,frozenset(),frozenset(),{frozenset({1, 3}), frozenset({1, 2})})
+    #QG.Fritz(1,frozenset(),frozenset(),{frozenset({1, 3}), frozenset({1, 2})})
 
-    QG_Ghost = QmDAG(DirectedStructure([(0, 1), (0, 2)], 4), Hypergraph([], 4), Hypergraph([(1, 3), (2, 3)], 4))
-    print(QG_Ghost)
-    print(QG_Ghost.marginalize(0))
+    #QG_Ghost = QmDAG(DirectedStructure([(0, 1), (0, 2)], 4), Hypergraph([], 4), Hypergraph([(1, 3), (2, 3)], 4))
+    #print(QG_Ghost)
+    #print(QG_Ghost.marginalize(0))
+    QG=QmDAG(DirectedStructure([(0,3),(1,2)], 4), Hypergraph([], 4), Hypergraph([(0,2),(1,2,3),(0,3),(0,1)], 4))
+    print(QG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting)
+
+    QG.Fritz(0,frozenset(),frozenset(), {frozenset((0,2)),frozenset((0,3)),frozenset((0,1))})
 # =============================================================================
 #     for id in QG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting:
 #         if id in known_QC_Gaps_QmDAGs_id:
