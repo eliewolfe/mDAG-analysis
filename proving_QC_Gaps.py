@@ -10,28 +10,40 @@ Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_
 mDAGs4_representatives = Observable_mDAGs4.representative_mDAGs_list
 QmDAGs4_representatives = list(map(upgrade_to_QmDAG, mDAGs4_representatives))
 
+n=0
+HLP_6_node_representatives = set()
+for eqclass in Observable_mDAGs4.foundational_eqclasses:
+    for mdag in eqclass:
+        if mdag.simplicial_complex_instance.number_of_nonsingleton_latent == 2:
+            HLP_6_node_representatives.add(mdag)
+            n+=1
+            break
+print("Number of 6-node mDAGs:", n)
 
 
 # print("Marina style: ")
-# G_Instrumental1 = mDAG(DirectedStructure([(0, 1), (1, 2)], 3), Hypergraph([(1, 2)], 3))
-# G_Instrumental2 = mDAG(DirectedStructure([(0, 1), (1, 2)], 3), Hypergraph([(0, 1), (1, 2)], 3))
-# G_Instrumental3 = mDAG(DirectedStructure([(1, 2)], 3), Hypergraph([(0, 1), (1, 2)], 3))
+G_Instrumental1 = mDAG(DirectedStructure([(0, 1), (1, 2)], 3), Hypergraph([(1, 2)], 3))
+G_Instrumental2 = mDAG(DirectedStructure([(0, 1), (1, 2)], 3), Hypergraph([(0, 1), (1, 2)], 3))
+G_Instrumental3 = mDAG(DirectedStructure([(1, 2)], 3), Hypergraph([(0, 1), (1, 2)], 3))
 # G_Bell = mDAG(DirectedStructure([(0, 1), (2, 3)], 4), Hypergraph([(1, 2)], 4))
 # #G_Bell_wComm = mDAG(DirectedStructure([(0, 1), (2, 3), (1, 2)], 4), Hypergraph([], 4))
-# G_Triangle = mDAG(DirectedStructure([], 3), Hypergraph([(1, 2), (2, 0), (0, 1)], 3))
-# G_Evans = mDAG(DirectedStructure([(0, 1), (0, 2)], 3), Hypergraph([(0, 1), (0, 2)], 3))
-# known_QC_Gaps_mDAGs = [G_Instrumental1, G_Instrumental2, G_Instrumental3, G_Bell, G_Triangle]
-# known_QC_Gaps_mDAGs_id = set(special_mDAG.unique_unlabelled_id for special_mDAG in known_QC_Gaps_mDAGs)
+G_Triangle = mDAG(DirectedStructure([], 3), Hypergraph([(1, 2), (2, 0), (0, 1)], 3))
+G_Evans = mDAG(DirectedStructure([(0, 1), (0, 2)], 3), Hypergraph([(0, 1), (0, 2)], 3))
+known_interesting_mDAGs = [G_Instrumental1, G_Instrumental2, G_Instrumental3, G_Evans, G_Triangle]
+known_interesting_ids = set(special_mDAG.unique_unlabelled_id for special_mDAG in known_interesting_mDAGs)
 #
 # # For the trick of fixing to point distribution, we can simply compare mDAGs. The QmDAG structure is going to be useful only in the marginalization case (where classical and quantum latents appear)
-# def reduces_to_knownQCGap_by_intervention(mDAG):
-#     for node in mDAG.visible_nodes:
-#         if mDAG.fix_to_point_distribution(node).unique_unlabelled_id in known_QC_Gaps_mDAGs_id:
-#             return True
-#     return False
-# QC_gap_by_Intervention = list(filter(reduces_to_knownQCGap_by_intervention, mDAGs4_representatives))
-# print(len(mDAGs4_representatives))
-# print(len(QC_gap_by_Intervention))
+def reduces_to_knownQCGap_by_intervention(mDAG):
+    for node in mDAG.visible_nodes:
+        if mDAG.fix_to_point_distribution(node).unique_unlabelled_id in known_interesting_ids:
+            return True
+    return False
+reducible_6_node_mDAGs_via_PD = set(filter(reduces_to_knownQCGap_by_intervention, HLP_6_node_representatives))
+irreducible_6_node_mDAGs = HLP_6_node_representatives.difference(reducible_6_node_mDAGs_via_PD)
+print("Number of irreducible 6 node mDAGs:", len(irreducible_6_node_mDAGs)+3)
+with open('HLP_reproduction.txt', 'w+') as output_file:
+    output_file.writelines(mdag.as_string+"\n" for mdag in [G_Instrumental1, G_Evans, G_Triangle])
+    output_file.writelines(mdag.as_string+"\n" for mdag in irreducible_6_node_mDAGs)
 
 
 print("Elie style: ")

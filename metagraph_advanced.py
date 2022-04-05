@@ -187,7 +187,6 @@ class Observable_unlabelled_mDAGs:
 
     @property
     def unlabelled_dominances(self):
-        # I'm experimenting with only using the directed dominances.
         for h in map(lambda sc: sc.as_integer, self.all_simplicial_complices):
             for d1, d2 in self.directed_dominances:
                 yield (self.mdag_int_pair_to_canonical_int(h, d1), self.mdag_int_pair_to_canonical_int(h, d2))
@@ -196,11 +195,34 @@ class Observable_unlabelled_mDAGs:
                 yield (self.mdag_int_pair_to_canonical_int(h1, d), self.mdag_int_pair_to_canonical_int(h2, d))
 
     @property
+    def dominates_latent_free_with_invariant_CI_edges(self):
+        print("All simplicial complices:", self.all_simplicial_complices)
+        latent_free = self.all_simplicial_complices[0]
+        latent_free_as_int = latent_free.as_integer
+        non_latent_free = self.all_simplicial_complices[1:]
+        for D1, D2 in itertools.permutations(self.all_directed_structures, 2):
+            if D1.can_D1_minimally_simulate_D2(D2):
+                mdag1 = mDAG(D1, latent_free)
+                mdag2 = mDAG(D2, latent_free)
+                if mdag1.all_CI == mdag2.all_CI:
+                    yield (self.mdag_int_pair_to_canonical_int(latent_free_as_int, D2.as_integer),
+                           self.mdag_int_pair_to_canonical_int(latent_free_as_int, D1.as_integer))
+        for ds in self.all_unlabelled_directed_structures:
+            ds_as_int = ds.as_integer
+            mdag2 = mDAG(ds, latent_free)
+            for S_strong in non_latent_free:
+                mdag1 = mDAG(ds, S_strong)
+                if mdag1.all_CI == mdag2.all_CI:
+                    yield (self.mdag_int_pair_to_canonical_int(latent_free_as_int, ds_as_int),
+                           self.mdag_int_pair_to_canonical_int(S_strong.as_integer, ds_as_int))
+
+    @property
     def HLP_edges(self):
         for (id, mDAG) in self.dict_ind_unlabelled_mDAGs.items():  # NEW: Over graph patterns only
             for mDAG2 in mDAG.generate_weaker_mDAG_HLP:
                 yield (self.dict_id_to_canonical_id[mDAG2], id)
 
+    @property
     def FaceSplitting_edges(self):
         for (id, mDAG) in self.dict_ind_unlabelled_mDAGs.items():  # NEW: Over graph patterns only
             for mDAG2 in mDAG.generate_weaker_mDAGs_FaceSplitting('strong'):
@@ -214,15 +236,25 @@ class Observable_unlabelled_mDAGs:
         print('Adding dominance relations...', flush=True)
         g.add_edges_from(self.unlabelled_dominances)
         edge_count = g.number_of_edges()
+
+        # print('Adding latent-free equivalence relations', flush=True)
+        # g.add_edges_from(self.dominates_latent_free_with_invariant_CI_edges)
+        # new_edge_count =  g.number_of_edges()
+        # print('Number of latent-free equivalence relations added: ', new_edge_count-edge_count)
+        # edge_count = new_edge_count
+
         print('Adding HLP equivalence relations...', flush=True)
         g.add_edges_from(self.HLP_edges)
         new_edge_count =  g.number_of_edges()
         print('Number of HLP equivalence relations added: ', new_edge_count-edge_count)
         edge_count = new_edge_count
+
         print('Adding FaceSplitting equivalence relations...', flush=True)
-        g.add_edges_from(self.FaceSplitting_edges())
+        g.add_edges_from(self.FaceSplitting_edges)
         new_edge_count = g.number_of_edges()
         print('Number of FaceSplitting equivalence relations added: ', new_edge_count - edge_count)
+        edge_count = new_edge_count
+
         print('Metagraph has been constructed. Total edge count: ', g.number_of_edges(), flush=True)
         return g
 
@@ -253,7 +285,7 @@ class Observable_unlabelled_mDAGs:
         # return list(filter(lambda eqclass: all(mDAG.fundamental_graphQ for mDAG in eqclass),
         #                    self.equivalence_classes_as_mDAGs))
         return [eqclass for eqclass,foundational_Q in
-                zip(self.equivalence_classes_as_mDAGs,self.foundational_eqclasses_picklist) if foundational_Q]
+                zip(self.equivalence_classes_as_mDAGs, self.foundational_eqclasses_picklist) if foundational_Q]
 
     @staticmethod
     def representatives(eqclasses):
@@ -458,7 +490,7 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
 
 if __name__ == '__main__':
     # Observable_mDAGs2 = Observable_mDAGs_Analysis(nof_observed_variables=2, max_nof_events_for_supports=0)
-    Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
+    # Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
     Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
 
 # =============================================================================
