@@ -195,13 +195,26 @@ print("Note that here, we ARE considering Evans as if it had a QC Gap")
 #     new_QmDAG.as_mDAG.networkx_plot_mDAG()
 #     n=n+1
 
-for mDAG in remaining_representatives:
-    mDAG.as_mDAG.networkx_plot_mDAG()
-    
-QG_Ghost = QmDAG(DirectedStructure([(0,1),(0,2)], 4), Hypergraph([(1,3)], 4), Hypergraph([(2,3)], 4))
 
+no_infeasible_supports=[]
+for mDAG in mDAGs4_representatives:
+    if mDAG.support_testing_instance((2,2,2,2),3).no_infeasible_supports():
+        no_infeasible_supports.append(mDAG)
 
+remaining_reps_with_infeasible_supports=remaining_representatives.copy()
+for G in no_infeasible_supports:
+    QG=upgrade_to_QmDAG(G)
+    for QmDAG in remaining_representatives:
+        if QG.unique_unlabelled_id==QmDAG.unique_unlabelled_id:
+            remaining_reps_with_infeasible_supports.remove(QmDAG)
+            break
+        
+for QmDAG in remaining_reps_with_infeasible_supports:
+    QmDAG.as_mDAG.networkx_plot_mDAG()
 
-
+for QmDAG in remaining_reps_with_infeasible_supports:
+    for eqclass in Observable_mDAGs4.foundational_eqclasses:
+        if QmDAG.as_mDAG in eqclass:
+            print(len(eqclass))
 
 

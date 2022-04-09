@@ -493,6 +493,9 @@ if __name__ == '__main__':
     # Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
     Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
 
+
+
+
 # =============================================================================
 #     for i in range(len(Observable_mDAGs4.foundational_eqclasses)):
 #          print(Observable_mDAGs4.foundational_eqclasses[i][0])
