@@ -173,6 +173,39 @@ class QmDAG:
 
     def latent_siblings_of(self, node):
         return set(itertools.chain.from_iterable(self.latent_sibling_sets_of(node)))
+    
+    def has_grandparents_that_are_not_parents(self, node):
+        visible_parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, node]))
+        for parent in visible_parents:
+            grandparents=set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, parent]))
+            for granny in grandparents:
+                if not granny in visible_parents:
+                    return True
+        return False
+    
+    def condition(self, node):
+        #assume we already checked that it doesn't have grandparents that are not parents
+        remaining_nodes = self.visible_nodes[:node] + self.visible_nodes[(node + 1):]
+        new_directed_edges = set(self.directed_structure_instance.edge_list)
+        visible_parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, node]))
+        new_C_facets=self.C_simplicial_complex_instance.simplicial_complex_as_sets.copy()
+        new_C_facets.add(frozenset(visible_parents.union(self.latent_siblings_of(node))))
+        new_Q_facets=self.Q_simplicial_complex_instance.simplicial_complex_as_sets.copy()
+        new_Q_facets.add(frozenset(self.quantum_siblings_of(node)))
+        return QmDAG(
+                LabelledDirectedStructure(remaining_nodes, list(new_directed_edges)),
+                LabelledHypergraph(remaining_nodes, new_C_facets),
+                LabelledHypergraph(remaining_nodes, new_Q_facets),
+                )
+
+    def _unique_unlabelled_ids_obtainable_by_conditioning(self):
+        for node in self.visible_nodes:
+            if not self.has_grandparents_that_are_not_parents(node):
+                yield self.condition(node).unique_unlabelled_id
+    
+    @cached_property
+    def unique_unlabelled_ids_obtainable_by_conditioning(self):
+        return set(self._unique_unlabelled_ids_obtainable_by_conditioning())
 
     def marginalize(self, node, apply_teleportation=False):  # returns a smaller QmDAG
         remaining_nodes = self.visible_nodes[:node] + self.visible_nodes[(node + 1):]
@@ -187,7 +220,6 @@ class QmDAG:
         for parent in visible_parents:
             for child in visible_children:
                 new_directed_edges.add((parent, child))
-
         new_C_facets = self.C_simplicial_complex_instance.simplicial_complex_as_sets.copy()
         # print(new_C_facets)
         # C_facets_to_grow = self.classical_sibling_sets_of(node)
