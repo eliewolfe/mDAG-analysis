@@ -56,7 +56,30 @@ QG_Instrumental3 = QmDAG(DirectedStructure([(1, 2)], 3), Hypergraph([], 3), Hype
 QG_Instrumental2b = QmDAG(DirectedStructure([(0, 1), (1, 2)], 3), Hypergraph([(0, 1)], 3), Hypergraph([(1, 2)], 3))
 QG_Instrumental3b = QmDAG(DirectedStructure([(1, 2)], 3), Hypergraph([(0, 1)], 3), Hypergraph([(1, 2)], 3))
 
+IV_ids = set(special_QmDAG.unique_unlabelled_id for special_QmDAG in {QG_Instrumental1, QG_Instrumental2, QG_Instrumental3,
+                        QG_Instrumental2b, QG_Instrumental3b})
+reduces_to_IV = set(new_QmDAG for new_QmDAG in set(QmDAGs4_representatives) if not new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction.isdisjoint(IV_ids))
+print("# that reduce to IV: ", len(reduces_to_IV))
+
+QG_Triangle1 = QmDAG(DirectedStructure([], 3), Hypergraph([], 3), Hypergraph([(1, 2), (2, 0), (0, 1)], 3))
+QG_Triangle2 = QmDAG(DirectedStructure([], 3), Hypergraph([(1, 2)], 3), Hypergraph([(2, 0), (0, 1)], 3))
+QG_Triangle3 = QmDAG(DirectedStructure([], 3), Hypergraph([(1, 2), (2, 0)], 3), Hypergraph([(0, 1)], 3))
+
+Triangle_ids = set(special_QmDAG.unique_unlabelled_id for special_QmDAG in {QG_Triangle1, QG_Triangle2, QG_Triangle3})
+reduces_to_Tri = set(new_QmDAG for new_QmDAG in set(QmDAGs4_representatives) if not new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction.isdisjoint(Triangle_ids))
+print("# that reduce to Tri: ", len(Triangle_ids))
+
 QG_Evans = QmDAG(DirectedStructure([(0, 1), (0, 2)], 3), Hypergraph([], 3), Hypergraph([(0, 1), (0, 2)], 3))
+QG_Evansb = QmDAG(DirectedStructure([(0, 1), (0, 2)], 3), Hypergraph([(0, 1)], 3), Hypergraph([(0, 2)], 3))
+Evans_ids = set(special_QmDAG.unique_unlabelled_id for special_QmDAG in {QG_Evans, QG_Evansb})
+reduces_to_Evans = set(new_QmDAG for new_QmDAG in set(QmDAGs4_representatives) if not new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction.isdisjoint(Evans_ids))
+print("# that reduce to Evans: ", len(Evans_ids))
+
+
+# known_QC_Gaps_QmDAGs_small = {QG_Evans, QG_Instrumental1, QG_Instrumental2, QG_Instrumental3,
+#                         QG_Instrumental2b, QG_Instrumental3b,
+#                         QG_Triangle1, QG_Triangle2, QG_Triangle3}
+known_QC_Gaps_QmDAGs_small_ids = set().union(IV_ids, Triangle_ids, Evans_ids)
 
 QG_Bell1 = QmDAG(DirectedStructure([(0, 2), (1, 3)], 4), Hypergraph([], 4), Hypergraph([(2, 3)], 4))
 QG_Bell2 = QmDAG(DirectedStructure([(0, 2), (1, 3)], 4), Hypergraph([(0,2)], 4), Hypergraph([(2, 3)], 4))
@@ -86,36 +109,40 @@ QG_Bell9b = QmDAG(DirectedStructure([(0, 2)], 4), Hypergraph([], 4), Hypergraph(
 
 # QG_Bell_wComm = QmDAG(DirectedStructure([(0, 1), (2, 3), (1, 2)], 4), Hypergraph([], 4), Hypergraph([(1, 2)], 4))
 ###
-QG_Triangle1 = QmDAG(DirectedStructure([], 3), Hypergraph([], 3), Hypergraph([(1, 2), (2, 0), (0, 1)], 3))
-QG_Triangle2 = QmDAG(DirectedStructure([], 3), Hypergraph([(1, 2)], 3), Hypergraph([(2, 0), (0, 1)], 3))
-QG_Triangle3 = QmDAG(DirectedStructure([], 3), Hypergraph([(1, 2), (2, 0)], 3), Hypergraph([(0, 1)], 3))
-known_QC_Gaps_QmDAGs = {QG_Evans,QG_Instrumental1, QG_Instrumental2, QG_Instrumental3,
-                        QG_Instrumental2b, QG_Instrumental3b,
-                        QG_Triangle1, QG_Triangle2, QG_Triangle3,
-                        QG_Bell1,QG_Bell2,QG_Bell3,QG_Bell4,QG_Bell5,QG_Bell6,QG_Bell7,QG_Bell8,QG_Bell9,
+
+known_QC_Gaps_QmDAGs_big = {QG_Bell1,QG_Bell2,QG_Bell3,QG_Bell4,QG_Bell5,QG_Bell6,QG_Bell7,QG_Bell8,QG_Bell9,
                         QG_Bell2b,QG_Bell3b,QG_Bell4b,QG_Bell4c,QG_Bell4d,QG_Bell5b,QG_Bell6b,QG_Bell6c,
                         QG_Bell6d,QG_Bell7b,QG_Bell7c,QG_Bell7d,QG_Bell8b,QG_Bell8c,QG_Bell8d,QG_Bell9b}
-known_QC_Gaps_QmDAGs_id = set(special_QmDAG.unique_unlabelled_id for special_QmDAG in known_QC_Gaps_QmDAGs)
+known_QC_Gaps_QmDAGs_big_ids = set(special_QmDAG.unique_unlabelled_id for special_QmDAG in known_QC_Gaps_QmDAGs_big)
+
+
+#
+# known_QC_Gaps_QmDAGs = known_QC_Gaps_QmDAGs_small.union(known_QC_Gaps_QmDAGs_big)
+# known_QC_Gaps_QmDAGs_ids = set(special_QmDAG.unique_unlabelled_id for special_QmDAG in known_QC_Gaps_QmDAGs)
 
 
 
+remaining_representatives = set(QmDAGs4_representatives).difference(known_QC_Gaps_QmDAGs_big)
 
-print("Total number of qmDAGs to analyze: ", len(QmDAGs4_representatives))
+print("Total number of qmDAGs to analyze: ", len(remaining_representatives))
 
 def reduces_to_knownQCGap_by_PD_trick(qmDAG):
-    return not known_QC_Gaps_QmDAGs_id.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_PD_trick)
+    return not known_QC_Gaps_QmDAGs_small_ids.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_PD_trick)
 
-QC_gap_by_PD_trick = list(filter(reduces_to_knownQCGap_by_PD_trick, set(QmDAGs4_representatives).difference(known_QC_Gaps_QmDAGs)))
+
+
+QC_gap_by_PD_trick = list(filter(reduces_to_knownQCGap_by_PD_trick, remaining_representatives))
 
 print("# of QC gaps seen via PD trick: ", len(QC_gap_by_PD_trick))
+remaining_representatives.difference_update(QC_gap_by_PD_trick)
 
 def reduces_to_knownQCGap_by_naive_marginalization(qmDAG):
-    return not known_QC_Gaps_QmDAGs_id.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_naive_marginalization)
-QC_gap_by_naive_marginalization = list(filter(reduces_to_knownQCGap_by_naive_marginalization, set(QmDAGs4_representatives).difference(known_QC_Gaps_QmDAGs,QC_gap_by_PD_trick)))
+    return not known_QC_Gaps_QmDAGs_small_ids.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_naive_marginalization)
+QC_gap_by_naive_marginalization = list(filter(reduces_to_knownQCGap_by_naive_marginalization, remaining_representatives))
 
 print("# of ADDITIONAL QC gaps seen via naive marginalization: ", len(QC_gap_by_naive_marginalization))
 print(QC_gap_by_naive_marginalization)
-
+remaining_representatives.difference_update(QC_gap_by_naive_marginalization)
 # debug_QmDAG = QmDAG(
 #         DirectedStructure([(0, 1), (1, 2), (2, 3)], 4),
 #         Hypergraph([], 4),
@@ -126,46 +153,40 @@ print(QC_gap_by_naive_marginalization)
 # print("Is it detected by our code? ", debug_QmDAG in QC_gap_by_naive_marginalization)
 
 def reduces_to_knownQCGap_by_marginalization(qmDAG):
-    return not known_QC_Gaps_QmDAGs_id.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_marginalization)
-QC_gap_by_marginalization = list(filter(reduces_to_knownQCGap_by_marginalization, set(QmDAGs4_representatives).difference(
-    known_QC_Gaps_QmDAGs,
-    QC_gap_by_PD_trick,
-    QC_gap_by_naive_marginalization
-)))
+    return not known_QC_Gaps_QmDAGs_small_ids.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_marginalization)
+QC_gap_by_marginalization = list(filter(reduces_to_knownQCGap_by_marginalization, remaining_representatives))
 
 print("# of ADDITIONAL QC gaps seen via teleporation marginalization: ", len(QC_gap_by_marginalization))
 print(QC_gap_by_marginalization)
+remaining_representatives.difference_update(QC_gap_by_marginalization)
 
 def reduces_to_knownQCGap_by_conditioning(qmDAG):
-    return not known_QC_Gaps_QmDAGs_id.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_conditioning)
+    return not known_QC_Gaps_QmDAGs_small_ids.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_conditioning)
 
-QC_gap_by_conditioning = list(filter(reduces_to_knownQCGap_by_conditioning, set(QmDAGs4_representatives).difference(
-    known_QC_Gaps_QmDAGs,
-    QC_gap_by_PD_trick,
-    QC_gap_by_naive_marginalization,
-    QC_gap_by_marginalization
-)))
+QC_gap_by_conditioning = list(filter(reduces_to_knownQCGap_by_conditioning, remaining_representatives))
+print("# of ADDITIONAL QC gaps seen via conditioning: ", len(QC_gap_by_conditioning))
+print(QC_gap_by_conditioning)
 
 
-updated_known_QC_Gaps_QmDAGs=set(list(known_QC_Gaps_QmDAGs)+QC_gap_by_PD_trick+QC_gap_by_naive_marginalization+QC_gap_by_marginalization+QC_gap_by_conditioning)
-updated_known_QC_Gaps_QmDAGs_id=set(known_QmDAG.unique_unlabelled_id for known_QmDAG in updated_known_QC_Gaps_QmDAGs)
+updated_known_QC_Gaps_QmDAGs=set(QmDAGs4_representatives).difference(remaining_representatives)
+updated_known_QC_Gaps_QmDAGs_ids=set(known_QmDAG.unique_unlabelled_id for known_QmDAG in updated_known_QC_Gaps_QmDAGs)
 def reduces_to_knownQCGap_by_Fritz_without_node_splitting(qmDAG):
     obtained_ids = [debug_info[-1] for debug_info in qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting]
     # return not updated_known_QC_Gaps_QmDAGs_id.isdisjoint(obtained_ids)
-    return not known_QC_Gaps_QmDAGs_id.isdisjoint(obtained_ids)
+    return not updated_known_QC_Gaps_QmDAGs_ids.isdisjoint(obtained_ids)
 
 def reduces_to_knownQCGap_by_Fritz_without_node_splitting(qmDAG):
     # obtained_ids = [debug_info[-1] for debug_info in qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting]
     # return not updated_known_QC_Gaps_QmDAGs_id.isdisjoint(obtained_ids)
-    return not known_QC_Gaps_QmDAGs_id.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_with_node_splitting(node_decomposition=False))
+    return not updated_known_QC_Gaps_QmDAGs_ids.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_with_node_splitting(node_decomposition=False))
 def reduces_to_knownQCGap_by_Fritz_with_node_splitting(qmDAG):
     # obtained_ids = [debug_info[-1] for debug_info in qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting]
     # return not updated_known_QC_Gaps_QmDAGs_id.isdisjoint(obtained_ids)
-    return not known_QC_Gaps_QmDAGs_id.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_with_node_splitting(node_decomposition=True))
+    return not updated_known_QC_Gaps_QmDAGs_ids.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_with_node_splitting(node_decomposition=True))
 
 
 print("# of QC Gaps discovered so far: ", len(QC_gap_by_PD_trick+QC_gap_by_naive_marginalization+QC_gap_by_marginalization+QC_gap_by_conditioning))
-remaining_representatives = set(QmDAGs4_representatives).difference(updated_known_QC_Gaps_QmDAGs)
+# remaining_representatives = set(QmDAGs4_representatives).difference(updated_known_QC_Gaps_QmDAGs)
 print("# of QC Gaps still to be assessed: ", len(remaining_representatives))
 
 

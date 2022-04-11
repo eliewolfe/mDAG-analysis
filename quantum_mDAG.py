@@ -139,8 +139,12 @@ class QmDAG:
                 yield self.subgraph(to_keep)
 
     @cached_property
+    def subgraphs(self):
+        return set(self._subgraphs_generator())
+
+    @cached_property
     def unique_unlabelled_ids_obtainable_by_PD_trick(self):
-        return [subQmDAG.unique_unlabelled_id for subQmDAG in self._subgraphs_generator()]
+        return set(subQmDAG.unique_unlabelled_id for subQmDAG in self.subgraphs)
 
     # ON THE MARGINALIZATION TRICK
 
@@ -175,37 +179,53 @@ class QmDAG:
         return set(itertools.chain.from_iterable(self.latent_sibling_sets_of(node)))
     
     def has_grandparents_that_are_not_parents(self, node):
-        visible_parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, node]))
-        for parent in visible_parents:
-            grandparents=set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, parent]))
-            for granny in grandparents:
-                if not granny in visible_parents:
-                    return True
-        return False
+        visible_parents_bit_vec = self.directed_structure_instance.as_bit_square_matrix[:, node]
+        visible_grandparents_bit_vec = np.bitwise_or.reduce(
+            self.directed_structure_instance.as_bit_square_matrix[:, visible_parents_bit_vec],
+            axis=0)
+        return not np.array_equal(visible_parents_bit_vec, visible_grandparents_bit_vec)
+        # visible_parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, node]))
+        # for parent in visible_parents:
+        #     grandparents=set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, parent]))
+        #     if not grandparents.issubset(visible_parents) return True
+        #     # for granny in grandparents:
+        #     #     if not granny in visible_parents:
+        #     #         return True
+        # return False
     
     def condition(self, node):
         #assume we already checked that it doesn't have grandparents that are not parents
         remaining_nodes = self.visible_nodes[:node] + self.visible_nodes[(node + 1):]
-        new_directed_edges = set(self.directed_structure_instance.edge_list)
+        # new_directed_edges = set(self.directed_structure_instance.edge_list)
         visible_parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, node]))
         new_C_facets=self.C_simplicial_complex_instance.simplicial_complex_as_sets.copy()
         new_C_facets.add(frozenset(visible_parents.union(self.latent_siblings_of(node))))
         new_Q_facets=self.Q_simplicial_complex_instance.simplicial_complex_as_sets.copy()
         new_Q_facets.add(frozenset(self.quantum_siblings_of(node)))
         return QmDAG(
-                LabelledDirectedStructure(remaining_nodes, list(new_directed_edges)),
+                LabelledDirectedStructure(remaining_nodes, self.directed_structure_instance.edge_list),
                 LabelledHypergraph(remaining_nodes, new_C_facets),
                 LabelledHypergraph(remaining_nodes, new_Q_facets),
                 )
 
-    def _unique_unlabelled_ids_obtainable_by_conditioning(self):
-        for node in self.visible_nodes:
-            if not self.has_grandparents_that_are_not_parents(node):
-                yield self.condition(node).unique_unlabelled_id
+    def _subconditionals(self):
+        if self.number_of_visible > 3:
+            for node in self.visible_nodes:
+                if not self.has_grandparents_that_are_not_parents(node):
+                    conditional_QM = self.condition(node)
+                    yield conditional_QM
+                    for new_QmDAG in conditional_QM.subconditionals():
+                        yield new_QmDAG
+
+    @cached_property
+    def subconditionals(self):
+        return set(self._subconditionals())
     
     @cached_property
     def unique_unlabelled_ids_obtainable_by_conditioning(self):
-        return set(self._unique_unlabelled_ids_obtainable_by_conditioning())
+        return set(new_QmDAG.unique_unlabelled_id for new_QmDAG in self.subconditionals)
+
+
 
     def marginalize(self, node, apply_teleportation=False):  # returns a smaller QmDAG
         remaining_nodes = self.visible_nodes[:node] + self.visible_nodes[(node + 1):]
@@ -260,15 +280,19 @@ class QmDAG:
                 )
 
 
+    def _submarginals(self, **kwargs):
+        if self.number_of_visible > 3:
+            for node in self.visible_nodes:
+                marginalized_QM = self.marginalize(node, **kwargs)
+                yield marginalized_QM
+                for new_QmDAG in marginalized_QM.submarginals(**kwargs):
+                    yield new_QmDAG
 
-
-
+    def submarginals(self, **kwargs):
+        return set(self._submarginals(**kwargs))
 
     def _unique_unlabelled_ids_obtainable_by_marginalization(self, **kwargs):
-        for node in self.visible_nodes:
-            # for sub_QmDAG in self.marginalize(node, **kwargs):
-            #     yield sub_QmDAG.unique_unlabelled_id
-            yield self.marginalize(node, **kwargs).unique_unlabelled_id
+        return set(new_QmDAG.unique_unlabelled_id for new_QmDAG in self.submarginals(**kwargs))
 
     @cached_property
     def unique_unlabelled_ids_obtainable_by_naive_marginalization(self):
@@ -277,6 +301,13 @@ class QmDAG:
     @cached_property
     def unique_unlabelled_ids_obtainable_by_marginalization(self):
         return set(self._unique_unlabelled_ids_obtainable_by_marginalization(apply_teleportation=True))
+
+    @cached_property
+    def unique_unlabelled_ids_obtainable_by_reduction(self):
+        subgraph_unlabelled_ids = set(self.unique_unlabelled_ids_obtainable_by_PD_trick)
+        subgraph_unlabelled_ids.update(self.unique_unlabelled_ids_obtainable_by_conditioning)
+        subgraph_unlabelled_ids.update(self.unique_unlabelled_ids_obtainable_by_marginalization)
+        return subgraph_unlabelled_ids
 
     # @cached_property
     # def Q_facets_descendants(self):
@@ -417,10 +448,13 @@ class QmDAG:
     def _unique_unlabelled_ids_obtainable_by_Fritz_with_node_splitting(self, **kwargs):
         for new_QmDAG in self.apply_Fritz_trick(**kwargs):
             yield new_QmDAG.unique_unlabelled_id
-            subgraph_unlabelled_ids = set(new_QmDAG.unique_unlabelled_ids_obtainable_by_PD_trick)
-            subgraph_unlabelled_ids.update(new_QmDAG.unique_unlabelled_ids_obtainable_by_marginalization)
-            for unlabelled_id in subgraph_unlabelled_ids:
+            for unlabelled_id in new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction:
                 yield unlabelled_id
+            # subgraph_unlabelled_ids = set(new_QmDAG.unique_unlabelled_ids_obtainable_by_PD_trick)
+            # subgraph_unlabelled_ids.update(new_QmDAG.unique_unlabelled_ids_obtainable_by_marginalization)
+            # subgraph_unlabelled_ids.update(new_QmDAG.unique_unlabelled_ids_obtainable_by_conditioning)
+            # for unlabelled_id in subgraph_unlabelled_ids:
+            #     yield unlabelled_id
     def unique_unlabelled_ids_obtainable_by_Fritz_with_node_splitting(self, **kwargs):
         return set(self._unique_unlabelled_ids_obtainable_by_Fritz_with_node_splitting(**kwargs))
 
