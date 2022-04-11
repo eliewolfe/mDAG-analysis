@@ -179,19 +179,20 @@ class QmDAG:
         return set(itertools.chain.from_iterable(self.latent_sibling_sets_of(node)))
     
     def has_grandparents_that_are_not_parents(self, node):
-        visible_parents_bit_vec = self.directed_structure_instance.as_bit_square_matrix[:, node]
-        visible_grandparents_bit_vec = np.bitwise_or.reduce(
-            self.directed_structure_instance.as_bit_square_matrix[:, visible_parents_bit_vec],
-            axis=0)
-        return not np.array_equal(visible_parents_bit_vec, visible_grandparents_bit_vec)
-        # visible_parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, node]))
-        # for parent in visible_parents:
-        #     grandparents=set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, parent]))
-        #     if not grandparents.issubset(visible_parents) return True
-        #     # for granny in grandparents:
-        #     #     if not granny in visible_parents:
-        #     #         return True
-        # return False
+        # visible_parents_bit_vec = self.directed_structure_instance.as_bit_square_matrix[:, node]
+        # visible_grandparents_bit_vec = np.bitwise_or.reduce(
+        #     self.directed_structure_instance.as_bit_square_matrix[:, visible_parents_bit_vec],
+        #     axis=0)
+        # return not np.array_equal(visible_parents_bit_vec, visible_grandparents_bit_vec)
+        visible_parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, node]))
+        for parent in visible_parents:
+            grandparents=set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, parent]))
+            if not grandparents.issubset(visible_parents):
+                return True
+            # for granny in grandparents:
+            #     if not granny in visible_parents:
+            #         return True
+        return False
     
     def condition(self, node):
         #assume we already checked that it doesn't have grandparents that are not parents
@@ -214,7 +215,7 @@ class QmDAG:
                 if not self.has_grandparents_that_are_not_parents(node):
                     conditional_QM = self.condition(node)
                     yield conditional_QM
-                    for new_QmDAG in conditional_QM.subconditionals():
+                    for new_QmDAG in conditional_QM.subconditionals:
                         yield new_QmDAG
 
     @cached_property

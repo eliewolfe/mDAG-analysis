@@ -72,6 +72,7 @@ print("# that reduce to Tri: ", len(Triangle_ids))
 QG_Evans = QmDAG(DirectedStructure([(0, 1), (0, 2)], 3), Hypergraph([], 3), Hypergraph([(0, 1), (0, 2)], 3))
 QG_Evansb = QmDAG(DirectedStructure([(0, 1), (0, 2)], 3), Hypergraph([(0, 1)], 3), Hypergraph([(0, 2)], 3))
 Evans_ids = set(special_QmDAG.unique_unlabelled_id for special_QmDAG in {QG_Evans, QG_Evansb})
+# Evans_ids = set(special_QmDAG.unique_unlabelled_id for special_QmDAG in {QG_Evans})
 reduces_to_Evans = set(new_QmDAG for new_QmDAG in set(QmDAGs4_representatives) if not new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction.isdisjoint(Evans_ids))
 print("# that reduce to Evans: ", len(Evans_ids))
 
@@ -115,6 +116,10 @@ known_QC_Gaps_QmDAGs_big = {QG_Bell1,QG_Bell2,QG_Bell3,QG_Bell4,QG_Bell5,QG_Bell
                         QG_Bell6d,QG_Bell7b,QG_Bell7c,QG_Bell7d,QG_Bell8b,QG_Bell8c,QG_Bell8d,QG_Bell9b}
 known_QC_Gaps_QmDAGs_big_ids = set(special_QmDAG.unique_unlabelled_id for special_QmDAG in known_QC_Gaps_QmDAGs_big)
 
+# known_QC_Gaps_QmDAGs = known_QC_Gaps_QmDAGs_small.union(known_QC_Gaps_QmDAGs_big)
+known_QC_Gaps_QmDAGs_ids = known_QC_Gaps_QmDAGs_small_ids.union(known_QC_Gaps_QmDAGs_big_ids)
+
+
 
 #
 # known_QC_Gaps_QmDAGs = known_QC_Gaps_QmDAGs_small.union(known_QC_Gaps_QmDAGs_big)
@@ -126,14 +131,14 @@ remaining_representatives = set(QmDAGs4_representatives).difference(known_QC_Gap
 
 print("Total number of qmDAGs to analyze: ", len(remaining_representatives))
 
+
+
+
 def reduces_to_knownQCGap_by_PD_trick(qmDAG):
     return not known_QC_Gaps_QmDAGs_small_ids.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_PD_trick)
 
-
-
 QC_gap_by_PD_trick = list(filter(reduces_to_knownQCGap_by_PD_trick, remaining_representatives))
-
-print("# of QC gaps seen via PD trick: ", len(QC_gap_by_PD_trick))
+print("# of ADDITIONAL QC gaps seen via PD trick: ", len(QC_gap_by_PD_trick))
 remaining_representatives.difference_update(QC_gap_by_PD_trick)
 
 def reduces_to_knownQCGap_by_naive_marginalization(qmDAG):
@@ -166,10 +171,15 @@ def reduces_to_knownQCGap_by_conditioning(qmDAG):
 QC_gap_by_conditioning = list(filter(reduces_to_knownQCGap_by_conditioning, remaining_representatives))
 print("# of ADDITIONAL QC gaps seen via conditioning: ", len(QC_gap_by_conditioning))
 print(QC_gap_by_conditioning)
+remaining_representatives.difference_update(QC_gap_by_conditioning)
 
 
-updated_known_QC_Gaps_QmDAGs=set(QmDAGs4_representatives).difference(remaining_representatives)
-updated_known_QC_Gaps_QmDAGs_ids=set(known_QmDAG.unique_unlabelled_id for known_QmDAG in updated_known_QC_Gaps_QmDAGs)
+# updated_known_QC_Gaps_QmDAGs = set(QmDAGs4_representatives).difference(remaining_representatives)
+# updated_known_QC_Gaps_QmDAGs_ids = known_QC_Gaps_QmDAGs_ids.union(set(known_QmDAG.unique_unlabelled_id for known_QmDAG in updated_known_QC_Gaps_QmDAGs))
+updated_known_QC_Gaps_QmDAGs_ids = known_QC_Gaps_QmDAGs_ids.copy()
+print("Size of known database: ", len(updated_known_QC_Gaps_QmDAGs_ids))
+print("Knows about Bell etc: ",  updated_known_QC_Gaps_QmDAGs_ids.issuperset(known_QC_Gaps_QmDAGs_ids))
+
 def reduces_to_knownQCGap_by_Fritz_without_node_splitting(qmDAG):
     obtained_ids = [debug_info[-1] for debug_info in qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting]
     # return not updated_known_QC_Gaps_QmDAGs_id.isdisjoint(obtained_ids)
@@ -193,14 +203,14 @@ print("# of QC Gaps still to be assessed: ", len(remaining_representatives))
 QG_Square = QmDAG(DirectedStructure([], 4), Hypergraph([], 4), Hypergraph([(2,3),(1,3),(0,1),(0,2)], 4))
 print("Are we going to discover the square? ", reduces_to_knownQCGap_by_Fritz_without_node_splitting(QG_Square))
 # # reduces_to_knownQCGap_by_marginalization(QG_Square)
-# print("Is the square in the remaining set? ", QG_Square in remaining_representatives)
+print("Is the square in the remaining set? ", QG_Square in remaining_representatives)
 
-QC_gap_by_Fritz_without_node_splitting = list(filter(reduces_to_knownQCGap_by_Fritz_without_node_splitting,remaining_representatives))
+QC_gap_by_Fritz_without_node_splitting = list(filter(reduces_to_knownQCGap_by_Fritz_without_node_splitting, remaining_representatives))
 remaining_representatives.difference_update(QC_gap_by_Fritz_without_node_splitting)
 
 print("# of QC Gaps discovered via Fritz without splitting: ", len(QC_gap_by_Fritz_without_node_splitting))
 
-QC_gap_by_Fritz_with_node_splitting = list(filter(reduces_to_knownQCGap_by_Fritz_with_node_splitting,remaining_representatives))
+QC_gap_by_Fritz_with_node_splitting = list(filter(reduces_to_knownQCGap_by_Fritz_with_node_splitting, remaining_representatives))
 remaining_representatives.difference_update(QC_gap_by_Fritz_with_node_splitting)
 
 print("# of QC Gaps discovered via Fritz with splitting: ", len(QC_gap_by_Fritz_with_node_splitting))
