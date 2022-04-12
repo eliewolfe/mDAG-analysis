@@ -30,6 +30,12 @@ def upgrade_to_QmDAG(mDAG):
         Hypergraph([], mDAG.number_of_visible),
         mDAG.simplicial_complex_instance)
 
+def as_classical_QmDAG(mDAG):
+    return QmDAG(
+        mDAG.directed_structure_instance,
+        mDAG.simplicial_complex_instance,
+        Hypergraph([], mDAG.number_of_visible))
+
 
 # This class does NOT represent every possible quantum causal structure. It only represents the causal structures where every quantum latent is exogenized. This is the case, for example, of the known QC Gaps.
 class QmDAG:
