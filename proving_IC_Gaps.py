@@ -25,11 +25,23 @@ print("Number of 6-node mDAGs:", n)
 G_Instrumental1 = mDAG(DirectedStructure([(0, 1), (1, 2)], 3), Hypergraph([(1, 2)], 3))
 G_Instrumental2 = mDAG(DirectedStructure([(0, 1), (1, 2)], 3), Hypergraph([(0, 1), (1, 2)], 3))
 G_Instrumental3 = mDAG(DirectedStructure([(1, 2)], 3), Hypergraph([(0, 1), (1, 2)], 3))
-G_Bell = mDAG(DirectedStructure([(0, 1), (2, 3)], 4), Hypergraph([(1, 2)], 4))
-# #G_Bell_wComm = mDAG(DirectedStructure([(0, 1), (2, 3), (1, 2)], 4), Hypergraph([], 4))
+
 G_Triangle = mDAG(DirectedStructure([], 3), Hypergraph([(1, 2), (2, 0), (0, 1)], 3))
 G_Evans = mDAG(DirectedStructure([(0, 1), (0, 2)], 3), Hypergraph([(0, 1), (0, 2)], 3))
-known_interesting_mDAGs = list(map(as_classical_QmDAG, [G_Instrumental1, G_Instrumental2, G_Instrumental3, G_Evans, G_Triangle]))
+
+G_Bell1 = mDAG(DirectedStructure([(0, 2), (1, 3)], 4), Hypergraph([(2, 3)], 4))
+G_Bell2 = mDAG(DirectedStructure([(0, 2), (1, 3)], 4), Hypergraph([(2, 3), (0, 2)], 4))
+G_Bell2b = mDAG(DirectedStructure([(1, 3)], 4), Hypergraph([(2, 3), (0, 2)], 4))
+G_Bell3 = mDAG(DirectedStructure([(0, 2), (1, 3)], 4), Hypergraph([(2, 3), (1, 3)], 4))
+G_Bell3b = mDAG(DirectedStructure([(0, 2)], 4), Hypergraph([(2, 3), (1, 3)], 4))
+G_Bell4 = mDAG(DirectedStructure([(0, 2), (1, 3)], 4), Hypergraph([(2, 3), (0, 2), (1, 3)], 4))
+G_Bell4a = mDAG(DirectedStructure([(0, 2)], 4), Hypergraph([(2, 3), (0, 2), (1, 3)], 4))
+G_Bell4b = mDAG(DirectedStructure([(1, 3)], 4), Hypergraph([(2, 3), (0, 2), (1, 3)], 4))
+G_Bell4c = mDAG(DirectedStructure([], 4), Hypergraph([(2, 3), (0, 2), (1, 3)], 4))
+
+known_interesting_mDAGs = list(map(as_classical_QmDAG, [G_Instrumental1, G_Instrumental2, G_Instrumental3, G_Evans, G_Triangle,
+                                                        G_Bell1, G_Bell2, G_Bell2b, G_Bell3, G_Bell3b,
+                                                        G_Bell4, G_Bell4a, G_Bell4b, G_Bell4c]))
 known_interesting_ids = set(special_mDAG.unique_unlabelled_id for special_mDAG in known_interesting_mDAGs)
 
 
@@ -52,7 +64,7 @@ known_interesting_ids = set(special_mDAG.unique_unlabelled_id for special_mDAG i
 
 
 
-remaining_representatives = set(QmDAGs4_representatives).difference(known_interesting_mDAGs)
+remaining_representatives = set(QmDAGs4_representatives).copy()
 
 print("Total number of qmDAGs to analyze: ", len(remaining_representatives))
 
@@ -75,7 +87,7 @@ IC_gap_by_naive_marginalization = list(
     filter(reduces_to_knownICGap_by_naive_marginalization, remaining_representatives))
 
 print("# of ADDITIONAL IC gaps seen via naive marginalization: ", len(IC_gap_by_naive_marginalization))
-print(IC_gap_by_naive_marginalization)
+# print(IC_gap_by_naive_marginalization)
 remaining_representatives.difference_update(IC_gap_by_naive_marginalization)
 
 
@@ -87,14 +99,14 @@ def reduces_to_knownICGap_by_conditioning(qmDAG):
 
 IC_gap_by_conditioning = list(filter(reduces_to_knownICGap_by_conditioning, remaining_representatives))
 print("# of ADDITIONAL IC gaps seen via conditioning: ", len(IC_gap_by_conditioning))
-print(IC_gap_by_conditioning)
+# print(IC_gap_by_conditioning)
 remaining_representatives.difference_update(IC_gap_by_conditioning)
 
 # updated_known_IC_Gaps_QmDAGs = set(QmDAGs4_representatives).difference(remaining_representatives)
 # updated_known_IC_Gaps_QmDAGs_ids = known_IC_Gaps_QmDAGs_ids.union(set(known_QmDAG.unique_unlabelled_id for known_QmDAG in updated_known_IC_Gaps_QmDAGs))
 updated_known_IC_Gaps_QmDAGs_ids = known_interesting_ids.copy()
-print("Size of known database: ", len(updated_known_IC_Gaps_QmDAGs_ids))
-print("Knows about Bell etc: ", updated_known_IC_Gaps_QmDAGs_ids.issuperset(known_interesting_ids))
+# print("Size of known database: ", len(updated_known_IC_Gaps_QmDAGs_ids))
+# print("Knows about Bell etc: ", updated_known_IC_Gaps_QmDAGs_ids.issuperset(known_interesting_ids))
 
 
 def reduces_to_knownICGap_by_Fritz_without_node_splitting(qmDAG):
@@ -123,10 +135,10 @@ print("# of IC Gaps discovered so far: ",
 # remaining_representatives = set(QmDAGs4_representatives).difference(updated_known_IC_Gaps_QmDAGs)
 print("# of IC Gaps still to be assessed: ", len(remaining_representatives))
 
-QG_Square = QmDAG(DirectedStructure([], 4), Hypergraph([(2, 3), (1, 3), (0, 1), (0, 2)], 4), Hypergraph([], 4))
-print("Are we going to discover the square? ", reduces_to_knownICGap_by_Fritz_without_node_splitting(QG_Square))
-# # reduces_to_knownICGap_by_marginalization(QG_Square)
-print("Is the square in the remaining set? ", QG_Square in remaining_representatives)
+# QG_Square = QmDAG(DirectedStructure([], 4), Hypergraph([(2, 3), (1, 3), (0, 1), (0, 2)], 4), Hypergraph([], 4))
+# print("Are we going to discover the square? ", reduces_to_knownICGap_by_Fritz_without_node_splitting(QG_Square))
+# # # reduces_to_knownICGap_by_marginalization(QG_Square)
+# print("Is the square in the remaining set? ", QG_Square in remaining_representatives)
 
 IC_gap_by_Fritz_without_node_splitting = list(
     filter(reduces_to_knownICGap_by_Fritz_without_node_splitting, remaining_representatives))
@@ -140,4 +152,5 @@ remaining_representatives.difference_update(IC_gap_by_Fritz_with_node_splitting)
 
 print("# of IC Gaps discovered via Fritz with splitting: ", len(IC_gap_by_Fritz_with_node_splitting))
 print("# of IC Gaps still to be assessed: ", len(remaining_representatives))
-print("Note that here, we ARE considering Evans as if it had a IC Gap")
+print(remaining_representatives)
+
