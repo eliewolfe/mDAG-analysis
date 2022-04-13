@@ -423,7 +423,7 @@ class QmDAG:
             for choice_of_nodes in itertools.product(*allnode_name_variants):
                 yield QmDAG(
                     LabelledDirectedStructure(choice_of_nodes, new_directed_structure),
-                    LabelledHypergraph(choice_of_nodes, new_C_simplicial_complex),
+                    LabelledHypergraph(choice_of_nodes, hypergraph_full_cleanup(new_C_simplicial_complex)),
                     LabelledHypergraph(choice_of_nodes, new_Q_simplicial_complex))
         else:
             core_nodes = tuple(map(str, self.visible_nodes))
