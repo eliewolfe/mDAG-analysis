@@ -366,15 +366,27 @@ class QmDAG:
         new_Q_simplicial_complex = set(frozenset(map(str, h)) for h in self.Q_simplicial_complex_instance.simplicial_complex_as_sets)
         new_node_names = list(map(str, self.visible_nodes))
         allnode_name_variants = []
+        specialcases_dict = dict()
+        for target in self.visible_nodes:
+            str_target = str(target)
+            allnode_name_variants.append([str_target])
 
         for target in self.visible_nodes:
-            target_name_variants = [str(target)]
+            str_target = str(target)
+            # target_name_variants = [str_target]
+            # specialcase_dict = dict()
             visible_parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, target]))
+            # visible_parents = set(x for x in new_node_names if (x, str_target) in new_directed_structure)
             visible_children = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[target, :]))
+            # visible_children = set(x for x in new_node_names if (str_target, x) in new_directed_structure)
             C_facets_with_target = set(
-                facet for facet in self.C_simplicial_complex_instance.extended_simplicial_complex_as_sets if target in facet)
+                facet for facet in self.C_simplicial_complex_instance.simplicial_complex_as_sets if target in facet)
+            # C_facets_with_target = set(
+            #     facet for facet in new_C_simplicial_complex if str_target in facet)
             Q_facets_with_target = set(
                 facet for facet in self.Q_simplicial_complex_instance.simplicial_complex_as_sets if target in facet)
+            # Q_facets_with_target = set(
+            #     facet for facet in new_Q_simplicial_complex if str_target in facet)
             for set_of_visible_parents_to_delete in [set(subset) for i in range(0, len(visible_parents) + 1) for
                                                      subset in itertools.combinations(visible_parents, i)]:
                 for set_of_C_facets_to_delete in [set(subset) for i in range(0, len(C_facets_with_target) + 1) for
@@ -396,35 +408,56 @@ class QmDAG:
 
                                 Y = Fritz_assessment[1]
                                 # print(target, set_of_Q_facets_to_delete, Q_facets_with_target, Y)
-                                sub_target = str(target) + "_" + str(Y)
-                                target_name_variants.append(sub_target)
+                                sub_target = str_target + "_" + str(Y)
+                                specialcases_dict[sub_target] = (set_of_visible_parents_to_delete,
+                                                                set_of_C_facets_to_delete,
+                                                                set_of_Q_facets_to_delete)
+                                allnode_name_variants[target].append(sub_target)
+                                # target_name_variants.append(sub_target)
                                 new_node_names.append(sub_target)
                                 for facet in C_facets_with_target:
                                     if facet not in set_of_C_facets_to_delete:
-                                        facet_copy = set(facet)
+                                        facet_copy = set()
                                         # facet_copy.remove(target)
-                                        facet_copy = set(map(str, facet_copy))
+                                        for s in facet:
+                                            for variants in allnode_name_variants[s]:
+                                                for str_s in variants:
+                                                    if str_s not in specialcases_dict.keys():
+                                                        facet_copy.add(str_s)
+                                                    elif facet not in specialcases_dict[str_s][1]:
+                                                        facet_copy.add(str_s)
                                         facet_copy.add(sub_target)
                                         new_C_simplicial_complex.add(frozenset(facet_copy))
                                 for facet in Q_facets_with_target:
                                     if facet not in set_of_Q_facets_to_delete:
-                                        facet_copy = set(facet)
+                                        facet_copy = set()
                                         # facet_copy.remove(target)
-                                        facet_copy = set(map(str, facet_copy))
+                                        for s in facet:
+                                            for variants in allnode_name_variants[s]:
+                                                for str_s in variants:
+                                                    if str_s not in specialcases_dict.keys():
+                                                        facet_copy.add(str_s)
+                                                    elif facet not in specialcases_dict[str_s][2]:
+                                                        facet_copy.add(str_s)
                                         facet_copy.add(sub_target)
-                                        new_C_simplicial_complex.add(frozenset(facet_copy))
+                                        new_Q_simplicial_complex.add(frozenset(facet_copy))
                                 for p in visible_parents:
                                     if p not in set_of_visible_parents_to_delete:
-                                        new_directed_structure.append((str(p), sub_target))
+                                        for str_p in allnode_name_variants[p]:
+                                            new_directed_structure.append((str_p, sub_target))
                                 for c in visible_children:
-                                    new_directed_structure.append((sub_target, str(c)))
-            allnode_name_variants.append(target_name_variants)
+                                    for str_c in allnode_name_variants[c]:
+                                        if str_c not in specialcases_dict.keys():
+                                            new_directed_structure.append((sub_target, str_c))
+                                        elif target not in specialcases_dict[str_c][0]:
+                                            new_directed_structure.append((sub_target, str_c))
+            # allnode_name_variants.append(target_name_variants)
         if not node_decomposition:
             for choice_of_nodes in itertools.product(*allnode_name_variants):
                 yield QmDAG(
                     LabelledDirectedStructure(choice_of_nodes, new_directed_structure),
                     LabelledHypergraph(choice_of_nodes, hypergraph_full_cleanup(new_C_simplicial_complex)),
-                    LabelledHypergraph(choice_of_nodes, new_Q_simplicial_complex))
+                    LabelledHypergraph(choice_of_nodes, hypergraph_full_cleanup(new_Q_simplicial_complex)))
         else:
             core_nodes = tuple(map(str, self.visible_nodes))
             bonus_node_variants = [name_variants[1:] for name_variants in allnode_name_variants if len(name_variants)>=2]
@@ -511,59 +544,15 @@ class QmDAG:
     #     return set(self._unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting())
 
 if __name__ == '__main__': 
-    #QG_Ghost = QmDAG(DirectedStructure([(0,1),(0,3)], 4), Hypergraph([(1,2)], 4), Hypergraph([(2,3)], 4))
-    #print(QG_Ghost.Fritz(1,{0},set(),set()))
-    #print(QG_Ghost.Fritz(1,set(),{frozenset((1,2))},set()))
-    #QG=QmDAG(DirectedStructure([(1,3),(0,2)], 4), Hypergraph([], 4), Hypergraph([(1,2),(1,3),(0,3)], 4))
-    #print(QG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting)
-    #QG.Fritz(1,frozenset(),frozenset(),{frozenset({1, 3}), frozenset({1, 2})})
+    boring_QmDAG = QmDAG(
+        DirectedStructure([(0,1), (1,2), (1,3), (2,3)],4),
+        Hypergraph([], 4),
+        Hypergraph([(0,2),(0,3),(1,2),(1,3)],4)
+    )
 
-    #QG_Ghost = QmDAG(DirectedStructure([(0, 1), (0, 2)], 4), Hypergraph([], 4), Hypergraph([(1, 3), (2, 3)], 4))
-    #print(QG_Ghost)
-    #print(QG_Ghost.marginalize(0))
-    # QG=QmDAG(DirectedStructure([(0,3),(1,2)], 4), Hypergraph([], 4), Hypergraph([(0,2),(1,2,3),(0,3),(0,1)], 4))
-    # print(QG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting)
-    #
-    # QG.Fritz(0,frozenset(),frozenset(), {frozenset((0,2)),frozenset((0,3)),frozenset((0,1))})
-
-    QG_Square = QmDAG(DirectedStructure([], 4), Hypergraph([], 4), Hypergraph([(2, 3), (1, 3), (0, 1), (0, 2)], 4))
-    i=0
-    for qmDAG in QG_Square.apply_Fritz_trick(node_decomposition=False):
-        if 1<=i<=3:
-            print(qmDAG)
-        i+=1
-# =============================================================================
-#     for id in QG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting:
-#         if id in known_QC_Gaps_QmDAGs_id:
-#             print(id)
-# =============================================================================
- 
-    # QG = QmDAG(DirectedStructure([(1, 2), (2, 3)], 4), Hypergraph([(0, 2), (1, 2), (2, 3)], 4),
-    #            Hypergraph([(1, 2, 3)], 4))
-    # print(QG)
-    # print(QG.unique_id)
-    # print(QG.unique_unlabelled_id)
-    #
-    # print(DirectedStructure([(1, 2), (2, 3)], 4).as_bit_square_matrix.astype(int))
-
-# =============================================================================
-#     example_for_marginalization = QmDAG(
-#         DirectedStructure([(0, 1), (1, 2), (2, 3)], 4),
-#         Hypergraph([], 4),
-#         Hypergraph([(0, 1), (1, 3), (2, 3)], 4)
-#     )
-#     marginalized = example_for_marginalization.marginalize(2, apply_teleportation=False)
-#     print(marginalized)
-#     print(marginalized.unique_unlabelled_id)
-#     QG_Instrumental2 = QmDAG(DirectedStructure([(0, 1), (1, 2)], 3), Hypergraph([], 3), Hypergraph([(0, 1), (1, 2)], 3))
-#     print(QG_Instrumental2.unique_unlabelled_id)
-# 
-#     example_for_teleportation = QmDAG(
-#         DirectedStructure([(0, 1), (1, 3), (2, 3)], 4),
-#         Hypergraph([], 4),
-#         Hypergraph([(0, 2), (2, 3)], 4)
-#     )
-# 
-#     print(example_for_teleportation.marginalize(2, apply_teleportation=True))
-# 
-# =============================================================================
+    assess = boring_QmDAG.assess_Fritz_Wolfe_style(target=3,
+                                          set_of_visible_parents_to_delete={},
+                                          set_of_C_facets_to_delete={},
+                                          set_of_Q_facets_to_delete={frozenset({2,3})})
+    print(assess)
+    pass
