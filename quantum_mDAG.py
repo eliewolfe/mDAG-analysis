@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 import numpy as np
 import itertools
-import networkx as nx
-from hypergraphs import Hypergraph, LabelledHypergraph, hypergraph_full_cleanup
+# import networkx as nx
+from hypergraphs import Hypergraph, LabelledHypergraph, hypergraph_full_cleanup, hypergraph_canonicalize_with_deduplication
 from directed_structures import DirectedStructure, LabelledDirectedStructure
 # from radix import bitarray_to_int
 from mDAG_advanced import mDAG
@@ -367,26 +367,27 @@ class QmDAG:
         new_node_names = list(map(str, self.visible_nodes))
         allnode_name_variants = [{str(target)} for target in self.visible_nodes]
         specialcases_dict = dict()
-        # for target in self.visible_nodes:
-        #     str_target = str(target)
-        #     allnode_name_variants.append({str_target})
+        for target in self.visible_nodes:
+            str_target = str(target)
+            visible_parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, target]))
+            extended_C_facets_with_target = set(
+                facet for facet in self.C_simplicial_complex_instance.extended_simplicial_complex_as_sets if target in facet)
+            extended_Q_facets_with_target = set(
+                facet for facet in self.Q_simplicial_complex_instance.extended_simplicial_complex_as_sets if target in facet)
+            specialcases_dict[str_target] = (visible_parents,
+                                             extended_C_facets_with_target,
+                                             extended_Q_facets_with_target,
+                                             extended_Q_facets_with_target)
+
 
         for target in self.visible_nodes:
             str_target = str(target)
-            # target_name_variants = [str_target]
-            # specialcase_dict = dict()
-            visible_parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, target]))
-            # visible_parents = set(x for x in new_node_names if (x, str_target) in new_directed_structure)
+            (visible_parents, extended_C_facets_with_target,
+             raw_Q_facets_with_target, extended_Q_facets_with_target) = specialcases_dict[str_target]
+            C_facets_with_target = hypergraph_canonicalize_with_deduplication(extended_C_facets_with_target)
+            Q_facets_with_target = hypergraph_canonicalize_with_deduplication(raw_Q_facets_with_target)
+
             visible_children = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[target, :]))
-            # visible_children = set(x for x in new_node_names if (str_target, x) in new_directed_structure)
-            C_facets_with_target = set(
-                facet for facet in self.C_simplicial_complex_instance.simplicial_complex_as_sets if target in facet)
-            # C_facets_with_target = set(
-            #     facet for facet in new_C_simplicial_complex if str_target in facet)
-            Q_facets_with_target = set(
-                facet for facet in self.Q_simplicial_complex_instance.simplicial_complex_as_sets if target in facet)
-            # Q_facets_with_target = set(
-            #     facet for facet in new_Q_simplicial_complex if str_target in facet)
             for set_of_visible_parents_to_delete in [set(subset) for i in range(0, len(visible_parents) + 1) for
                                                      subset in itertools.combinations(visible_parents, i)]:
                 for set_of_C_facets_to_delete in [set(subset) for i in range(0, len(C_facets_with_target) + 1) for
@@ -409,62 +410,72 @@ class QmDAG:
                                 Y = Fritz_assessment[1]
                                 # print(target, set_of_Q_facets_to_delete, Q_facets_with_target, Y)
                                 sub_target = str_target + "_" + str(Y)
-                                specialcases_dict[sub_target] = (set_of_visible_parents_to_delete,
-                                                                set_of_C_facets_to_delete,
-                                                                set_of_Q_facets_to_delete)
+                                # new_directed_structure.append((sub_target, str_target))
+                                set_of_C_facets_not_to_delete = extended_C_facets_with_target.difference(set_of_C_facets_to_delete)
+                                raw_set_of_Q_facets_not_to_delete = extended_Q_facets_with_target.difference(
+                                    set_of_Q_facets_to_delete)
+                                set_of_Q_facets_not_to_delete = set(qfacet.intersection(Y) for
+                                                                    qfacet in raw_set_of_Q_facets_not_to_delete)
+                                ## TODO: comment out next line!
+                                # set_of_Q_facets_not_to_delete = hypergraph_canonicalize_with_deduplication(set_of_Q_facets_not_to_delete)
+                                visible_parents_not_to_delete = set(visible_parents).difference(
+                                    set_of_visible_parents_to_delete)
+                                specialcases_dict[sub_target] = (visible_parents_not_to_delete,
+                                                                set_of_C_facets_not_to_delete,
+                                                                raw_set_of_Q_facets_not_to_delete,
+                                                                set_of_Q_facets_not_to_delete)
                                 # new_C_simplicial_complex.discard(frozenset(allnode_name_variants[target]))
                                 allnode_name_variants[target].add(sub_target)
                                 new_node_names.append(sub_target)
                                 # new_C_simplicial_complex.add(frozenset(allnode_name_variants[target]))
-                                for facet in C_facets_with_target:
-                                    if facet not in set_of_C_facets_to_delete:
-                                        facet_copy = set()
-                                        # facet_copy.remove(target)
-                                        for s in facet:
-                                            for variants in allnode_name_variants[s]:
-                                                for str_s in variants:
-                                                    if str_s not in specialcases_dict.keys():
-                                                        facet_copy.add(str_s)
-                                                    elif facet not in specialcases_dict[str_s][1]:
-                                                        facet_copy.add(str_s)
-                                        facet_copy.discard(sub_target)
-                                        new_C_simplicial_complex.discard(frozenset(facet_copy))
-                                        facet_copy.add(sub_target)
-                                        new_C_simplicial_complex.add(frozenset(facet_copy))
-                                for facet in Q_facets_with_target:
-                                    if facet not in set_of_Q_facets_to_delete:
-                                        facet_copy = set()
-                                        # facet_copy.remove(target)
-                                        for s in facet:
-                                            for variants in allnode_name_variants[s]:
-                                                for str_s in variants:
-                                                    if str_s not in specialcases_dict.keys():
-                                                        facet_copy.add(str_s)
-                                                    elif facet not in specialcases_dict[str_s][2]:
-                                                        facet_copy.add(str_s)
-                                        facet_copy.discard(sub_target)
-                                        # if facet.discard(target).issubset(Y[1]):
-                                        new_Q_simplicial_complex.discard(frozenset(facet_copy))
-                                        facet_copy.add(sub_target)
-                                        #Can perfectly predicted nodes still have quantum parents?
-                                        new_Q_simplicial_complex.add(frozenset(facet_copy))
-                                for p in visible_parents:
-                                    if p not in set_of_visible_parents_to_delete:
-                                        for str_p in allnode_name_variants[p]:
-                                            new_directed_structure.append((str_p, sub_target))
+                                for cfacet in set_of_C_facets_not_to_delete.union(set_of_Q_facets_not_to_delete):
+                                    new_cfacet = set(key
+                                                     for key, val in
+                                                     specialcases_dict.items() if
+                                                     cfacet in val[1])
+                                    new_cfacet.discard(sub_target)
+                                    new_C_simplicial_complex.discard(frozenset(new_cfacet))
+                                    new_cfacet.add(sub_target)
+                                    new_C_simplicial_complex.add(frozenset(new_cfacet))
+
+                                #TODO: be careful with Qfacets!
+                                # for qfacet in set_of_Q_facets_not_to_delete:
+                                for qfacet in raw_set_of_Q_facets_not_to_delete:
+                                    new_qfacet = set(key
+                                                     for key, val in
+                                                     specialcases_dict.items() if
+                                                     any(subqfacet.issuperset(qfacet) for
+                                                         subqfacet in val[2]))
+                                    new_qfacet.discard(sub_target)
+                                    new_Q_simplicial_complex.discard(frozenset(new_qfacet))
+                                    new_qfacet.add(sub_target)
+                                    new_Q_simplicial_complex.add(frozenset(new_qfacet))
+                                # for cfacet in raw_set_of_Q_facets_not_to_delete:
+                                #     new_cfacet = set(key
+                                #                      for key, val in
+                                #                      specialcases_dict.items() if
+                                #                      cfacet in val[2])
+                                #     new_cfacet.discard(sub_target)
+                                #     new_C_simplicial_complex.discard(frozenset(new_cfacet))
+                                #     new_cfacet.add(sub_target)
+                                #     new_C_simplicial_complex.add(frozenset(new_cfacet))
+
+                                for p in visible_parents_not_to_delete:
+                                    for str_p in allnode_name_variants[p]:
+                                        new_directed_structure.append((str_p, sub_target))
                                 for c in visible_children:
                                     for str_c in allnode_name_variants[c]:
-                                        if str_c not in specialcases_dict.keys():
-                                            new_directed_structure.append((sub_target, str_c))
-                                        elif target not in specialcases_dict[str_c][0]:
+                                        if target in specialcases_dict[str_c][0]:
                                             new_directed_structure.append((sub_target, str_c))
             # allnode_name_variants.append(target_name_variants)
+        new_C_simplicial_complex = hypergraph_full_cleanup(new_C_simplicial_complex)
+        new_Q_simplicial_complex = hypergraph_full_cleanup(new_Q_simplicial_complex)
         if not node_decomposition:
             for choice_of_nodes in itertools.product(*allnode_name_variants):
                 yield QmDAG(
                     LabelledDirectedStructure(choice_of_nodes, new_directed_structure),
-                    LabelledHypergraph(choice_of_nodes, hypergraph_full_cleanup(new_C_simplicial_complex)),
-                    LabelledHypergraph(choice_of_nodes, hypergraph_full_cleanup(new_Q_simplicial_complex)))
+                    LabelledHypergraph(choice_of_nodes, new_C_simplicial_complex),
+                    LabelledHypergraph(choice_of_nodes, new_Q_simplicial_complex))
         else:
             core_nodes = tuple(map(str, self.visible_nodes))
             bonus_node_variants = [name_variants.difference(core_nodes) for name_variants in allnode_name_variants if len(name_variants)>=2]
