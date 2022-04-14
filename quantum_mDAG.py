@@ -365,11 +365,11 @@ class QmDAG:
         new_C_simplicial_complex = set(frozenset(map(str, h)) for h in self.C_simplicial_complex_instance.simplicial_complex_as_sets)
         new_Q_simplicial_complex = set(frozenset(map(str, h)) for h in self.Q_simplicial_complex_instance.simplicial_complex_as_sets)
         new_node_names = list(map(str, self.visible_nodes))
-        allnode_name_variants = []
+        allnode_name_variants = [{str(target)} for target in self.visible_nodes]
         specialcases_dict = dict()
-        for target in self.visible_nodes:
-            str_target = str(target)
-            allnode_name_variants.append([str_target])
+        # for target in self.visible_nodes:
+        #     str_target = str(target)
+        #     allnode_name_variants.append({str_target})
 
         for target in self.visible_nodes:
             str_target = str(target)
@@ -412,9 +412,10 @@ class QmDAG:
                                 specialcases_dict[sub_target] = (set_of_visible_parents_to_delete,
                                                                 set_of_C_facets_to_delete,
                                                                 set_of_Q_facets_to_delete)
-                                allnode_name_variants[target].append(sub_target)
-                                # target_name_variants.append(sub_target)
+                                # new_C_simplicial_complex.discard(frozenset(allnode_name_variants[target]))
+                                allnode_name_variants[target].add(sub_target)
                                 new_node_names.append(sub_target)
+                                # new_C_simplicial_complex.add(frozenset(allnode_name_variants[target]))
                                 for facet in C_facets_with_target:
                                     if facet not in set_of_C_facets_to_delete:
                                         facet_copy = set()
@@ -426,6 +427,8 @@ class QmDAG:
                                                         facet_copy.add(str_s)
                                                     elif facet not in specialcases_dict[str_s][1]:
                                                         facet_copy.add(str_s)
+                                        facet_copy.discard(sub_target)
+                                        new_C_simplicial_complex.discard(frozenset(facet_copy))
                                         facet_copy.add(sub_target)
                                         new_C_simplicial_complex.add(frozenset(facet_copy))
                                 for facet in Q_facets_with_target:
@@ -439,7 +442,11 @@ class QmDAG:
                                                         facet_copy.add(str_s)
                                                     elif facet not in specialcases_dict[str_s][2]:
                                                         facet_copy.add(str_s)
+                                        facet_copy.discard(sub_target)
+                                        # if facet.discard(target).issubset(Y[1]):
+                                        new_Q_simplicial_complex.discard(frozenset(facet_copy))
                                         facet_copy.add(sub_target)
+                                        #Can perfectly predicted nodes still have quantum parents?
                                         new_Q_simplicial_complex.add(frozenset(facet_copy))
                                 for p in visible_parents:
                                     if p not in set_of_visible_parents_to_delete:
@@ -460,7 +467,7 @@ class QmDAG:
                     LabelledHypergraph(choice_of_nodes, hypergraph_full_cleanup(new_Q_simplicial_complex)))
         else:
             core_nodes = tuple(map(str, self.visible_nodes))
-            bonus_node_variants = [name_variants[1:] for name_variants in allnode_name_variants if len(name_variants)>=2]
+            bonus_node_variants = [name_variants.difference(core_nodes) for name_variants in allnode_name_variants if len(name_variants)>=2]
             for bonus_nodes in itertools.product(*bonus_node_variants):
                 new_nodes = core_nodes + bonus_nodes
                 yield QmDAG(

@@ -146,7 +146,7 @@ def reduces_to_knownQCGap_by_naive_marginalization(qmDAG):
 QC_gap_by_naive_marginalization = list(filter(reduces_to_knownQCGap_by_naive_marginalization, remaining_representatives))
 
 print("# of ADDITIONAL QC gaps seen via naive marginalization: ", len(QC_gap_by_naive_marginalization))
-print(QC_gap_by_naive_marginalization)
+# print(QC_gap_by_naive_marginalization)
 remaining_representatives.difference_update(QC_gap_by_naive_marginalization)
 # debug_QmDAG = QmDAG(
 #         DirectedStructure([(0, 1), (1, 2), (2, 3)], 4),
@@ -162,7 +162,7 @@ def reduces_to_knownQCGap_by_marginalization(qmDAG):
 QC_gap_by_marginalization = list(filter(reduces_to_knownQCGap_by_marginalization, remaining_representatives))
 
 print("# of ADDITIONAL QC gaps seen via teleporation marginalization: ", len(QC_gap_by_marginalization))
-print(QC_gap_by_marginalization)
+# print(QC_gap_by_marginalization)
 remaining_representatives.difference_update(QC_gap_by_marginalization)
 
 def reduces_to_knownQCGap_by_conditioning(qmDAG):
@@ -170,7 +170,7 @@ def reduces_to_knownQCGap_by_conditioning(qmDAG):
 
 QC_gap_by_conditioning = list(filter(reduces_to_knownQCGap_by_conditioning, remaining_representatives))
 print("# of ADDITIONAL QC gaps seen via conditioning: ", len(QC_gap_by_conditioning))
-print(QC_gap_by_conditioning)
+# print(QC_gap_by_conditioning)
 remaining_representatives.difference_update(QC_gap_by_conditioning)
 
 
@@ -200,10 +200,10 @@ print("# of QC Gaps discovered so far: ", len(QC_gap_by_PD_trick+QC_gap_by_naive
 print("# of QC Gaps still to be assessed: ", len(remaining_representatives))
 
 
-QG_Square = QmDAG(DirectedStructure([], 4), Hypergraph([], 4), Hypergraph([(2,3),(1,3),(0,1),(0,2)], 4))
-print("Are we going to discover the square? ", reduces_to_knownQCGap_by_Fritz_without_node_splitting(QG_Square))
+# QG_Square = QmDAG(DirectedStructure([], 4), Hypergraph([], 4), Hypergraph([(2,3),(1,3),(0,1),(0,2)], 4))
+# print("Are we going to discover the square? ", reduces_to_knownQCGap_by_Fritz_without_node_splitting(QG_Square))
 # # reduces_to_knownQCGap_by_marginalization(QG_Square)
-print("Is the square in the remaining set? ", QG_Square in remaining_representatives)
+# print("Is the square in the remaining set? ", QG_Square in remaining_representatives)
 
 QC_gap_by_Fritz_without_node_splitting = list(filter(reduces_to_knownQCGap_by_Fritz_without_node_splitting, remaining_representatives))
 remaining_representatives.difference_update(QC_gap_by_Fritz_without_node_splitting)
@@ -214,6 +214,7 @@ QC_gap_by_Fritz_with_node_splitting = list(filter(reduces_to_knownQCGap_by_Fritz
 remaining_representatives.difference_update(QC_gap_by_Fritz_with_node_splitting)
 
 print("# of QC Gaps discovered via Fritz with splitting: ", len(QC_gap_by_Fritz_with_node_splitting))
+print(QC_gap_by_Fritz_with_node_splitting)
 print("# of QC Gaps still to be assessed: ", len(remaining_representatives))
 print("Note that here, we ARE considering Evans as if it had a QC Gap")
 # n=1
