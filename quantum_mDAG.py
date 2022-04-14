@@ -411,8 +411,8 @@ class QmDAG:
                                 # print(target, set_of_Q_facets_to_delete, Q_facets_with_target, Y)
                                 sub_target = str_target + "_" + str(Y)
                                 # new_directed_structure.append((sub_target, str_target))
-                                set_of_C_facets_not_to_delete = extended_C_facets_with_target.difference(set_of_C_facets_to_delete)
-                                raw_set_of_Q_facets_not_to_delete = extended_Q_facets_with_target.difference(
+                                set_of_C_facets_not_to_delete = C_facets_with_target.difference(set_of_C_facets_to_delete)
+                                raw_set_of_Q_facets_not_to_delete = Q_facets_with_target.difference(
                                     set_of_Q_facets_to_delete)
                                 set_of_Q_facets_not_to_delete = set(qfacet.intersection(Y) for
                                                                     qfacet in raw_set_of_Q_facets_not_to_delete)
@@ -428,7 +428,7 @@ class QmDAG:
                                 allnode_name_variants[target].add(sub_target)
                                 new_node_names.append(sub_target)
                                 # new_C_simplicial_complex.add(frozenset(allnode_name_variants[target]))
-                                for cfacet in set_of_C_facets_not_to_delete.union(set_of_Q_facets_not_to_delete):
+                                for cfacet in set_of_C_facets_not_to_delete.union(raw_set_of_Q_facets_not_to_delete):
                                     new_cfacet = set(key
                                                      for key, val in
                                                      specialcases_dict.items() if
@@ -439,26 +439,17 @@ class QmDAG:
                                     new_C_simplicial_complex.add(frozenset(new_cfacet))
 
                                 #TODO: be careful with Qfacets!
-                                # for qfacet in set_of_Q_facets_not_to_delete:
-                                for qfacet in raw_set_of_Q_facets_not_to_delete:
-                                    new_qfacet = set(key
-                                                     for key, val in
-                                                     specialcases_dict.items() if
-                                                     any(subqfacet.issuperset(qfacet) for
-                                                         subqfacet in val[2]))
-                                    new_qfacet.discard(sub_target)
-                                    new_Q_simplicial_complex.discard(frozenset(new_qfacet))
-                                    new_qfacet.add(sub_target)
-                                    new_Q_simplicial_complex.add(frozenset(new_qfacet))
-                                # for cfacet in raw_set_of_Q_facets_not_to_delete:
-                                #     new_cfacet = set(key
+                                ## for qfacet in set_of_Q_facets_not_to_delete:
+                                # for qfacet in raw_set_of_Q_facets_not_to_delete:
+                                #     new_qfacet = set(key
                                 #                      for key, val in
                                 #                      specialcases_dict.items() if
-                                #                      cfacet in val[2])
-                                #     new_cfacet.discard(sub_target)
-                                #     new_C_simplicial_complex.discard(frozenset(new_cfacet))
-                                #     new_cfacet.add(sub_target)
-                                #     new_C_simplicial_complex.add(frozenset(new_cfacet))
+                                #                      any(subqfacet.issuperset(qfacet) for
+                                #                          subqfacet in val[2]))
+                                #     new_qfacet.discard(sub_target)
+                                #     new_Q_simplicial_complex.discard(frozenset(new_qfacet))
+                                #     new_qfacet.add(sub_target)
+                                #     new_Q_simplicial_complex.add(frozenset(new_qfacet))
 
                                 for p in visible_parents_not_to_delete:
                                     for str_p in allnode_name_variants[p]:
