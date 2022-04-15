@@ -370,22 +370,20 @@ class QmDAG:
         for target in self.visible_nodes:
             str_target = str(target)
             visible_parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, target]))
-            extended_C_facets_with_target = set(
-                facet for facet in self.C_simplicial_complex_instance.extended_simplicial_complex_as_sets if target in facet)
-            extended_Q_facets_with_target = set(
-                facet for facet in self.Q_simplicial_complex_instance.extended_simplicial_complex_as_sets if target in facet)
+            C_facets_with_target = set(
+                facet for facet in self.C_simplicial_complex_instance.simplicial_complex_as_sets if target in facet)
+            Q_facets_with_target = set(
+                facet for facet in self.Q_simplicial_complex_instance.simplicial_complex_as_sets if target in facet)
             specialcases_dict[str_target] = (visible_parents,
-                                             extended_C_facets_with_target,
-                                             extended_Q_facets_with_target,
-                                             extended_Q_facets_with_target)
+                                             C_facets_with_target,
+                                             Q_facets_with_target)
 
 
         for target in self.visible_nodes:
             str_target = str(target)
-            (visible_parents, extended_C_facets_with_target,
-             raw_Q_facets_with_target, extended_Q_facets_with_target) = specialcases_dict[str_target]
-            C_facets_with_target = hypergraph_canonicalize_with_deduplication(extended_C_facets_with_target)
-            Q_facets_with_target = hypergraph_canonicalize_with_deduplication(raw_Q_facets_with_target)
+            (visible_parents, C_facets_with_target, Q_facets_with_target) = specialcases_dict[str_target]
+            # C_facets_with_target = hypergraph_canonicalize_with_deduplication(extended_C_facets_with_target)
+            # Q_facets_with_target = hypergraph_canonicalize_with_deduplication(raw_Q_facets_with_target)
 
             visible_children = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[target, :]))
             for set_of_visible_parents_to_delete in [set(subset) for i in range(0, len(visible_parents) + 1) for
@@ -416,13 +414,10 @@ class QmDAG:
                                     set_of_Q_facets_to_delete)
                                 set_of_Q_facets_not_to_delete = set(qfacet.intersection(Y) for
                                                                     qfacet in raw_set_of_Q_facets_not_to_delete)
-                                ## TODO: comment out next line!
-                                # set_of_Q_facets_not_to_delete = hypergraph_canonicalize_with_deduplication(set_of_Q_facets_not_to_delete)
                                 visible_parents_not_to_delete = set(visible_parents).difference(
                                     set_of_visible_parents_to_delete)
                                 specialcases_dict[sub_target] = (visible_parents_not_to_delete,
                                                                 set_of_C_facets_not_to_delete,
-                                                                raw_set_of_Q_facets_not_to_delete,
                                                                 set_of_Q_facets_not_to_delete)
                                 # new_C_simplicial_complex.discard(frozenset(allnode_name_variants[target]))
                                 allnode_name_variants[target].add(sub_target)
@@ -438,8 +433,6 @@ class QmDAG:
                                     new_cfacet.add(sub_target)
                                     new_C_simplicial_complex.add(frozenset(new_cfacet))
 
-                                #TODO: be careful with Qfacets!
-                                ## for qfacet in set_of_Q_facets_not_to_delete:
                                 # for qfacet in raw_set_of_Q_facets_not_to_delete:
                                 #     new_qfacet = set(key
                                 #                      for key, val in
