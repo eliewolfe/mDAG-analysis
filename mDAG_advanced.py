@@ -784,6 +784,12 @@ class mDAG:
                 return False
         return True
     
+    @cached_property
+    def latent_free_graphQ(self):
+        if self.simplicial_complex_instance.number_of_nonsingleton_latent==0:
+            return True
+        return False
+
     def marginalize_node(self,marginalized_node):
         variable_names=[node for node in self.visible_nodes if node!=marginalized_node]
         new_edge_list=[edge for edge in self.directed_structure_instance.edge_list if edge[0]!=marginalized_node and edge[1]!=marginalized_node]
