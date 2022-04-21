@@ -82,8 +82,10 @@ IC_remaining_representatives.difference_update(IC_gap_by_PD_trick)
 
 def reduces_to_knownICGap_by_naive_marginalization(qmDAG):
     return not known_interesting_ids.isdisjoint(
-        qmDAG.unique_unlabelled_ids_obtainable_by_naive_marginalization)
+        qmDAG.unique_unlabelled_ids_obtainable_by_naive_marginalization(False))
 
+QG = QmDAG(DirectedStructure([(0,1), (1,2), (3,1), (3,2)],4),Hypergraph([], 4),Hypergraph([],4))
+reduces_to_knownICGap_by_naive_marginalization(QG)
 
 IC_gap_by_naive_marginalization = list(
     filter(reduces_to_knownICGap_by_naive_marginalization, IC_remaining_representatives))
@@ -111,25 +113,19 @@ updated_known_IC_Gaps_QmDAGs_ids = known_interesting_ids.copy()
 # print("Knows about Bell etc: ", updated_known_IC_Gaps_QmDAGs_ids.issuperset(known_interesting_ids))
 
 
-def reduces_to_knownICGap_by_Fritz_without_node_splitting(qmDAG):
-    obtained_ids = [debug_info[-1] for debug_info in
-                    qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting]
-    # return not updated_known_IC_Gaps_QmDAGs_id.isdisjoint(obtained_ids)
-    return not updated_known_IC_Gaps_QmDAGs_ids.isdisjoint(obtained_ids)
-
 
 def reduces_to_knownICGap_by_Fritz_without_node_splitting(qmDAG):
     # obtained_ids = [debug_info[-1] for debug_info in qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting]
     # return not updated_known_IC_Gaps_QmDAGs_id.isdisjoint(obtained_ids)
     return not updated_known_IC_Gaps_QmDAGs_ids.isdisjoint(
-        qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_with_node_splitting(node_decomposition=False))
+        qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_for_IC(node_decomposition=False))
 
 
 def reduces_to_knownICGap_by_Fritz_with_node_splitting(qmDAG):
     # obtained_ids = [debug_info[-1] for debug_info in qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting]
     # return not updated_known_IC_Gaps_QmDAGs_id.isdisjoint(obtained_ids)
     return not updated_known_IC_Gaps_QmDAGs_ids.isdisjoint(
-        qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_with_node_splitting(node_decomposition=True))
+        qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_for_IC(node_decomposition=True))
 
 
 print("# of IC Gaps discovered so far: ",

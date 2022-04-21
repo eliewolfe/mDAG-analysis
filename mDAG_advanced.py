@@ -411,10 +411,11 @@ class mDAG:
     def districts(self):
         #Districts are returned as a list of sets
         if hasattr(self, 'variable_names'):
-            [partsextractor(self.variable_names, district) for district in self.numerical_districts]
+            return [partsextractor(self.variable_names, district) for district in self.numerical_districts]
         else:
             return self.numerical_districts
 
+        
     def set_district(self, X):
         return frozenset(itertools.chain.from_iterable((district for district in self.districts if not district.isdisjoint(X))))
     def singleton_district(self, x):

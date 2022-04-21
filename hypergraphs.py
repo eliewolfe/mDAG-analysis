@@ -246,7 +246,7 @@ class LabelledHypergraph(Hypergraph):
 
     @cached_property
     def translated_districts(self):
-        return [partsextractor(self.variable_names, district) for district in self.districts]
+        return [set(partsextractor(self.variable_names, district)) for district in self.districts]
 
     @cached_property
     def translated_extended_simplicial_complex(self):
