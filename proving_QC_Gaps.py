@@ -62,7 +62,7 @@ QG_Instrumental3b = QmDAG(DirectedStructure([(1, 2)], 3), Hypergraph([(0, 1)], 3
 
 IV_ids = set(special_QmDAG.unique_unlabelled_id for special_QmDAG in {QG_Instrumental1, QG_Instrumental2, QG_Instrumental3,
                         QG_Instrumental2b, QG_Instrumental3b})
-reduces_to_IV = set(new_QmDAG for new_QmDAG in set(QmDAGs4_representatives) if not new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction(False).isdisjoint(IV_ids))
+reduces_to_IV = set(new_QmDAG for new_QmDAG in set(QmDAGs4_representatives) if not new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction(districts_check=False).isdisjoint(IV_ids))
 print("# that reduce to IV: ", len(reduces_to_IV))
 
 QG_Triangle1 = QmDAG(DirectedStructure([], 3), Hypergraph([], 3), Hypergraph([(1, 2), (2, 0), (0, 1)], 3))
@@ -70,14 +70,14 @@ QG_Triangle2 = QmDAG(DirectedStructure([], 3), Hypergraph([(1, 2)], 3), Hypergra
 QG_Triangle3 = QmDAG(DirectedStructure([], 3), Hypergraph([(1, 2), (2, 0)], 3), Hypergraph([(0, 1)], 3))
 
 Triangle_ids = set(special_QmDAG.unique_unlabelled_id for special_QmDAG in {QG_Triangle1, QG_Triangle2, QG_Triangle3})
-reduces_to_Tri = set(new_QmDAG for new_QmDAG in set(QmDAGs4_representatives) if not new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction(False).isdisjoint(Triangle_ids))
+reduces_to_Tri = set(new_QmDAG for new_QmDAG in set(QmDAGs4_representatives) if not new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction(districts_check=False).isdisjoint(Triangle_ids))
 print("# that reduce to Tri: ", len(reduces_to_Tri))
 
 QG_Evans = QmDAG(DirectedStructure([(0, 1), (0, 2)], 3), Hypergraph([], 3), Hypergraph([(0, 1), (0, 2)], 3))
 QG_Evansb = QmDAG(DirectedStructure([(0, 1), (0, 2)], 3), Hypergraph([(0, 1)], 3), Hypergraph([(0, 2)], 3))
 #Evans_ids = set(special_QmDAG.unique_unlabelled_id for special_QmDAG in {QG_Evans, QG_Evansb})
 Evans_ids = set(special_QmDAG.unique_unlabelled_id for special_QmDAG in {QG_Evans})
-reduces_to_Evans = set(new_QmDAG for new_QmDAG in set(QmDAGs4_representatives) if not new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction(False).isdisjoint(Evans_ids))
+reduces_to_Evans = set(new_QmDAG for new_QmDAG in set(QmDAGs4_representatives) if not new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction(districts_check=False).isdisjoint(Evans_ids))
 print("# that reduce to Evans: ", len(reduces_to_Evans))
 
 

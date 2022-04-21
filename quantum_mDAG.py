@@ -395,14 +395,19 @@ class QmDAG:
                 facet for facet in self.C_simplicial_complex_instance.simplicial_complex_as_sets if target in facet)
             Q_facets_with_target = set(
                 facet for facet in self.Q_simplicial_complex_instance.simplicial_complex_as_sets if target in facet)
+            all_facets_with_target = C_facets_with_target.union(Q_facets_with_target)
             specialcases_dict[str_target] = (visible_parents,
                                              C_facets_with_target,
-                                             Q_facets_with_target)
+                                             Q_facets_with_target,
+                                             all_facets_with_target)
 
 
         for target in self.visible_nodes:
             str_target = str(target)
-            (visible_parents, C_facets_with_target, Q_facets_with_target) = specialcases_dict[str_target]
+            (visible_parents,
+             C_facets_with_target,
+             Q_facets_with_target,
+             all_facets_with_target) = specialcases_dict[str_target]
             # C_facets_with_target = hypergraph_canonicalize_with_deduplication(extended_C_facets_with_target)
             # Q_facets_with_target = hypergraph_canonicalize_with_deduplication(raw_Q_facets_with_target)
 
@@ -431,24 +436,25 @@ class QmDAG:
                                 sub_target = str_target + "_" + str(Y)
                                 # new_directed_structure.append((sub_target, str_target))
                                 set_of_C_facets_not_to_delete = C_facets_with_target.difference(set_of_C_facets_to_delete)
-                                raw_set_of_Q_facets_not_to_delete = Q_facets_with_target.difference(
+                                set_of_Q_facets_not_to_delete = Q_facets_with_target.difference(
                                     set_of_Q_facets_to_delete)
-                                set_of_Q_facets_not_to_delete = set(qfacet.intersection(Y) for
-                                                                    qfacet in raw_set_of_Q_facets_not_to_delete)
+                                set_of_all_facets_not_to_delete = set_of_C_facets_not_to_delete.union(set_of_Q_facets_not_to_delete)
+                                # set_of_C_facets_not_to_delete.update(set_of_Q_facets_not_to_delete)
                                 visible_parents_not_to_delete = set(visible_parents).difference(
                                     set_of_visible_parents_to_delete)
                                 specialcases_dict[sub_target] = (visible_parents_not_to_delete,
                                                                 set_of_C_facets_not_to_delete,
-                                                                set_of_Q_facets_not_to_delete)
+                                                                set_of_Q_facets_to_delete,
+                                                                set_of_all_facets_not_to_delete)
                                 # new_C_simplicial_complex.discard(frozenset(allnode_name_variants[target]))
                                 allnode_name_variants[target].add(sub_target)
                                 new_node_names.append(sub_target)
                                 # new_C_simplicial_complex.add(frozenset(allnode_name_variants[target]))
-                                for cfacet in set_of_C_facets_not_to_delete.union(raw_set_of_Q_facets_not_to_delete):
+                                for facet in set_of_all_facets_not_to_delete:
                                     new_cfacet = set(key
                                                      for key, val in
                                                      specialcases_dict.items() if
-                                                     cfacet in val[1])
+                                                     facet in val[3])
                                     new_cfacet.discard(sub_target)
                                     new_C_simplicial_complex.discard(frozenset(new_cfacet))
                                     new_cfacet.add(sub_target)
