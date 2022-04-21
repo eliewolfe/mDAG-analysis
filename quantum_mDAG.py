@@ -590,10 +590,10 @@ if __name__ == '__main__':
     print(assess)
     pass
 
+   
 # =============================================================================
-#     QG = QmDAG(DirectedStructure([(0,1), (1,2)],4),Hypergraph([], 4),Hypergraph([(0,2),(0,3),(1,3)],4))
-#     for (n,dag) in QG.unique_unlabelled_ids_obtainable_by_Fritz_with_node_splitting(node_decomposition=False):
-#         if n in known_QC_Gaps_QmDAGs_small_ids:
+#     for (n,dag) in QG.unique_unlabelled_ids_obtainable_by_Fritz_for_QC(node_decomposition=False):
+#         if n in known_QC_Gaps_QmDAGs_ids:
 #             print(n,dag)
 #             break
 #     dag.marginalize(1, apply_teleportation=False).unique_unlabelled_id
