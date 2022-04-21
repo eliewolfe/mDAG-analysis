@@ -481,27 +481,40 @@ class QmDAG:
             # allnode_name_variants.append(target_name_variants)
         new_C_simplicial_complex = hypergraph_full_cleanup(new_C_simplicial_complex)
         new_Q_simplicial_complex = hypergraph_full_cleanup(new_Q_simplicial_complex)
+        core_nodes = tuple(map(str, self.visible_nodes))
         if not node_decomposition:
             for choice_of_nodes in itertools.product(*allnode_name_variants):
-                yield QmDAG(
+                # choice_of_bonus_nodes = set(choice_of_nodes).difference(core_nodes)
+                coreQmDAG = QmDAG(
                     LabelledDirectedStructure(choice_of_nodes, new_directed_structure),
                     LabelledHypergraph(choice_of_nodes, new_C_simplicial_complex),
                     LabelledHypergraph(choice_of_nodes, new_Q_simplicial_complex))
+                yield coreQmDAG
+                # for to_fix_to_PD in itertools.chain.from_iterable(
+                #         itertools.combinations(choice_of_bonus_nodes, r) for r in range(1, self.number_of_visible-2)):
+                #     remaining_nodes = set(choice_of_nodes).difference(to_fix_to_PD)
+                #     if len(remaining_nodes)>=3:
+                #         yield coreQmDAG.subgraph(remaining_nodes)
         else:
-            core_nodes = tuple(map(str, self.visible_nodes))
-            bonus_node_variants = [name_variants.difference(core_nodes) for name_variants in allnode_name_variants if len(name_variants)>=2]
+            bonus_node_variants = [name_variants.difference(core_nodes) for name_variants in allnode_name_variants if
+                                   len(name_variants) >= 2]
+            bonus_node_variants = [name_variants.union({'-1'}) for name_variants in bonus_node_variants]
+            # all_bonus_nodes = list(itertools.chain.from_iterable(bonus_node_variants))
             for bonus_nodes in itertools.product(*bonus_node_variants):
-                new_nodes = core_nodes + bonus_nodes
-                yield QmDAG(
-                    LabelledDirectedStructure(new_nodes, new_directed_structure),
-                    LabelledHypergraph(new_nodes, new_C_simplicial_complex),
-                    LabelledHypergraph(new_nodes, new_Q_simplicial_complex))
+                actual_bonus_nodes = set(bonus_nodes).difference({'-1'})
+                if len(actual_bonus_nodes) > 0:
+                    new_nodes = core_nodes + actual_bonus_nodes
+                    yield QmDAG(
+                        LabelledDirectedStructure(new_nodes, new_directed_structure),
+                        LabelledHypergraph(new_nodes, new_C_simplicial_complex),
+                        LabelledHypergraph(new_nodes, new_Q_simplicial_complex))
 
     def _unique_unlabelled_ids_obtainable_by_Fritz_for_QC(self, **kwargs):
         for new_QmDAG in self.apply_Fritz_trick(**kwargs):
             #if new_QmDAG.as_mDAG.fundamental_graphQ: #Elie: meant to preserve interestingness
             yield new_QmDAG.unique_unlabelled_id
-            for unlabelled_id in new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction(districts_check=False, apply_teleportation=True):
+            # for unlabelled_id in new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction(districts_check=False, apply_teleportation=True):
+            for unlabelled_id in new_QmDAG.unique_unlabelled_ids_obtainable_by_marginalization(districts_check=False, apply_teleportation=True):
                 yield unlabelled_id
                     
     def unique_unlabelled_ids_obtainable_by_Fritz_for_QC(self, **kwargs):
@@ -511,7 +524,7 @@ class QmDAG:
         for new_QmDAG in self.apply_Fritz_trick(**kwargs):
             #if new_QmDAG.as_mDAG.fundamental_graphQ: #Elie: meant to preserve interestingness
             yield new_QmDAG.unique_unlabelled_id
-            for unlabelled_id in new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction(districts_check=True, apply_teleportation=False):
+            for unlabelled_id in new_QmDAG.unique_unlabelled_ids_obtainable_by_marginalization(districts_check=True, apply_teleportation=False):
                 yield unlabelled_id
                     
     def unique_unlabelled_ids_obtainable_by_Fritz_for_IC(self, **kwargs):

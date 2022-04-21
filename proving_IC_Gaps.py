@@ -144,57 +144,62 @@ IC_remaining_representatives.difference_update(IC_gap_by_Fritz_without_node_spli
 
 print("# of IC Gaps discovered via Fritz without splitting: ", len(IC_gap_by_Fritz_without_node_splitting))
 
-IC_gap_by_Fritz_with_node_splitting = list(
-    filter(reduces_to_knownICGap_by_Fritz_with_node_splitting, IC_remaining_representatives))
-IC_remaining_representatives.difference_update(IC_gap_by_Fritz_with_node_splitting)
-
-print("# of IC Gaps discovered via Fritz with splitting: ", len(IC_gap_by_Fritz_with_node_splitting))
+# IC_gap_by_Fritz_with_node_splitting = list(
+#     filter(reduces_to_knownICGap_by_Fritz_with_node_splitting, IC_remaining_representatives))
+# IC_remaining_representatives.difference_update(IC_gap_by_Fritz_with_node_splitting)
+#
+# print("# of IC Gaps discovered via Fritz with splitting: ", len(IC_gap_by_Fritz_with_node_splitting))
 print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))
 
+provably_interesting_via_supports = [ICmDAG for ICmDAG in IC_remaining_representatives if not ICmDAG.as_mDAG.no_infeasible_binary_supports_beyond_dsep_up_to(4)]
+IC_remaining_representatives.difference_update(provably_interesting_via_supports)
 
-no_infeasible_supports=[]
-for mDAG in mDAGs4_representatives:
-    if mDAG.support_testing_instance((2,2,2,2),3).no_infeasible_supports():
-        no_infeasible_supports.append(mDAG)
-
-not_interesting_with_infeasible_supports=set(IC_remaining_representatives).difference(map(as_classical_QmDAG,no_infeasible_supports))
-print("# of IC Gaps still to be assessed that have some infeasible support: ", len(not_interesting_with_infeasible_supports))
-
-for QmDAG in not_interesting_with_infeasible_supports:
-    for eqclass in Observable_mDAGs4.foundational_eqclasses:
-        if QmDAG.as_mDAG in eqclass:
-            print(eqclass)
-            break
-
-known_interesting_supps={i:list(mDAG.infeasible_binary_supports_n_events_unlabelled(i) for mDAG in [G_Instrumental1, G_Evans, G_Triangle,G_Bell1]) for i in range(2,7)}
-def same_sup_as_known_QC_Gap(mDAG,n):
-    if mDAG.infeasible_binary_supports_n_events_unlabelled(n) in known_interesting_supps[n]:
-        return True
-    return False
-
-unproven_IC_with_interesting_support=False
-for QmDAG in not_interesting_with_infeasible_supports:
-    if same_sup_as_known_QC_Gap(QmDAG.as_mDAG,3):
-        unproven_IC_with_interesting_support=True
-        print("The following remaining representative still to be assessed for an IC Gap has the same support as a known QC Gap at 3 events:", QmDAG)
-if not unproven_IC_with_interesting_support:
-    print("None of the remaining representatives still to be assessed for an IC Gap has the same support as a known QC Gap at 3 events.")
-
-latent_free_supps={i:list(mDAG.infeasible_binary_supports_n_events_unlabelled(i) for mDAG in Observable_mDAGs4.latent_free_representative_mDAGs_list) for i in range(2,5)}
-def same_sup_as_latent_free(mDAG,n):
-    if mDAG.infeasible_binary_supports_n_events_unlabelled(n) in latent_free_supps[n]:
-        return True
-    return False
-
-unproven_IC_with_latent_free_support=False
-for QmDAG in not_interesting_with_infeasible_supports:
-    if same_sup_as_latent_free(QmDAG.as_mDAG,3):
-        unproven_IC_with_latent_free_support=True
-        print("The following remaining representative still to be assessed for an IC Gap has the same support as a latent-free at 3 events:", QmDAG)
-if not unproven_IC_with_latent_free_support:
-    print("None of the remaining representatives still to be assessed for an IC Gap has the same support as a latent-free at 3 events.")
-
-i=0
-for QmDAG in not_interesting_with_infeasible_supports:
-    i=i+1
-    print("e-separation relations of the",i,"st remaining representative still to be assessed for an IC Gap=",QmDAG.as_mDAG.all_esep)
+print("# of IC Gaps discovered via TC's Algorithm: ", len(provably_interesting_via_supports))
+print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))
+#
+# no_infeasible_supports=[]
+# for mDAG in mDAGs4_representatives:
+#     if mDAG.support_testing_instance((2,2,2,2),3).no_infeasible_supports():
+#         no_infeasible_supports.append(mDAG)
+#
+# not_interesting_with_infeasible_supports=set(IC_remaining_representatives).difference(map(as_classical_QmDAG,no_infeasible_supports))
+# print("# of IC Gaps still to be assessed that have some infeasible support: ", len(not_interesting_with_infeasible_supports))
+#
+# for QmDAG in not_interesting_with_infeasible_supports:
+#     for eqclass in Observable_mDAGs4.foundational_eqclasses:
+#         if QmDAG.as_mDAG in eqclass:
+#             print(eqclass)
+#             break
+#
+# known_interesting_supps={i:list(mDAG.infeasible_binary_supports_n_events_unlabelled(i) for mDAG in [G_Instrumental1, G_Evans, G_Triangle,G_Bell1]) for i in range(2,7)}
+# def same_sup_as_known_QC_Gap(mDAG,n):
+#     if mDAG.infeasible_binary_supports_n_events_unlabelled(n) in known_interesting_supps[n]:
+#         return True
+#     return False
+#
+# unproven_IC_with_interesting_support=False
+# for QmDAG in not_interesting_with_infeasible_supports:
+#     if same_sup_as_known_QC_Gap(QmDAG.as_mDAG,3):
+#         unproven_IC_with_interesting_support=True
+#         print("The following remaining representative still to be assessed for an IC Gap has the same support as a known QC Gap at 3 events:", QmDAG)
+# if not unproven_IC_with_interesting_support:
+#     print("None of the remaining representatives still to be assessed for an IC Gap has the same support as a known QC Gap at 3 events.")
+#
+# latent_free_supps={i:list(mDAG.infeasible_binary_supports_n_events_unlabelled(i) for mDAG in Observable_mDAGs4.latent_free_representative_mDAGs_list) for i in range(2,5)}
+# def same_sup_as_latent_free(mDAG,n):
+#     if mDAG.infeasible_binary_supports_n_events_unlabelled(n) in latent_free_supps[n]:
+#         return True
+#     return False
+#
+# unproven_IC_with_latent_free_support=False
+# for QmDAG in not_interesting_with_infeasible_supports:
+#     if same_sup_as_latent_free(QmDAG.as_mDAG,3):
+#         unproven_IC_with_latent_free_support=True
+#         print("The following remaining representative still to be assessed for an IC Gap has the same support as a latent-free at 3 events:", QmDAG)
+# if not unproven_IC_with_latent_free_support:
+#     print("None of the remaining representatives still to be assessed for an IC Gap has the same support as a latent-free at 3 events.")
+#
+# i=0
+# for QmDAG in not_interesting_with_infeasible_supports:
+#     i=i+1
+#     print("e-separation relations of the",i,"st remaining representative still to be assessed for an IC Gap=",QmDAG.as_mDAG.all_esep)
