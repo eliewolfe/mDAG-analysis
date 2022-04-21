@@ -232,8 +232,13 @@ class QmDAG:
     def unique_unlabelled_ids_obtainable_by_conditioning(self):
         return set(new_QmDAG.unique_unlabelled_id for new_QmDAG in self.subconditionals)
 
-    def marginalize(self, node,district_check,apply_teleportation):  # returns a smaller QmDAG
+    def marginalize(self, node, districts_check=False, apply_teleportation=True):  # returns a smaller QmDAG
         remaining_nodes = self.visible_nodes[:node] + self.visible_nodes[(node + 1):]
+        fake_qmDAG = QmDAG(
+                DirectedStructure([], 1),
+                Hypergraph([], 1),
+                Hypergraph([], 1),
+                )
         # Pass visible children on to visible children
         # Pass latent children on to visible children **classically**
         # Apply teleportation
@@ -260,60 +265,78 @@ class QmDAG:
         # for Q_facet_to_grow in Q_facets_to_grow:
         #     new_C_facets.add(Q_facet_to_grow.union(visible_children))
         new_C_facets = hypergraph_full_cleanup(new_C_facets)
-        if district_check:
-            if not [district.difference({node}) for district in self.as_mDAG.numerical_districts if len(district.difference({node}))>0]==LabelledHypergraph(remaining_nodes, new_C_facets).translated_districts:
-                return QmDAG(
-                LabelledDirectedStructure(remaining_nodes, []),
-                LabelledHypergraph(remaining_nodes, []),
-                LabelledHypergraph(remaining_nodes, []),
-                )  #in this case, we give up on the marginalization trick if it does not keep the districts.
-        if not apply_teleportation:
-            return QmDAG(
-                LabelledDirectedStructure(remaining_nodes, list(new_directed_edges)),
-                LabelledHypergraph(remaining_nodes, new_C_facets),
-                LabelledHypergraph(remaining_nodes, self.Q_simplicial_complex_instance.simplicial_complex_as_sets),
-                )
+        new_C_simplicial_complex = LabelledHypergraph(remaining_nodes, new_C_facets)
+        if not districts_check:
+            ok_to_proceed = True
         else:
-            # teleportation_children_possibilities = list(filter(visible_children.issuperset, Q_facets_to_grow))
-            teleportable_children = self.quantum_siblings_of(node).intersection(visible_children)
-            # for teleportable_children in teleportation_children_possibilities:
-            new_Q_facets = self.Q_simplicial_complex_instance.simplicial_complex_as_sets.copy()
-            Q_facets_to_grow = self.quantum_sibling_sets_of(node)
-            for Q_facet_to_grow in Q_facets_to_grow:
-                new_Q_facets.add(Q_facet_to_grow.union(teleportable_children))
-            new_Q_facets = hypergraph_full_cleanup(new_Q_facets)
-            # if not frozenset(new_Q_facets) == frozenset(self.Q_simplicial_complex_instance.simplicial_complex_as_sets):
-            return QmDAG(
-                LabelledDirectedStructure(remaining_nodes, list(new_directed_edges)),
-                LabelledHypergraph(remaining_nodes, new_C_facets),
-                LabelledHypergraph(remaining_nodes, new_Q_facets),
-                )
+            previous_districts = [district.difference({node}) for district in self.as_mDAG.numerical_districts]
+            new_districts = new_C_simplicial_complex.translated_districts
+            ok_to_proceed = frozenset(map(frozenset, previous_districts)) == frozenset(map(frozenset, new_districts))
+            # all(
+            #     any(
+            #         previous_district == new_district for new_district in new_districts)
+            #     for previous_district in previous_districts)
+        if not ok_to_proceed:
+            return fake_qmDAG
+        else:
+        # if districts_check:
+        #     if not [district.difference({node}) for district in self.as_mDAG.numerical_districts if len(district.difference({node}))>0]==LabelledHypergraph(remaining_nodes, new_C_facets).translated_districts:
+        #         return QmDAG(
+        #         LabelledDirectedStructure(remaining_nodes, []),
+        #         LabelledHypergraph(remaining_nodes, []),
+        #         LabelledHypergraph(remaining_nodes, []),
+        #         )  #in this case, we give up on the marginalization trick if it does not keep the districts.
+            if not apply_teleportation:
+                return QmDAG(
+                    LabelledDirectedStructure(remaining_nodes, list(new_directed_edges)),
+                    LabelledHypergraph(remaining_nodes, new_C_facets),
+                    LabelledHypergraph(remaining_nodes, self.Q_simplicial_complex_instance.simplicial_complex_as_sets),
+                    )
+            else:
+                # teleportation_children_possibilities = list(filter(visible_children.issuperset, Q_facets_to_grow))
+                teleportable_children = self.quantum_siblings_of(node).intersection(visible_children)
+                # for teleportable_children in teleportation_children_possibilities:
+                new_Q_facets = self.Q_simplicial_complex_instance.simplicial_complex_as_sets.copy()
+                Q_facets_to_grow = self.quantum_sibling_sets_of(node)
+                for Q_facet_to_grow in Q_facets_to_grow:
+                    new_Q_facets.add(Q_facet_to_grow.union(teleportable_children))
+                new_Q_facets = hypergraph_full_cleanup(new_Q_facets)
+                # if not frozenset(new_Q_facets) == frozenset(self.Q_simplicial_complex_instance.simplicial_complex_as_sets):
+                return QmDAG(
+                    LabelledDirectedStructure(remaining_nodes, list(new_directed_edges)),
+                    LabelledHypergraph(remaining_nodes, new_C_facets),
+                    LabelledHypergraph(remaining_nodes, new_Q_facets),
+                    )
 
 
-    def _submarginals(self,district_check,apply_teleportation):
+    def _submarginals(self, **kwargs):
         if self.number_of_visible > 3:
             for node in self.visible_nodes:
-                marginalized_QM = self.marginalize(node,district_check,apply_teleportation)
+                marginalized_QM = self.marginalize(node, **kwargs)
                 yield marginalized_QM
-                for new_QmDAG in marginalized_QM.submarginals(district_check,apply_teleportation):
+                for new_QmDAG in marginalized_QM.submarginals(**kwargs):
                     yield new_QmDAG
 
-    def submarginals(self, district_check,apply_teleportation):
-        return set(self._submarginals(district_check,apply_teleportation))
+    def submarginals(self, **kwargs):
+        return set(self._submarginals(**kwargs))
 
-    def _unique_unlabelled_ids_obtainable_by_marginalization(self,district_check,apply_teleportation):
-        return set(new_QmDAG.unique_unlabelled_id for new_QmDAG in self.submarginals(district_check,apply_teleportation))
+    def _unique_unlabelled_ids_obtainable_by_marginalization(self, **kwargs):
+        return set(new_QmDAG.unique_unlabelled_id for new_QmDAG in self.submarginals(**kwargs))
 
-    def unique_unlabelled_ids_obtainable_by_naive_marginalization(self,district_check):
-        return set(self._unique_unlabelled_ids_obtainable_by_marginalization(district_check,False))
+    def unique_unlabelled_ids_obtainable_by_naive_marginalization(self, **kwargs):
+        new_kwargs = kwargs.copy()
+        new_kwargs['apply_teleportation'] = False
+        return set(self._unique_unlabelled_ids_obtainable_by_marginalization(**new_kwargs))
 
-    def unique_unlabelled_ids_obtainable_by_marginalization(self,district_check):
-        return set(self._unique_unlabelled_ids_obtainable_by_marginalization(district_check,True))
+    def unique_unlabelled_ids_obtainable_by_marginalization(self, **kwargs):
+        new_kwargs = kwargs.copy()
+        new_kwargs['apply_teleportation'] = True
+        return set(self._unique_unlabelled_ids_obtainable_by_marginalization(**new_kwargs))
 
-    def unique_unlabelled_ids_obtainable_by_reduction(self,district_check):
+    def unique_unlabelled_ids_obtainable_by_reduction(self, **kwargs):
         subgraph_unlabelled_ids = set(self.unique_unlabelled_ids_obtainable_by_PD_trick)
         subgraph_unlabelled_ids.update(self.unique_unlabelled_ids_obtainable_by_conditioning)
-        subgraph_unlabelled_ids.update(self.unique_unlabelled_ids_obtainable_by_marginalization(district_check))
+        subgraph_unlabelled_ids.update(self.unique_unlabelled_ids_obtainable_by_marginalization(**kwargs))
         return subgraph_unlabelled_ids
 
     def assess_Fritz_Wolfe_style(self, target, set_of_visible_parents_to_delete, set_of_C_facets_to_delete, set_of_Q_facets_to_delete):
@@ -472,7 +495,7 @@ class QmDAG:
         for new_QmDAG in self.apply_Fritz_trick(**kwargs):
             #if new_QmDAG.as_mDAG.fundamental_graphQ: #Elie: meant to preserve interestingness
             yield new_QmDAG.unique_unlabelled_id
-            for unlabelled_id in new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction(False):
+            for unlabelled_id in new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction(districts_check=False, apply_teleportation=True):
                 yield unlabelled_id
                     
     def unique_unlabelled_ids_obtainable_by_Fritz_for_QC(self, **kwargs):
@@ -482,7 +505,7 @@ class QmDAG:
         for new_QmDAG in self.apply_Fritz_trick(**kwargs):
             #if new_QmDAG.as_mDAG.fundamental_graphQ: #Elie: meant to preserve interestingness
             yield new_QmDAG.unique_unlabelled_id
-            for unlabelled_id in new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction(True):
+            for unlabelled_id in new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction(districts_check=True, apply_teleportation=False):
                 yield unlabelled_id
                     
     def unique_unlabelled_ids_obtainable_by_Fritz_for_IC(self, **kwargs):

@@ -147,7 +147,7 @@ print("# of ADDITIONAL QC gaps seen via PD trick: ", len(QC_gap_by_PD_trick))
 QC_remaining_representatives.difference_update(QC_gap_by_PD_trick)
 
 def reduces_to_knownQCGap_by_naive_marginalization(qmDAG):
-    return not known_QC_Gaps_QmDAGs_small_ids.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_naive_marginalization(False))
+    return not known_QC_Gaps_QmDAGs_small_ids.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_naive_marginalization(districts_check=False))
 QC_gap_by_naive_marginalization = list(filter(reduces_to_knownQCGap_by_naive_marginalization, QC_remaining_representatives))
 
 print("# of ADDITIONAL QC gaps seen via naive marginalization: ", len(QC_gap_by_naive_marginalization))
@@ -163,7 +163,7 @@ QC_remaining_representatives.difference_update(QC_gap_by_naive_marginalization)
 # print("Is it detected by our code? ", debug_QmDAG in QC_gap_by_naive_marginalization)
 
 def reduces_to_knownQCGap_by_marginalization(qmDAG):
-    return not known_QC_Gaps_QmDAGs_small_ids.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_marginalization(False))
+    return not known_QC_Gaps_QmDAGs_small_ids.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_marginalization(districts_check=False))
 QC_gap_by_marginalization = list(filter(reduces_to_knownQCGap_by_marginalization, QC_remaining_representatives))
 
 print("# of ADDITIONAL QC gaps seen via teleporation marginalization: ", len(QC_gap_by_marginalization))

@@ -82,7 +82,7 @@ IC_remaining_representatives.difference_update(IC_gap_by_PD_trick)
 
 def reduces_to_knownICGap_by_naive_marginalization(qmDAG):
     return not known_interesting_ids.isdisjoint(
-        qmDAG.unique_unlabelled_ids_obtainable_by_naive_marginalization(False))
+        qmDAG.unique_unlabelled_ids_obtainable_by_naive_marginalization(districts_check=False))
 
 QG = QmDAG(DirectedStructure([(0,1), (1,2), (3,1), (3,2)],4),Hypergraph([], 4),Hypergraph([],4))
 reduces_to_knownICGap_by_naive_marginalization(QG)
