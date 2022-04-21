@@ -311,11 +311,4 @@ for QmDAG in unproven_QC_with_latent_free_support_list_3events:
         print("The following remaining representative still to be assessed for a QC Gap has the same support as a latent-free at 3 and 4 events:", QmDAG)
 if not unproven_QC_with_latent_free_support:
     print("None of the remaining representatives still to be assessed for a QC Gap has the same support as a latent-free at 3 and 4 events.")
-# =============================================================================
-#     
-# Fig_14a = QmDAG(DirectedStructure([(0,3), (1,2)],4),Hypergraph([], 4),Hypergraph([(0,1),(1,3),(3,2),(2,0)],4))
-# Fig_14b = QmDAG(DirectedStructure([(0,1), (1,3),(2,3)],4),Hypergraph([], 4),Hypergraph([(0,2),(1,2),(0,3)],4))
-# Fig_14c = QmDAG(DirectedStructure([(0,1), (1,2),(2,3)],4),Hypergraph([], 4),Hypergraph([(0,2),(1,3),(0,3)],4))
-# Fig_14c in QC_gap_by_Fritz_without_node_splitting
-# 
-# =============================================================================
+    
