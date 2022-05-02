@@ -242,14 +242,19 @@ class SmartSupportTesting(SupportTesting):
 
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def no_infeasible_supports_beyond_esep(self, verbose=False, **kwargs):
+    def no_infeasible_supports_beyond_esep(self, **kwargs):
         return all(self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0] for occuring_events_as_int in
-                   self.smart_unique_candidate_supports_to_iterate(verbose))
+                   self.unique_candidate_supports_not_infeasible_due_to_esep_as_integers)
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def no_infeasible_supports_beyond_dsep(self, verbose=False, **kwargs):
+    def no_infeasible_supports_beyond_dsep(self, **kwargs):
         return all(self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0] for occuring_events_as_int in
                    self.unique_candidate_supports_not_infeasible_due_to_dsep_as_integers)
+
+    @cached_property
+    def interesting_due_to_esep(self):
+        return not set(self.unique_candidate_supports_not_infeasible_due_to_dsep_as_integers).issubset(
+            self.unique_candidate_supports_not_infeasible_due_to_esep_as_integers)
 
 
 
