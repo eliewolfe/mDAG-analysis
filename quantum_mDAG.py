@@ -503,7 +503,7 @@ class QmDAG:
             for bonus_nodes in itertools.product(*bonus_node_variants):
                 actual_bonus_nodes = set(bonus_nodes).difference({'-1'})
                 if len(actual_bonus_nodes) > 0:
-                    new_nodes = core_nodes + actual_bonus_nodes
+                    new_nodes = core_nodes + tuple(actual_bonus_nodes)
                     yield QmDAG(
                         LabelledDirectedStructure(new_nodes, new_directed_structure),
                         LabelledHypergraph(new_nodes, new_C_simplicial_complex),
