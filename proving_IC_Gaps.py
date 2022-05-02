@@ -10,7 +10,7 @@ from metagraph_advanced import Observable_mDAGs_Analysis
 Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
 mDAGs4_representatives = Observable_mDAGs4.representative_mDAGs_list
 QmDAGs4_representatives = list(map(as_classical_QmDAG, mDAGs4_representatives))
-QmDAGs4_classes = [set(map(as_classical_QmDAG, eqclass)) for eqclass in Observable_mDAGs4.latent_free_eqclasses]
+QmDAGs4_classes = [set(map(as_classical_QmDAG, eqclass)) for eqclass in Observable_mDAGs4.foundational_eqclasses]
 #Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
 
 n = 0
@@ -168,16 +168,12 @@ print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))
 
 
 
-#USING FRITZ TRICK TO PROVE THE INTERESTINGNESS OF FULL-SUPPORT DAG:
-before_Fritz=mDAG(DirectedStructure([(0,1),(1,2),(1,3),(2,3)],4),Hypergraph([(0,2),(0,3),(1,2)],4))
-print(as_classical_QmDAG(before_Fritz) in IC_gap_by_Fritz_with_node_splitting)
-
-
 # =============================================================================
+# before_Fritz=mDAG(DirectedStructure([(0,1),(1,2),(1,3),(2,3)],4),Hypergraph([(0,2),(0,3),(1,2)],4))
 # for n in range(2,16):
 #     print(before_Fritz.infeasible_4222_supports_n_events(n))
 # =============================================================================
-    
+
 # =============================================================================
 # after_Fritz=mDAG(DirectedStructure([(0,1),(1,2),(1,3),(2,3)],4),Hypergraph([(0,2),(0,3)],4))
 # print(after_Fritz.infeasible_binary_supports_n_events_beyond_esep_unlabelled(4))

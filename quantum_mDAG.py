@@ -529,6 +529,10 @@ class QmDAG:
                     
     def unique_unlabelled_ids_obtainable_by_Fritz_for_IC(self, **kwargs):
         return set(self._unique_unlabelled_ids_obtainable_by_Fritz_for_IC(**kwargs))
+    
+
+
+
 
     #
     # def _unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting(self):
