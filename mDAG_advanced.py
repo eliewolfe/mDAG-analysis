@@ -264,7 +264,8 @@ class mDAG:
                                    nof_events=n,
                                    esep_relations=self.all_esep_numeric
                                    )
-
+    def infeasible_4222_supports_n_events(self,n,**kwargs):
+        return tuple(self.support_testing_instance((4, 2, 2, 2),n).unique_infeasible_supports_as_integers(**kwargs, name='mgh', use_timer=False))
     def infeasible_binary_supports_n_events(self, n, **kwargs):
         return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_as_integers(**kwargs, name='mgh', use_timer=False))
     def infeasible_binary_supports_n_events_beyond_esep(self, n, **kwargs):

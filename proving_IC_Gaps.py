@@ -156,6 +156,17 @@ IC_remaining_representatives.difference_update(provably_interesting_via_supports
 
 print("# of IC Gaps discovered via TC's Algorithm: ", len(provably_interesting_via_supports))
 print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))
+
+
+
+before_Fritz=mDAG(DirectedStructure([(0,1),(1,2),(1,3),(2,3)],4),Hypergraph([(0,2),(0,3),(1,2)],4))
+for n in range(2,16):
+    print(before_Fritz.infeasible_4222_supports_n_events(n))
+    
+after_Fritz=mDAG(DirectedStructure([(0,1),(1,2),(1,3),(2,3)],4),Hypergraph([(0,2),(0,3)],4))
+print(after_Fritz.infeasible_binary_supports_n_events_beyond_esep_unlabelled(4))
+
+
 #
 # no_infeasible_supports=[]
 # for mDAG in mDAGs4_representatives:
