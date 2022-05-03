@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 import numpy as np
 import itertools
-import networkx as nx
+# import networkx as nx
 from sys import hexversion
 if hexversion >= 0x3080000:
     from functools import cached_property
@@ -41,6 +41,8 @@ def mdag_to_int(ds_bitarray, sc_bitarray):
     # print(sc_int, ds_int, offset)
     return ds_int + (sc_int * offset)
     # return bitarray_to_int(np.vstack((sc_bitarray, ds_bitarray)))
+
+
 
 class mDAG:
     def __init__(self, directed_structure_instance, simplicial_complex_instance):
@@ -832,6 +834,15 @@ class mDAG:
     def fix_to_point_distribution(self, node):  #returns a smaller mDAG
         return self.subgraph(self.visible_nodes[:node]+self.visible_nodes[(node+1):])
 
+
+
+class Unlabelled_mDAG(mDAG):
+    def __init__(self, directed_structure_instance, simplicial_complex_instance):
+        super().__init__(directed_structure_instance, simplicial_complex_instance)
+    def __hash__(self):
+        return self.unique_unlabelled_id
+    def __eq__(self, other):
+        return self.unique_id == other.unique_unlabelled_id
 
 # class labelled_mDAG(mDAG):
 #     def __init__(self, labelled_directed_structure_instance, labelled_simplicial_complex_instance):
