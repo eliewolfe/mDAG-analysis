@@ -8,7 +8,7 @@ from metagraph_advanced import Observable_mDAGs_Analysis
 
 # if __name__ == '__main__':
 Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
-mDAGs4_representatives = Observable_mDAGs4.representative_mDAGs_list
+mDAGs4_representatives = Observable_mDAGs4.representative_mDAGs_not_necessarily_foundational
 QmDAGs4_representatives = list(map(as_classical_QmDAG, mDAGs4_representatives))
 QmDAGs4_classes = [set(map(as_classical_QmDAG, eqclass)) for eqclass in Observable_mDAGs4.foundational_eqclasses]
 #Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
@@ -93,15 +93,14 @@ print("# of ADDITIONAL IC gaps seen via PD trick: ", len(IC_gap_by_PD_trick))
 IC_remaining_representatives.difference_update(IC_gap_by_PD_trick)
 
 
-# def reduces_to_knownICGap_by_naive_marginalization(qmDAG):
-#     return not known_interesting_ids.isdisjoint(
-#         qmDAG.unique_unlabelled_ids_obtainable_by_naive_marginalization(districts_check=False))
-#
-# IC_gap_by_naive_marginalization = list(
-#     filter(reduces_to_knownICGap_by_naive_marginalization, IC_remaining_representatives))
-# print("# of ADDITIONAL IC gaps seen via naive marginalization: ", len(IC_gap_by_naive_marginalization))
-# # print(IC_gap_by_naive_marginalization)
-# IC_remaining_representatives.difference_update(IC_gap_by_naive_marginalization)
+def reduces_to_knownICGap_by_naive_marginalization(qmDAG):
+     return not known_interesting_ids.isdisjoint(
+         qmDAG.unique_unlabelled_ids_obtainable_by_naive_marginalization(districts_check=True))
+
+IC_gap_by_naive_marginalization = list(filter(reduces_to_knownICGap_by_naive_marginalization, IC_remaining_representatives))
+print("# of ADDITIONAL IC gaps seen via naive marginalization: ", len(IC_gap_by_naive_marginalization))
+#print(IC_gap_by_naive_marginalization)
+IC_remaining_representatives.difference_update(IC_gap_by_naive_marginalization)
 #
 #
 #
@@ -118,6 +117,11 @@ IC_remaining_representatives.difference_update(IC_gap_by_PD_trick)
 print("# of IC Gaps discovered so far: ",
       len(QmDAGs4_representatives)-len(IC_remaining_representatives))
 # IC_remaining_representatives = set(QmDAGs4_representatives).difference(updated_known_IC_Gaps_QmDAGs)
+print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))
+
+provably_interesting_via_binary_supports = [ICmDAG for ICmDAG in IC_remaining_representatives if not ICmDAG.as_mDAG.no_infeasible_binary_supports_beyond_dsep_up_to(4)]
+IC_remaining_representatives.difference_update(provably_interesting_via_binary_supports)
+print("# of IC Gaps discovered via TC's Algorithm: ", len(provably_interesting_via_binary_supports))
 print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))
 
 
@@ -161,10 +165,30 @@ IC_remaining_representatives.difference_update(IC_gap_by_Fritz_with_node_splitti
 print("# of IC Gaps discovered via Fritz with splitting: ", len(IC_gap_by_Fritz_with_node_splitting))
 print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))
 
-provably_interesting_via_binary_supports = [ICmDAG for ICmDAG in IC_remaining_representatives if not ICmDAG.as_mDAG.no_infeasible_binary_supports_beyond_dsep_up_to(4)]
-IC_remaining_representatives.difference_update(provably_interesting_via_binary_supports)
-print("# of IC Gaps discovered via TC's Algorithm: ", len(provably_interesting_via_binary_supports))
-print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))
+esep_problematic=[]
+supports_problematic=[]
+for mDAG in mDAGs4_representatives:
+    for eqclass in Observable_mDAGs4.latent_free_eqclasses:
+        if mDAG in eqclass:
+            if as_classical_QmDAG(mDAG) not in IC_remaining_representatives:
+                print(mDAG)
+                print("esep=",as_classical_QmDAG(mDAG) in IC_gap_by_esep)
+                if as_classical_QmDAG(mDAG) in IC_gap_by_esep:
+                    esep_problematic.append(mDAG)
+                print("PD Trick=",as_classical_QmDAG(mDAG) in IC_gap_by_PD_trick)
+                print("TC's algorithm=",as_classical_QmDAG(mDAG) in provably_interesting_via_binary_supports)
+                supports_problematic.append(mDAG)
+                print("Fritz without NS=",as_classical_QmDAG(mDAG) in IC_gap_by_Fritz_without_node_splitting)
+                print("Fritz with NS=",as_classical_QmDAG(mDAG) in IC_gap_by_Fritz_with_node_splitting)
+                break
+
+
+latent_free1=mDAG(DirectedStructure([(0,1),(0,2),(1,3),(2,3)],4),Hypergraph([],4))
+latent_free1.all_esep
+latent_free1.no_esep_beyond_dsep_up_to(2)
+
+latent_free2=mDAG(DirectedStructure([(0,3),(1,3),(2,3)],4),Hypergraph([],4))
+latent_free2.no_infeasible_binary_supports_beyond_dsep_up_to(4)
 
 
 
