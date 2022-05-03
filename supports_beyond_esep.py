@@ -38,10 +38,10 @@ def product_support_test(two_column_mat):
 
 
 def does_this_dsep_rule_out_this_support(ab, C, s):
-    if C:
+    if len(C):
         s_resorted = s[np.lexsort(s[:, C].T)]
         partitioned = [np.vstack(tuple(g)) for k, g in itertools.groupby(s_resorted, lambda e: tuple(e.take(C)))]
-        conditioning_sizes = range(1, len(C) ** 2)
+        conditioning_sizes = range(1, (len(C) ** 2)+1)
         for r in conditioning_sizes:
             for partition_index in itertools.combinations(partitioned, r):
                 submat = np.vstack(tuple(partition_index))
@@ -261,8 +261,22 @@ class SmartSupportTesting(SupportTesting):
 
 if __name__ == '__main__':
     from mDAG_advanced import mDAG
-    from hypergraphs import LabelledHypergraph
-    from directed_structures import LabelledDirectedStructure
+    from hypergraphs import LabelledHypergraph, Hypergraph
+    from directed_structures import LabelledDirectedStructure, DirectedStructure
+
+    print(does_this_dsep_rule_out_this_support([1,2], [0], np.asarray([[0,0,0,0],[0,1,1,0]])))
+    print(does_this_dsep_rule_out_this_support([0,3], [1,2], np.asarray([[0, 0, 0, 0], [1, 1, 1, 1]])))
+
+    # latent_free1 = mDAG(DirectedStructure([(0, 1), (0, 2), (1, 3), (2, 3)], 4), Hypergraph([], 4))
+    # print(latent_free1.all_CI)
+    # print("From dsep:",
+    # latent_free1.support_testing_instance_binary(2).infeasible_supports_due_to_dsep_as_matrices)
+    # print("From esep:",
+    # latent_free1.support_testing_instance_binary(2).infeasible_supports_due_to_esep_as_matrices)
+    # print(latent_free1.no_esep_beyond_dsep_up_to(2))
+    #
+    # latent_free2 = mDAG(DirectedStructure([(0, 3), (1, 3), (2, 3)], 4), Hypergraph([], 4))
+    # latent_free2.no_infeasible_binary_supports_beyond_dsep_up_to(4)
     # from radix import to_bits
     # test_two_col_mat = np.asarray([[1, 0], [0, 1], [0, 1], [1, 1]])
     # instrumental = mDAG(

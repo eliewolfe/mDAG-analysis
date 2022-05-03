@@ -167,19 +167,19 @@ print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))
 
 esep_problematic=[]
 supports_problematic=[]
-for mDAG in mDAGs4_representatives:
+for test_mDAG in mDAGs4_representatives:
     for eqclass in Observable_mDAGs4.latent_free_eqclasses:
-        if mDAG in eqclass:
-            if as_classical_QmDAG(mDAG) not in IC_remaining_representatives:
-                print(mDAG)
-                print("esep=",as_classical_QmDAG(mDAG) in IC_gap_by_esep)
-                if as_classical_QmDAG(mDAG) in IC_gap_by_esep:
-                    esep_problematic.append(mDAG)
-                print("PD Trick=",as_classical_QmDAG(mDAG) in IC_gap_by_PD_trick)
-                print("TC's algorithm=",as_classical_QmDAG(mDAG) in provably_interesting_via_binary_supports)
-                supports_problematic.append(mDAG)
-                print("Fritz without NS=",as_classical_QmDAG(mDAG) in IC_gap_by_Fritz_without_node_splitting)
-                print("Fritz with NS=",as_classical_QmDAG(mDAG) in IC_gap_by_Fritz_with_node_splitting)
+        if test_mDAG in eqclass:
+            if as_classical_QmDAG(test_mDAG) not in IC_remaining_representatives:
+                print(test_mDAG)
+                print("esep=",as_classical_QmDAG(test_mDAG) in IC_gap_by_esep)
+                if as_classical_QmDAG(test_mDAG) in IC_gap_by_esep:
+                    esep_problematic.append(test_mDAG)
+                print("PD Trick=",as_classical_QmDAG(test_mDAG) in IC_gap_by_PD_trick)
+                print("TC's algorithm=",as_classical_QmDAG(test_mDAG) in provably_interesting_via_binary_supports)
+                supports_problematic.append(test_mDAG)
+                print("Fritz without NS=",as_classical_QmDAG(test_mDAG) in IC_gap_by_Fritz_without_node_splitting)
+                print("Fritz with NS=",as_classical_QmDAG(test_mDAG) in IC_gap_by_Fritz_with_node_splitting)
                 break
 
 
