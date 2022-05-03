@@ -8,6 +8,7 @@ from radix import to_bits #TODO: Make qmdaq from representation
 from mDAG_advanced import mDAG
 from merge import merge_intersection
 from sys import hexversion
+from utilities import partsextractor
 
 if hexversion >= 0x3080000:
     from functools import cached_property
@@ -168,7 +169,7 @@ class QmDAG:
 
     @cached_property
     def as_mDAG(self):
-        return mDAG(
+        preliminary_mDAG=mDAG(
             self.directed_structure_instance,
             Hypergraph(C_facets_not_dominated_by_Q(
                 self.C_simplicial_complex_instance.simplicial_complex_as_sets,
@@ -177,6 +178,9 @@ class QmDAG:
                 self.Q_simplicial_complex_instance.simplicial_complex_as_sets
             ), self.number_of_visible)
         )
+        if hasattr(self, 'restricted_perfect_predictions_numeric'):
+            preliminary_mDAG.restricted_perfect_predictions_numeric = self.restricted_perfect_predictions_numeric
+        return preliminary_mDAG
 
     def latent_sibling_sets_of(self, node):
         return set(facet.difference({node}) for facet in self.as_mDAG.simplicial_complex_instance.simplicial_complex_as_sets if
@@ -572,6 +576,9 @@ class QmDAG:
                             LabelledHypergraph(choice_of_nodes, new_C_simplicial_complex),
                             LabelledHypergraph(choice_of_nodes, new_Q_simplicial_complex))
                         coreQmDAG.restricted_perfect_predictions = perfect_prediction_restrictions
+                        tonums = coreQmDAG.directed_structure_instance.translation_dict
+                        coreQmDAG.restricted_perfect_predictions_numeric = [
+                            (tonums[i], np.asarray(partsextractor(tonums, j))) for i,j in perfect_prediction_restrictions.items()]
                         yield coreQmDAG
                         # for to_fix_to_PD in itertools.chain.from_iterable(
                         #         itertools.combinations(choice_of_bonus_nodes, r) for r in range(1, self.number_of_visible-2)):
@@ -606,7 +613,8 @@ class QmDAG:
                             LabelledHypergraph(new_nodes, new_Q_simplicial_complex))
                         postFritz_QmDAG.restricted_perfect_predictions = perfect_prediction_restrictions
                         tonums = postFritz_QmDAG.directed_structure_instance.translation_dict
-                        #TODO: Finish translation of PP conditions to numeric
+                        postFritz_QmDAG.restricted_perfect_predictions_numeric = [
+                            (tonums[i], np.asarray(partsextractor(tonums, j))) for i,j in perfect_prediction_restrictions.items()]
                         yield postFritz_QmDAG
 
     def _unique_unlabelled_ids_obtainable_by_Fritz_for_QC(self, **kwargs):
@@ -653,11 +661,13 @@ if __name__ == '__main__':
     # print(assess)
     # pass
 
-    hard_case = as_classical_QmDAG(mDAG(DirectedStructure([(0, 1), (1, 2), (1, 3), (2, 3)], 4), Hypergraph([(0, 2), (0, 3), (1, 2)], 4)))
-    resolved = set(hard_case.apply_Fritz_trick(node_decomposition=False, districts_check=False, safe_for_inference=False))
+    before_Fritz = as_classical_QmDAG(mDAG(DirectedStructure([(0, 1), (1, 2), (1, 3), (2, 3)], 4), Hypergraph([(0, 2), (0, 3), (1, 2)], 4)))
+    resolved = set(before_Fritz.apply_Fritz_trick(node_decomposition=False, districts_check=False, safe_for_inference=False))
     after_Fritz = resolved.pop()
+    print(before_Fritz)
     print(after_Fritz)
     print(after_Fritz.restricted_perfect_predictions)
+    print(after_Fritz.restricted_perfect_predictions_numeric)
 # =============================================================================
 #     QG = QmDAG(DirectedStructure([(0,3), (1,2)],4),Hypergraph([], 4),Hypergraph([(0,1),(1,3),(3,2),(2,0)],4))
 #     for (n,dag) in QG.unique_unlabelled_ids_obtainable_by_Fritz_for_QC(node_decomposition=False):

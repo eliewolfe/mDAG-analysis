@@ -82,10 +82,11 @@ def does_this_esep_rule_out_this_support(ab, C, D, s):
 
 
 class SmartSupportTesting(SupportTesting):
-    def __init__(self, parents_of, observed_cardinalities, nof_events, esep_relations):
+    def __init__(self, parents_of, observed_cardinalities, nof_events, esep_relations, pp_relations=tuple()):
         super().__init__(parents_of, observed_cardinalities, nof_events)
         self.esep_relations = tuple(esep_relations)
         self.dsep_relations = tuple(((ab, C) for (ab, C, D) in self.esep_relations if len(D)==0))
+        self.must_perfectpredict = pp_relations
 
 
     def infeasible_support_Q_due_to_esep_from_matrix(self, candidate_s):

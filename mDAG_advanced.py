@@ -253,18 +253,24 @@ class mDAG:
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def support_testing_instance_binary(self, n):
+        if not hasattr(self, 'restricted_perfect_predictions_numeric'):
+            self.restricted_perfect_predictions_numeric = tuple()
         return SmartSupportTesting(parents_of=self.parents_of_for_supports_analysis,
                                    observed_cardinalities=np.broadcast_to(2, self.number_of_visible),
                                    nof_events=n,
-                                   esep_relations=self.all_esep_numeric
+                                   esep_relations=self.all_esep_numeric,
+                                   pp_relations=self.restricted_perfect_predictions_numeric
                                    )
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def support_testing_instance(self, observed_cardinalities, n):
+        if not hasattr(self, 'restricted_perfect_predictions_numeric'):
+            self.restricted_perfect_predictions_numeric = tuple()
         return SmartSupportTesting(parents_of=self.parents_of_for_supports_analysis,
                                    observed_cardinalities=observed_cardinalities,
                                    nof_events=n,
-                                   esep_relations=self.all_esep_numeric
+                                   esep_relations=self.all_esep_numeric,
+                                   pp_relations=self.restricted_perfect_predictions_numeric
                                    )
     def infeasible_4222_supports_n_events(self,n,**kwargs):
         return tuple(self.support_testing_instance((4, 2, 2, 2),n).unique_infeasible_supports_as_integers(**kwargs, name='mgh', use_timer=False))
