@@ -36,6 +36,17 @@ def product_support_test(two_column_mat):
         np.unique(two_column_mat, axis=0)
     )
 
+def does_this_support_respect_this_pp_restriction(i, pp_set, s):
+    if len(pp_set):
+        s_resorted = s[np.argsort(s[:, i])]
+        partitioned = [np.vstack(tuple(g))[:, list(pp_set)] for k, g in itertools.groupby(s_resorted, lambda e: tuple(e[i]))]
+        to_test_for_intersection=[set(map(tuple,pp_values)) for pp_values in partitioned]
+        raw_length = np.sum([len(vals) for vals in to_test_for_intersection])
+        compressed_length = len(set().union(*to_test_for_intersection))
+        return (raw_length == compressed_length)
+    else:
+        return True
+
 
 def does_this_dsep_rule_out_this_support(ab, C, s):
     if len(C):
@@ -54,23 +65,6 @@ def does_this_dsep_rule_out_this_support(ab, C, s):
 
 
 def does_this_esep_rule_out_this_support(ab, C, D, s):
-    # We check for D being a point distribution
-
-    # print(s)
-    # print((ab, C, D))
-    # columns_D = s[:, D]
-    # if len(D) > 0 and np.array_equiv(columns_D[0], columns_D):
-    #     s_resorted = s[np.lexsort(columns_D.T)]
-    #     partitioned = [np.vstack(tuple(g)) for k, g in itertools.groupby(s_resorted, lambda e: tuple(e.take(D)))]
-    #     print(s)
-    #     print(partitioned)
-    #     for fixedD in partitioned:
-    #         if does_this_dsep_rule_out_this_support(ab, C, fixedD):
-    #             return True
-    #     return False
-    # else:
-    #     return does_this_dsep_rule_out_this_support(ab, C, s)
-
     if len(D) == 0:
         return does_this_dsep_rule_out_this_support(ab, C, s)
     else:
@@ -94,6 +88,10 @@ class SmartSupportTesting(SupportTesting):
 
     def infeasible_support_Q_due_to_dsep_from_matrix(self, candidate_s):
         return any(does_this_dsep_rule_out_this_support(*map(list,d_sep), candidate_s) for d_sep in self.dsep_relations)
+
+    def support_respects_perfect_prediction_restrictions(self, candidate_s):
+        return all(does_this_support_respect_this_pp_restriction(
+            *pp_restriction, candidate_s) for pp_restriction in self.must_perfectpredict)
 
     #REDEFINITION!
     def feasibleQ_from_matrix(self, occurring_events, **kwargs):
