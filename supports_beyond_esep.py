@@ -41,8 +41,8 @@ def does_this_support_respect_this_pp_restriction(i, pp_set, s):
         s_resorted = s[np.argsort(s[:, i])]
         # for k, g in itertools.groupby(s_resorted, lambda e: e[i]):
         #     print((k,g))
-        partitioned = [np.vstack(tuple(g))[:, list(pp_set)] for k, g in itertools.groupby(s_resorted, lambda e: e[i])]
-        to_test_for_intersection=[set(map(tuple,pp_values)) for pp_values in partitioned]
+        partitioned = [np.vstack(tuple(g))[:, np.asarray(pp_set)] for k, g in itertools.groupby(s_resorted, lambda e: e[i])]
+        to_test_for_intersection=[set(map(tuple, pp_values)) for pp_values in partitioned]
         raw_length = np.sum([len(vals) for vals in to_test_for_intersection])
         compressed_length = len(set().union(*to_test_for_intersection))
         return (raw_length == compressed_length)
