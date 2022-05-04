@@ -97,16 +97,17 @@ class QmDAG:
     def __repr__(self):
         return self.as_string
 
-    @cached_property
+    #@cached_property
     def unique_id(self):
         # Returns a unique identification tuple.
-        return (
+        pre_id = (
             self.number_of_visible,
             self.directed_structure_instance.as_integer,
             self.C_simplicial_complex_instance.as_integer,
-            self.Q_simplicial_complex_instance.as_integer,
-        )
-
+            self.Q_simplicial_complex_instance.as_integer)
+        if hasattr(self, 'restricted_perfect_predictions_numeric'):
+            pre_id = pre_id + tuple(self.restricted_perfect_predictions_numeric,)
+        return pre_id
     def __hash__(self):
         return hash(self.unique_id)
 
@@ -119,7 +120,7 @@ class QmDAG:
         return (self.number_of_visible,) + min(zip(
             self.directed_structure_instance.as_integer_permutations,
             self.C_simplicial_complex_instance.as_integer_permutations,
-            self.Q_simplicial_complex_instance.as_integer_permutations,
+            self.Q_simplicial_complex_instance.as_integer_permutations
         ))
 
     # def clean_C_simplicial_complex(self):  #remove classical facets that are redundant to quantum facets
@@ -579,7 +580,7 @@ class QmDAG:
                         coreQmDAG.restricted_perfect_predictions = perfect_prediction_restrictions
                         tonums = coreQmDAG.directed_structure_instance.translation_dict
                         coreQmDAG.restricted_perfect_predictions_numeric = [
-                            (tonums[i], np.asarray(partsextractor(tonums, j))) for i,j in perfect_prediction_restrictions.items()]
+                            (tonums[i], tuple(partsextractor(tonums, j))) for i,j in perfect_prediction_restrictions.items()]
                         # print(coreQmDAG)
                         yield coreQmDAG
                         # for to_fix_to_PD in itertools.chain.from_iterable(
@@ -616,7 +617,7 @@ class QmDAG:
                         postFritz_QmDAG.restricted_perfect_predictions = perfect_prediction_restrictions
                         tonums = postFritz_QmDAG.directed_structure_instance.translation_dict
                         postFritz_QmDAG.restricted_perfect_predictions_numeric = [
-                            (tonums[i], np.asarray(partsextractor(tonums, j))) for i,j in perfect_prediction_restrictions.items()]
+                            (tonums[i], tuple(partsextractor(tonums, j))) for i,j in perfect_prediction_restrictions.items()]
                         yield postFritz_QmDAG
 
     def _unique_unlabelled_ids_obtainable_by_Fritz_for_QC(self, **kwargs):
@@ -665,13 +666,13 @@ if __name__ == '__main__':
 
     before_Fritz = as_classical_QmDAG(mDAG(DirectedStructure([(0, 1), (1, 2), (1, 3), (2, 3)], 4), Hypergraph([(0, 2), (0, 3), (1, 2)], 4)))
     print(before_Fritz)
-    resolved = list(before_Fritz.apply_Fritz_trick(node_decomposition=False, districts_check=False, safe_for_inference=False))
-    print(resolved)
-    after_Fritz = resolved.pop()
-    print(after_Fritz)
-    print(after_Fritz.restricted_perfect_predictions)
-    print(after_Fritz.restricted_perfect_predictions_numeric)
-    # print(after_Fritz.as_mDAG.support_testing_instance((4,2,2,2), 6).unique_infeasible_supports_beyond_dsep_as_matrices())
+    resolved = set(before_Fritz.apply_Fritz_trick(node_decomposition=False, districts_check=False, safe_for_inference=False))
+    for after_Fritz in resolved:
+    # after_Fritz = resolved.pop()
+        print(after_Fritz)
+        print(after_Fritz.restricted_perfect_predictions)
+        print(after_Fritz.restricted_perfect_predictions_numeric)
+        print(after_Fritz.as_mDAG.support_testing_instance((3,2,2,2), 5).unique_infeasible_supports_beyond_dsep_as_matrices())
 # =============================================================================
 #     QG = QmDAG(DirectedStructure([(0,3), (1,2)],4),Hypergraph([], 4),Hypergraph([(0,1),(1,3),(3,2),(2,0)],4))
 #     for (n,dag) in QG.unique_unlabelled_ids_obtainable_by_Fritz_for_QC(node_decomposition=False):
