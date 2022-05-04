@@ -9,7 +9,6 @@ from mDAG_advanced import mDAG
 from merge import merge_intersection
 from sys import hexversion
 from utilities import partsextractor
-from functools import total_ordering
 
 if hexversion >= 0x3080000:
     from functools import cached_property
@@ -41,7 +40,6 @@ def as_classical_QmDAG(mDAG):
 
 
 # This class does NOT represent every possible quantum causal structure. It only represents the causal structures where every quantum latent is exogenized. This is the case, for example, of the known QC Gaps.
-@total_ordering
 class QmDAG:
     def __init__(self, directed_structure_instance, C_simplicial_complex_instance, Q_simplicial_complex_instance):
         self.directed_structure_instance = directed_structure_instance
@@ -100,7 +98,6 @@ class QmDAG:
         return self.as_string
 
     #@cached_property
-    @property
     def unique_id(self):
         # Returns a unique identification tuple.
         pre_id = (
@@ -116,9 +113,6 @@ class QmDAG:
 
     def __eq__(self, other):
         return self.unique_id == other.unique_id
-
-    def __lt__(self, other):
-        return self.unique_id < other.unique_id
 
     @cached_property
     def unique_unlabelled_id(self):
@@ -673,12 +667,12 @@ if __name__ == '__main__':
     before_Fritz = as_classical_QmDAG(mDAG(DirectedStructure([(0, 1), (1, 2), (1, 3), (2, 3)], 4), Hypergraph([(0, 2), (0, 3), (1, 2)], 4)))
     print(before_Fritz)
     resolved = set(before_Fritz.apply_Fritz_trick(node_decomposition=False, districts_check=False, safe_for_inference=False))
-    for after_Fritz in sorted(resolved):
+    for after_Fritz in resolved:
     # after_Fritz = resolved.pop()
         print(after_Fritz)
         print(after_Fritz.restricted_perfect_predictions)
         print(after_Fritz.restricted_perfect_predictions_numeric)
-        print(after_Fritz.as_mDAG.support_testing_instance((3,2,2,2), 7).unique_infeasible_supports_beyond_dsep_as_matrices())
+        print(after_Fritz.as_mDAG.support_testing_instance((3,2,2,2), 5).unique_infeasible_supports_beyond_dsep_as_matrices())
 # =============================================================================
 #     QG = QmDAG(DirectedStructure([(0,3), (1,2)],4),Hypergraph([], 4),Hypergraph([(0,1),(1,3),(3,2),(2,0)],4))
 #     for (n,dag) in QG.unique_unlabelled_ids_obtainable_by_Fritz_for_QC(node_decomposition=False):
