@@ -571,6 +571,7 @@ class QmDAG:
                                                         districts_check=districts_check)
                     # choice_of_bonus_nodes = set(choice_of_nodes).difference(core_nodes)
                     else:
+                        # print(allnode_name_variants, choice_of_nodes)
                         coreQmDAG = QmDAG(
                             LabelledDirectedStructure(choice_of_nodes, new_directed_structure),
                             LabelledHypergraph(choice_of_nodes, new_C_simplicial_complex),
@@ -579,6 +580,7 @@ class QmDAG:
                         tonums = coreQmDAG.directed_structure_instance.translation_dict
                         coreQmDAG.restricted_perfect_predictions_numeric = [
                             (tonums[i], np.asarray(partsextractor(tonums, j))) for i,j in perfect_prediction_restrictions.items()]
+                        # print(coreQmDAG)
                         yield coreQmDAG
                         # for to_fix_to_PD in itertools.chain.from_iterable(
                         #         itertools.combinations(choice_of_bonus_nodes, r) for r in range(1, self.number_of_visible-2)):
@@ -662,12 +664,14 @@ if __name__ == '__main__':
     # pass
 
     before_Fritz = as_classical_QmDAG(mDAG(DirectedStructure([(0, 1), (1, 2), (1, 3), (2, 3)], 4), Hypergraph([(0, 2), (0, 3), (1, 2)], 4)))
-    resolved = set(before_Fritz.apply_Fritz_trick(node_decomposition=False, districts_check=False, safe_for_inference=False))
-    after_Fritz = resolved.pop()
     print(before_Fritz)
+    resolved = list(before_Fritz.apply_Fritz_trick(node_decomposition=False, districts_check=False, safe_for_inference=False))
+    print(resolved)
+    after_Fritz = resolved.pop()
     print(after_Fritz)
     print(after_Fritz.restricted_perfect_predictions)
     print(after_Fritz.restricted_perfect_predictions_numeric)
+    # print(after_Fritz.as_mDAG.support_testing_instance((4,2,2,2), 6).unique_infeasible_supports_beyond_dsep_as_matrices())
 # =============================================================================
 #     QG = QmDAG(DirectedStructure([(0,3), (1,2)],4),Hypergraph([], 4),Hypergraph([(0,1),(1,3),(3,2),(2,0)],4))
 #     for (n,dag) in QG.unique_unlabelled_ids_obtainable_by_Fritz_for_QC(node_decomposition=False):

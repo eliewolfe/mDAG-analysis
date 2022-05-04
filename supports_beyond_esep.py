@@ -39,7 +39,9 @@ def product_support_test(two_column_mat):
 def does_this_support_respect_this_pp_restriction(i, pp_set, s):
     if len(pp_set):
         s_resorted = s[np.argsort(s[:, i])]
-        partitioned = [np.vstack(tuple(g))[:, list(pp_set)] for k, g in itertools.groupby(s_resorted, lambda e: tuple(e[i]))]
+        # for k, g in itertools.groupby(s_resorted, lambda e: e[i]):
+        #     print((k,g))
+        partitioned = [np.vstack(tuple(g))[:, list(pp_set)] for k, g in itertools.groupby(s_resorted, lambda e: e[i])]
         to_test_for_intersection=[set(map(tuple,pp_values)) for pp_values in partitioned]
         raw_length = np.sum([len(vals) for vals in to_test_for_intersection])
         compressed_length = len(set().union(*to_test_for_intersection))
@@ -81,6 +83,13 @@ class SmartSupportTesting(SupportTesting):
         self.esep_relations = tuple(esep_relations)
         self.dsep_relations = tuple(((ab, C) for (ab, C, D) in self.esep_relations if len(D)==0))
         self.must_perfectpredict = pp_relations
+        self.unique_candidate_supports_as_integers = np.asarray(
+            self.unique_candidate_supports_as_integers, dtype=np.intp)[
+            self._infeasible_support_respects_restrictions]
+        self.unique_candidate_supports = np.asarray(
+            self.unique_candidate_supports, dtype=np.intp)[
+            self._infeasible_support_respects_restrictions]
+        # print("Candidate supports:", self.from_list_to_matrix(self.unique_candidate_supports))
 
 
     def infeasible_support_Q_due_to_esep_from_matrix(self, candidate_s):
@@ -100,12 +109,11 @@ class SmartSupportTesting(SupportTesting):
         else:
             return (False, 0) #Timing of zero.
 
-    # @property
-    # def _smart_unique_candidate_supports(self):
-    #     to_filter = self.visualize_supports(self.unique_candidate_supports)
-    #     for idx, candidate_s in enumerate(to_filter):
-    #         if not self.infeasible_support_Q_due_to_esep_from_matrix(candidate_s):
-    #             yield idx
+    @cached_property
+    def _infeasible_support_respects_restrictions(self):
+        to_filter = self.from_list_to_matrix(super().unique_candidate_supports)
+        return np.fromiter(map(self.support_respects_perfect_prediction_restrictions, to_filter), bool)
+
     @cached_property
     def _infeasible_support_due_to_esep_picklist(self):
         to_filter = self.from_list_to_matrix(self.unique_candidate_supports)
