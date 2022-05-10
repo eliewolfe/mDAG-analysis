@@ -583,7 +583,7 @@ class QmDAG:
                                 LabelledHypergraph(choice_of_nodes, new_Q_simplicial_complex))
                             coreQmDAG.restricted_perfect_predictions = perfect_prediction_restrictions
                             tonums = coreQmDAG.directed_structure_instance.translation_dict
-                            print(tonums)
+                            # print(tonums)
                             coreQmDAG.restricted_perfect_predictions_numeric = [
                                 (tonums[i], tuple(partsextractor(tonums, j))) for i,j in perfect_prediction_restrictions.items()]
                             # print(coreQmDAG)
