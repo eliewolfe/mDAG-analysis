@@ -84,10 +84,10 @@ class SmartSupportTesting(SupportTesting):
         self.dsep_relations = tuple(((ab, C) for (ab, C, D) in self.esep_relations if len(D)==0))
         self.must_perfectpredict = pp_relations
         self.unique_candidate_supports_as_integers = np.asarray(
-            self.unique_candidate_supports_as_integers, dtype=np.intp)[
+            super().unique_candidate_supports_as_integers, dtype=np.intp)[
             self._infeasible_support_respects_restrictions]
         self.unique_candidate_supports = np.asarray(
-            self.unique_candidate_supports, dtype=np.intp)[
+            super().unique_candidate_supports, dtype=np.intp)[
             self._infeasible_support_respects_restrictions]
         # print("Candidate supports:", self.from_list_to_matrix(self.unique_candidate_supports))
 
