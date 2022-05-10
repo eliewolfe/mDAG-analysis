@@ -45,7 +45,8 @@ def mdag_to_int(ds_bitarray, sc_bitarray):
 
 
 class mDAG:
-    def __init__(self, directed_structure_instance, simplicial_complex_instance):
+    def __init__(self, directed_structure_instance, simplicial_complex_instance, pp_restrictions=tuple()):
+        self.restricted_perfect_predictions_numeric = pp_restrictions
         self.directed_structure_instance = directed_structure_instance
         self.simplicial_complex_instance = simplicial_complex_instance
         assert directed_structure_instance.number_of_visible == simplicial_complex_instance.number_of_visible, 'Different number of nodes in directed structure vs simplicial complex.'

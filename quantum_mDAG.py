@@ -43,7 +43,9 @@ def as_classical_QmDAG(mDAG):
 # This class does NOT represent every possible quantum causal structure. It only represents the causal structures where every quantum latent is exogenized. This is the case, for example, of the known QC Gaps.
 @total_ordering
 class QmDAG:
-    def __init__(self, directed_structure_instance, C_simplicial_complex_instance, Q_simplicial_complex_instance):
+    def __init__(self, directed_structure_instance, C_simplicial_complex_instance, Q_simplicial_complex_instance,
+                 pp_restrictions=tuple()):
+        self.restricted_perfect_predictions_numeric = pp_restrictions
         self.directed_structure_instance = directed_structure_instance
         self.number_of_visible = self.directed_structure_instance.number_of_visible
         assert directed_structure_instance.number_of_visible == C_simplicial_complex_instance.number_of_visible, 'Different number of nodes in directed structure vs classical simplicial complex.'
@@ -103,14 +105,12 @@ class QmDAG:
     @property
     def unique_id(self):
         # Returns a unique identification tuple.
-        pre_id = (
+        return (
             self.number_of_visible,
             self.directed_structure_instance.as_integer,
             self.C_simplicial_complex_instance.as_integer,
-            self.Q_simplicial_complex_instance.as_integer)
-        if hasattr(self, 'restricted_perfect_predictions_numeric'):
-            pre_id = pre_id + tuple(self.restricted_perfect_predictions_numeric,)
-        return pre_id
+            self.Q_simplicial_complex_instance.as_integer,
+            tuple(self.restricted_perfect_predictions_numeric,))
     def __hash__(self):
         return hash(self.unique_id)
 
@@ -176,18 +176,19 @@ class QmDAG:
 
     @cached_property
     def as_mDAG(self):
-        preliminary_mDAG=mDAG(
+        return mDAG(
             self.directed_structure_instance,
             Hypergraph(C_facets_not_dominated_by_Q(
                 self.C_simplicial_complex_instance.simplicial_complex_as_sets,
                 self.Q_simplicial_complex_instance.simplicial_complex_as_sets
             ).union(
                 self.Q_simplicial_complex_instance.simplicial_complex_as_sets
-            ), self.number_of_visible)
+            ), self.number_of_visible),
+            pp_restrictions=self.restricted_perfect_predictions_numeric
         )
-        if hasattr(self, 'restricted_perfect_predictions_numeric'):
-            preliminary_mDAG.restricted_perfect_predictions_numeric = self.restricted_perfect_predictions_numeric
-        return preliminary_mDAG
+        # if hasattr(self, 'restricted_perfect_predictions_numeric'):
+        #     preliminary_mDAG.restricted_perfect_predictions_numeric = self.restricted_perfect_predictions_numeric
+        # return preliminary_mDAG
 
     def latent_sibling_sets_of(self, node):
         return set(facet.difference({node}) for facet in self.as_mDAG.simplicial_complex_instance.simplicial_complex_as_sets if
@@ -621,9 +622,13 @@ class QmDAG:
                             LabelledHypergraph(new_nodes, new_Q_simplicial_complex))
                         postFritz_QmDAG.restricted_perfect_predictions = perfect_prediction_restrictions
                         tonums = postFritz_QmDAG.directed_structure_instance.translation_dict
-                        postFritz_QmDAG.restricted_perfect_predictions_numeric = [
+                        restricted_perfect_predictions_numeric = [
                             (tonums[i], tuple(partsextractor(tonums, j))) for i,j in perfect_prediction_restrictions.items()]
-                        yield postFritz_QmDAG
+                        yield QmDAG(
+                            LabelledDirectedStructure(new_nodes, new_directed_structure),
+                            LabelledHypergraph(new_nodes, new_C_simplicial_complex),
+                            LabelledHypergraph(new_nodes, new_Q_simplicial_complex),
+                            pp_restrictions=restricted_perfect_predictions_numeric)
 
     def _unique_unlabelled_ids_obtainable_by_Fritz_for_QC(self, **kwargs):
         for new_QmDAG in self.apply_Fritz_trick(**kwargs):
@@ -669,24 +674,29 @@ if __name__ == '__main__':
     # print(assess)
     # pass
 
-    # before_Fritz = as_classical_QmDAG(mDAG(DirectedStructure([(0, 1), (1, 2), (1, 3), (2, 3)], 4), Hypergraph([(0, 2), (0, 3), (1, 2)], 4)))
+    before_Fritz = as_classical_QmDAG(mDAG(DirectedStructure([(0, 1), (1, 2), (1, 3), (2, 3)], 4), Hypergraph([(0, 2), (0, 3), (1, 2)], 4)))
+    print(before_Fritz)
+    resolved = set(before_Fritz.apply_Fritz_trick(node_decomposition=False, districts_check=False, safe_for_inference=False))
+    print(resolved)
+
+    six_node_mDAG_restricted = mDAG(DirectedStructure([(0, 1), (1, 2), (1, 3), (2, 3)], 4),
+                         Hypergraph([(0, 2), (0, 3)], 4),
+                         pp_restrictions=((1, (0, )), (2, (0, ))))
+    #TODO: Marina, you should check beyond 5 events. Try 7 or 8.
+    print(six_node_mDAG_restricted.support_testing_instance((4,2,2,2), 5).unique_infeasible_supports_beyond_dsep_as_matrices())
+
+    # before_Fritz = as_classical_QmDAG(mDAG(DirectedStructure([], 3), Hypergraph([(0, 1), (1, 2), (0, 2)], 3)))
     # print(before_Fritz)
-    # resolved = set(before_Fritz.apply_Fritz_trick(node_decomposition=False, districts_check=False, safe_for_inference=False))
-    # for after_Fritz in sorted(resolved):
+    # resolved = list(before_Fritz.apply_Fritz_trick(node_decomposition=False, districts_check=False, safe_for_inference=False))
+    # how_much_perfect_prediction = lambda m: -len(m.unique_id[-1])
+    # order_to_explore = sorted(resolved, key=how_much_perfect_prediction)
+    # print(order_to_explore)
+    # for after_Fritz in order_to_explore:
+    # # after_Fritz = resolved.pop()
     #     print(after_Fritz)
     #     print(after_Fritz.restricted_perfect_predictions)
     #     print(after_Fritz.restricted_perfect_predictions_numeric)
-    #     print(after_Fritz.as_mDAG.support_testing_instance((3,2,2,2), 5).unique_infeasible_supports_beyond_dsep_as_matrices())
-
-    before_Fritz = as_classical_QmDAG(mDAG(DirectedStructure([], 3), Hypergraph([(0, 1), (1, 2), (0, 2)], 3)))
-    print(before_Fritz)
-    resolved = set(before_Fritz.apply_Fritz_trick(node_decomposition=False, districts_check=False, safe_for_inference=False))
-    for after_Fritz in sorted(resolved):
-    # after_Fritz = resolved.pop()
-        print(after_Fritz)
-        print(after_Fritz.restricted_perfect_predictions)
-        print(after_Fritz.restricted_perfect_predictions_numeric)
-        print(after_Fritz.as_mDAG.support_testing_instance((2,4,4), 8).unique_infeasible_supports_beyond_dsep_as_matrices())
+    #     print(after_Fritz.as_mDAG.support_testing_instance((2,4,4), 8).unique_infeasible_supports_beyond_dsep_as_matrices())
 
 # =============================================================================
 #     QG = QmDAG(DirectedStructure([(0,3), (1,2)],4),Hypergraph([], 4),Hypergraph([(0,1),(1,3),(3,2),(2,0)],4))
