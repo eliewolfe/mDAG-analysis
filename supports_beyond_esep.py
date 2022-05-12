@@ -171,12 +171,12 @@ class SmartSupportTesting(SupportTesting):
         CHANGED: Now returns each infeasible support as a single integer.
         """
         return np.fromiter((occuring_events_as_int for occuring_events_as_int in self.smart_unique_candidate_supports_to_iterate(verbose) if
-             not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0]), dtype=int)
+             not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)), dtype=int)
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_beyond_dsep_as_integers(self, verbose=False, **kwargs):
         return np.fromiter((occuring_events_as_int for occuring_events_as_int in self.unique_candidate_supports_not_infeasible_due_to_dsep_as_integers if
-             not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0]), dtype=int)
+             not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)), dtype=int)
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_beyond_esep_as_matrices(self, **kwargs):
@@ -250,12 +250,12 @@ class SmartSupportTesting(SupportTesting):
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def no_infeasible_supports_beyond_esep(self, **kwargs):
-        return all(self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0] for occuring_events_as_int in
+        return all(self.feasibleQ_from_integer(occuring_events_as_int, **kwargs) for occuring_events_as_int in
                    self.unique_candidate_supports_not_infeasible_due_to_esep_as_integers)
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def no_infeasible_supports_beyond_dsep(self, **kwargs):
-        return all(self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0] for occuring_events_as_int in
+        return all(self.feasibleQ_from_integer(occuring_events_as_int, **kwargs) for occuring_events_as_int in
                    self.unique_candidate_supports_not_infeasible_due_to_dsep_as_integers)
 
     @cached_property

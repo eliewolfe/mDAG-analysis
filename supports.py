@@ -58,6 +58,7 @@ class SupportTester(object):
         self.var = lambda idx, val, par: -self.vpool.id(
             'v[{0}]_{2}==0'.format(idx, val, par)) if idx in self.binary_variables and val == 1 else self.vpool.id(
             'v[{0}]_{2}=={1}'.format(idx, val, par))
+        self.subSupportTesters = {n: SupportTester(parents_of, observed_cardinalities, n) for n in range(2, self.nof_events)}
 
     # @staticmethod
     # def partsextractor(thing_to_take_parts_of, indices):
@@ -146,7 +147,21 @@ class SupportTester(object):
 
     def feasibleQ_from_matrix(self, occurring_events, **kwargs):
         with Solver(bootstrap_with=self._sat_solver_clauses(occurring_events), **kwargs) as s:
-            return (s.solve(), s.time())
+            return s.solve()
+
+    def _feasibleQ_from_matrix_conservative(self, occurring_events, **kwargs):
+        for n in range(2, self.nof_events):
+            subSupportTester = self.subSupportTesters[n]
+            for definitely_occurring_events in itertools.combinations(occurring_events, n):
+                with Solver(bootstrap_with=subSupportTester._sat_solver_clauses_bonus(
+                        definitely_occurring_events,
+                        occurring_events), **kwargs) as s:
+                    yield s.solve()
+        with Solver(bootstrap_with=self._sat_solver_clauses(occurring_events), **kwargs) as s:
+            yield s.solve()
+    def feasibleQ_from_matrix_NEW(self, occurring_events, **kwargs):
+        return all(self._feasibleQ_from_matrix_conservative(occurring_events, **kwargs))
+
 
     def _sat_solver_clauses_bonus(self, definitely_occurring_events, potentially_occurring_events):
         """
@@ -158,17 +173,17 @@ class SupportTester(object):
         return list(self.array_of_positive_outcomes(definitely_occurring_events)) + \
                self.at_least_one_outcome + \
                self.forbidden_events_clauses(potentially_occurring_events).tolist()
-
-    @methodtools.lru_cache(maxsize=None, typed=False)
-    def infeasibleQ_from_integer(self, definitely_occurring_events_as_integer, potentially_occurring_events_as_integer, **kwargs):
-        return self.infeasibleQ(
-            self.from_integer_to_matrix(definitely_occurring_events_as_integer)
-            , self.from_integer_to_matrix(potentially_occurring_events_as_integer)
-            , **kwargs)
-
-    def infeasibleQ(self, definitely_occurring_events, potentially_occurring_events, **kwargs):
-        with Solver(bootstrap_with=self._sat_solver_clauses_bonus(definitely_occurring_events, potentially_occurring_events), **kwargs) as s:
-            return (s.solve(), s.time())
+    #
+    # @methodtools.lru_cache(maxsize=None, typed=False)
+    # def infeasibleQ_from_integer(self, definitely_occurring_events_as_integer, potentially_occurring_events_as_integer, **kwargs):
+    #     return self.infeasibleQ(
+    #         self.from_integer_to_matrix(definitely_occurring_events_as_integer)
+    #         , self.from_integer_to_matrix(potentially_occurring_events_as_integer)
+    #         , **kwargs)
+    #
+    # def infeasibleQ(self, definitely_occurring_events, potentially_occurring_events, **kwargs):
+    #     with Solver(bootstrap_with=self._sat_solver_clauses_bonus(definitely_occurring_events, potentially_occurring_events), **kwargs) as s:
+    #         return (s.solve(), s.time())
 
 
 class SupportTesting(SupportTester):
@@ -259,7 +274,7 @@ class SupportTesting(SupportTester):
         CHANGED: Now returns each infeasible support as a single integer.
         """
         return np.fromiter((occuring_events_as_int for occuring_events_as_int in self.unique_candidate_supports_to_iterate(verbose) if
-             not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0]), dtype=int)
+             not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)), dtype=int)
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_as_matrices(self, **kwargs):
