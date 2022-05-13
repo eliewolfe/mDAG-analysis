@@ -209,8 +209,18 @@ class SupportTester(object):
 #     else:
 #         return True
 
-def generate_supports_satisfying_pp_restriction(i, pp_vector, candidate_support_matrices):
-    for s in candidate_support_matrices:
+def explore_candidates(candidates, verbose=False):
+    if verbose:
+        return progressbar.progressbar(
+                    candidates, widgets=[
+                        '[shape=', str(np.asarray(candidates).shape), '] '
+                        , progressbar.SimpleProgress(), progressbar.Bar()
+                        , ' (', progressbar.ETA(), ') '])
+    else:
+        return candidates
+
+def generate_supports_satisfying_pp_restriction(i, pp_vector, candidate_support_matrices, verbose=True):
+    for s in explore_candidates(candidate_support_matrices, verbose=verbose):
         s_resorted = s[np.argsort(s[:, i])]
         # for k, g in itertools.groupby(s_resorted, lambda e: e[i]):
         #     print((k,g))
@@ -221,12 +231,12 @@ def generate_supports_satisfying_pp_restriction(i, pp_vector, candidate_support_
         if (raw_length == compressed_length):
             yield s
 
-def extract_support_matrices_satisfying_pprestrictions(candidate_support_matrices_raw, pp_restrictions):
+def extract_support_matrices_satisfying_pprestrictions(candidate_support_matrices_raw, pp_restrictions, verbose=True):
     candidate_support_matrices = candidate_support_matrices_raw.copy()
     for (i, pp_set) in pp_restrictions:
         print("Isolating candidates due to perfect prediction restriction...", i, " by ", pp_set)
         pp_vector = np.array(pp_set)
-        candidate_support_matrices = list(generate_supports_satisfying_pp_restriction(i, pp_vector, candidate_support_matrices))
+        candidate_support_matrices = list(generate_supports_satisfying_pp_restriction(i, pp_vector, candidate_support_matrices, verbose=verbose))
     return candidate_support_matrices
 
 
@@ -270,10 +280,10 @@ class SupportTesting(SupportTester):
         # hugegroup2 = hugegroup2[np.lexsort(hugegroup2.T)]
         # assert np.array_equal(hugegroup, hugegroup2), "subgroups should be commutative"
 
-    def unique_supports_under_group(self, candidates_raw, group):
+    def unique_supports_under_group(self, candidates_raw, group, verbose=True):
         candidates = candidates_raw.copy()
         compressed_candidates = from_digits(candidates, self.event_cardinalities)
-        for group_element in group[1:]:
+        for group_element in explore_candidates(group[1:], verbose=verbose):
             new_candidates = np.take(group_element, candidates)
             new_candidates.sort()
             np.minimum(compressed_candidates,
@@ -317,14 +327,7 @@ class SupportTesting(SupportTester):
 
 
     def explore_candidates(self, candidates, verbose=False):
-        if verbose:
-            return progressbar.progressbar(
-                        candidates, widgets=[
-                            '[nof_events=', str(self.nof_events), '] '
-                            , progressbar.SimpleProgress(), progressbar.Bar()
-                            , ' (', progressbar.ETA(), ') '])
-        else:
-            return candidates
+        return explore_candidates(candidates, verbose=verbose)
 
     # def unique_candidate_supports_as_lists_to_iterate(self, verbose=False):
     #     if verbose:
