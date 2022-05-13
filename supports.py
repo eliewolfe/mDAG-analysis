@@ -25,8 +25,9 @@ else:
     cached_property = property
 
 class SupportTester(object):
-    def __init__(self, parents_of, observed_cardinalities, nof_events):
+    def __init__(self, parents_of, observed_cardinalities, nof_events, pp_relations=tuple()):
         # print('Instantiating new object with nof_events=', nof_events, flush=True)
+        self.must_perfectpredict = pp_relations
         self.parents_of = parents_of
         self.nof_events = nof_events
         self.nof_observed = len(self.parents_of)
@@ -141,26 +142,31 @@ class SupportTester(object):
                self.at_least_one_outcome + \
                self.forbidden_events_clauses(occurring_events).tolist()
 
-    @methodtools.lru_cache(maxsize=None, typed=False)
-    def feasibleQ_from_integer(self, occurring_events_as_integer, **kwargs):
-        return self.feasibleQ_from_matrix(self.from_integer_to_matrix(occurring_events_as_integer), **kwargs)
-
     def feasibleQ_from_matrix(self, occurring_events, **kwargs):
         with Solver(bootstrap_with=self._sat_solver_clauses(occurring_events), **kwargs) as s:
             return s.solve()
 
-    def _feasibleQ_from_matrix_conservative(self, occurring_events, **kwargs):
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def feasibleQ_from_tuple(self, occurring_events_as_tuple, **kwargs):
+        return self.feasibleQ_from_matrix(self.from_list_to_matrix(occurring_events_as_tuple), **kwargs)
+
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def feasibleQ_from_integer(self, occurring_events_as_integer, **kwargs):
+        return self.feasibleQ_from_matrix(self.from_integer_to_matrix(occurring_events_as_integer), **kwargs)
+
+
+    def feasibleQ_from_matrix_CONSERVATIVE(self, occurring_events, **kwargs):
         for n in range(2, self.nof_events):
             subSupportTester = self.subSupportTesters[n]
             for definitely_occurring_events in itertools.combinations(occurring_events, n):
-                with Solver(bootstrap_with=subSupportTester._sat_solver_clauses_bonus(
-                        definitely_occurring_events,
-                        occurring_events), **kwargs) as s:
-                    yield s.solve()
+                passes_inflation_test = subSupportTester.infeasibleQ_from_matrix_pair(definitely_occurring_events, occurring_events, **kwargs)
+                if not passes_inflation_test:
+                    # print("Got on! Rejected a support of ", self.nof_events, " events using level ", n, " inflation.")
+                    return passes_inflation_test
         with Solver(bootstrap_with=self._sat_solver_clauses(occurring_events), **kwargs) as s:
-            yield s.solve()
-    def feasibleQ_from_matrix_NEW(self, occurring_events, **kwargs):
-        return all(self._feasibleQ_from_matrix_conservative(occurring_events, **kwargs))
+            return s.solve()
+    # def feasibleQ_from_matrix(self, occurring_events, **kwargs):
+    #     return all(self._feasibleQ_from_matrix_conservative(occurring_events, **kwargs))
 
 
     def _sat_solver_clauses_bonus(self, definitely_occurring_events, potentially_occurring_events):
@@ -181,12 +187,35 @@ class SupportTester(object):
     #         , self.from_integer_to_matrix(potentially_occurring_events_as_integer)
     #         , **kwargs)
     #
-    # def infeasibleQ(self, definitely_occurring_events, potentially_occurring_events, **kwargs):
-    #     with Solver(bootstrap_with=self._sat_solver_clauses_bonus(definitely_occurring_events, potentially_occurring_events), **kwargs) as s:
-    #         return (s.solve(), s.time())
+    def infeasibleQ_from_matrix_pair(self, definitely_occurring_events_matrix, potentially_occurring_events_matrix, **kwargs):
+        with Solver(bootstrap_with=self._sat_solver_clauses_bonus(definitely_occurring_events_matrix, potentially_occurring_events_matrix), **kwargs) as s:
+            return s.solve()
 
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def infeasibleQ_from_tuple_pair(self, definitely_occurring_events_tuple, potentially_occurring_events_tuple, **kwargs):
+        return self.infeasibleQ_from_matrix_pair(self.from_list_to_matrix(definitely_occurring_events_tuple), self.from_list_to_matrix(potentially_occurring_events_tuple), **kwargs)
+
+
+def does_this_support_respect_this_pp_restriction(i, pp_set, s):
+    if len(pp_set):
+        s_resorted = s[np.argsort(s[:, i])]
+        # for k, g in itertools.groupby(s_resorted, lambda e: e[i]):
+        #     print((k,g))
+        partitioned = [np.vstack(tuple(g))[:, np.asarray(pp_set)] for k, g in itertools.groupby(s_resorted, lambda e: e[i])]
+        to_test_for_intersection=[set(map(tuple, pp_values)) for pp_values in partitioned]
+        raw_length = np.sum([len(vals) for vals in to_test_for_intersection])
+        compressed_length = len(set().union(*to_test_for_intersection))
+        return (raw_length == compressed_length)
+    else:
+        return True
 
 class SupportTesting(SupportTester):
+
+    def support_respects_perfect_prediction_restrictions(self, candidate_s):
+        return all(does_this_support_respect_this_pp_restriction(
+            *pp_restriction, candidate_s) for pp_restriction in self.must_perfectpredict)
+
+
     @cached_property
     def outcome_relabelling_group(self):
         if np.array_equiv(2, self.observed_cardinalities):
@@ -233,8 +262,9 @@ class SupportTesting(SupportTester):
         return np.unique(candidates, axis=0)
 
 
-    @cached_property
-    def unique_candidate_supports(self):
+    #@cached_property
+    @property
+    def _unique_candidate_supports_as_lists(self):
         if self.max_conceivable_events > self.nof_events:
             candidates = np.pad(np.fromiter(itertools.chain.from_iterable(
                 itertools.combinations(self.conceivable_events_range[1:], self.nof_events - 1)), np.intp).reshape(
@@ -244,18 +274,52 @@ class SupportTesting(SupportTester):
             return np.empty((0, 0), dtype=np.intp)
 
     @cached_property
-    def unique_candidate_supports_as_integers(self):
-        return self.from_list_to_integer(self.unique_candidate_supports)
+    def unique_candidate_supports_as_lists(self):
+        to_filter = self.from_list_to_matrix(self._unique_candidate_supports_as_lists)
+        picklist = np.fromiter(map(self.support_respects_perfect_prediction_restrictions, to_filter), bool)
+        return self._unique_candidate_supports_as_lists[picklist]
 
-    def unique_candidate_supports_to_iterate(self, verbose=False):
+    @cached_property
+    def unique_candidate_supports_as_integers(self):
+        return self.from_list_to_integer(self.unique_candidate_supports_as_lists)
+
+    @cached_property
+    def unique_candidate_supports_as_matrices(self):
+        return self.from_list_to_matrix(self.unique_candidate_supports_as_lists)
+
+
+
+    def explore_candidates(self, candidates, verbose=False):
         if verbose:
             return progressbar.progressbar(
-                        self.unique_candidate_supports_as_integers, widgets=[
+                        candidates, widgets=[
                             '[nof_events=', str(self.nof_events), '] '
                             , progressbar.SimpleProgress(), progressbar.Bar()
                             , ' (', progressbar.ETA(), ') '])
         else:
-            return self.unique_candidate_supports_as_integers
+            return candidates
+
+    # def unique_candidate_supports_as_lists_to_iterate(self, verbose=False):
+    #     if verbose:
+    #         return progressbar.progressbar(
+    #                     self.unique_candidate_supports_as_lists, widgets=[
+    #                         '[nof_events=', str(self.nof_events), '] '
+    #                         , progressbar.SimpleProgress(), progressbar.Bar()
+    #                         , ' (', progressbar.ETA(), ') '])
+    #     else:
+    #         return self.unique_candidate_supports_as_lists
+
+
+
+    # def unique_candidate_supports_as_integers_to_iterate(self, verbose=False):
+    #     if verbose:
+    #         return progressbar.progressbar(
+    #                     self.unique_candidate_supports_as_integers, widgets=[
+    #                         '[nof_events=', str(self.nof_events), '] '
+    #                         , progressbar.SimpleProgress(), progressbar.Bar()
+    #                         , ' (', progressbar.ETA(), ') '])
+    #     else:
+    #         return self.unique_candidate_supports_as_integers
         
     #To understand the function unique_candidate_supports:    
     #ch=itertools.chain.from_iterable(itertools.combinations(np.arange(16, dtype=np.uint),4))
@@ -266,45 +330,74 @@ class SupportTesting(SupportTester):
 
 
 
+
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def unique_infeasible_supports_as_integers(self, verbose=False, **kwargs):
+    def attempt_to_find_one_infeasible_support(self, **kwargs):
+        return self.attempt_to_find_one_infeasible_support_among(self.unique_candidate_supports_as_lists, **kwargs)
+    def attempt_to_find_one_infeasible_support_among(self, candidates_as_lists, verbose=False, **kwargs):
+        for n in range(2, self.nof_events):
+            subSupportTester = self.subSupportTesters[n]
+            for occurring_events_as_tuple in map(tuple, self.explore_candidates(candidates_as_lists, verbose=verbose)):
+                for definitely_occurring_events_as_tuple in itertools.combinations(occurring_events_as_tuple, n):
+                    passes_inflation_test = subSupportTester.infeasibleQ_from_tuple_pair(definitely_occurring_events_as_tuple, occurring_events_as_tuple, **kwargs)
+                    if not passes_inflation_test:
+                        # print("Got on! Rejected a support of ", self.nof_events, " events using level ", n, " inflation.")
+                        return self.from_list_to_matrix(occurring_events_as_tuple)
+        for occurring_events_as_tuple in map(tuple, self.explore_candidates(candidates_as_lists, verbose=verbose)):
+            if not self.feasibleQ_from_tuple(occurring_events_as_tuple):
+                return self.from_list_to_matrix(occurring_events_as_tuple)
+        return np.empty((0, self.nof_observed), dtype=int)
+
+
+
+    def no_infeasible_supports_among(self, candidates_as_lists, **kwargs):
+        if len(self.attempt_to_find_one_infeasible_support_among(candidates_as_lists, **kwargs)) == 0:
+            return True
+        else:
+            return False
+
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def no_infeasible_supports(self, **kwargs):
+        return self.no_infeasible_supports_among(self.unique_candidate_supports_as_lists, **kwargs)
+        # return all(self.feasibleQ_from_integer(occurring_events_as_int, **kwargs)[0] for occurring_events_as_int in
+        #            self.explore_candidates(self.unique_candidate_supports_as_integers, verbose=verbose))
+
+    def unique_infeasible_supports_as_integers_among(self, candidates_as_integers, verbose=False, **kwargs):
+        return np.fromiter((occurring_events_as_int for occurring_events_as_int in self.explore_candidates(candidates_as_integers, verbose=verbose) if
+                            not self.feasibleQ_from_integer(occurring_events_as_int, **kwargs)), dtype=int)
+
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def unique_infeasible_supports_as_integers(self, **kwargs):
         """
         Return a signature of infeasible support for a given parents_of, observed_cardinalities, and nof_events
         :param kwargs: optional arguments to pysat.Solver
-        CHANGED: Now returns each infeasible support as a single integer.
+        :param verbose: option to display progressbar
         """
-        return np.fromiter((occuring_events_as_int for occuring_events_as_int in self.unique_candidate_supports_to_iterate(verbose) if
-             not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)), dtype=int)
+        return self.unique_infeasible_supports_as_integers_among(self.unique_candidate_supports_as_integers, **kwargs)
+
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_as_matrices(self, **kwargs):
         return self.from_integer_to_matrix(self.unique_infeasible_supports_as_integers(**kwargs))
 
-    @methodtools.lru_cache(maxsize=None, typed=False)
-    def unique_infeasible_supports_as_integers_unlabelled(self, **kwargs):
-        # return np.unique(np.amin(self.from_list_to_integer(
-        #     np.sort(self.universal_relabelling_group[:, self.from_integer_to_list(self.unique_infeasible_supports_as_integers(**kwargs))])
-        # ), axis=0))
-        labelled_infeasible_as_integers = self.unique_infeasible_supports_as_integers(**kwargs)
-        if len(labelled_infeasible_as_integers) > 0:
-            labelled_infeasible_as_lists = self.from_integer_to_list(labelled_infeasible_as_integers)
+    def convert_integers_into_canonical_under_relabelling(self, list_of_integers):
+        if len(list_of_integers) > 0:
+            labelled_infeasible_as_lists = self.from_integer_to_list(list_of_integers)
             labelled_variants = self.universal_relabelling_group[:, labelled_infeasible_as_lists]
             labelled_variants.sort(axis=-1)
             labelled_variants = self.from_list_to_integer(labelled_variants).astype(int)
             labelled_variants.sort(axis=-1)
-            # print(labelled_variants.shape, labelled_variants.dtype)
-            # print(np.unique(labelled_variants, axis=0))
             lexsort = np.lexsort(labelled_variants.T)
-            # print(labelled_variants[lexsort[0]])
             return labelled_variants[lexsort[0]]
         else:
-            return labelled_infeasible_as_integers
-
+            return list_of_integers
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def no_infeasible_supports(self, verbose=False, **kwargs):
-        return all(self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0] for occuring_events_as_int in
-                   self.unique_candidate_supports_to_iterate(verbose))
+    def unique_infeasible_supports_as_integers_unlabelled(self, **kwargs):
+        return self.convert_integers_into_canonical_under_relabelling(
+            self.unique_infeasible_supports_as_integers(**kwargs))
+
+
 
 
 
