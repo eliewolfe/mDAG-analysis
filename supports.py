@@ -280,17 +280,29 @@ class SupportTesting(SupportTester):
         # hugegroup2 = hugegroup2[np.lexsort(hugegroup2.T)]
         # assert np.array_equal(hugegroup, hugegroup2), "subgroups should be commutative"
 
+    # def unique_supports_under_group(self, candidates_raw, group, verbose=True):
+    #     candidates = candidates_raw.copy()
+    #     compressed_candidates = from_digits(candidates, self.event_cardinalities)
+    #     for group_element in explore_candidates(group[1:], verbose=verbose):
+    #         new_candidates = np.take(group_element, candidates)
+    #         new_candidates.sort()
+    #         np.minimum(compressed_candidates,
+    #                    from_digits(new_candidates, self.event_cardinalities),
+    #                    out=compressed_candidates)
+    #         candidates = to_digits(compressed_candidates, self.event_cardinalities)
+    #     return np.unique(candidates, axis=0)
     def unique_supports_under_group(self, candidates_raw, group, verbose=True):
         candidates = candidates_raw.copy()
-        compressed_candidates = from_digits(candidates, self.event_cardinalities)
+        #
         for group_element in explore_candidates(group[1:], verbose=verbose):
+            compressed_candidates = from_digits(candidates, self.event_cardinalities)
             new_candidates = np.take(group_element, candidates)
             new_candidates.sort()
             np.minimum(compressed_candidates,
                        from_digits(new_candidates, self.event_cardinalities),
                        out=compressed_candidates)
-            candidates = to_digits(compressed_candidates, self.event_cardinalities)
-        return np.unique(candidates, axis=0)
+            candidates = to_digits(np.unique(compressed_candidates), self.event_cardinalities)
+        return candidates
 
 
     @cached_property
