@@ -679,11 +679,14 @@ if __name__ == '__main__':
     resolved = set(before_Fritz.apply_Fritz_trick(node_decomposition=False, districts_check=False, safe_for_inference=False))
     print(resolved)
 
-    six_node_mDAG_restricted = mDAG(DirectedStructure([(0, 1), (1, 2), (1, 3), (2, 3)], 4),
+    six_node_mDAG_very_restricted = mDAG(DirectedStructure([(0, 1), (1, 2), (1, 3), (2, 3)], 4),
                          Hypergraph([(0, 2), (0, 3)], 4),
-                         pp_restrictions=((1, (0, )), (2, (0, ))))
+                         pp_restrictions=((1, (0, )), (3, (0, ))))
+    six_node_mDAG_lite_restricted = mDAG(DirectedStructure([(0, 1), (1, 2), (1, 3), (2, 3)], 4),
+                         Hypergraph([(0, 2), (0, 3)], 4),
+                         pp_restrictions=((1, (0, )),))
     #TODO: Marina, you should check beyond 5 events. Try 7 or 8.
-    print(six_node_mDAG_restricted.support_testing_instance((4,2,2,2), 5).unique_infeasible_supports_beyond_dsep_as_matrices())
+    print(six_node_mDAG_lite_restricted.support_testing_instance((4,2,2,2), 7).attempt_to_find_one_infeasible_support_beyond_dsep(verbose=True))
 
     # before_Fritz = as_classical_QmDAG(mDAG(DirectedStructure([], 3), Hypergraph([(0, 1), (1, 2), (0, 2)], 3)))
     # print(before_Fritz)

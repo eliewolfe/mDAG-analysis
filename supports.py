@@ -196,24 +196,45 @@ class SupportTester(object):
         return self.infeasibleQ_from_matrix_pair(self.from_list_to_matrix(definitely_occurring_events_tuple), self.from_list_to_matrix(potentially_occurring_events_tuple), **kwargs)
 
 
-def does_this_support_respect_this_pp_restriction(i, pp_set, s):
-    if len(pp_set):
+# def does_this_support_respect_this_pp_restriction(i, pp_set, s):
+#     if len(pp_set):
+#         s_resorted = s[np.argsort(s[:, i])]
+#         # for k, g in itertools.groupby(s_resorted, lambda e: e[i]):
+#         #     print((k,g))
+#         partitioned = [np.vstack(tuple(g))[:, np.asarray(pp_set)] for k, g in itertools.groupby(s_resorted, lambda e: e[i])]
+#         to_test_for_intersection=[set(map(tuple, pp_values)) for pp_values in partitioned]
+#         raw_length = np.sum([len(vals) for vals in to_test_for_intersection])
+#         compressed_length = len(set().union(*to_test_for_intersection))
+#         return (raw_length == compressed_length)
+#     else:
+#         return True
+
+def generate_supports_satisfying_pp_restriction(i, pp_vector, candidate_support_matrices):
+    for s in candidate_support_matrices:
         s_resorted = s[np.argsort(s[:, i])]
         # for k, g in itertools.groupby(s_resorted, lambda e: e[i]):
         #     print((k,g))
-        partitioned = [np.vstack(tuple(g))[:, np.asarray(pp_set)] for k, g in itertools.groupby(s_resorted, lambda e: e[i])]
+        partitioned = [np.vstack(tuple(g))[:, pp_vector] for k, g in itertools.groupby(s_resorted, lambda e: e[i])]
         to_test_for_intersection=[set(map(tuple, pp_values)) for pp_values in partitioned]
         raw_length = np.sum([len(vals) for vals in to_test_for_intersection])
         compressed_length = len(set().union(*to_test_for_intersection))
-        return (raw_length == compressed_length)
-    else:
-        return True
+        if (raw_length == compressed_length):
+            yield s
+
+def extract_support_matrices_satisfying_pprestrictions(candidate_support_matrices_raw, pp_restrictions):
+    candidate_support_matrices = candidate_support_matrices_raw.copy()
+    for (i, pp_set) in pp_restrictions:
+        print("Isolating candidates due to perfect prediction restriction...", i, " by ", pp_set)
+        pp_vector = np.array(pp_set)
+        candidate_support_matrices = list(generate_supports_satisfying_pp_restriction(i, pp_vector, candidate_support_matrices))
+    return candidate_support_matrices
+
 
 class SupportTesting(SupportTester):
 
-    def support_respects_perfect_prediction_restrictions(self, candidate_s):
-        return all(does_this_support_respect_this_pp_restriction(
-            *pp_restriction, candidate_s) for pp_restriction in self.must_perfectpredict)
+    # def support_respects_perfect_prediction_restrictions(self, candidate_s):
+    #     return all(does_this_support_respect_this_pp_restriction(
+    #         *pp_restriction, candidate_s) for pp_restriction in self.must_perfectpredict)
 
 
     @cached_property
@@ -253,7 +274,7 @@ class SupportTesting(SupportTester):
         candidates = candidates_raw.copy()
         compressed_candidates = from_digits(candidates, self.event_cardinalities)
         for group_element in group[1:]:
-            new_candidates = group_element[candidates]
+            new_candidates = np.take(group_element, candidates)
             new_candidates.sort()
             np.minimum(compressed_candidates,
                        from_digits(new_candidates, self.event_cardinalities),
@@ -262,22 +283,28 @@ class SupportTesting(SupportTester):
         return np.unique(candidates, axis=0)
 
 
-    #@cached_property
-    @property
-    def _unique_candidate_supports_as_lists(self):
+    @cached_property
+    def unique_candidate_supports_as_lists(self):
         if self.max_conceivable_events > self.nof_events:
             candidates = np.pad(np.fromiter(itertools.chain.from_iterable(
                 itertools.combinations(self.conceivable_events_range[1:], self.nof_events - 1)), np.intp).reshape(
                 (-1, self.nof_events - 1)), ((0, 0), (1, 0)), 'constant')
-            return self.unique_supports_under_group(candidates, self.outcome_relabelling_group)
+            to_filter = self.from_list_to_matrix(candidates)
+            filtered = extract_support_matrices_satisfying_pprestrictions(to_filter, self.must_perfectpredict)
+            candidates = np.array(list(map(self.from_matrix_to_list, filtered)), dtype=int)
+            candidates = self.unique_supports_under_group(candidates, self.outcome_relabelling_group)
+            return candidates
         else:
             return np.empty((0, 0), dtype=np.intp)
 
-    @cached_property
-    def unique_candidate_supports_as_lists(self):
-        to_filter = self.from_list_to_matrix(self._unique_candidate_supports_as_lists)
-        picklist = np.fromiter(map(self.support_respects_perfect_prediction_restrictions, to_filter), bool)
-        return self._unique_candidate_supports_as_lists[picklist]
+    # @cached_property
+    # def unique_candidate_supports_as_lists(self):
+    #     print("Thus far: ", len(self._unique_candidate_supports_as_lists))
+    #     print("Isolating due to perfect prediction restrictions.")
+    #     to_filter = self.from_list_to_matrix(self._unique_candidate_supports_as_lists)
+    #     picklist = np.fromiter(map(self.support_respects_perfect_prediction_restrictions, to_filter), bool)
+    #     print("Thus far: ", np.sum(picklist.astype(int)))
+    #     return self._unique_candidate_supports_as_lists[picklist]
 
     @cached_property
     def unique_candidate_supports_as_integers(self):
@@ -335,14 +362,14 @@ class SupportTesting(SupportTester):
     def attempt_to_find_one_infeasible_support(self, **kwargs):
         return self.attempt_to_find_one_infeasible_support_among(self.unique_candidate_supports_as_lists, **kwargs)
     def attempt_to_find_one_infeasible_support_among(self, candidates_as_lists, verbose=False, **kwargs):
-        for n in range(2, self.nof_events):
-            subSupportTester = self.subSupportTesters[n]
-            for occurring_events_as_tuple in map(tuple, self.explore_candidates(candidates_as_lists, verbose=verbose)):
-                for definitely_occurring_events_as_tuple in itertools.combinations(occurring_events_as_tuple, n):
-                    passes_inflation_test = subSupportTester.infeasibleQ_from_tuple_pair(definitely_occurring_events_as_tuple, occurring_events_as_tuple, **kwargs)
-                    if not passes_inflation_test:
-                        # print("Got on! Rejected a support of ", self.nof_events, " events using level ", n, " inflation.")
-                        return self.from_list_to_matrix(occurring_events_as_tuple)
+        # for n in range(2, self.nof_events):
+        #     subSupportTester = self.subSupportTesters[n]
+        #     for occurring_events_as_tuple in map(tuple, self.explore_candidates(candidates_as_lists, verbose=verbose)):
+        #         for definitely_occurring_events_as_tuple in itertools.combinations(occurring_events_as_tuple, n):
+        #             passes_inflation_test = subSupportTester.infeasibleQ_from_tuple_pair(definitely_occurring_events_as_tuple, occurring_events_as_tuple, **kwargs)
+        #             if not passes_inflation_test:
+        #                 # print("Got one! Rejected a support of ", self.nof_events, " events using level ", n, " inflation.")
+        #                 return self.from_list_to_matrix(occurring_events_as_tuple)
         for occurring_events_as_tuple in map(tuple, self.explore_candidates(candidates_as_lists, verbose=verbose)):
             if not self.feasibleQ_from_tuple(occurring_events_as_tuple):
                 return self.from_list_to_matrix(occurring_events_as_tuple)
