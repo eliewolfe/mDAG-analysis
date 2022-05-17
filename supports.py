@@ -209,18 +209,22 @@ class SupportTester(object):
 #     else:
 #         return True
 
-def explore_candidates(candidates, verbose=False):
+def explore_candidates(candidates, verbose=False, message=''):
     if verbose:
+        if not message:
+            text = 'shape=' + str(np.asarray(candidates).shape)
+        else:
+            text = message
         return progressbar.progressbar(
                     candidates, widgets=[
-                        '[shape=', str(np.asarray(candidates).shape), '] '
+                        '[', text, '] '
                         , progressbar.SimpleProgress(), progressbar.Bar()
                         , ' (', progressbar.ETA(), ') '])
     else:
         return candidates
 
-def generate_supports_satisfying_pp_restriction(i, pp_vector, candidate_support_matrices, verbose=True):
-    for s in explore_candidates(candidate_support_matrices, verbose=verbose):
+def generate_supports_satisfying_pp_restriction(i, pp_vector, candidate_support_matrices, **kwargs):
+    for s in explore_candidates(candidate_support_matrices, message='Enforce '+str(i)+' is perf. pred. by '+np.array_str(pp_vector), **kwargs):
         s_resorted = s[np.argsort(s[:, i])]
         # for k, g in itertools.groupby(s_resorted, lambda e: e[i]):
         #     print((k,g))
@@ -294,7 +298,7 @@ class SupportTesting(SupportTester):
     def unique_supports_under_group(self, candidates_raw, group, verbose=True):
         candidates = candidates_raw.copy()
         #
-        for group_element in explore_candidates(group[1:], verbose=verbose):
+        for group_element in explore_candidates(group[1:], verbose=verbose, message='Getting unique under relabelling'):
             compressed_candidates = from_digits(candidates, self.event_cardinalities)
             new_candidates = np.take(group_element, candidates)
             new_candidates.sort()
@@ -338,8 +342,8 @@ class SupportTesting(SupportTester):
 
 
 
-    def explore_candidates(self, candidates, verbose=False):
-        return explore_candidates(candidates, verbose=verbose)
+    def explore_candidates(self, candidates, **kwargs):
+        return explore_candidates(candidates, **kwargs)
 
     # def unique_candidate_supports_as_lists_to_iterate(self, verbose=False):
     #     if verbose:
@@ -385,7 +389,9 @@ class SupportTesting(SupportTester):
         #             if not passes_inflation_test:
         #                 # print("Got one! Rejected a support of ", self.nof_events, " events using level ", n, " inflation.")
         #                 return self.from_list_to_matrix(occurring_events_as_tuple)
-        for occurring_events_as_tuple in map(tuple, self.explore_candidates(candidates_as_lists, verbose=verbose)):
+        for occurring_events_as_tuple in map(tuple, self.explore_candidates(candidates_as_lists,
+                                                                            verbose=verbose,
+                                                                            message='Finding an infeasible support')):
             if not self.feasibleQ_from_tuple(occurring_events_as_tuple):
                 return self.from_list_to_matrix(occurring_events_as_tuple)
         return np.empty((0, self.nof_observed), dtype=int)
