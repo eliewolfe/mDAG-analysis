@@ -97,6 +97,24 @@ def stringify_in_list(l) -> str:
 def stringify_in_set(l) -> str:
     return '{' + ','.join(map(str, l)) + '}'
 
+def minimal_sets_within(list_of_sets):
+    original_list_copy = list_of_sets.copy()
+    verified_minimal = []
+    for i in range(len(list_of_sets)):
+        candidate_minimal_set = original_list_copy.pop()
+        if not any(counterexample.issubset(candidate_minimal_set) for counterexample in (original_list_copy + verified_minimal)):
+            verified_minimal.append(candidate_minimal_set)
+    return verified_minimal
+
+def maximal_sets_within(list_of_sets):
+    original_list_copy = list_of_sets.copy()
+    verified_maximal = []
+    for i in range(len(list_of_sets)):
+        candidate_maximal_set = original_list_copy.pop()
+        if not any(counterexample.issuperset(candidate_maximal_set) for counterexample in (original_list_copy + verified_maximal)):
+            verified_maximal.append(candidate_maximal_set)
+    return candidate_maximal_set
+
 
 
 if __name__ == '__main__':

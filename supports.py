@@ -295,7 +295,7 @@ class SupportTesting(SupportTester):
     #                    out=compressed_candidates)
     #         candidates = to_digits(compressed_candidates, self.event_cardinalities)
     #     return np.unique(candidates, axis=0)
-    def unique_supports_under_group(self, candidates_raw, group, verbose=True):
+    def unique_supports_under_group(self, candidates_raw, group, verbose=False):
         candidates = candidates_raw.copy()
         #
         for group_element in explore_candidates(group[1:], verbose=verbose, message='Getting unique under relabelling'):
