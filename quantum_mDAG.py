@@ -8,7 +8,7 @@ from radix import to_bits #TODO: Make qmdaq from representation
 from mDAG_advanced import mDAG
 from merge import merge_intersection
 from sys import hexversion
-from utilities import partsextractor, minimal_sets_within
+from utilities import partsextractor, minimal_sets_within, maximal_sets_within
 from functools import total_ordering
 
 if hexversion >= 0x3080000:
@@ -17,6 +17,13 @@ elif hexversion >= 0x3060000:
     from backports.cached_property import cached_property
 else:
     cached_property = property
+
+from collections import defaultdict
+def invert_dict(d):
+    d_inv = defaultdict(list)
+    for k, v in d.items():
+        d_inv[v].append(k)
+    return d_inv
 
 
 def C_facets_not_dominated_by_Q(c_facets, q_facets):
@@ -87,7 +94,9 @@ class QmDAG:
                                                                self.C_simplicial_complex_instance.number_of_visible_plus_nonsingleton_latent))
         # it is not necessary to talk about quantum singletons in the first place:
         self.quantum_latent_nodes = tuple(range(self.C_simplicial_complex_instance.number_of_visible_plus_latent,
-                                                self.Q_simplicial_complex_instance.number_of_visible_plus_nonsingleton_latent + self.C_simplicial_complex_instance.number_of_visible_plus_latent - self.number_of_visible))
+                                                self.Q_simplicial_complex_instance.number_of_visible_plus_nonsingleton_latent
+                                                + self.C_simplicial_complex_instance.number_of_visible_plus_latent
+                                                - self.number_of_visible))
 
     @cached_property
     def as_string(self):
@@ -507,6 +516,80 @@ class QmDAG:
                     if not any(subcandidate_Y.isdisjoint(stuff) for stuff in things_Y_should_not_be_disjoint_from):
                         valid_Ys.append(subcandidate_Y)
             return [True, minimal_sets_within(valid_Ys)]
+
+    def apply_Fritz_trick_Wolfe_and_Gonzales_style(self, node_decomposition=True, safe_for_inference=True, districts_check=False):
+        expanded_edge_set = self.directed_structure_instance.as_set_of_tuples
+        #Note that we use the expanded classical simplicial complex to ensure common cause in node decomposition.
+        for i, children in zip(self.classical_latent_nodes, self.C_simplicial_complex_instance.extended_simplicial_complex_as_sets):
+            expanded_edge_set.update(zip(itertools.repeat(i), children))
+        for i, children in zip(self.quantum_latent_nodes, self.Q_simplicial_complex_instance.compressed_simplicial_complex):
+            expanded_edge_set.update(zip(itertools.repeat(i), children))
+        num_quantum_nodes = self.Q_simplicial_complex_instance.number_of_nonsingleton_latent
+        num_effective_nodes = self.Q_simplicial_complex_instance.number_of_visible_plus_nonsingleton_latent\
+                              + self.C_simplicial_complex_instance.number_of_visible_plus_latent\
+                              - self.number_of_visible
+        effective_DAG = DirectedStructure(expanded_edge_set, num_effective_nodes)
+        expanded_edge_set_of_tuples_of_strings = set([(str(i), str(j)) for (i,j) in expanded_edge_set])
+        #We will make as subvariables as classical-common-cause connected only, so all quantum facets must be duplicated.
+        #One for original vars, one for subvars.
+        for i, children in zip(self.quantum_latent_nodes, self.Q_simplicial_complex_instance.compressed_simplicial_complex):
+            expanded_edge_set_of_tuples_of_strings.update(zip(itertools.repeat(str(i+num_quantum_nodes)), map(str,children)))
+        common_cause_connected_sets = maximal_sets_within(effective_DAG.adjMat.descendantsplus_list)
+        allnode_name_variants = dict()
+        for target in self.visible_nodes:
+            effective_target_parents = effective_DAG.adjMat.parents_of(target)
+            target_children = self.directed_structure_instance.adjMat.children_of(target)
+            candidates_Yi = self.latent_siblings_of(target).union(self.directed_structure_instance.adjMat.parents_of(target))
+            singleton_edge_removals = {Yi: [v for v in effective_target_parents if not
+                                    any({v, Yi}.issubset(common_cause_connected_set) for common_cause_connected_set in common_cause_connected_sets)]
+                                       for Yi in candidates_Yi}
+            collective_predicting_set_edge_removals = dict()
+            collective_predicting_sets = set()
+            for r in range(1, len(candidates_Yi) + 1):
+                for collective_predicting in map(frozenset, itertools.combinations(candidates_Yi, r)):
+                    collective_predicting_sets.add(collective_predicting)
+                    individual_edge_set_removals = [singleton_edge_removals[Yi] for Yi in
+                                        collective_predicting]
+                    collective_predicting_set_edge_removals[collective_predicting] = frozenset().intersection(individual_edge_set_removals)
+            for (removed_edges, perfectly_predicting_sets) in invert_dict(collective_predicting_set_edge_removals).items():
+                minimal_pp_sets = minimal_sets_within(perfectly_predicting_sets)
+                for wasteful_pp_set in set(perfectly_predicting_sets).difference(minimal_pp_sets):
+                    del collective_predicting_set_edge_removals[wasteful_pp_set]
+            independently_predicting_set_edge_removals = dict()
+            independently_predicting_sets = set()
+            for r in range(1, len(collective_predicting_sets) + 1):
+                for independently_predicting in map(frozenset, itertools.combinations(collective_predicting_sets, r)):
+                    independently_predicting_sets.add(independently_predicting)
+                    individual_edge_set_removals = [collective_predicting_set_edge_removals[collective_predicting] for collective_predicting in
+                                        independently_predicting]
+                    independently_predicting_set_edge_removals[independently_predicting] = set().union(individual_edge_set_removals)
+            for (removed_parents, perfectly_predicting_sets) in invert_dict(independently_predicting_set_edge_removals).items():
+                minimal_pp_sets = minimal_sets_within(perfectly_predicting_sets)
+                for wasteful_pp_set in set(perfectly_predicting_sets).difference(minimal_pp_sets):
+                    del independently_predicting_set_edge_removals[wasteful_pp_set]
+            allnode_name_variants[target] = {str(target)}
+            for minimal_pp_set, removed_parents in independently_predicting_set_edge_removals.items():
+                subtarget = str(target)+'_'+str(minimal_pp_set)
+                allnode_name_variants[target].add(subtarget)
+                kept_parents = set(effective_target_parents).difference(removed_parents)
+                for p in kept_parents:
+                    expanded_edge_set_of_tuples_of_strings.add((str(p), subtarget))
+                for c in target_children:
+                    expanded_edge_set_of_tuples_of_strings.add((subtarget, str(c)))
+        code_for_classical_latents = set(map(str, self.classical_latent_nodes + self.quantum_latent_nodes))
+        code_for_quantum_latents = set(map(str, (np.asarray(self.quantum_latent_nodes)+num_quantum_nodes)))
+        code_for_latent = code_for_classical_latents.union(code_for_quantum_latents)
+        new_nodes = set(itertools.chain.from_iterable(allnode_name_variants.values()))
+        new_directed_structure = [(i,j) for (i,j) in expanded_edge_set_of_tuples_of_strings if i not in code_for_latent]
+        new_classical_facets = [set([j for j in new_nodes if (i,j) in expanded_edge_set_of_tuples_of_strings]) for i in code_for_classical_latents]
+        new_classical_facets = hypergraph_full_cleanup(new_classical_facets)
+        new_quantum_facets = [set([j for j in new_nodes if (i, j) in expanded_edge_set_of_tuples_of_strings]) for i in
+                                code_for_quantum_latents]
+        #TODO: return (restricted) qmDAGs according to node_splitting and safe_for_inference options.
+
+
+
+
 
     def apply_Fritz_trick_Gonzales_style(self, node_decomposition=True, safe_for_inference=True, districts_check=False):
         new_directed_structure = [tuple(map(str, edge)) for edge in self.directed_structure_instance.edge_list]
