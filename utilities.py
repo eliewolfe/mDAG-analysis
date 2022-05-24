@@ -113,9 +113,13 @@ def maximal_sets_within(list_of_sets):
         candidate_maximal_set = original_list_copy.pop()
         if not any(counterexample.issuperset(candidate_maximal_set) for counterexample in (original_list_copy + verified_maximal)):
             verified_maximal.append(candidate_maximal_set)
-    return candidate_maximal_set
+    return verified_maximal
 
 
 
 if __name__ == '__main__':
-    print(partsextractor({'a': 1, 'b': 2}, ['a', 'b']))
+    # print(partsextractor({'a': 1, 'b': 2}, ['a', 'b']))
+    print(maximal_sets_within([{1, 2}, {1, 3}, {1, 2, 3}]))
+    print(maximal_sets_within([{1}, {1, 2}, {1, 3}]))
+    print(minimal_sets_within([{1, 2}, {1, 3}, {1, 2, 3}]))
+    print(minimal_sets_within([{1}, {1, 2}, {1, 3}]))
