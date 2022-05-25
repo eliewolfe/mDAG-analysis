@@ -165,30 +165,35 @@ IC_remaining_representatives.difference_update(IC_gap_by_Fritz_with_node_splitti
 print("# of IC Gaps discovered via Fritz with splitting: ", len(IC_gap_by_Fritz_with_node_splitting))
 print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))
 
-esep_problematic=[]
-supports_problematic=[]
-for test_mDAG in mDAGs4_representatives:
-    for eqclass in Observable_mDAGs4.latent_free_eqclasses:
-        if test_mDAG in eqclass:
-            if as_classical_QmDAG(test_mDAG) not in IC_remaining_representatives:
-                print(test_mDAG)
-                print("esep=",as_classical_QmDAG(test_mDAG) in IC_gap_by_esep)
-                if as_classical_QmDAG(test_mDAG) in IC_gap_by_esep:
-                    esep_problematic.append(test_mDAG)
-                print("PD Trick=",as_classical_QmDAG(test_mDAG) in IC_gap_by_PD_trick)
-                print("TC's algorithm=",as_classical_QmDAG(test_mDAG) in provably_interesting_via_binary_supports)
-                supports_problematic.append(test_mDAG)
-                print("Fritz without NS=",as_classical_QmDAG(test_mDAG) in IC_gap_by_Fritz_without_node_splitting)
-                print("Fritz with NS=",as_classical_QmDAG(test_mDAG) in IC_gap_by_Fritz_with_node_splitting)
-                break
-
-
-latent_free1=mDAG(DirectedStructure([(0,1),(0,2),(1,3),(2,3)],4),Hypergraph([],4))
-latent_free1.all_esep
-latent_free1.no_esep_beyond_dsep_up_to(2)
-
-latent_free2=mDAG(DirectedStructure([(0,3),(1,3),(2,3)],4),Hypergraph([],4))
-latent_free2.no_infeasible_binary_supports_beyond_dsep_up_to(4)
+print("Found interesting without node splitting:")
+print(IC_gap_by_Fritz_without_node_splitting)
+print("Found interesting with node splitting:")
+print(IC_gap_by_Fritz_with_node_splitting)
+#
+# esep_problematic=[]
+# supports_problematic=[]
+# for test_mDAG in mDAGs4_representatives:
+#     for eqclass in Observable_mDAGs4.latent_free_eqclasses:
+#         if test_mDAG in eqclass:
+#             if as_classical_QmDAG(test_mDAG) not in IC_remaining_representatives:
+#                 print(test_mDAG)
+#                 print("esep=",as_classical_QmDAG(test_mDAG) in IC_gap_by_esep)
+#                 if as_classical_QmDAG(test_mDAG) in IC_gap_by_esep:
+#                     esep_problematic.append(test_mDAG)
+#                 print("PD Trick=",as_classical_QmDAG(test_mDAG) in IC_gap_by_PD_trick)
+#                 print("TC's algorithm=",as_classical_QmDAG(test_mDAG) in provably_interesting_via_binary_supports)
+#                 supports_problematic.append(test_mDAG)
+#                 print("Fritz without NS=",as_classical_QmDAG(test_mDAG) in IC_gap_by_Fritz_without_node_splitting)
+#                 print("Fritz with NS=",as_classical_QmDAG(test_mDAG) in IC_gap_by_Fritz_with_node_splitting)
+#                 break
+#
+#
+# latent_free1=mDAG(DirectedStructure([(0,1),(0,2),(1,3),(2,3)],4),Hypergraph([],4))
+# latent_free1.all_esep
+# latent_free1.no_esep_beyond_dsep_up_to(2)
+#
+# latent_free2=mDAG(DirectedStructure([(0,3),(1,3),(2,3)],4),Hypergraph([],4))
+# latent_free2.no_infeasible_binary_supports_beyond_dsep_up_to(4)
 
 
 
