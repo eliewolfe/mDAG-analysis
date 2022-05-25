@@ -51,8 +51,9 @@ class DirectedStructure:
     This class is NOT meant to encode mDAGs. As such, we do not get into an implementation of predecessors or successors here.
     """
     def __init__(self, numeric_edge_list, n):
-        assert all(isinstance(v, int) for v in
-                   set(itertools.chain.from_iterable(numeric_edge_list))), 'Somehow we have a non integer node!'
+        # assert all(isinstance(v, int) for v in
+        #            set(itertools.chain.from_iterable(numeric_edge_list))), 'Somehow we have a non integer node!'+stringify_in_set(
+        #     map(stringify_in_list, numeric_edge_list))
         self.number_of_visible = n
         self.visible_nodes = list(range(self.number_of_visible))
         self.as_set_of_tuples = set(map(nx.utils.to_tuple, numeric_edge_list))
@@ -158,16 +159,16 @@ class LabelledDirectedStructure(DirectedStructure):
         self.variables_as_range = tuple(range(self.number_of_variables))
         self.translation_dict = dict(zip(self.variable_names, self.variables_as_range))
 
-
-
-        self.variable_are_range = False
-        if all(isinstance(v, int) for v in self.variable_names):
-            if np.array_equal(self.variable_names, self.variables_as_range):
-                self.variable_are_range = True
-                self.edge_list = self.edge_list_with_variable_names
-        if not self.variable_are_range:
-                self.edge_list = list(chunked(partsextractor(self.translation_dict, tuple(
+        # self.variable_are_range = False
+        # if all(isinstance(v, int) for v in self.variable_names):
+        #     if np.array_equal(self.variable_names, self.variables_as_range):
+        #         self.variable_are_range = True
+        #         self.edge_list = self.edge_list_with_variable_names
+        # if not self.variable_are_range:
+        self.edge_list = list(chunked(partsextractor(self.translation_dict, tuple(
                     itertools.chain.from_iterable(self.edge_list_with_variable_names))), 2))
+
+        assert set(self.variables_as_range).issuperset(itertools.chain.from_iterable(self.edge_list)), 'The translation to integers has failed.'
         super().__init__(self.edge_list, self.number_of_variables)
 
     @cached_property
