@@ -51,6 +51,8 @@ class DirectedStructure:
     This class is NOT meant to encode mDAGs. As such, we do not get into an implementation of predecessors or successors here.
     """
     def __init__(self, numeric_edge_list, n):
+        assert all(isinstance(v, int) for v in
+                   set(itertools.chain.from_iterable(numeric_edge_list))), 'Somehow we have a non integer node!'
         self.number_of_visible = n
         self.visible_nodes = list(range(self.number_of_visible))
         self.as_set_of_tuples = set(map(nx.utils.to_tuple, numeric_edge_list))
@@ -149,7 +151,7 @@ class LabelledDirectedStructure(DirectedStructure):
         assert self.number_of_variables == len(self.variable_names_as_frozenset), "A variable name appears in duplicate."
 
         implicit_variable_names = set(itertools.chain.from_iterable(edge_list))
-        self.edge_list_with_variable_names = sorted(set(edge_list))
+        self.edge_list_with_variable_names = sorted(set(edge_list), key=str)
         if not implicit_variable_names.issubset(self.variable_names_as_frozenset):
             self.edge_list_with_variable_names = [edge for edge in self.edge_list_with_variable_names if self.variable_names_as_frozenset.issuperset(edge)]
 

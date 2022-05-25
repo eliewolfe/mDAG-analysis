@@ -119,7 +119,7 @@ print("# of IC Gaps discovered so far: ",
 # IC_remaining_representatives = set(QmDAGs4_representatives).difference(updated_known_IC_Gaps_QmDAGs)
 print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))
 
-provably_interesting_via_binary_supports = [ICmDAG for ICmDAG in IC_remaining_representatives if not ICmDAG.as_mDAG.no_infeasible_binary_supports_beyond_dsep_up_to(4)]
+provably_interesting_via_binary_supports = [ICmDAG for ICmDAG in IC_remaining_representatives if not ICmDAG.as_mDAG.no_infeasible_binary_supports_beyond_dsep_up_to(2)]
 IC_remaining_representatives.difference_update(provably_interesting_via_binary_supports)
 print("# of IC Gaps discovered via TC's Algorithm: ", len(provably_interesting_via_binary_supports))
 print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))

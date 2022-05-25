@@ -8,7 +8,7 @@ from radix import to_bits #TODO: Make qmdaq from representation
 from mDAG_advanced import mDAG
 from merge import merge_intersection
 from sys import hexversion
-from utilities import partsextractor, minimal_sets_within, maximal_sets_within
+from utilities import partsextractor, minimal_sets_within, maximal_sets_within, stringify_in_set, stringify_in_tuple
 from functools import total_ordering
 
 if hexversion >= 0x3080000:
@@ -97,6 +97,7 @@ class QmDAG:
                                                 self.Q_simplicial_complex_instance.number_of_visible_plus_nonsingleton_latent
                                                 + self.C_simplicial_complex_instance.number_of_visible_plus_latent
                                                 - self.number_of_visible))
+        self.Fritz_trick_has_been_applied_already = False
 
     @cached_property
     def as_string(self):
@@ -517,269 +518,232 @@ class QmDAG:
                         valid_Ys.append(subcandidate_Y)
             return [True, minimal_sets_within(valid_Ys)]
 
-    def apply_Fritz_trick_Wolfe_and_Gonzales_style(self, node_decomposition=True, safe_for_inference=True, districts_check=False):
-        expanded_edge_set = self.directed_structure_instance.as_set_of_tuples
-        #Note that we use the expanded classical simplicial complex to ensure common cause in node decomposition.
-        for i, children in zip(self.classical_latent_nodes, self.C_simplicial_complex_instance.extended_simplicial_complex_as_sets):
-            expanded_edge_set.update(zip(itertools.repeat(i), children))
-        for i, children in zip(self.quantum_latent_nodes, self.Q_simplicial_complex_instance.compressed_simplicial_complex):
-            expanded_edge_set.update(zip(itertools.repeat(i), children))
-        num_quantum_nodes = self.Q_simplicial_complex_instance.number_of_nonsingleton_latent
-        num_effective_nodes = self.Q_simplicial_complex_instance.number_of_visible_plus_nonsingleton_latent\
-                              + self.C_simplicial_complex_instance.number_of_visible_plus_latent\
-                              - self.number_of_visible
-        effective_DAG = DirectedStructure(expanded_edge_set, num_effective_nodes)
-        expanded_edge_set_of_tuples_of_strings = set([(str(i), str(j)) for (i,j) in expanded_edge_set])
-        #We will make as subvariables as classical-common-cause connected only, so all quantum facets must be duplicated.
-        #One for original vars, one for subvars.
-        for i, children in zip(self.quantum_latent_nodes, self.Q_simplicial_complex_instance.compressed_simplicial_complex):
-            expanded_edge_set_of_tuples_of_strings.update(zip(itertools.repeat(str(i+num_quantum_nodes)), map(str,children)))
-        common_cause_connected_sets = maximal_sets_within(effective_DAG.adjMat.descendantsplus_list)
-        allnode_name_variants = dict()
-        for target in self.visible_nodes:
-            effective_target_parents = effective_DAG.adjMat.parents_of(target)
-            target_children = self.directed_structure_instance.adjMat.children_of(target)
-            candidates_Yi = self.latent_siblings_of(target).union(self.directed_structure_instance.adjMat.parents_of(target))
-            singleton_edge_removals = {Yi: [v for v in effective_target_parents if not
-                                    any({v, Yi}.issubset(common_cause_connected_set) for common_cause_connected_set in common_cause_connected_sets)]
-                                       for Yi in candidates_Yi}
-            collective_predicting_set_edge_removals = dict()
-            collective_predicting_sets = set()
-            for r in range(1, len(candidates_Yi) + 1):
-                for collective_predicting in map(frozenset, itertools.combinations(candidates_Yi, r)):
-                    collective_predicting_sets.add(collective_predicting)
-                    individual_edge_set_removals = [singleton_edge_removals[Yi] for Yi in
-                                        collective_predicting]
-                    collective_predicting_set_edge_removals[collective_predicting] = frozenset().intersection(individual_edge_set_removals)
-            for (removed_edges, perfectly_predicting_sets) in invert_dict(collective_predicting_set_edge_removals).items():
-                minimal_pp_sets = minimal_sets_within(perfectly_predicting_sets)
-                for wasteful_pp_set in set(perfectly_predicting_sets).difference(minimal_pp_sets):
-                    del collective_predicting_set_edge_removals[wasteful_pp_set]
-            independently_predicting_set_edge_removals = dict()
-            independently_predicting_sets = set()
-            for r in range(1, len(collective_predicting_sets) + 1):
-                for independently_predicting in map(frozenset, itertools.combinations(collective_predicting_sets, r)):
-                    independently_predicting_sets.add(independently_predicting)
-                    individual_edge_set_removals = [collective_predicting_set_edge_removals[collective_predicting] for collective_predicting in
-                                        independently_predicting]
-                    independently_predicting_set_edge_removals[independently_predicting] = set().union(individual_edge_set_removals)
-            for (removed_parents, perfectly_predicting_sets) in invert_dict(independently_predicting_set_edge_removals).items():
-                minimal_pp_sets = minimal_sets_within(perfectly_predicting_sets)
-                for wasteful_pp_set in set(perfectly_predicting_sets).difference(minimal_pp_sets):
-                    del independently_predicting_set_edge_removals[wasteful_pp_set]
-            allnode_name_variants[target] = {str(target)}
-            for minimal_pp_set, removed_parents in independently_predicting_set_edge_removals.items():
-                subtarget = str(target)+'_'+str(minimal_pp_set)
-                allnode_name_variants[target].add(subtarget)
-                kept_parents = set(effective_target_parents).difference(removed_parents)
-                for p in kept_parents:
-                    expanded_edge_set_of_tuples_of_strings.add((str(p), subtarget))
-                for c in target_children:
-                    expanded_edge_set_of_tuples_of_strings.add((subtarget, str(c)))
-        code_for_classical_latents = set(map(str, self.classical_latent_nodes + self.quantum_latent_nodes))
-        code_for_quantum_latents = set(map(str, (np.asarray(self.quantum_latent_nodes)+num_quantum_nodes)))
-        code_for_latent = code_for_classical_latents.union(code_for_quantum_latents)
-        new_nodes = set(itertools.chain.from_iterable(allnode_name_variants.values()))
-        new_directed_structure = [(i,j) for (i,j) in expanded_edge_set_of_tuples_of_strings if i not in code_for_latent]
-        new_classical_facets = [set([j for j in new_nodes if (i,j) in expanded_edge_set_of_tuples_of_strings]) for i in code_for_classical_latents]
-        new_classical_facets = hypergraph_full_cleanup(new_classical_facets)
-        new_quantum_facets = [set([j for j in new_nodes if (i, j) in expanded_edge_set_of_tuples_of_strings]) for i in
-                                code_for_quantum_latents]
-        #TODO: return (restricted) qmDAGs according to node_splitting and safe_for_inference options.
+    def _yield_from_Fritz_trick(self, choice_of_nodes,
+                                new_directed_structure, new_C_simplicial_complex, new_Q_simplicial_complex,
+                                nodes_relevant_for_pp, pprestrictions_if_present,
+                                safe_for_inference=True, districts_check=False):
+        nodes_to_marginalize_away = set(
+            itertools.chain.from_iterable((nodes_relevant_for_pp[i] for i in choice_of_nodes)))
+        if nodes_to_marginalize_away.issubset(choice_of_nodes):
+            if safe_for_inference:
+                coreQmDAG = self.labelled_multi_marginalize(
+                    nodes_to_marginalize_away,
+                    choice_of_nodes,
+                    new_directed_structure,
+                    new_C_simplicial_complex,
+                    new_Q_simplicial_complex,
+                    districts_check=districts_check)
+                coreQmDAG.Fritz_trick_has_been_applied_already = True
+                return coreQmDAG
+            else:
+                new_ds = LabelledDirectedStructure(choice_of_nodes, new_directed_structure)
+                to_nums = new_ds.translation_dict
+                pp_flat = list(itertools.chain.from_iterable((pprestrictions_if_present[i] for i in choice_of_nodes)))
+                pp_flat_numeric = tuple(((to_nums[i], tuple(partsextractor(to_nums, j))) for i, j in pp_flat))
+                coreQmDAG = QmDAG(
+                    new_ds,
+                    LabelledHypergraph(choice_of_nodes, new_C_simplicial_complex),
+                    LabelledHypergraph(choice_of_nodes, new_Q_simplicial_complex),
+                    pp_restrictions=pp_flat_numeric)
+                coreQmDAG.restricted_perfect_predictions = pp_flat
+                coreQmDAG.Fritz_trick_has_been_applied_already = True
+                return coreQmDAG
 
 
-
-
-
-    def apply_Fritz_trick_Gonzales_style(self, node_decomposition=True, safe_for_inference=True, districts_check=False):
-        new_directed_structure = [tuple(map(str, edge)) for edge in self.directed_structure_instance.edge_list]
-        new_C_simplicial_complex = set(frozenset(map(str, h)) for h in self.C_simplicial_complex_instance.simplicial_complex_as_sets)
-        new_Q_simplicial_complex = set(frozenset(map(str, h)) for h in self.Q_simplicial_complex_instance.simplicial_complex_as_sets)
-        new_node_names = list(map(str, self.visible_nodes))
-        allnode_name_variants = [{str(target)} for target in self.visible_nodes]
-        specialcases_dict = dict()
-        for target in self.visible_nodes:
-            str_target = str(target)
-            visible_parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, target]))
-            C_facets_with_target = set(
-                facet for facet in self.C_simplicial_complex_instance.simplicial_complex_as_sets if target in facet)
-            Q_facets_with_target = set(
-                facet for facet in self.Q_simplicial_complex_instance.simplicial_complex_as_sets if target in facet)
-            all_facets_with_target = C_facets_with_target.union(Q_facets_with_target)
-            specialcases_dict[str_target] = (visible_parents,
-                                             C_facets_with_target,
-                                             Q_facets_with_target,
-                                             all_facets_with_target,
-                                             set())
-
-        edges_removal_dictionaries_singletons = dict()
-        edges_removal_dictionaries_sets = dict()
-        edges_removal_dictionaries_sets_of_sets = dict()
-        for target in self.visible_nodes:
-            str_target = str(target)
-            (visible_parents,
-             C_facets_with_target,
-             Q_facets_with_target,
-             all_facets_with_target,
-             emptyset) = specialcases_dict[str_target]
-            # C_facets_with_target = hypergraph_canonicalize_with_deduplication(extended_C_facets_with_target)
-            # Q_facets_with_target = hypergraph_canonicalize_with_deduplication(raw_Q_facets_with_target)
-
-            visible_children = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[target, :]))
-            candidates_Yi = set().union(visible_parents, *C_facets_with_target, *Q_facets_with_target)
-
-            for Yi in candidates_Yi:
-                #         for common_cause_connected_set in self.as_mDAG.common_cause_connected_sets:
-                #             for visible_parent in set_of_visible_parents_to_keep:
-                #                 if visible_parent in common_cause_connected_set:
-                edges_removal_dictionary = {
-                    'vis_dropped': [v for v in visible_parents if not
-                                    any({v, Yi}.issubset(common_cause_connected_set) for common_cause_connected_set in self.as_mDAG.common_cause_connected_sets)],
-                    'c_facets_dropped': [facet for facet in C_facets_with_target if
-                                         Yi not in self.directed_structure_instance.adjMat.descendantsplus_of(list(facet))],
-                    'q_facets_dropped': [facet for facet in Q_facets_with_target if
-                                         Yi not in self.directed_structure_instance.adjMat.descendantsplus_of(list(facet))]}
-
-                edges_removal_dictionaries_singletons[(Yi, target)] = edges_removal_dictionary
-            collective_predicting_set = set()
-            for r in range(1, len(candidates_Yi)+1):
-                for collective_predicting in map(frozenset,itertools.combinations(candidates_Yi, r)):
-                    collective_predicting_set.add(collective_predicting)
-                    edges_removal_dictionary = dict()
-                    vis_dropped_sets = [edges_removal_dictionaries_singletons[(Yi, target)]['vis_dropped'] for Yi in collective_predicting]
-                    edges_removal_dictionary['vis_dropped'] = set().intersection(*vis_dropped_sets)
-                    c_facets_dropped_sets = [edges_removal_dictionaries_singletons[(Yi, target)]['c_facets_dropped'] for Yi in
-                                        collective_predicting]
-                    edges_removal_dictionary['c_facets_dropped'] = set().intersection(*c_facets_dropped_sets)
-                    q_facets_dropped_sets = [edges_removal_dictionaries_singletons[(Yi, target)]['q_facets_dropped'] for Yi in
-                                        collective_predicting]
-                    edges_removal_dictionary['q_facets_dropped'] = set().intersection(*q_facets_dropped_sets)
-                    edges_removal_dictionaries_sets[(collective_predicting, target)] = edges_removal_dictionary
-            independently_predicting_sets = set()
-            for r in range(1, len(collective_predicting_set)+1):
-                for independently_predicting in map(frozenset,itertools.combinations(collective_predicting_set, r)):
-                    independently_predicting_sets.add(independently_predicting)
-                    edges_removal_dictionary = dict()
-                    vis_dropped_sets = [edges_removal_dictionaries_sets[(collective_predicting, target)]['vis_dropped'] for collective_predicting in independently_predicting_sets]
-                    edges_removal_dictionary['vis_dropped'] = set().union(*vis_dropped_sets)
-                    c_facets_dropped_sets = [edges_removal_dictionaries_singletons[(collective_predicting, target)]['c_facets_dropped'] for collective_predicting in
-                                        independently_predicting]
-                    edges_removal_dictionary['c_facets_dropped'] = set().union(*c_facets_dropped_sets)
-                    q_facets_dropped_sets = [edges_removal_dictionaries_singletons[(collective_predicting, target)]['q_facets_dropped'] for collective_predicting in
-                                        independently_predicting]
-                    edges_removal_dictionary['q_facets_dropped'] = set().union(*q_facets_dropped_sets)
-                    edges_removal_dictionaries_sets[(independently_predicting, target)] = edges_removal_dictionary
-            for independently_predicting in independently_predicting_sets:
-                #TODO: Create a subvariable of the target, remove the edges to the subvariable as appropriate, add children to subvaraible.
-
-
-                                for (sub_target, Y_as_string_sets) in zip(sub_targets, Ys_as_string_sets):
-                                    specialcases_dict[sub_target] = (visible_parents_not_to_delete,
-                                                                    set_of_C_facets_not_to_delete,
-                                                                    set_of_Q_facets_to_delete,
-                                                                    set_of_all_facets_not_to_delete,
-                                                                    Y_as_string_sets)
-                                allnode_name_variants[target].update(sub_targets)
-                                new_node_names.extend(sub_targets)
-                                for facet in set_of_all_facets_not_to_delete:
-                                    new_cfacet = set(key
-                                                     for key, val in
-                                                     specialcases_dict.items() if
-                                                     facet in val[3])
-                                    new_cfacet.difference_update(sub_targets)
-                                    new_C_simplicial_complex.discard(frozenset(new_cfacet))
-                                    new_cfacet.update(sub_targets)
-                                    new_C_simplicial_complex.add(frozenset(new_cfacet))
-                                # for qfacet in raw_set_of_Q_facets_not_to_delete:
-                                #     new_qfacet = set(key
-                                #                      for key, val in
-                                #                      specialcases_dict.items() if
-                                #                      any(subqfacet.issuperset(qfacet) for
-                                #                          subqfacet in val[2]))
-                                #     new_qfacet.discard(sub_target)
-                                #     new_Q_simplicial_complex.discard(frozenset(new_qfacet))
-                                #     new_qfacet.add(sub_target)
-                                #     new_Q_simplicial_complex.add(frozenset(new_qfacet))
-                                for sub_target in sub_targets:
-                                    for p in visible_parents_not_to_delete:
-                                        for str_p in allnode_name_variants[p]:
-                                            new_directed_structure.append((str_p, sub_target))
-                                    for c in visible_children:
-                                        for str_c in allnode_name_variants[c]:
-                                            if target in specialcases_dict[str_c][0]:
-                                                new_directed_structure.append((sub_target, str_c))
-        new_C_simplicial_complex = hypergraph_full_cleanup(new_C_simplicial_complex)
-        new_Q_simplicial_complex = hypergraph_full_cleanup(new_Q_simplicial_complex)
-        core_nodes = tuple(map(str, self.visible_nodes))
-        if not node_decomposition:
-            for choice_of_nodes in itertools.product(*allnode_name_variants):
-                if not set(core_nodes).issuperset(choice_of_nodes):
-                    perfect_prediction_restrictions = {name:specialcases_dict[name][4] for name in choice_of_nodes if specialcases_dict[name][4]}
-                    nodes_to_marginalize_away = set(itertools.chain.from_iterable(perfect_prediction_restrictions.values()))
-                    if nodes_to_marginalize_away.issubset(choice_of_nodes):
-                        if safe_for_inference:
-                            yield self.labelled_multi_marginalize(
-                                                       nodes_to_marginalize_away,
-                                                       choice_of_nodes,
-                                                       new_directed_structure,
-                                                       new_C_simplicial_complex,
+    def apply_Fritz_trick(self, node_decomposition=True, safe_for_inference=True, districts_check=False, Sofia_extra=True):
+        if not self.Fritz_trick_has_been_applied_already:
+            print(self.as_string)
+            # print("Visible nodes are: ", self.visible_nodes)
+            print("0. Nodes are: ", self.visible_nodes)
+            expanded_edge_set = self.directed_structure_instance.as_set_of_tuples
+            print("1. Nodes are: ", set(itertools.chain.from_iterable(expanded_edge_set)))
+            #Note that we use the expanded classical simplicial complex to ensure common cause in node decomposition.
+            for i, children in zip(self.classical_latent_nodes, self.C_simplicial_complex_instance.extended_simplicial_complex_as_sets):
+                expanded_edge_set.update(zip(itertools.repeat(i), children))
+            print("2. Nodes are: ", set(itertools.chain.from_iterable(expanded_edge_set)))
+            for i, children in zip(self.quantum_latent_nodes, self.Q_simplicial_complex_instance.compressed_simplicial_complex):
+                expanded_edge_set.update(zip(itertools.repeat(i), children))
+            print("3. Nodes are: ", set(itertools.chain.from_iterable(expanded_edge_set)))
+            # num_quantum_nodes = self.Q_simplicial_complex_instance.number_of_nonsingleton_latent
+            num_effective_nodes = self.Q_simplicial_complex_instance.number_of_visible_plus_nonsingleton_latent\
+                                  + self.C_simplicial_complex_instance.number_of_visible_plus_latent\
+                                  - self.number_of_visible
+            # all_effective_nodes = set(itertools.chain.from_iterable(expanded_edge_set))
+            print("4. Nodes are: ", set(itertools.chain.from_iterable(expanded_edge_set)))
+            assert all(isinstance(v, int) for v in set(itertools.chain.from_iterable(expanded_edge_set))), 'Somehow we have a non integer node!'
+            effective_DAG = DirectedStructure(expanded_edge_set, num_effective_nodes)
+            # expanded_edge_set_of_tuples_of_strings = set([(str(i), str(j)) for (i,j) in expanded_edge_set])
+            #We will make as subvariables as classical-common-cause connected only, so all quantum facets must be duplicated.
+            #One for original vars, one for subvars.
+            # for i, children in zip(self.quantum_latent_nodes, self.Q_simplicial_complex_instance.compressed_simplicial_complex):
+            #     expanded_edge_set_of_tuples_of_strings.update(zip(itertools.repeat(str(i+num_quantum_nodes)), map(str,children)))
+            common_cause_connected_sets = maximal_sets_within(effective_DAG.adjMat.descendantsplus_list)
+            allnode_name_variants = dict()
+            pprestrictions_if_present = dict()
+            nodes_relevant_for_pp = dict()
+            for target in self.visible_nodes:
+                allnode_name_variants[target] = {target}
+                pprestrictions_if_present[target] = set()
+                nodes_relevant_for_pp[target] = set()
+                effective_target_parents = effective_DAG.adjMat.parents_of(target)
+                target_children = self.directed_structure_instance.adjMat.children_of(target)
+                candidates_Yi = self.latent_siblings_of(target).union(self.directed_structure_instance.adjMat.parents_of(target))
+                singleton_edge_removals = {Yi: frozenset([v for v in effective_target_parents if not
+                                        any({v, Yi}.issubset(common_cause_connected_set) for common_cause_connected_set in common_cause_connected_sets)])
+                                           for Yi in candidates_Yi}
+                collective_predicting_set_edge_removals = dict()
+                # collective_predicting_sets = set()
+                for r in range(1, len(candidates_Yi) + 1):
+                    for collective_predicting in map(frozenset, itertools.combinations(candidates_Yi, r)):
+                        individual_edge_set_removals = [singleton_edge_removals[Yi] for Yi in
+                                            collective_predicting]
+                        collective_edge_removals = frozenset.intersection(*individual_edge_set_removals)
+                        if len(collective_edge_removals)>=1:
+                            collective_predicting_set_edge_removals[collective_predicting] = collective_edge_removals
+                for (removed_edges, perfectly_predicting_sets) in invert_dict(collective_predicting_set_edge_removals).items():
+                    minimal_pp_sets = minimal_sets_within(perfectly_predicting_sets)
+                    for wasteful_pp_set in set(perfectly_predicting_sets).difference(minimal_pp_sets):
+                        del collective_predicting_set_edge_removals[wasteful_pp_set]
+                independently_predicting_set_edge_removals = dict()
+                # independently_predicting_sets = set()
+                collective_predicting_sets = collective_predicting_set_edge_removals.keys()
+                max_r = len(collective_predicting_sets) + 1
+                if not Sofia_extra:
+                    max_r = 2
+                for r in range(1, max_r):
+                    for independently_predicting in map(frozenset, itertools.combinations(collective_predicting_sets, r)):
+                        # independently_predicting_sets.add(independently_predicting)
+                        individual_edge_set_removals = [collective_predicting_set_edge_removals[collective_predicting] for collective_predicting in
+                                            independently_predicting]
+                        independently_predicting_set_edge_removals[independently_predicting] = frozenset.union(*individual_edge_set_removals)
+                for (removed_parents, perfectly_predicting_sets) in invert_dict(independently_predicting_set_edge_removals).items():
+                    minimal_pp_sets = minimal_sets_within(perfectly_predicting_sets)
+                    for wasteful_pp_set in set(perfectly_predicting_sets).difference(minimal_pp_sets):
+                        del independently_predicting_set_edge_removals[wasteful_pp_set]
+                # independently_predicting_sets = independently_predicting_set_edge_removals.keys()
+                for minimal_pp_set, removed_parents in independently_predicting_set_edge_removals.items():
+                    subtarget = str(target)+'_'+stringify_in_tuple(map(stringify_in_set, minimal_pp_set))
+                    allnode_name_variants[target].add(subtarget)
+                    pprestrictions_if_present[subtarget] = list(zip(itertools.repeat(subtarget), map(tuple, minimal_pp_set)))
+                    nodes_relevant_for_pp[subtarget] = tuple(set(itertools.chain.from_iterable(minimal_pp_set)))
+                    kept_parents = set(effective_target_parents).difference(removed_parents)
+                    for p in kept_parents:
+                        expanded_edge_set.add((p, subtarget))
+                    for c in target_children:
+                        expanded_edge_set.add((subtarget, c))
+            code_for_classical_latents = self.classical_latent_nodes + self.quantum_latent_nodes
+            new_nodes = set(itertools.chain.from_iterable(allnode_name_variants.values()))
+            new_directed_structure = [(i,j) for (i,j) in expanded_edge_set if i not in code_for_classical_latents]
+            new_C_simplicial_complex = [set([j for j in new_nodes if (i,j) in expanded_edge_set]) for i in code_for_classical_latents]
+            new_C_simplicial_complex = hypergraph_full_cleanup(new_C_simplicial_complex)
+            new_Q_simplicial_complex = self.Q_simplicial_complex_instance.compressed_simplicial_complex
+            if not node_decomposition:
+                for choice_of_nodes in itertools.product(*allnode_name_variants.values()):
+                    yield self._yield_from_Fritz_trick(choice_of_nodes,
+                                            new_directed_structure, new_C_simplicial_complex, new_Q_simplicial_complex,
+                                            nodes_relevant_for_pp, pprestrictions_if_present,
+                                                       safe_for_inference=safe_for_inference,
+                                                       districts_check=districts_check)
+            else:
+                bonus_node_variants = [name_variants.difference(self.visible_nodes) for name_variants in allnode_name_variants if
+                                       len(name_variants) >= 2]
+                bonus_node_variants = [name_variants.union({'-1'}) for name_variants in bonus_node_variants]
+                for bonus_nodes in itertools.product(*bonus_node_variants):
+                    actual_bonus_nodes = set(bonus_nodes).difference({'-1'})
+                    choice_of_nodes = tuple(self.visible_nodes) + tuple(actual_bonus_nodes)
+                    yield self._yield_from_Fritz_trick(choice_of_nodes,
+                                                       new_directed_structure, new_C_simplicial_complex,
                                                        new_Q_simplicial_complex,
-                                                        districts_check=districts_check)
-                        else:
-                            # print(allnode_name_variants, choice_of_nodes)
-                            coreQmDAG = QmDAG(
-                                LabelledDirectedStructure(choice_of_nodes, new_directed_structure),
-                                LabelledHypergraph(choice_of_nodes, new_C_simplicial_complex),
-                                LabelledHypergraph(choice_of_nodes, new_Q_simplicial_complex))
-                            coreQmDAG.restricted_perfect_predictions = perfect_prediction_restrictions
-                            tonums = coreQmDAG.directed_structure_instance.translation_dict
-                            # print(tonums)
-                            coreQmDAG.restricted_perfect_predictions_numeric = [
-                                (tonums[i], tuple(partsextractor(tonums, j))) for i,j in perfect_prediction_restrictions.items()]
-                            # print(coreQmDAG)
-                            yield coreQmDAG
-                            # for to_fix_to_PD in itertools.chain.from_iterable(
-                            #         itertools.combinations(choice_of_bonus_nodes, r) for r in range(1, self.number_of_visible-2)):
-                            #     remaining_nodes = set(choice_of_nodes).difference(to_fix_to_PD)
-                            #     if len(remaining_nodes)>=3:
-                            #         yield coreQmDAG.subgraph(remaining_nodes)
-        else:
-            bonus_node_variants = [name_variants.difference(core_nodes) for name_variants in allnode_name_variants if
-                                   len(name_variants) >= 2]
-            bonus_node_variants = [name_variants.union({'-1'}) for name_variants in bonus_node_variants]
-            # all_bonus_nodes = list(itertools.chain.from_iterable(bonus_node_variants))
-            for bonus_nodes in itertools.product(*bonus_node_variants):
-                actual_bonus_nodes = set(bonus_nodes).difference({'-1'})
-                new_nodes = tuple(core_nodes) + tuple(actual_bonus_nodes)
-                if len(actual_bonus_nodes) > 0:
-                    perfect_prediction_restrictions = {name: specialcases_dict[name][4] for name in actual_bonus_nodes if
-                                                       specialcases_dict[name][4]}
-                    if safe_for_inference:
-                        # nodes_to_marginalize_away = [specialcases_dict[name][4] for name in actual_bonus_nodes]
-                        nodes_to_marginalize_away = set(itertools.chain.from_iterable(perfect_prediction_restrictions.values()))
-                        yield self.labelled_multi_marginalize(
-                            nodes_to_marginalize_away,
-                            new_nodes,
-                            new_directed_structure,
-                            new_C_simplicial_complex,
-                            new_Q_simplicial_complex,
-                            districts_check=districts_check)
-                    else:
-                        postFritz_QmDAG = QmDAG(
-                            LabelledDirectedStructure(new_nodes, new_directed_structure),
-                            LabelledHypergraph(new_nodes, new_C_simplicial_complex),
-                            LabelledHypergraph(new_nodes, new_Q_simplicial_complex))
-                        postFritz_QmDAG.restricted_perfect_predictions = perfect_prediction_restrictions
-                        tonums = postFritz_QmDAG.directed_structure_instance.translation_dict
-                        restricted_perfect_predictions_numeric = [
-                            (tonums[i], tuple(partsextractor(tonums, j))) for i,j in perfect_prediction_restrictions.items()]
-                        yield QmDAG(
-                            LabelledDirectedStructure(new_nodes, new_directed_structure),
-                            LabelledHypergraph(new_nodes, new_C_simplicial_complex),
-                            LabelledHypergraph(new_nodes, new_Q_simplicial_complex),
-                            pp_restrictions=restricted_perfect_predictions_numeric)
+                                                       nodes_relevant_for_pp, pprestrictions_if_present,
+                                                       safe_for_inference=safe_for_inference,
+                                                       districts_check=districts_check)
 
-    def apply_Fritz_trick(self, node_decomposition=True, safe_for_inference=True, districts_check=False):
+
+
+
+    # def apply_Fritz_trick_Gonzales_style(self, node_decomposition=True, safe_for_inference=True, districts_check=False):
+    #     new_directed_structure = [tuple(map(str, edge)) for edge in self.directed_structure_instance.edge_list]
+    #     new_C_simplicial_complex = set(frozenset(map(str, h)) for h in self.C_simplicial_complex_instance.simplicial_complex_as_sets)
+    #     new_Q_simplicial_complex = set(frozenset(map(str, h)) for h in self.Q_simplicial_complex_instance.simplicial_complex_as_sets)
+    #     new_node_names = list(map(str, self.visible_nodes))
+    #     allnode_name_variants = [{str(target)} for target in self.visible_nodes]
+    #     specialcases_dict = dict()
+    #     for target in self.visible_nodes:
+    #         str_target = str(target)
+    #         visible_parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, target]))
+    #         C_facets_with_target = set(
+    #             facet for facet in self.C_simplicial_complex_instance.simplicial_complex_as_sets if target in facet)
+    #         Q_facets_with_target = set(
+    #             facet for facet in self.Q_simplicial_complex_instance.simplicial_complex_as_sets if target in facet)
+    #         all_facets_with_target = C_facets_with_target.union(Q_facets_with_target)
+    #         specialcases_dict[str_target] = (visible_parents,
+    #                                          C_facets_with_target,
+    #                                          Q_facets_with_target,
+    #                                          all_facets_with_target,
+    #                                          set())
+    #
+    #     edges_removal_dictionaries_singletons = dict()
+    #     edges_removal_dictionaries_sets = dict()
+    #     edges_removal_dictionaries_sets_of_sets = dict()
+    #     for target in self.visible_nodes:
+    #         str_target = str(target)
+    #         (visible_parents,
+    #          C_facets_with_target,
+    #          Q_facets_with_target,
+    #          all_facets_with_target,
+    #          emptyset) = specialcases_dict[str_target]
+    #         # C_facets_with_target = hypergraph_canonicalize_with_deduplication(extended_C_facets_with_target)
+    #         # Q_facets_with_target = hypergraph_canonicalize_with_deduplication(raw_Q_facets_with_target)
+    #
+    #         visible_children = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[target, :]))
+    #         candidates_Yi = set().union(visible_parents, *C_facets_with_target, *Q_facets_with_target)
+    #
+    #         for Yi in candidates_Yi:
+    #             #         for common_cause_connected_set in self.as_mDAG.common_cause_connected_sets:
+    #             #             for visible_parent in set_of_visible_parents_to_keep:
+    #             #                 if visible_parent in common_cause_connected_set:
+    #             edges_removal_dictionary = {
+    #                 'vis_dropped': [v for v in visible_parents if not
+    #                                 any({v, Yi}.issubset(common_cause_connected_set) for common_cause_connected_set in self.as_mDAG.common_cause_connected_sets)],
+    #                 'c_facets_dropped': [facet for facet in C_facets_with_target if
+    #                                      Yi not in self.directed_structure_instance.adjMat.descendantsplus_of(list(facet))],
+    #                 'q_facets_dropped': [facet for facet in Q_facets_with_target if
+    #                                      Yi not in self.directed_structure_instance.adjMat.descendantsplus_of(list(facet))]}
+    #
+    #             edges_removal_dictionaries_singletons[(Yi, target)] = edges_removal_dictionary
+    #         collective_predicting_set = set()
+    #         for r in range(1, len(candidates_Yi)+1):
+    #             for collective_predicting in map(frozenset,itertools.combinations(candidates_Yi, r)):
+    #                 collective_predicting_set.add(collective_predicting)
+    #                 edges_removal_dictionary = dict()
+    #                 vis_dropped_sets = [edges_removal_dictionaries_singletons[(Yi, target)]['vis_dropped'] for Yi in collective_predicting]
+    #                 edges_removal_dictionary['vis_dropped'] = set().intersection(*vis_dropped_sets)
+    #                 c_facets_dropped_sets = [edges_removal_dictionaries_singletons[(Yi, target)]['c_facets_dropped'] for Yi in
+    #                                     collective_predicting]
+    #                 edges_removal_dictionary['c_facets_dropped'] = set().intersection(*c_facets_dropped_sets)
+    #                 q_facets_dropped_sets = [edges_removal_dictionaries_singletons[(Yi, target)]['q_facets_dropped'] for Yi in
+    #                                     collective_predicting]
+    #                 edges_removal_dictionary['q_facets_dropped'] = set().intersection(*q_facets_dropped_sets)
+    #                 edges_removal_dictionaries_sets[(collective_predicting, target)] = edges_removal_dictionary
+    #         independently_predicting_sets = set()
+    #         for r in range(1, len(collective_predicting_set)+1):
+    #             for independently_predicting in map(frozenset,itertools.combinations(collective_predicting_set, r)):
+    #                 independently_predicting_sets.add(independently_predicting)
+    #                 edges_removal_dictionary = dict()
+    #                 vis_dropped_sets = [edges_removal_dictionaries_sets[(collective_predicting, target)]['vis_dropped'] for collective_predicting in independently_predicting_sets]
+    #                 edges_removal_dictionary['vis_dropped'] = set().union(*vis_dropped_sets)
+    #                 c_facets_dropped_sets = [edges_removal_dictionaries_singletons[(collective_predicting, target)]['c_facets_dropped'] for collective_predicting in
+    #                                     independently_predicting]
+    #                 edges_removal_dictionary['c_facets_dropped'] = set().union(*c_facets_dropped_sets)
+    #                 q_facets_dropped_sets = [edges_removal_dictionaries_singletons[(collective_predicting, target)]['q_facets_dropped'] for collective_predicting in
+    #                                     independently_predicting]
+    #                 edges_removal_dictionary['q_facets_dropped'] = set().union(*q_facets_dropped_sets)
+    #                 edges_removal_dictionaries_sets[(independently_predicting, target)] = edges_removal_dictionary
+    #         for independently_predicting in independently_predicting_sets:
+    #             #TODO: Create a subvariable of the target, remove the edges to the subvariable as appropriate, add children to subvaraible.
+    #
+
+    def apply_Fritz_trick_OLD(self, node_decomposition=True, safe_for_inference=True, districts_check=False):
         new_directed_structure = [tuple(map(str, edge)) for edge in self.directed_structure_instance.edge_list]
         new_C_simplicial_complex = set(frozenset(map(str, h)) for h in self.C_simplicial_complex_instance.simplicial_complex_as_sets)
         new_Q_simplicial_complex = set(frozenset(map(str, h)) for h in self.Q_simplicial_complex_instance.simplicial_complex_as_sets)
