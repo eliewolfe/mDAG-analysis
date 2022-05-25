@@ -552,24 +552,21 @@ class QmDAG:
 
     def apply_Fritz_trick(self, node_decomposition=True, safe_for_inference=True, districts_check=False, Sofia_extra=True):
         if not self.Fritz_trick_has_been_applied_already:
-            print(self.as_string)
+            # print(self.as_string)
             # print("Visible nodes are: ", self.visible_nodes)
-            print("0. Nodes are: ", self.visible_nodes)
-            expanded_edge_set = self.directed_structure_instance.as_set_of_tuples
-            print("1. Nodes are: ", set(itertools.chain.from_iterable(expanded_edge_set)))
+            # print("0. Nodes are: ", self.visible_nodes)
+            expanded_edge_set = self.directed_structure_instance.as_set_of_tuples.copy()
+            # print("1. Nodes are: ", set(itertools.chain.from_iterable(expanded_edge_set)))
             #Note that we use the expanded classical simplicial complex to ensure common cause in node decomposition.
             for i, children in zip(self.classical_latent_nodes, self.C_simplicial_complex_instance.extended_simplicial_complex_as_sets):
                 expanded_edge_set.update(zip(itertools.repeat(i), children))
-            print("2. Nodes are: ", set(itertools.chain.from_iterable(expanded_edge_set)))
+            # print("2. Nodes are: ", set(itertools.chain.from_iterable(expanded_edge_set)))
             for i, children in zip(self.quantum_latent_nodes, self.Q_simplicial_complex_instance.compressed_simplicial_complex):
                 expanded_edge_set.update(zip(itertools.repeat(i), children))
-            print("3. Nodes are: ", set(itertools.chain.from_iterable(expanded_edge_set)))
             # num_quantum_nodes = self.Q_simplicial_complex_instance.number_of_nonsingleton_latent
             num_effective_nodes = self.Q_simplicial_complex_instance.number_of_visible_plus_nonsingleton_latent\
                                   + self.C_simplicial_complex_instance.number_of_visible_plus_latent\
                                   - self.number_of_visible
-            # all_effective_nodes = set(itertools.chain.from_iterable(expanded_edge_set))
-            print("4. Nodes are: ", set(itertools.chain.from_iterable(expanded_edge_set)))
             assert all(isinstance(v, int) for v in set(itertools.chain.from_iterable(expanded_edge_set))), 'Somehow we have a non integer node!'
             effective_DAG = DirectedStructure(expanded_edge_set, num_effective_nodes)
             # expanded_edge_set_of_tuples_of_strings = set([(str(i), str(j)) for (i,j) in expanded_edge_set])
@@ -634,29 +631,39 @@ class QmDAG:
             code_for_classical_latents = self.classical_latent_nodes + self.quantum_latent_nodes
             new_nodes = set(itertools.chain.from_iterable(allnode_name_variants.values()))
             new_directed_structure = [(i,j) for (i,j) in expanded_edge_set if i not in code_for_classical_latents]
+            # print("New ds: ", new_directed_structure)
             new_C_simplicial_complex = [set([j for j in new_nodes if (i,j) in expanded_edge_set]) for i in code_for_classical_latents]
             new_C_simplicial_complex = hypergraph_full_cleanup(new_C_simplicial_complex)
-            new_Q_simplicial_complex = self.Q_simplicial_complex_instance.compressed_simplicial_complex
+            # print("New sc: ", new_C_simplicial_complex)
+            new_Q_simplicial_complex = self.Q_simplicial_complex_instance.compressed_simplicial_complex.copy()
+            # print("New qsc: ", new_Q_simplicial_complex)
             if not node_decomposition:
                 for choice_of_nodes in itertools.product(*allnode_name_variants.values()):
-                    yield self._yield_from_Fritz_trick(choice_of_nodes,
-                                            new_directed_structure, new_C_simplicial_complex, new_Q_simplicial_complex,
-                                            nodes_relevant_for_pp, pprestrictions_if_present,
-                                                       safe_for_inference=safe_for_inference,
-                                                       districts_check=districts_check)
+                    # print("Chosen nodes to explore:", choice_of_nodes)
+                    nodes_to_marginalize_away = set(
+                        itertools.chain.from_iterable((nodes_relevant_for_pp[i] for i in choice_of_nodes)))
+                    if nodes_to_marginalize_away.issubset(choice_of_nodes):
+                        yield self._yield_from_Fritz_trick(choice_of_nodes,
+                                                new_directed_structure, new_C_simplicial_complex, new_Q_simplicial_complex,
+                                                nodes_relevant_for_pp, pprestrictions_if_present,
+                                                           safe_for_inference=safe_for_inference,
+                                                           districts_check=districts_check)
             else:
-                bonus_node_variants = [name_variants.difference(self.visible_nodes) for name_variants in allnode_name_variants if
+                bonus_node_variants = [name_variants.difference(self.visible_nodes) for name_variants in allnode_name_variants.values() if
                                        len(name_variants) >= 2]
                 bonus_node_variants = [name_variants.union({'-1'}) for name_variants in bonus_node_variants]
                 for bonus_nodes in itertools.product(*bonus_node_variants):
                     actual_bonus_nodes = set(bonus_nodes).difference({'-1'})
                     choice_of_nodes = tuple(self.visible_nodes) + tuple(actual_bonus_nodes)
-                    yield self._yield_from_Fritz_trick(choice_of_nodes,
-                                                       new_directed_structure, new_C_simplicial_complex,
-                                                       new_Q_simplicial_complex,
-                                                       nodes_relevant_for_pp, pprestrictions_if_present,
-                                                       safe_for_inference=safe_for_inference,
-                                                       districts_check=districts_check)
+                    nodes_to_marginalize_away = set(
+                        itertools.chain.from_iterable((nodes_relevant_for_pp[i] for i in choice_of_nodes)))
+                    if nodes_to_marginalize_away.issubset(choice_of_nodes):
+                        yield self._yield_from_Fritz_trick(choice_of_nodes,
+                                                           new_directed_structure, new_C_simplicial_complex,
+                                                           new_Q_simplicial_complex,
+                                                           nodes_relevant_for_pp, pprestrictions_if_present,
+                                                           safe_for_inference=safe_for_inference,
+                                                           districts_check=districts_check)
 
 
 
