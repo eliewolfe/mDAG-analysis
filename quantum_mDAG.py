@@ -639,15 +639,16 @@ class QmDAG:
             # print("New qsc: ", new_Q_simplicial_complex)
             if not node_decomposition:
                 for choice_of_nodes in itertools.product(*allnode_name_variants.values()):
-                    # print("Chosen nodes to explore:", choice_of_nodes)
-                    nodes_to_marginalize_away = set(
-                        itertools.chain.from_iterable((nodes_relevant_for_pp[i] for i in choice_of_nodes)))
-                    if nodes_to_marginalize_away.issubset(choice_of_nodes):
-                        yield self._yield_from_Fritz_trick(choice_of_nodes,
-                                                new_directed_structure, new_C_simplicial_complex, new_Q_simplicial_complex,
-                                                nodes_relevant_for_pp, pprestrictions_if_present,
-                                                           safe_for_inference=safe_for_inference,
-                                                           districts_check=districts_check)
+                    if not set(choice_of_nodes).issubset(self.visible_nodes):
+                        # print("Chosen nodes to explore:", choice_of_nodes)
+                        nodes_to_marginalize_away = set(
+                            itertools.chain.from_iterable((nodes_relevant_for_pp[i] for i in choice_of_nodes)))
+                        if nodes_to_marginalize_away.issubset(choice_of_nodes):
+                            yield self._yield_from_Fritz_trick(choice_of_nodes,
+                                                    new_directed_structure, new_C_simplicial_complex, new_Q_simplicial_complex,
+                                                    nodes_relevant_for_pp, pprestrictions_if_present,
+                                                               safe_for_inference=safe_for_inference,
+                                                               districts_check=districts_check)
             else:
                 bonus_node_variants = [name_variants.difference(self.visible_nodes) for name_variants in allnode_name_variants.values() if
                                        len(name_variants) >= 2]
@@ -869,7 +870,12 @@ class Unlabelled_QmDAG(QmDAG):
     def __eq__(self, other):
         return self.unique_id == other.unique_unlabelled_id
 
-if __name__ == '__main__': 
+if __name__ == '__main__':
+    Q1=QmDAG(DirectedStructure([(0,1),(1,2),(2,3)], 4), Hypergraph([(0,1),(0,2),(0,3),(1,2,3)], 4), Hypergraph([], 4))
+    post_Fritz_set = list(
+        Q1.apply_Fritz_trick(node_decomposition=False, districts_check=True, safe_for_inference=True))
+    print(post_Fritz_set)
+    print([post_Fritz_qmDAG.number_of_visible for post_Fritz_qmDAG in post_Fritz_set])
     # boring_QmDAG = QmDAG(
     #     DirectedStructure([(0,1), (1,2), (1,3), (2,3)],4),
     #     Hypergraph([], 4),
