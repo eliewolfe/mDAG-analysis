@@ -256,6 +256,17 @@ if __name__ == '__main__':
     from hypergraphs import LabelledHypergraph, Hypergraph
     from directed_structures import LabelledDirectedStructure, DirectedStructure
 
+    # MarinaTest = mDAG(directed_structure_instance=DirectedStructure([], 4),
+    #                   simplicial_complex_instance=Hypergraph([], 4))
+    # st_instance = MarinaTest.support_testing_instance_binary(2)
+    # result = st_instance.feasibleQ_from_tuple((0, 14))
+    # # print("Result:", result)
+    # # print("Result:", result[0])
+    # print(st_instance.feasibleQ_from_tuple((0, 14)))
+    # print(st_instance.feasibleQ_from_integer(14))
+    # print(st_instance.feasibleQ_from_matrix(np.array([[0,0,0,0],[1,1,1,1]])))
+    # print(st_instance.no_infeasible_supports())
+    #
     print(does_this_dsep_rule_out_this_support([1,2], [0], np.asarray([[0,0,0,0],[0,1,1,0]])))
     print(does_this_dsep_rule_out_this_support([0,3], [1,2], np.asarray([[0, 0, 0, 0], [1, 1, 1, 1]])))
 
