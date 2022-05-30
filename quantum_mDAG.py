@@ -578,11 +578,15 @@ class QmDAG:
             allnode_name_variants = dict()
             pprestrictions_if_present = dict()
             nodes_relevant_for_pp = dict()
+            kept_parents_dict = dict()
             for target in self.visible_nodes:
                 allnode_name_variants[target] = {target}
                 pprestrictions_if_present[target] = set()
                 nodes_relevant_for_pp[target] = set()
                 effective_target_parents = effective_DAG.adjMat.parents_of(target)
+                kept_parents_dict[target] = effective_target_parents
+            for target in self.visible_nodes:
+                effective_target_parents = kept_parents_dict[target]
                 target_children = self.directed_structure_instance.adjMat.children_of(target)
                 candidates_Yi = self.latent_siblings_of(target).union(self.directed_structure_instance.adjMat.parents_of(target))
                 singleton_edge_removals = {Yi: frozenset([v for v in effective_target_parents if not
@@ -624,10 +628,20 @@ class QmDAG:
                     pprestrictions_if_present[subtarget] = list(zip(itertools.repeat(subtarget), map(tuple, minimal_pp_set)))
                     nodes_relevant_for_pp[subtarget] = tuple(set(itertools.chain.from_iterable(minimal_pp_set)))
                     kept_parents = set(effective_target_parents).difference(removed_parents)
+                    kept_parents_dict[subtarget] = kept_parents
                     for p in kept_parents:
-                        expanded_edge_set.add((p, subtarget))
+                        if p in self.visible_nodes:
+                            for p_variant in allnode_name_variants[p]:
+                                expanded_edge_set.add((p_variant, subtarget))
+                        else:
+                            expanded_edge_set.add((p, subtarget))
                     for c in target_children:
-                        expanded_edge_set.add((subtarget, c))
+                        if c in self.visible_nodes:
+                            for c_variant in allnode_name_variants[c]:
+                                if target in kept_parents_dict[c_variant]:
+                                    expanded_edge_set.add((subtarget, c_variant))
+                        else:
+                            expanded_edge_set.add((subtarget, c))
             code_for_classical_latents = self.classical_latent_nodes + self.quantum_latent_nodes
             new_nodes = set(itertools.chain.from_iterable(allnode_name_variants.values()))
             new_directed_structure = [(i,j) for (i,j) in expanded_edge_set if i not in code_for_classical_latents]
@@ -639,15 +653,16 @@ class QmDAG:
             # print("New qsc: ", new_Q_simplicial_complex)
             if not node_decomposition:
                 for choice_of_nodes in itertools.product(*allnode_name_variants.values()):
-                    # print("Chosen nodes to explore:", choice_of_nodes)
-                    nodes_to_marginalize_away = set(
-                        itertools.chain.from_iterable((nodes_relevant_for_pp[i] for i in choice_of_nodes)))
-                    if nodes_to_marginalize_away.issubset(choice_of_nodes):
-                        yield self._yield_from_Fritz_trick(choice_of_nodes,
-                                                new_directed_structure, new_C_simplicial_complex, new_Q_simplicial_complex,
-                                                nodes_relevant_for_pp, pprestrictions_if_present,
-                                                           safe_for_inference=safe_for_inference,
-                                                           districts_check=districts_check)
+                    if not set(choice_of_nodes).issubset(self.visible_nodes):
+                        # print("Chosen nodes to explore:", choice_of_nodes)
+                        nodes_to_marginalize_away = set(
+                            itertools.chain.from_iterable((nodes_relevant_for_pp[i] for i in choice_of_nodes)))
+                        if nodes_to_marginalize_away.issubset(choice_of_nodes):
+                            yield self._yield_from_Fritz_trick(choice_of_nodes,
+                                                    new_directed_structure, new_C_simplicial_complex, new_Q_simplicial_complex,
+                                                    nodes_relevant_for_pp, pprestrictions_if_present,
+                                                               safe_for_inference=safe_for_inference,
+                                                               districts_check=districts_check)
             else:
                 bonus_node_variants = [name_variants.difference(self.visible_nodes) for name_variants in allnode_name_variants.values() if
                                        len(name_variants) >= 2]
@@ -859,17 +874,28 @@ class QmDAG:
                     
     def unique_unlabelled_ids_obtainable_by_Fritz_for_IC(self, **kwargs):
         return set(self._unique_unlabelled_ids_obtainable_by_Fritz_for_IC(**kwargs))
+
+    def to_unlablled(self):
+        def __hash__(self):
+            return self.unique_unlabelled_id
+        def __eq__(self, other):
+            return self.unique_id == other.unique_unlabelled_id
     
 
 class Unlabelled_QmDAG(QmDAG):
-    def __init__(self, directed_structure_instance, C_simplicial_complex_instance, Q_simplicial_complex_instance):
-        super().__init__(directed_structure_instance, C_simplicial_complex_instance, Q_simplicial_complex_instance)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
     def __hash__(self):
         return self.unique_unlabelled_id
     def __eq__(self, other):
         return self.unique_id == other.unique_unlabelled_id
 
-if __name__ == '__main__': 
+if __name__ == '__main__':
+    Q1=QmDAG(DirectedStructure([(0,1),(1,2),(2,3)], 4), Hypergraph([(0,1),(0,2),(0,3),(1,2,3)], 4), Hypergraph([], 4))
+    post_Fritz_set = list(
+        Q1.apply_Fritz_trick(node_decomposition=False, districts_check=True, safe_for_inference=True))
+    print(post_Fritz_set)
+    print([post_Fritz_qmDAG.number_of_visible for post_Fritz_qmDAG in post_Fritz_set])
     # boring_QmDAG = QmDAG(
     #     DirectedStructure([(0,1), (1,2), (1,3), (2,3)],4),
     #     Hypergraph([], 4),
