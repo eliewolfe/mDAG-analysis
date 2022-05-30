@@ -144,9 +144,9 @@ class SupportTester(object):
 
     def feasibleQ_from_matrix(self, occurring_events, **kwargs):
         with Solver(bootstrap_with=self._sat_solver_clauses(occurring_events), **kwargs) as s:
-            result = s.solve()
-            assert isinstance(result, bool), 'SAT solver not returning True/False'
-            return result
+            return s.solve()
+            # assert isinstance(result, bool), 'SAT solver not returning True/False'
+            # return result
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def feasibleQ_from_tuple(self, occurring_events_as_tuple, **kwargs):
@@ -395,10 +395,10 @@ class SupportTesting(SupportTester):
                                                                             verbose=verbose,
                                                                             message='Finding an infeasible support')):
             # print("Scanning tuple:", occurring_events_as_tuple)
-            result = self.feasibleQ_from_tuple(occurring_events_as_tuple)
-            if not isinstance(result, bool):
-                result = result[0]
-            if not result:
+            # result = self.feasibleQ_from_tuple(occurring_events_as_tuple)
+            # if not isinstance(result, bool):
+            #     result = result[0]
+            if not self.feasibleQ_from_tuple(occurring_events_as_tuple):
                 return self.from_list_to_matrix(occurring_events_as_tuple)
         return np.empty((0, self.nof_observed), dtype=int)
 
