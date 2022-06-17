@@ -54,13 +54,16 @@ def does_this_dsep_rule_out_this_support(ab, C, s):
     if len(C):
         s_resorted = s[np.lexsort(s[:, C].T)]
         partitioned = [np.vstack(tuple(g)) for k, g in itertools.groupby(s_resorted, lambda e: tuple(e.take(C)))]
-        conditioning_sizes = range(1, min(len(partitioned)+1, 2 ** len(C)))
-        for r in conditioning_sizes:
-            for partition_index in itertools.combinations(partitioned, r):
-                submat = np.vstack(tuple(partition_index))
-                if not product_support_test(submat[:, ab]):
-                    # print((submat[:, C], submat[:, ab]))
-                    return True
+        # conditioning_sizes = range(1, min(len(partitioned)+1, 2 ** len(C)))
+        # for r in conditioning_sizes:
+        #     for partition_index in itertools.combinations(partitioned, r):
+        #         submat = np.vstack(tuple(partition_index))
+        #         if not product_support_test(submat[:, ab]):
+        #             # print((submat[:, C], submat[:, ab]))
+        #             return True
+        for submat in partitioned:
+            if not product_support_test(submat[:, ab]):
+                return True
         return False
     else:
         return not product_support_test(s[:, ab])
