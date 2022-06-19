@@ -374,11 +374,11 @@ class QmDAG:
             facets_to_kill = set()
             for facet in new_Q_simplicial_complex_instance_as_sets:
                 if node in facet:
-                    sub_qfacet = facet.difference({node})
+                    sub_qfacet = frozenset(facet).difference({node})
                     facets_to_expand_by_teleportation.add(sub_qfacet)
                     classical_marginalized_facet = sub_qfacet.union(visible_children)
                     teleportable_children.update(sub_qfacet.intersection(visible_children))
-                    facets_to_kill = new_Q_simplicial_complex_instance_as_sets.add(facet)
+                    facets_to_kill.add(facet)
                     new_C_simplicial_complex_instance_as_sets.add(classical_marginalized_facet)
             new_Q_simplicial_complex_instance_as_sets.difference_update(facets_to_kill)
             for facet in facets_to_expand_by_teleportation:

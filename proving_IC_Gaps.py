@@ -8,7 +8,7 @@ from metagraph_advanced import Observable_mDAGs_Analysis
 
 # if __name__ == '__main__':
 Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
-mDAGs4_representatives = Observable_mDAGs4.representative_mDAGs_not_necessarily_foundational
+mDAGs4_representatives = Observable_mDAGs4.representative_mDAGs_list
 QmDAGs4_representatives = list(map(as_classical_QmDAG, mDAGs4_representatives))
 QmDAGs4_classes = [set(map(as_classical_QmDAG, eqclass)) for eqclass in Observable_mDAGs4.foundational_eqclasses]
 #Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
