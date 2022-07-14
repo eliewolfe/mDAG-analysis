@@ -321,6 +321,8 @@ class mDAG:
 
     def infeasible_binary_supports_beyond_esep_as_matrices_up_to(self, max_n, **kwargs):
         return list(itertools.chain.from_iterable((self.infeasible_binary_supports_n_events_beyond_esep_as_matrices(n, **kwargs).astype(int) for n in range(2, max_n + 1))))
+    def infeasible_binary_supports_beyond_dsep_as_matrices_up_to(self, max_n, **kwargs):
+        return list(itertools.chain.from_iterable((self.infeasible_binary_supports_n_events_beyond_dsep_as_matrices(n, **kwargs).astype(int) for n in range(2, max_n + 1))))
     def infeasible_binary_supports_as_matrices_up_to(self, max_n, **kwargs):
         return list(itertools.chain.from_iterable((self.infeasible_binary_supports_n_events(n, **kwargs).astype(int) for n in range(2, max_n + 1))))
 

@@ -54,13 +54,6 @@ def does_this_dsep_rule_out_this_support(ab, C, s):
     if len(C):
         s_resorted = s[np.lexsort(s[:, C].T)]
         partitioned = [np.vstack(tuple(g)) for k, g in itertools.groupby(s_resorted, lambda e: tuple(e.take(C)))]
-        # conditioning_sizes = range(1, min(len(partitioned)+1, 2 ** len(C)))
-        # for r in conditioning_sizes:
-        #     for partition_index in itertools.combinations(partitioned, r):
-        #         submat = np.vstack(tuple(partition_index))
-        #         if not product_support_test(submat[:, ab]):
-        #             # print((submat[:, C], submat[:, ab]))
-        #             return True
         for submat in partitioned:
             if not product_support_test(submat[:, ab]):
                 return True
@@ -86,13 +79,6 @@ class SmartSupportTesting(SupportTesting):
         self.esep_relations = tuple(esep_relations)
         self.dsep_relations = tuple(((ab, C) for (ab, C, D) in self.esep_relations if len(D)==0))
         self.must_perfectpredict = pp_relations
-        # self.unique_candidate_supports_as_integers = np.asarray(
-        #     super().unique_candidate_supports_as_integers, dtype=np.intp)[
-        #     self._infeasible_support_respects_restrictions]
-        # self.unique_candidate_supports_as_lists = np.asarray(
-        #     super().unique_candidate_supports_as_lists, dtype=np.intp)[
-        #     self._infeasible_support_respects_restrictions]
-        # print("Candidate supports:", self.from_list_to_matrix(self.unique_candidate_supports))
 
 
     def infeasible_support_Q_due_to_esep_from_matrix(self, candidate_s):
@@ -101,9 +87,6 @@ class SmartSupportTesting(SupportTesting):
     def infeasible_support_Q_due_to_dsep_from_matrix(self, candidate_s):
         return any(does_this_dsep_rule_out_this_support(*map(list,d_sep), candidate_s) for d_sep in self.dsep_relations)
 
-    # def support_respects_perfect_prediction_restrictions(self, candidate_s):
-    #     return all(does_this_support_respect_this_pp_restriction(
-    #         *pp_restriction, candidate_s) for pp_restriction in self.must_perfectpredict)
 
     #REDEFINITION!
     def feasibleQ_from_matrix(self, occurring_events, **kwargs):
@@ -164,16 +147,6 @@ class SmartSupportTesting(SupportTesting):
         return np.asarray(self.unique_candidate_supports_as_lists, dtype=np.intp)[
             np.logical_not(self._infeasible_support_due_to_dsep_picklist)]
 
-    # def smart_unique_candidate_supports_to_iterate(self, verbose=False):
-    #     if verbose:
-    #         return progressbar.progressbar(
-    #                     self.unique_candidate_supports_not_infeasible_due_to_esep_as_integers, widgets=[
-    #                         '[nof_events=', str(self.nof_events), '] '
-    #                         , progressbar.SimpleProgress(), progressbar.Bar()
-    #                         , ' (', progressbar.ETA(), ') '])
-    #     else:
-    #         return self.unique_candidate_supports_not_infeasible_due_to_esep_as_integers
-
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_beyond_esep_as_integers(self, **kwargs):
@@ -211,22 +184,12 @@ class SmartSupportTesting(SupportTesting):
         :param kwargs: optional arguments to pysat.Solver
         CHANGED: Now returns each infeasible support as a single integer.
         """
-        # new_method = np.sort(np.hstack((self.unique_infeasible_supports_beyond_esep_as_integers(**kwargs),
-        #                   self.infeasible_supports_due_to_esep_as_integers)))
-        # old_method = np.fromiter((occuring_events_as_int for occuring_events_as_int in self.unique_candidate_supports_as_integers if
-        #      not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)[0]), dtype=int)
-        # assert np.array_equal(new_method, old_method), "We have a problem!"
-        # return new_method
         return np.sort(np.hstack((self.unique_infeasible_supports_beyond_esep_as_integers(**kwargs),
                           self.infeasible_supports_due_to_esep_as_integers)))
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_as_matrices(self, **kwargs):
         return self.from_integer_to_matrix(self.unique_infeasible_supports_as_integers(**kwargs))
-
-    # def unique_infeasible_supports_as_integers_unlabelled(self, **kwargs):
-    #     return self.convert_integers_into_canonical_under_relabelling(
-    #         self.unique_infeasible_supports_as_integers(**kwargs))
 
 
     def attempt_to_find_one_infeasible_support_beyond_dsep(self, **kwargs):
@@ -237,15 +200,11 @@ class SmartSupportTesting(SupportTesting):
     @methodtools.lru_cache(maxsize=None, typed=False)
     def no_infeasible_supports_beyond_esep(self, **kwargs):
         return self.no_infeasible_supports_among(self.unique_candidate_supports_not_infeasible_due_to_esep_as_lists, **kwargs)
-        # return all(self.feasibleQ_from_integer(occurring_events_as_int, **kwargs) for occurring_events_as_int in
-        #            self.unique_candidate_supports_not_infeasible_due_to_esep_as_integers)
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def no_infeasible_supports_beyond_dsep(self, **kwargs):
         return self.no_infeasible_supports_among(self.unique_candidate_supports_not_infeasible_due_to_dsep_as_lists,
                                                  **kwargs)
-        # return all(self.feasibleQ_from_integer(occurring_events_as_int, **kwargs) for occurring_events_as_int in
-        #            self.unique_candidate_supports_not_infeasible_due_to_dsep_as_integers)
 
     @cached_property
     def interesting_due_to_esep(self):
