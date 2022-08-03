@@ -293,6 +293,23 @@ class Observable_unlabelled_mDAGs:
         return self.smart_representatives(self.latent_free_eqclasses, 'relative_complexity_for_sat_solver')
 
     @cached_property
+    def NOT_latent_free_eqclasses_picklist(self):
+        return [not any(mDAG.latent_free_graphQ for mDAG in eqclass) for eqclass in self.equivalence_classes_as_mDAGs]
+
+    @cached_property
+    def NOT_latent_free_eqclasses(self):
+        # return list(filter(lambda eqclass: all(mDAG.fundamental_graphQ for mDAG in eqclass),
+        #                    self.equivalence_classes_as_mDAGs))
+        return [eqclass for eqclass,not_latent_free_Q in
+                zip(self.equivalence_classes_as_mDAGs, self.NOT_latent_free_eqclasses_picklist) if not_latent_free_Q]
+
+    @cached_property
+    def NOT_latent_free_representative_mDAGs_list(self):
+    #     return self.representatives(self.equivalence_classes_as_mDAGs)
+        return self.smart_representatives(self.NOT_latent_free_eqclasses, 'relative_complexity_for_sat_solver')
+
+
+    @cached_property
     def foundational_eqclasses_picklist(self):
         return [all(mDAG.fundamental_graphQ for mDAG in eqclass) for eqclass in self.equivalence_classes_as_mDAGs]
 

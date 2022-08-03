@@ -60,7 +60,7 @@ class mDAG:
         self.visible_nodes = self.directed_structure_instance.visible_nodes
         self.latent_nodes = tuple(range(self.number_of_visible, self.simplicial_complex_instance.number_of_visible_plus_latent))
         self.nonsingleton_latent_nodes = tuple(range(self.number_of_visible, self.simplicial_complex_instance.number_of_visible_plus_nonsingleton_latent))
-
+        self.total_number_of_nodes=len(self.nonsingleton_latent_nodes)+self.number_of_visible
 
     @cached_property
     def as_string(self):
@@ -303,7 +303,18 @@ class mDAG:
         return self.support_testing_instance_binary(n).no_infeasible_supports_beyond_dsep(**kwargs, name='mgh', use_timer=False)
     def no_infeasible_binary_supports_beyond_dsep_up_to(self, max_n, **kwargs):
         return all(self.no_infeasible_binary_supports_beyond_dsep(n, **kwargs) for n in range(2, max_n + 1))
-
+    
+    def no_infeasible_4222_supports_beyond_dsep(self,n,**kwargs):
+        return self.support_testing_instance((4, 2, 2, 2),n).no_infeasible_supports_beyond_dsep(**kwargs, name='mgh', use_timer=False)
+    def no_infeasible_4222_supports_beyond_dsep_up_to(self, max_n, **kwargs):
+        return all(self.no_infeasible_4222_supports_beyond_dsep(n, **kwargs) for n in range(2, max_n + 1))
+    
+    def no_infeasible_8222_supports_beyond_dsep(self,n,**kwargs):
+        return self.support_testing_instance((8, 2, 2, 2),n).no_infeasible_supports_beyond_dsep(**kwargs, name='mgh', use_timer=False)
+    def no_infeasible_8222_supports_beyond_dsep_up_to(self, max_n, **kwargs):
+        return all(self.no_infeasible_8222_supports_beyond_dsep(n, **kwargs) for n in range(2, max_n + 1))
+    
+    
     def no_esep_beyond_dsep(self, n):
         return not self.support_testing_instance_binary(n).interesting_due_to_esep
     def no_esep_beyond_dsep_up_to(self, max_n):

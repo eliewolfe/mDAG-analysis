@@ -8,7 +8,7 @@ from metagraph_advanced import Observable_mDAGs_Analysis
 
 # if __name__ == '__main__':
 Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
-mDAGs4_representatives = Observable_mDAGs4.representative_mDAGs_list
+mDAGs4_representatives = Observable_mDAGs4.NOT_latent_free_representative_mDAGs_list
 QmDAGs4_representatives = list(map(as_classical_QmDAG, mDAGs4_representatives))
 QmDAGs4_classes = [set(map(as_classical_QmDAG, eqclass)) for eqclass in Observable_mDAGs4.foundational_eqclasses]
 #Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
@@ -71,19 +71,25 @@ known_interesting_ids = set(special_mDAG.unique_unlabelled_id for special_mDAG i
 IC_remaining_representatives = set(QmDAGs4_representatives).copy()
 
 print("Total number of qmDAGs to analyze: ", len(IC_remaining_representatives))
+print("This is the number of elements of the proven-equivalence partition of mDAGs that do not contain any latent-free mDAG (HLP criterion).")
+IC_remaining_representatives_with_7_nodes=[qmDAG for qmDAG in IC_remaining_representatives if qmDAG.as_mDAG.total_number_of_nodes==7]
+print("Out of these, number of mDAGs that have 7 nodes in total (visible+latent) is:",len(IC_remaining_representatives_with_7_nodes))
 
+def reduces_to_knownICGap_by_esep(n,qmDAG):
+    return not qmDAG.as_mDAG.no_esep_beyond_dsep_up_to(n)
+IC_gap_by_esep2 = [qmDAG for qmDAG in IC_remaining_representatives if reduces_to_knownICGap_by_esep(2,qmDAG)] 
+print("# of ADDITIONAL IC gaps seen via esep over two events: ", len(IC_gap_by_esep2))
+IC_remaining_representatives.difference_update(IC_gap_by_esep2)
 
-def reduces_to_knownICGap_by_esep(qmDAG):
-    return not qmDAG.as_mDAG.no_esep_beyond_dsep_up_to(2)
-IC_gap_by_esep = list(filter(reduces_to_knownICGap_by_esep, IC_remaining_representatives))
-print("# of ADDITIONAL IC gaps seen via esep over two events: ", len(IC_gap_by_esep))
-IC_remaining_representatives.difference_update(IC_gap_by_esep)
 
 # def reduces_to_knownICGap_by_esep_strong(qmDAG):
 #     return not qmDAG.as_mDAG.no_esep_beyond_dsep_up_to(2**qmDAG.number_of_visible)
 # IC_gap_by_esep_strong = list(filter(reduces_to_knownICGap_by_esep_strong, IC_remaining_representatives))
 # print("# of ADDITIONAL IC gaps seen via esep over any number of events: ", len(IC_gap_by_esep_strong))
 # IC_remaining_representatives.difference_update(IC_gap_by_esep_strong)
+
+
+
 
 def reduces_to_knownICGap_by_PD_trick(qmDAG):
     return not known_interesting_ids.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_PD_trick)
@@ -93,18 +99,20 @@ print("# of ADDITIONAL IC gaps seen via PD trick: ", len(IC_gap_by_PD_trick))
 IC_remaining_representatives.difference_update(IC_gap_by_PD_trick)
 
 
-def reduces_to_knownICGap_by_naive_marginalization(qmDAG):
-     return not known_interesting_ids.isdisjoint(
-         qmDAG.unique_unlabelled_ids_obtainable_by_naive_marginalization(districts_check=True))
+# =============================================================================
+# MARGINALIZATION STILL CANNOT BE TRUSTED FOR PROVING INTERESTINGNESS
+# def reduces_to_knownICGap_by_naive_marginalization(qmDAG):
+#      return not known_interesting_ids.isdisjoint(
+#          qmDAG.unique_unlabelled_ids_obtainable_by_naive_marginalization(districts_check=True))
+# 
+# IC_gap_by_naive_marginalization = list(filter(reduces_to_knownICGap_by_naive_marginalization, IC_remaining_representatives))
+# print("# of ADDITIONAL IC gaps seen via naive marginalization: ", len(IC_gap_by_naive_marginalization))
+# #print(IC_gap_by_naive_marginalization)
+# IC_remaining_representatives.difference_update(IC_gap_by_naive_marginalization)
+# =============================================================================
 
-IC_gap_by_naive_marginalization = list(filter(reduces_to_knownICGap_by_naive_marginalization, IC_remaining_representatives))
-print("# of ADDITIONAL IC gaps seen via naive marginalization: ", len(IC_gap_by_naive_marginalization))
-#print(IC_gap_by_naive_marginalization)
-IC_remaining_representatives.difference_update(IC_gap_by_naive_marginalization)
-#
-#
-#
-#
+
+
 # def reduces_to_knownICGap_by_conditioning(qmDAG):
 #     return not known_interesting_ids.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_conditioning)
 #
@@ -114,61 +122,138 @@ IC_remaining_representatives.difference_update(IC_gap_by_naive_marginalization)
 # IC_remaining_representatives.difference_update(IC_gap_by_conditioning)
 
 
-print("# of IC Gaps discovered so far: ",
-      len(QmDAGs4_representatives)-len(IC_remaining_representatives))
-# IC_remaining_representatives = set(QmDAGs4_representatives).difference(updated_known_IC_Gaps_QmDAGs)
-print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))
+# =============================================================================
+# print("# of IC Gaps discovered so far: ",
+#       len(QmDAGs4_representatives)-len(IC_remaining_representatives))
+# # IC_remaining_representatives = set(QmDAGs4_representatives).difference(updated_known_IC_Gaps_QmDAGs)
+# print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))
+# =============================================================================
 
 provably_interesting_via_binary_supports = [ICmDAG for ICmDAG in IC_remaining_representatives if not ICmDAG.as_mDAG.no_infeasible_binary_supports_beyond_dsep_up_to(4)]
 IC_remaining_representatives.difference_update(provably_interesting_via_binary_supports)
-print("# of IC Gaps discovered via TC's Algorithm: ", len(provably_interesting_via_binary_supports))
+print("# of IC Gaps discovered via TC's Algorithm (binary) up to 4 events: ", len(provably_interesting_via_binary_supports))
 print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))
 
 
-proven_interesting_classes = [eqclass for eqclass in QmDAGs4_classes if eqclass.isdisjoint(IC_remaining_representatives)]
-new_interesting_ids = [set(proven_mDAG.unique_unlabelled_id for proven_mDAG in eqclass) for eqclass in proven_interesting_classes]
+no_binary_infeasible_supports=[]
+for mDAG in mDAGs4_representatives:
+    if mDAG.support_testing_instance((2,2,2,2),3).no_infeasible_supports():
+        no_binary_infeasible_supports.append(as_classical_QmDAG(mDAG))
 
-updated_known_IC_Gaps_QmDAGs_ids = known_interesting_ids.copy()
-updated_known_IC_Gaps_QmDAGs_ids.update(*new_interesting_ids)
-# print("Size of known database: ", len(updated_known_IC_Gaps_QmDAGs_ids))
-# print("Knows about Bell etc: ", updated_known_IC_Gaps_QmDAGs_ids.issuperset(known_interesting_ids))
+provably_interesting_via_binary_supports = [ICmDAG for ICmDAG in IC_remaining_representatives.difference(set(no_binary_infeasible_supports)) if not ICmDAG.as_mDAG.no_infeasible_binary_supports_beyond_dsep_up_to(8)]
+IC_remaining_representatives.difference_update(provably_interesting_via_binary_supports)
+print("# of IC Gaps discovered via TC's Algorithm (binary) up to 8 events: ", len(provably_interesting_via_binary_supports))
+print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))
+IC_remaining_representatives_with_7_nodes={qmDAG for qmDAG in IC_remaining_representatives if qmDAG.as_mDAG.total_number_of_nodes==7}
+print("Out of these, the number of mDAGs that have 7 nodes in total (visible+latent) is:",len(IC_remaining_representatives_with_7_nodes))
+
+provably_interesting_via_4222_supports=[]
+print("Analyzing the remaining mDAGs that have 7 nodes in total:")
+for QmDAG in IC_remaining_representatives_with_7_nodes:
+    print(QmDAG)
+    if not QmDAG.as_mDAG.no_infeasible_4222_supports_beyond_dsep_up_to(7):
+        print("is shown interesting by TC's algorithm (cardinality 4222) up to 7 events.")
+        provably_interesting_via_4222_supports.append(QmDAG)
+    else: 
+        print("is still not shown interesting by TC's algorithm (cardinality 4222) up to 7 events.")
+IC_remaining_representatives_with_7_nodes.difference_update(provably_interesting_via_4222_supports)
+
+print("# of IC Gaps still to be assessed in mDAGs with 7 nodes in total (visible+latent): ", len(IC_remaining_representatives_with_7_nodes))
+print("This one DAG that remains is #19 in Shashaank's list.")
+
+provably_interesting_via_8222_supports=[]
+print("Attempt to prove interestingness of this remaining one using TC's algorithm with cardinalities 8222:")
+for QmDAG in IC_remaining_representatives_with_7_nodes:
+    print(QmDAG)
+    interesting=False
+    n=2
+    while n<11 and interesting=False:    #11 is a big number of events choosen randomly, just so it doesn't run forever
+    if not QmDAG.as_mDAG.no_infeasible_8222_supports_beyond_dsep_up_to(n):
+        print("is shown interesting by TC's algorithm (cardinality 8222) up to",n,"events.")
+        provably_interesting_via_8222_supports.append(QmDAG)
+        interesting=True
+        n=n+1
+    else: 
+        print("is still not shown interesting by TC's algorithm (cardinality 8222) up to",n,"events.")
+        n=n+1
+        
+IC_remaining_representatives_with_7_nodes.difference_update(provably_interesting_via_8222_supports)
 
 
-def reduces_to_knownICGap_by_Fritz_without_node_splitting(qmDAG):
-    # obtained_ids = [debug_info[-1] for debug_info in qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting]
-    # return not updated_known_IC_Gaps_QmDAGs_id.isdisjoint(obtained_ids)
-    return not updated_known_IC_Gaps_QmDAGs_ids.isdisjoint(
-        qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_for_IC(node_decomposition=False))
+
+# =============================================================================
+# provably_interesting_via_4222_supports = [ICmDAG for ICmDAG in IC_remaining_representatives_with_7_nodes if not ICmDAG.as_mDAG.no_infeasible_4222_supports_beyond_dsep_up_to(7)]
+# IC_remaining_representatives_with_7_nodes.difference_update(provably_interesting_via_4222_supports)
+# IC_remaining_representatives.difference_update(provably_interesting_via_4222_supports)
+# print("# of IC Gaps discovered via TC's Algorithm (cardinality 4222) up to 7 events between those mDAGs that have 7 nodes in total (visible + latent): ", len(provably_interesting_via_4222_supports))
+# print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))
+# print("# of IC Gaps still to be assessed for mDAGs with 7 nodes in total: ", len(IC_remaining_representatives_with_7_nodes))
+# =============================================================================
 
 
-def reduces_to_knownICGap_by_Fritz_with_node_splitting(qmDAG):
-    # obtained_ids = [debug_info[-1] for debug_info in qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting]
-    # return not updated_known_IC_Gaps_QmDAGs_id.isdisjoint(obtained_ids)
-    return not updated_known_IC_Gaps_QmDAGs_ids.isdisjoint(
-        qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_for_IC(node_decomposition=True))
+# =============================================================================
+# for QmDAG in IC_remaining_representatives:
+#     print("Remaining mDAG:",QmDAG)
+#     if not QmDAG.as_mDAG.no_infeasible_4222_supports_beyond_dsep_up_to(7):
+#         print("This mDAG is shown interesting by TC's algorithm (cardinality 4222) up to 7 events")
+# =============================================================================
+
+
+# =============================================================================
+# proven_interesting_classes = [eqclass for eqclass in QmDAGs4_classes if eqclass.isdisjoint(IC_remaining_representatives)]
+# new_interesting_ids = [set(proven_mDAG.unique_unlabelled_id for proven_mDAG in eqclass) for eqclass in proven_interesting_classes]
+# 
+# updated_known_IC_Gaps_QmDAGs_ids = known_interesting_ids.copy()
+# updated_known_IC_Gaps_QmDAGs_ids.update(*new_interesting_ids)
+# # print("Size of known database: ", len(updated_known_IC_Gaps_QmDAGs_ids))
+# # print("Knows about Bell etc: ", updated_known_IC_Gaps_QmDAGs_ids.issuperset(known_interesting_ids))
+# 
+# 
+# def reduces_to_knownICGap_by_Fritz_without_node_splitting(qmDAG):
+#     # obtained_ids = [debug_info[-1] for debug_info in qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting]
+#     # return not updated_known_IC_Gaps_QmDAGs_id.isdisjoint(obtained_ids)
+#     return not updated_known_IC_Gaps_QmDAGs_ids.isdisjoint(
+#         qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_for_IC(node_decomposition=False))
+# 
+# 
+# def reduces_to_knownICGap_by_Fritz_with_node_splitting(qmDAG):
+#     # obtained_ids = [debug_info[-1] for debug_info in qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_without_node_splitting]
+#     # return not updated_known_IC_Gaps_QmDAGs_id.isdisjoint(obtained_ids)
+#     return not updated_known_IC_Gaps_QmDAGs_ids.isdisjoint(
+#         qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_for_IC(node_decomposition=True))
+# =============================================================================
 
 # QG_Square = QmDAG(DirectedStructure([], 4), Hypergraph([(2, 3), (1, 3), (0, 1), (0, 2)], 4), Hypergraph([], 4))
 # print("Are we going to discover the square? ", reduces_to_knownICGap_by_Fritz_without_node_splitting(QG_Square))
 # # # reduces_to_knownICGap_by_marginalization(QG_Square)
 # print("Is the square in the remaining set? ", QG_Square in remaining_representatives)
 
-IC_gap_by_Fritz_without_node_splitting = list(
-    filter(reduces_to_knownICGap_by_Fritz_without_node_splitting, IC_remaining_representatives))
-IC_remaining_representatives.difference_update(IC_gap_by_Fritz_without_node_splitting)
+# =============================================================================
+# DECIDED TO USE TC'S ALGORITHM WITH MORE SUPPORTS INSTEAD OF USING FRITZ
+# IC_gap_by_Fritz_without_node_splitting = list(
+#     filter(reduces_to_knownICGap_by_Fritz_without_node_splitting, IC_remaining_representatives))
+# IC_remaining_representatives.difference_update(IC_gap_by_Fritz_without_node_splitting)
+# 
+# print("# of IC Gaps discovered via Fritz without splitting: ", len(IC_gap_by_Fritz_without_node_splitting))
+# 
+# IC_gap_by_Fritz_with_node_splitting = list(
+#     filter(reduces_to_knownICGap_by_Fritz_with_node_splitting, IC_remaining_representatives))
+# IC_remaining_representatives.difference_update(IC_gap_by_Fritz_with_node_splitting)
+# 
+# print("# of IC Gaps discovered via Fritz with splitting: ", len(IC_gap_by_Fritz_with_node_splitting))
+# print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))
+# 
+# print("Found interesting without node splitting:")
+# print(IC_gap_by_Fritz_without_node_splitting)
+# print("Found interesting with node splitting:")
+# print(IC_gap_by_Fritz_with_node_splitting)
+# 
+# IC_gap_by_Fritz_with_node_splitting[0].as_mDAG.no_infeasible_binary_supports_beyond_dsep_up_to(8)
+# list(IC_remaining_representatives)[1].as_mDAG.no_infeasible_binary_supports_beyond_dsep_up_to(8)
+# =============================================================================
 
-print("# of IC Gaps discovered via Fritz without splitting: ", len(IC_gap_by_Fritz_without_node_splitting))
 
-IC_gap_by_Fritz_with_node_splitting = list(
-    filter(reduces_to_knownICGap_by_Fritz_with_node_splitting, IC_remaining_representatives))
-IC_remaining_representatives.difference_update(IC_gap_by_Fritz_with_node_splitting)
 
-print("# of IC Gaps discovered via Fritz with splitting: ", len(IC_gap_by_Fritz_with_node_splitting))
-print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))
-
-print("Found interesting without node splitting:")
-print(IC_gap_by_Fritz_without_node_splitting)
-print("Found interesting with node splitting:")
-print(IC_gap_by_Fritz_with_node_splitting)
 #
 # esep_problematic=[]
 # supports_problematic=[]
