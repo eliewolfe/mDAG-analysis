@@ -314,6 +314,11 @@ class mDAG:
     def no_infeasible_8222_supports_beyond_dsep_up_to(self, max_n, **kwargs):
         return all(self.no_infeasible_8222_supports_beyond_dsep(n, **kwargs) for n in range(2, max_n + 1))
     
+    def no_infeasible_6222_supports_beyond_dsep(self,n,**kwargs):
+        return self.support_testing_instance((6, 2, 2, 2),n).no_infeasible_supports_beyond_dsep(**kwargs, name='mgh', use_timer=False)
+    def no_infeasible_6222_supports_beyond_dsep_up_to(self, max_n, **kwargs):
+        return all(self.no_infeasible_6222_supports_beyond_dsep(n, **kwargs) for n in range(2, max_n + 1))
+    
     
     def no_esep_beyond_dsep(self, n):
         return not self.support_testing_instance_binary(n).interesting_due_to_esep

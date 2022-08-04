@@ -159,25 +159,9 @@ for QmDAG in IC_remaining_representatives_with_7_nodes:
 IC_remaining_representatives_with_7_nodes.difference_update(provably_interesting_via_4222_supports)
 
 print("# of IC Gaps still to be assessed in mDAGs with 7 nodes in total (visible+latent): ", len(IC_remaining_representatives_with_7_nodes))
-print("This one DAG that remains is #19 in Shashaank's list.")
+print("This one DAG that remains is #19 in Shashaank's list. it is being tested in a separate file.")
 
-provably_interesting_via_8222_supports=[]
-print("Attempt to prove interestingness of this remaining one using TC's algorithm with cardinalities 8222:")
-for QmDAG in IC_remaining_representatives_with_7_nodes:
-    print(QmDAG)
-    interesting=False
-    n=2
-    while n<11 and interesting=False:    #11 is a big number of events choosen randomly, just so it doesn't run forever
-    if not QmDAG.as_mDAG.no_infeasible_8222_supports_beyond_dsep_up_to(n):
-        print("is shown interesting by TC's algorithm (cardinality 8222) up to",n,"events.")
-        provably_interesting_via_8222_supports.append(QmDAG)
-        interesting=True
-        n=n+1
-    else: 
-        print("is still not shown interesting by TC's algorithm (cardinality 8222) up to",n,"events.")
-        n=n+1
-        
-IC_remaining_representatives_with_7_nodes.difference_update(provably_interesting_via_8222_supports)
+
 
 
 
