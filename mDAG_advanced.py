@@ -104,7 +104,19 @@ class mDAG:
     def parents_of_for_supports_analysis(self):
         return list(map(np.flatnonzero, self.as_extended_bit_array.T))
 
-
+    @cached_property
+    def parents_of(self):
+        p=[]
+        for visible_node in self.visible_nodes:
+            p.append([])
+        for edge in self.directed_structure_instance.edge_list:
+            p[edge[1]].append(edge[0])
+        latent_node=len(self.visible_nodes)
+        for facet in self.simplicial_complex_instance.simplicial_complex_as_sets:
+            for visible_node in facet:
+                p[visible_node].append(latent_node)
+            latent_node=latent_node+1
+        return p
 
     @cached_property
     def unique_id(self):
