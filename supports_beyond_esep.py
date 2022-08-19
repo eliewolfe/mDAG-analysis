@@ -5,6 +5,7 @@ from radix import to_digits
 from supports import SupportTesting
 import progressbar
 import methodtools
+from typing import List
 
 from sys import hexversion
 
@@ -28,7 +29,7 @@ Suppose that we see an e-sep relation of the form (a,b,C,D)
 """
 
 
-def product_support_test(two_column_mat):
+def product_support_test(two_column_mat:np. ndarray) -> bool:
     # exploits the fact that np.unique also sorts
     return np.array_equiv(
         list(itertools.product(*map(np.unique, two_column_mat.T))),
@@ -50,23 +51,23 @@ def product_support_test(two_column_mat):
 #         return True
 
 
-def does_this_dsep_rule_out_this_support(ab, C, s):
+def does_this_dsep_rule_out_this_support(ab: List[int], C: List[int], s: np.ndarray) -> bool:
     if len(C):
-        s_resorted = s[np.lexsort(s[:, C].T)]
+        s_resorted = s[np.lexsort(np.asarray(s)[:, list(C)].T)]
         partitioned = [np.vstack(tuple(g)) for k, g in itertools.groupby(s_resorted, lambda e: tuple(e.take(C)))]
         for submat in partitioned:
-            if not product_support_test(submat[:, ab]):
+            if not product_support_test(submat[:, list(ab)]):
                 return True
         return False
     else:
-        return not product_support_test(s[:, ab])
+        return not product_support_test(np.asarray(s)[:, list(ab)])
 
 
-def does_this_esep_rule_out_this_support(ab, C, D, s):
+def does_this_esep_rule_out_this_support(ab: List[int], C: List[int], D: List[int], s: np.ndarray) -> bool:
     if len(D) == 0:
         return does_this_dsep_rule_out_this_support(ab, C, s)
     else:
-        columns_D = s[:, D]
+        columns_D = np.asarray(s)[:, np.asarray(D)]
         if np.array_equiv(columns_D[0], columns_D):
             return does_this_dsep_rule_out_this_support(ab, C, s)
         else:
@@ -81,69 +82,69 @@ class SmartSupportTesting(SupportTesting):
         self.must_perfectpredict = pp_relations
 
 
-    def infeasible_support_Q_due_to_esep_from_matrix(self, candidate_s):
-        return any(does_this_esep_rule_out_this_support(*map(list,e_sep), candidate_s) for e_sep in self.esep_relations)
+    def infeasible_support_Q_due_to_esep_from_matrix(self, candidate_s: np.ndarray) -> bool:
+        return any(does_this_esep_rule_out_this_support(*map(list, e_sep), candidate_s) for e_sep in self.esep_relations)
 
-    def infeasible_support_Q_due_to_dsep_from_matrix(self, candidate_s):
+    def infeasible_support_Q_due_to_dsep_from_matrix(self, candidate_s: np.ndarray)-> bool:
         return any(does_this_dsep_rule_out_this_support(*map(list,d_sep), candidate_s) for d_sep in self.dsep_relations)
 
 
     #REDEFINITION!
-    def feasibleQ_from_matrix(self, occurring_events, **kwargs):
+    def feasibleQ_from_matrix(self, occurring_events: np.ndarray, **kwargs) -> bool:
         if not self.infeasible_support_Q_due_to_esep_from_matrix(occurring_events):
             return super().feasibleQ_from_matrix(occurring_events, **kwargs)
         else:
             # return (False, 0) #Timing of zero.
             return False
 
-    @cached_property
-    def _infeasible_support_respects_restrictions(self):
-        to_filter = self.from_list_to_matrix(super().unique_candidate_supports_as_lists)
-        return np.fromiter(map(self.support_respects_perfect_prediction_restrictions, to_filter), bool)
+    # @cached_property
+    # def _infeasible_support_respects_restrictions(self):
+    #     to_filter = self.from_list_to_matrix(super().unique_candidate_supports_as_lists)
+    #     return np.fromiter(map(self.support_respects_perfect_prediction_restrictions, to_filter), bool)
 
     @cached_property
-    def _infeasible_support_due_to_esep_picklist(self):
+    def _infeasible_support_due_to_esep_picklist(self) -> np.ndarray:
         to_filter = self.from_list_to_matrix(self.unique_candidate_supports_as_lists)
         return np.fromiter(map(self.infeasible_support_Q_due_to_esep_from_matrix, to_filter), bool)
 
     @cached_property
-    def infeasible_supports_due_to_esep_as_integers(self):
+    def infeasible_supports_due_to_esep_as_integers(self) -> np.ndarray:
         return np.asarray(self.unique_candidate_supports_as_integers, dtype=np.intp)[self._infeasible_support_due_to_esep_picklist]
 
     @cached_property
-    def _infeasible_support_due_to_dsep_picklist(self):
+    def _infeasible_support_due_to_dsep_picklist(self) -> np.ndarray:
         to_filter = self.from_list_to_matrix(self.unique_candidate_supports_as_lists)
         return np.fromiter(map(self.infeasible_support_Q_due_to_dsep_from_matrix, to_filter), bool)
 
     @cached_property
-    def infeasible_supports_due_to_dsep_as_integers(self):
+    def infeasible_supports_due_to_dsep_as_integers(self) -> np.ndarray:
         return np.asarray(self.unique_candidate_supports_as_integers, dtype=np.intp)[self._infeasible_support_due_to_dsep_picklist]
 
     @cached_property
-    def infeasible_supports_due_to_esep_as_matrices(self):
+    def infeasible_supports_due_to_esep_as_matrices(self) -> np.ndarray:
         return self.from_integer_to_matrix(self.infeasible_supports_due_to_esep_as_integers)
 
     @cached_property
-    def infeasible_supports_due_to_dsep_as_matrices(self):
+    def infeasible_supports_due_to_dsep_as_matrices(self) -> np.ndarray:
         return self.from_integer_to_matrix(self.infeasible_supports_due_to_dsep_as_integers)
 
     @cached_property
-    def unique_candidate_supports_not_infeasible_due_to_esep_as_integers(self):
+    def unique_candidate_supports_not_infeasible_due_to_esep_as_integers(self) -> np.ndarray:
         return np.asarray(self.unique_candidate_supports_as_integers, dtype=np.intp)[
             np.logical_not(self._infeasible_support_due_to_esep_picklist)]
 
     @cached_property
-    def unique_candidate_supports_not_infeasible_due_to_dsep_as_integers(self):
+    def unique_candidate_supports_not_infeasible_due_to_dsep_as_integers(self) -> np.ndarray:
         return np.asarray(self.unique_candidate_supports_as_integers, dtype=np.intp)[
             np.logical_not(self._infeasible_support_due_to_dsep_picklist)]
 
     @cached_property
-    def unique_candidate_supports_not_infeasible_due_to_esep_as_lists(self):
+    def unique_candidate_supports_not_infeasible_due_to_esep_as_lists(self) -> np.ndarray:
         return np.asarray(self.unique_candidate_supports_as_lists, dtype=np.intp)[
             np.logical_not(self._infeasible_support_due_to_esep_picklist)]
 
     @cached_property
-    def unique_candidate_supports_not_infeasible_due_to_dsep_as_lists(self):
+    def unique_candidate_supports_not_infeasible_due_to_dsep_as_lists(self) -> np.ndarray:
         return np.asarray(self.unique_candidate_supports_as_lists, dtype=np.intp)[
             np.logical_not(self._infeasible_support_due_to_dsep_picklist)]
 

@@ -974,3 +974,17 @@ if __name__ == '__main__':
 #             break
 #     dag.condition(0).unique_unlabelled_id
 # =============================================================================
+print("Testing IV vs UC:")
+IV_DAG = mDAG(DirectedStructure([(0, 1), (1, 2)], 3), Hypergraph([(1, 2)], 3))
+UC_DAG = mDAG(DirectedStructure([(1, 0), (1, 2)], 3), Hypergraph([(0, 1), (1, 2)], 3))
+tripartite_support=np.array([
+        [0, 0, 0],
+        [0, 1, 1],
+        [1, 0, 0],
+        [1, 1, 0],
+        [2, 0, 1],
+        [2, 1, 1]])
+print(IV_DAG.support_testing_instance((3, 2, 2), 6).feasibleQ_from_matrix(tripartite_support))
+print(UC_DAG.support_testing_instance((3, 2, 2), 6).feasibleQ_from_matrix(tripartite_support))
+
+
