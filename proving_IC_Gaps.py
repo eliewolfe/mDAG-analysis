@@ -2,8 +2,9 @@ from __future__ import absolute_import
 from hypergraphs import Hypergraph
 from directed_structures import DirectedStructure
 from mDAG_advanced import mDAG
-from quantum_mDAG import QmDAG, as_classical_QmDAG
+from quantum_mDAG import as_classical_QmDAG
 from metagraph_advanced import Observable_mDAGs_Analysis
+
 # import itertools
 
 # if __name__ == '__main__':
@@ -11,7 +12,7 @@ Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_
 mDAGs4_representatives = Observable_mDAGs4.NOT_latent_free_representative_mDAGs_list
 QmDAGs4_representatives = list(map(as_classical_QmDAG, mDAGs4_representatives))
 QmDAGs4_classes = [set(map(as_classical_QmDAG, eqclass)) for eqclass in Observable_mDAGs4.foundational_eqclasses]
-#Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
+# Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
 
 n = 0
 HLP_6_node_representatives = set()
@@ -41,13 +42,12 @@ G_Bell4a = mDAG(DirectedStructure([(0, 2)], 4), Hypergraph([(2, 3), (0, 2), (1, 
 G_Bell4b = mDAG(DirectedStructure([(1, 3)], 4), Hypergraph([(2, 3), (0, 2), (1, 3)], 4))
 G_Bell4c = mDAG(DirectedStructure([], 4), Hypergraph([(2, 3), (0, 2), (1, 3)], 4))
 
-known_interesting_mDAGs=[G_Instrumental1, G_Instrumental2, G_Instrumental3, G_Evans, G_Triangle,
-                                                        G_Bell1, G_Bell2, G_Bell2b, G_Bell3, G_Bell3b,
-                                                        G_Bell4, G_Bell4a, G_Bell4b, G_Bell4c]
+known_interesting_mDAGs = [G_Instrumental1, G_Instrumental2, G_Instrumental3, G_Evans, G_Triangle,
+                           G_Bell1, G_Bell2, G_Bell2b, G_Bell3, G_Bell3b,
+                           G_Bell4, G_Bell4a, G_Bell4b, G_Bell4c]
 
 known_interesting_QmDAGs = list(map(as_classical_QmDAG, known_interesting_mDAGs))
 known_interesting_ids = set(special_mDAG.unique_unlabelled_id for special_mDAG in known_interesting_QmDAGs)
-
 
 # #
 # # # For the trick of fixing to point distribution, we can simply compare mDAGs. The QmDAG structure is going to be useful only in the marginalization case (where classical and quantum latents appear)
@@ -66,18 +66,22 @@ known_interesting_ids = set(special_mDAG.unique_unlabelled_id for special_mDAG i
 #     output_file.writelines(mdag.as_string + "\n" for mdag in irreducible_6_node_mDAGs)
 
 
-
-
 IC_remaining_representatives = set(QmDAGs4_representatives).copy()
 
 print("Total number of qmDAGs to analyze: ", len(IC_remaining_representatives))
-print("This is the number of elements of the proven-equivalence partition of mDAGs that do not contain any latent-free mDAG (HLP criterion).")
-IC_remaining_representatives_with_7_nodes=[qmDAG for qmDAG in IC_remaining_representatives if qmDAG.as_mDAG.total_number_of_nodes==7]
-print("Out of these, number of mDAGs that have 7 nodes in total (visible+latent) is:",len(IC_remaining_representatives_with_7_nodes))
+print(
+    "This is the number of elements of the proven-equivalence partition of mDAGs that do not contain any latent-free mDAG (HLP criterion).")
+IC_remaining_representatives_with_7_nodes = [qmDAG for qmDAG in IC_remaining_representatives if
+                                             qmDAG.as_mDAG.total_number_of_nodes == 7]
+print("Out of these, number of mDAGs that have 7 nodes in total (visible+latent) is:",
+      len(IC_remaining_representatives_with_7_nodes))
 
-def reduces_to_knownICGap_by_esep(n,qmDAG):
+
+def reduces_to_knownICGap_by_esep(n, qmDAG):
     return not qmDAG.as_mDAG.no_esep_beyond_dsep_up_to(n)
-IC_gap_by_esep2 = [qmDAG for qmDAG in IC_remaining_representatives if reduces_to_knownICGap_by_esep(2,qmDAG)] 
+
+
+IC_gap_by_esep2 = [qmDAG for qmDAG in IC_remaining_representatives if reduces_to_knownICGap_by_esep(2, qmDAG)]
 print("# of ADDITIONAL IC gaps seen via esep over two events: ", len(IC_gap_by_esep2))
 IC_remaining_representatives.difference_update(IC_gap_by_esep2)
 
@@ -89,15 +93,13 @@ IC_remaining_representatives.difference_update(IC_gap_by_esep2)
 # IC_remaining_representatives.difference_update(IC_gap_by_esep_strong)
 
 
-
-
 def reduces_to_knownICGap_by_PD_trick(qmDAG):
     return not known_interesting_ids.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_PD_trick)
+
 
 IC_gap_by_PD_trick = list(filter(reduces_to_knownICGap_by_PD_trick, IC_remaining_representatives))
 print("# of ADDITIONAL IC gaps seen via PD trick: ", len(IC_gap_by_PD_trick))
 IC_remaining_representatives.difference_update(IC_gap_by_PD_trick)
-
 
 # =============================================================================
 # MARGINALIZATION STILL CANNOT BE TRUSTED FOR PROVING INTERESTINGNESS
@@ -110,7 +112,6 @@ IC_remaining_representatives.difference_update(IC_gap_by_PD_trick)
 # #print(IC_gap_by_naive_marginalization)
 # IC_remaining_representatives.difference_update(IC_gap_by_naive_marginalization)
 # =============================================================================
-
 
 
 # def reduces_to_knownICGap_by_conditioning(qmDAG):
@@ -129,23 +130,29 @@ IC_remaining_representatives.difference_update(IC_gap_by_PD_trick)
 # print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))
 # =============================================================================
 
-provably_interesting_via_binary_supports4 = [ICmDAG for ICmDAG in IC_remaining_representatives if not ICmDAG.as_mDAG.no_infeasible_binary_supports_beyond_dsep_up_to(4)]
+provably_interesting_via_binary_supports4 = [ICmDAG for ICmDAG in IC_remaining_representatives if
+                                             not ICmDAG.as_mDAG.no_infeasible_binary_supports_beyond_dsep_up_to(4)]
 IC_remaining_representatives.difference_update(provably_interesting_via_binary_supports4)
-print("# of IC Gaps discovered via TC's Algorithm (binary) up to 4 events: ", len(provably_interesting_via_binary_supports4))
+print("# of IC Gaps discovered via TC's Algorithm (binary) up to 4 events: ",
+      len(provably_interesting_via_binary_supports4))
 print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))
 
+no_binary_infeasible_supports = []
+for mdag in mDAGs4_representatives:
+    if mdag.support_testing_instance((2, 2, 2, 2), 3).no_infeasible_supports():
+        no_binary_infeasible_supports.append(as_classical_QmDAG(mdag))
 
-no_binary_infeasible_supports=[]
-for mDAG in mDAGs4_representatives:
-    if mDAG.support_testing_instance((2,2,2,2),3).no_infeasible_supports():
-        no_binary_infeasible_supports.append(as_classical_QmDAG(mDAG))
-
-provably_interesting_via_binary_supports8 = [ICmDAG for ICmDAG in IC_remaining_representatives.difference(set(no_binary_infeasible_supports)) if not ICmDAG.as_mDAG.no_infeasible_binary_supports_beyond_dsep_up_to(8)]
+provably_interesting_via_binary_supports8 = [ICmDAG for ICmDAG in
+                                             IC_remaining_representatives.difference(set(no_binary_infeasible_supports))
+                                             if not ICmDAG.as_mDAG.no_infeasible_binary_supports_beyond_dsep_up_to(8)]
 IC_remaining_representatives.difference_update(provably_interesting_via_binary_supports8)
-print("# of IC Gaps discovered via TC's Algorithm (binary) up to 8 events: ", len(provably_interesting_via_binary_supports8))
+print("# of IC Gaps discovered via TC's Algorithm (binary) up to 8 events: ",
+      len(provably_interesting_via_binary_supports8))
 print("# of IC Gaps still to be assessed: ", len(IC_remaining_representatives))
-IC_remaining_representatives_with_7_nodes={qmDAG for qmDAG in IC_remaining_representatives if qmDAG.as_mDAG.total_number_of_nodes==7}
-print("Out of these, the number of mDAGs that have 7 nodes in total (visible+latent) is:",len(IC_remaining_representatives_with_7_nodes))
+IC_remaining_representatives_with_7_nodes = {qmDAG for qmDAG in IC_remaining_representatives if
+                                             qmDAG.as_mDAG.total_number_of_nodes == 7}
+print("Out of these, the number of mDAGs that have 7 nodes in total (visible+latent) is:",
+      len(IC_remaining_representatives_with_7_nodes))
 
 # =============================================================================
 # provably_interesting_via_4222_supports=[]
@@ -163,187 +170,180 @@ print("Out of these, the number of mDAGs that have 7 nodes in total (visible+lat
 # print("This one DAG that remains is #19 in Shashaank's list. it is being tested in a separate file.")
 # =============================================================================
 
-G_18.all_CI
- 
-G_01=mDAG(DirectedStructure([(1,2),(2,3),(0,3)],4),Hypergraph([(0,2,3),(1,2,3),(0,1)],4))
+# G_18.all_CI
+
+G_01 = mDAG(DirectedStructure([(1, 2), (2, 3), (0, 3)], 4), Hypergraph([(0, 2, 3), (1, 2, 3), (0, 1)], 4))
 print(as_classical_QmDAG(G_01) in IC_gap_by_PD_trick)
 print(as_classical_QmDAG(G_01) in IC_gap_by_esep2)
 print(as_classical_QmDAG(G_01) in provably_interesting_via_binary_supports4)
 
 for eqclass in Observable_mDAGs4.NOT_latent_free_eqclasses:
-    eqclass_ids=[mDAG.unique_unlabelled_id for mDAG in eqclass]
+    eqclass_ids = [mdag.unique_unlabelled_id for mdag in eqclass]
     if G_01.unique_unlabelled_id in eqclass_ids:
         print(eqclass)
         break
 
-G_02=mDAG(DirectedStructure([(1,2),(0,3)],4),Hypergraph([(0,2),(1,2,3),(0,1)],4))
+G_02 = mDAG(DirectedStructure([(1, 2), (0, 3)], 4), Hypergraph([(0, 2), (1, 2, 3), (0, 1)], 4))
 print(as_classical_QmDAG(G_02) in IC_gap_by_PD_trick)
 print(as_classical_QmDAG(G_02) in IC_gap_by_esep2)
 print(as_classical_QmDAG(G_02) in provably_interesting_via_binary_supports4)
 print(as_classical_QmDAG(G_02) in provably_interesting_via_binary_supports8)
 
 for eqclass in Observable_mDAGs4.NOT_latent_free_eqclasses:
-    eqclass_ids=[mDAG.unique_unlabelled_id for mDAG in eqclass]
+    eqclass_ids = [mdag.unique_unlabelled_id for mdag in eqclass]
     if G_02.unique_unlabelled_id in eqclass_ids:
         print(eqclass)
         break
-print(as_classical_QmDAG(eqclass[0]) in provably_interesting_via_binary_supports4)
+# print(as_classical_QmDAG(eqclass[0]) for eqclass in provably_interesting_via_binary_supports4)
 
-
-G_03=mDAG(DirectedStructure([(1,2),(0,3),(2,3)],4),Hypergraph([(0,2),(1,2,3),(0,1)],4))
+G_03 = mDAG(DirectedStructure([(1, 2), (0, 3), (2, 3)], 4), Hypergraph([(0, 2), (1, 2, 3), (0, 1)], 4))
 print(as_classical_QmDAG(G_03) in IC_gap_by_PD_trick)
 print(as_classical_QmDAG(G_03) in IC_gap_by_esep2)
 print(as_classical_QmDAG(G_03) in provably_interesting_via_binary_supports4)
 print(as_classical_QmDAG(G_03) in provably_interesting_via_binary_supports8)
 
 for eqclass in Observable_mDAGs4.NOT_latent_free_eqclasses:
-    eqclass_ids=[mDAG.unique_unlabelled_id for mDAG in eqclass]
+    eqclass_ids = [mdag.unique_unlabelled_id for mdag in eqclass]
     if G_03.unique_unlabelled_id in eqclass_ids:
         print(eqclass)
         break
-print(as_classical_QmDAG(eqclass[0]) in provably_interesting_via_binary_supports4)
+# print(as_classical_QmDAG(eqclass[0]) for eqclass in provably_interesting_via_binary_supports4)
 
-G_04=mDAG(DirectedStructure([(1,2),(0,1),(0,2)],4),Hypergraph([(2,3),(1,3),(1,2)],4))
+G_04 = mDAG(DirectedStructure([(1, 2), (0, 1), (0, 2)], 4), Hypergraph([(2, 3), (1, 3), (1, 2)], 4))
 print(as_classical_QmDAG(G_04) in IC_gap_by_PD_trick)
 print(as_classical_QmDAG(G_04) in IC_gap_by_esep2)
 print(as_classical_QmDAG(G_04) in provably_interesting_via_binary_supports4)
 print(as_classical_QmDAG(G_04) in provably_interesting_via_binary_supports8)
 
 for eqclass in Observable_mDAGs4.NOT_latent_free_eqclasses:
-    eqclass_ids=[mDAG.unique_unlabelled_id for mDAG in eqclass]
+    eqclass_ids = [mdag.unique_unlabelled_id for mdag in eqclass]
     if G_04.unique_unlabelled_id in eqclass_ids:
         print(eqclass)
         break
-print(as_classical_QmDAG(eqclass[0]) in provably_interesting_via_binary_supports4)
-G_11.unique_unlabelled_id in eqclass_ids
+# print(as_classical_QmDAG(eqclass[0]) for eqclass in provably_interesting_via_binary_supports4)
+# G_11.unique_unlabelled_id in eqclass_ids
 
-G_06=mDAG(DirectedStructure([(1,2),(0,1),(0,2)],4),Hypergraph([(2,3),(1,3),(0,1,2)],4))
+G_06 = mDAG(DirectedStructure([(1, 2), (0, 1), (0, 2)], 4), Hypergraph([(2, 3), (1, 3), (0, 1, 2)], 4))
 print(as_classical_QmDAG(G_06) in IC_gap_by_PD_trick)
 print(as_classical_QmDAG(G_06) in IC_gap_by_esep2)
 print(as_classical_QmDAG(G_06) in provably_interesting_via_binary_supports4)
 print(as_classical_QmDAG(G_06) in provably_interesting_via_binary_supports8)
 
 for eqclass in Observable_mDAGs4.NOT_latent_free_eqclasses:
-    eqclass_ids=[mDAG.unique_unlabelled_id for mDAG in eqclass]
+    eqclass_ids = [mdag.unique_unlabelled_id for mdag in eqclass]
     if G_06.unique_unlabelled_id in eqclass_ids:
         print(eqclass)
         break
-print(as_classical_QmDAG(eqclass[0]) in provably_interesting_via_binary_supports4)
-print(G_11.unique_unlabelled_id in eqclass_ids)
+# print(as_classical_QmDAG(eqclass[0]) for eqclass in provably_interesting_via_binary_supports4)
+# print(G_11.unique_unlabelled_id in eqclass_ids)
 
 
-G_07=mDAG(DirectedStructure([(1,2),(0,3)],4),Hypergraph([(0,2,3),(1,2,3),(0,1)],4))
+G_07 = mDAG(DirectedStructure([(1, 2), (0, 3)], 4), Hypergraph([(0, 2, 3), (1, 2, 3), (0, 1)], 4))
 print(as_classical_QmDAG(G_07) in IC_gap_by_PD_trick)
 print(as_classical_QmDAG(G_07) in IC_gap_by_esep2)
 print(as_classical_QmDAG(G_07) in provably_interesting_via_binary_supports4)
 print(as_classical_QmDAG(G_07) in provably_interesting_via_binary_supports8)
 
 for eqclass in Observable_mDAGs4.NOT_latent_free_eqclasses:
-    eqclass_ids=[mDAG.unique_unlabelled_id for mDAG in eqclass]
+    eqclass_ids = [mdag.unique_unlabelled_id for mdag in eqclass]
     if G_07.unique_unlabelled_id in eqclass_ids:
         print(eqclass)
         break
-print(as_classical_QmDAG(eqclass[0]) in provably_interesting_via_binary_supports4)
+# print(as_classical_QmDAG(eqclass[0]) for eqclass in provably_interesting_via_binary_supports4)
 
-G_08=mDAG(DirectedStructure([(1,2),(0,3),(2,3)],4),Hypergraph([(0,2),(1,3),(0,1)],4))
+G_08 = mDAG(DirectedStructure([(1, 2), (0, 3), (2, 3)], 4), Hypergraph([(0, 2), (1, 3), (0, 1)], 4))
 print(as_classical_QmDAG(G_08) in IC_gap_by_PD_trick)
 print(as_classical_QmDAG(G_08) in IC_gap_by_esep2)
 print(as_classical_QmDAG(G_08) in provably_interesting_via_binary_supports4)
 print(as_classical_QmDAG(G_08) in provably_interesting_via_binary_supports8)
 
 for eqclass in Observable_mDAGs4.NOT_latent_free_eqclasses:
-    eqclass_ids=[mDAG.unique_unlabelled_id for mDAG in eqclass]
+    eqclass_ids = [mdag.unique_unlabelled_id for mdag in eqclass]
     if G_08.unique_unlabelled_id in eqclass_ids:
         print(eqclass)
         break
-print(as_classical_QmDAG(eqclass[0]) in provably_interesting_via_binary_supports4)
+# print(as_classical_QmDAG(eqclass[0]) for eqclass in provably_interesting_via_binary_supports4)
 
-
-G_09=mDAG(DirectedStructure([(1,2),(0,1),(2,3)],4),Hypergraph([(0,3),(1,2,3),(0,2)],4))
+G_09 = mDAG(DirectedStructure([(1, 2), (0, 1), (2, 3)], 4), Hypergraph([(0, 3), (1, 2, 3), (0, 2)], 4))
 print(as_classical_QmDAG(G_09) in IC_gap_by_PD_trick)
 print(as_classical_QmDAG(G_09) in IC_gap_by_esep2)
 print(as_classical_QmDAG(G_09) in provably_interesting_via_binary_supports4)
 print(as_classical_QmDAG(G_09) in provably_interesting_via_binary_supports8)
 
 for eqclass in Observable_mDAGs4.NOT_latent_free_eqclasses:
-    eqclass_ids=[mDAG.unique_unlabelled_id for mDAG in eqclass]
+    eqclass_ids = [mdag.unique_unlabelled_id for mdag in eqclass]
     if G_09.unique_unlabelled_id in eqclass_ids:
         print(eqclass)
         break
-print(as_classical_QmDAG(eqclass[0]) in provably_interesting_via_binary_supports4)
+# print(as_classical_QmDAG(eqclass[0]) for eqclass in provably_interesting_via_binary_supports4)
 
-G_10=mDAG(DirectedStructure([(1,2),(0,3),(2,3)],4),Hypergraph([(0,1),(1,3),(0,2,3)],4))
+G_10 = mDAG(DirectedStructure([(1, 2), (0, 3), (2, 3)], 4), Hypergraph([(0, 1), (1, 3), (0, 2, 3)], 4))
 print(as_classical_QmDAG(G_10) in IC_gap_by_PD_trick)
 print(as_classical_QmDAG(G_10) in IC_gap_by_esep2)
 print(as_classical_QmDAG(G_10) in provably_interesting_via_binary_supports4)
 print(as_classical_QmDAG(G_10) in provably_interesting_via_binary_supports8)
 
 for eqclass in Observable_mDAGs4.NOT_latent_free_eqclasses:
-    eqclass_ids=[mDAG.unique_unlabelled_id for mDAG in eqclass]
+    eqclass_ids = [mdag.unique_unlabelled_id for mdag in eqclass]
     if G_10.unique_unlabelled_id in eqclass_ids:
         print(eqclass)
         break
-print(as_classical_QmDAG(eqclass[0]) in provably_interesting_via_binary_supports4)
+# print(as_classical_QmDAG(eqclass[0]) for eqclass in provably_interesting_via_binary_supports4)
 
-G_11=mDAG(DirectedStructure([(0,1)],4),Hypergraph([(0,1,3),(1,2),(0,2)],4))
+G_11 = mDAG(DirectedStructure([(0, 1)], 4), Hypergraph([(0, 1, 3), (1, 2), (0, 2)], 4))
 print(as_classical_QmDAG(G_11) in IC_gap_by_PD_trick)
 print(as_classical_QmDAG(G_11) in IC_gap_by_esep2)
 print(as_classical_QmDAG(G_11) in provably_interesting_via_binary_supports4)
 print(as_classical_QmDAG(G_11) in provably_interesting_via_binary_supports8)
 
 for eqclass in Observable_mDAGs4.NOT_latent_free_eqclasses:
-    eqclass_ids=[mDAG.unique_unlabelled_id for mDAG in eqclass]
+    eqclass_ids = [mdag.unique_unlabelled_id for mdag in eqclass]
     if G_11.unique_unlabelled_id in eqclass_ids:
         print(eqclass)
         break
-print(as_classical_QmDAG(eqclass[0]) in provably_interesting_via_binary_supports4)
+# print(as_classical_QmDAG(eqclass[0]) for eqclass in provably_interesting_via_binary_supports4)
 
-
-G_12=mDAG(DirectedStructure([(1,2),(0,1)],4),Hypergraph([(0,1,2),(1,3),(2,3)],4))
+G_12 = mDAG(DirectedStructure([(1, 2), (0, 1)], 4), Hypergraph([(0, 1, 2), (1, 3), (2, 3)], 4))
 print(as_classical_QmDAG(G_12) in IC_gap_by_PD_trick)
 print(as_classical_QmDAG(G_12) in IC_gap_by_esep2)
 print(as_classical_QmDAG(G_12) in provably_interesting_via_binary_supports4)
 print(as_classical_QmDAG(G_12) in provably_interesting_via_binary_supports8)
 
 for eqclass in Observable_mDAGs4.NOT_latent_free_eqclasses:
-    eqclass_ids=[mDAG.unique_unlabelled_id for mDAG in eqclass]
+    eqclass_ids = [mdag.unique_unlabelled_id for mdag in eqclass]
     if G_12.unique_unlabelled_id in eqclass_ids:
         print(eqclass)
         break
-print(as_classical_QmDAG(eqclass[0]) in provably_interesting_via_binary_supports4)
-print(G_11.unique_unlabelled_id in eqclass_ids)
+# print(as_classical_QmDAG(eqclass[0]) for eqclass in provably_interesting_via_binary_supports4)
+# print(G_11.unique_unlabelled_id in eqclass_ids)
 
 
-G_17=mDAG(DirectedStructure([(1,2),(0,1),(2,3)],4),Hypergraph([(0,2),(1,3),(0,3)],4))
+G_17 = mDAG(DirectedStructure([(1, 2), (0, 1), (2, 3)], 4), Hypergraph([(0, 2), (1, 3), (0, 3)], 4))
 print(as_classical_QmDAG(G_17) in IC_gap_by_PD_trick)
 print(as_classical_QmDAG(G_17) in IC_gap_by_esep2)
 print(as_classical_QmDAG(G_17) in provably_interesting_via_binary_supports4)
 print(as_classical_QmDAG(G_17) in provably_interesting_via_binary_supports8)
 
 for eqclass in Observable_mDAGs4.NOT_latent_free_eqclasses:
-    eqclass_ids=[mDAG.unique_unlabelled_id for mDAG in eqclass]
+    eqclass_ids = [mdag.unique_unlabelled_id for mdag in eqclass]
     if G_17.unique_unlabelled_id in eqclass_ids:
         print(eqclass)
         break
-print(as_classical_QmDAG(eqclass[0]) in provably_interesting_via_binary_supports4)
+# print(as_classical_QmDAG(eqclass[0]) for eqclass in provably_interesting_via_binary_supports4)
 
-
-G_18=mDAG(DirectedStructure([(1,2),(0,2)],4),Hypergraph([(0,1,2),(0,3),(2,3)],4))
+G_18 = mDAG(DirectedStructure([(1, 2), (0, 2)], 4), Hypergraph([(0, 1, 2), (0, 3), (2, 3)], 4))
 print(as_classical_QmDAG(G_18) in IC_gap_by_PD_trick)
 print(as_classical_QmDAG(G_18) in IC_gap_by_esep2)
 print(as_classical_QmDAG(G_18) in provably_interesting_via_binary_supports4)
 print(as_classical_QmDAG(G_18) in provably_interesting_via_binary_supports8)
 
 for eqclass in Observable_mDAGs4.NOT_latent_free_eqclasses:
-    eqclass_ids=[mDAG.unique_unlabelled_id for mDAG in eqclass]
+    eqclass_ids = [mdag.unique_unlabelled_id for mdag in eqclass]
     if G_18.unique_unlabelled_id in eqclass_ids:
         print(eqclass)
         break
-print(as_classical_QmDAG(eqclass[0]) in provably_interesting_via_binary_supports4)
-print(G_11.unique_unlabelled_id in eqclass_ids)
-
-
-
+# print([as_classical_QmDAG(eqclass[0]) for eqclass in provably_interesting_via_binary_supports4])
+# print(G_11.unique_unlabelled_id in eqclass_ids)
 
 
 # =============================================================================
@@ -418,7 +418,6 @@ print(G_11.unique_unlabelled_id in eqclass_ids)
 # =============================================================================
 
 
-
 #
 # esep_problematic=[]
 # supports_problematic=[]
@@ -444,7 +443,6 @@ print(G_11.unique_unlabelled_id in eqclass_ids)
 #
 # latent_free2=mDAG(DirectedStructure([(0,3),(1,3),(2,3)],4),Hypergraph([],4))
 # latent_free2.no_infeasible_binary_supports_beyond_dsep_up_to(4)
-
 
 
 # =============================================================================

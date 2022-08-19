@@ -34,17 +34,17 @@ def C_facets_not_dominated_by_Q(c_facets, q_facets):
     return c_facets_copy
 
 
-def upgrade_to_QmDAG(mDAG):
+def upgrade_to_QmDAG(mdag: mDAG):
     return QmDAG(
-        mDAG.directed_structure_instance,
-        Hypergraph([], mDAG.number_of_visible),
-        mDAG.simplicial_complex_instance)
+        mdag.directed_structure_instance,
+        Hypergraph([], mdag.number_of_visible),
+        mdag.simplicial_complex_instance)
 
-def as_classical_QmDAG(mDAG):
+def as_classical_QmDAG(mdag: mDAG):
     return QmDAG(
-        mDAG.directed_structure_instance,
-        mDAG.simplicial_complex_instance,
-        Hypergraph([], mDAG.number_of_visible))
+        mdag.directed_structure_instance,
+        mdag.simplicial_complex_instance,
+        Hypergraph([], mdag.number_of_visible))
 
 
 # This class does NOT represent every possible quantum causal structure. It only represents the causal structures where every quantum latent is exogenized. This is the case, for example, of the known QC Gaps.

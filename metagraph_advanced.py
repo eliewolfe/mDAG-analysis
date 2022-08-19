@@ -48,12 +48,12 @@ def classify_by_attributes(representatives, attributes, verbose=False):
     if len(representatives)>1:
         d = defaultdict(set)
         if verbose:
-            for mDAG in progressbar.progressbar(
+            for mdag in progressbar.progressbar(
                 representatives, widgets=[progressbar.SimpleProgress(), progressbar.Bar(), ' (', progressbar.ETA(), ') ']):
-                d[tuple(evaluate_property_or_method(mDAG, prop) for prop in attributes)].add(mDAG)
+                d[tuple(evaluate_property_or_method(mdag, prop) for prop in attributes)].add(mdag)
         else:
-            for mDAG in representatives:
-                d[tuple(evaluate_property_or_method(mDAG, prop) for prop in attributes)].add(mDAG)
+            for mdag in representatives:
+                d[tuple(evaluate_property_or_method(mdag, prop) for prop in attributes)].add(mdag)
         return tuple(d.values())
     else:
         return tuple(representatives)
@@ -136,7 +136,7 @@ class Observable_unlabelled_mDAGs:
     @cached_property
     def dict_id_to_canonical_id(self):
         print("Computing canonical (unlabelled) graphs...", flush=True)
-        return {mDAG.unique_id: mDAG.unique_unlabelled_id for mDAG in self.all_labelled_mDAGs}
+        return {mdag.unique_id: mdag.unique_unlabelled_id for mdag in self.all_labelled_mDAGs}
 
 
     def mdag_int_pair_to_single_int(self, sc_int, ds_int):
@@ -149,7 +149,7 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def dict_ind_unlabelled_mDAGs(self):
-        return {mDAG.unique_unlabelled_id: mDAG for mDAG in self.all_labelled_mDAGs}
+        return {mdag.unique_unlabelled_id: mdag for mdag in self.all_labelled_mDAGs}
 
     def lookup_mDAG(self, indices):
         return partsextractor(self.dict_ind_unlabelled_mDAGs, indices)
@@ -218,14 +218,14 @@ class Observable_unlabelled_mDAGs:
 
     @property
     def HLP_edges(self):
-        for (id, mDAG) in self.dict_ind_unlabelled_mDAGs.items():  # NEW: Over graph patterns only
-            for mDAG2 in mDAG.generate_weaker_mDAG_HLP:
+        for (id, mdag) in self.dict_ind_unlabelled_mDAGs.items():  # NEW: Over graph patterns only
+            for mDAG2 in mdag.generate_weaker_mDAG_HLP:
                 yield (self.dict_id_to_canonical_id[mDAG2], id)
 
     @property
     def FaceSplitting_edges(self):
-        for (id, mDAG) in self.dict_ind_unlabelled_mDAGs.items():  # NEW: Over graph patterns only
-            for mDAG2 in mDAG.generate_weaker_mDAGs_FaceSplitting('strong'):
+        for (id, mdag) in self.dict_ind_unlabelled_mDAGs.items():  # NEW: Over graph patterns only
+            for mDAG2 in mdag.generate_weaker_mDAGs_FaceSplitting('strong'):
                 yield (self.dict_id_to_canonical_id[mDAG2], id)
         
 
@@ -278,11 +278,11 @@ class Observable_unlabelled_mDAGs:
     
     @cached_property
     def latent_free_eqclasses_picklist(self):
-        return [any(mDAG.latent_free_graphQ for mDAG in eqclass) for eqclass in self.equivalence_classes_as_mDAGs]
+        return [any(mdag.latent_free_graphQ for mdag in eqclass) for eqclass in self.equivalence_classes_as_mDAGs]
 
     @cached_property
     def latent_free_eqclasses(self):
-        # return list(filter(lambda eqclass: all(mDAG.fundamental_graphQ for mDAG in eqclass),
+        # return list(filter(lambda eqclass: all(mdag.fundamental_graphQ for mdag in eqclass),
         #                    self.equivalence_classes_as_mDAGs))
         return [eqclass for eqclass,latent_free_Q in
                 zip(self.equivalence_classes_as_mDAGs, self.latent_free_eqclasses_picklist) if latent_free_Q]
@@ -294,11 +294,11 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def NOT_latent_free_eqclasses_picklist(self):
-        return [not any(mDAG.latent_free_graphQ for mDAG in eqclass) for eqclass in self.equivalence_classes_as_mDAGs]
+        return [not any(mdag.latent_free_graphQ for mdag in eqclass) for eqclass in self.equivalence_classes_as_mDAGs]
 
     @cached_property
     def NOT_latent_free_eqclasses(self):
-        # return list(filter(lambda eqclass: all(mDAG.fundamental_graphQ for mDAG in eqclass),
+        # return list(filter(lambda eqclass: all(mdag.fundamental_graphQ for mdag in eqclass),
         #                    self.equivalence_classes_as_mDAGs))
         return [eqclass for eqclass,not_latent_free_Q in
                 zip(self.equivalence_classes_as_mDAGs, self.NOT_latent_free_eqclasses_picklist) if not_latent_free_Q]
@@ -311,11 +311,11 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def foundational_eqclasses_picklist(self):
-        return [all(mDAG.fundamental_graphQ for mDAG in eqclass) for eqclass in self.equivalence_classes_as_mDAGs]
+        return [all(mdag.fundamental_graphQ for mdag in eqclass) for eqclass in self.equivalence_classes_as_mDAGs]
 
     @cached_property
     def foundational_eqclasses(self):
-        # return list(filter(lambda eqclass: all(mDAG.fundamental_graphQ for mDAG in eqclass),
+        # return list(filter(lambda eqclass: all(mdag.fundamental_graphQ for mdag in eqclass),
         #                    self.equivalence_classes_as_mDAGs))
         return [eqclass for eqclass,foundational_Q in
                 zip(self.equivalence_classes_as_mDAGs, self.foundational_eqclasses_picklist) if foundational_Q]
@@ -326,7 +326,7 @@ class Observable_unlabelled_mDAGs:
 
     @staticmethod
     def smart_representatives(eqclasses, attribute):
-        return [min(eqclass, key = lambda mDAG: mDAG.__getattribute__(attribute)) for eqclass in eqclasses]
+        return [min(eqclass, key = lambda mdag: mdag.__getattribute__(attribute)) for eqclass in eqclasses]
 
     @cached_property
     def representative_mDAGs_not_necessarily_foundational(self):
@@ -337,15 +337,15 @@ class Observable_unlabelled_mDAGs:
     def representatives_not_even_one_fundamental_in_class(self):
         representatives_of_NOT_entirely_fundamental_classes=[element for element in self.representative_mDAGs_not_necessarily_foundational if element not in self.representative_mDAGs_list]   
         not_even_one_fundamental_in_class=[]
-        for mDAG in representatives_of_NOT_entirely_fundamental_classes:
+        for mdag in representatives_of_NOT_entirely_fundamental_classes:
             for c in self.equivalence_classes_as_mDAGs:
-                if mDAG in c:
+                if mdag in c:
                     not_one_fund=True
                     for equivalent_mDAG in c:
                         if equivalent_mDAG.fundamental_graphQ:
                             not_one_fund=False
                     if not_one_fund:
-                        not_even_one_fundamental_in_class.append(mDAG)
+                        not_even_one_fundamental_in_class.append(mdag)
         return not_even_one_fundamental_in_class
 
 
@@ -413,7 +413,7 @@ class Observable_unlabelled_mDAGs:
                 zip(self.representatives_for_only_hypergraphs, self.representative_mDAGs_list)}
 
     def effectively_all_singletons(self, eqclass):
-        return all(self.equivalent_to_only_hypergraph_representative[mDAG] for mDAG in eqclass)
+        return all(self.equivalent_to_only_hypergraph_representative[mdag] for mdag in eqclass)
 
     def single_partition_lowerbound_count_accounting_for_hypergraph_inequivalence(self, eqclass):
         num_hypergraph_only_representatives = sum(partsextractor(self.equivalent_to_only_hypergraph_representative, eqclass))
@@ -431,8 +431,8 @@ class Observable_unlabelled_mDAGs:
     @property 
     def Only_Hypergraphs(self):
         # only_hypergraphs=[]
-        # for i,mDAG in enumerate(self.representatives_for_only_hypergraphs):
-        #     if mDAG.n_of_edges==0:
+        # for i, mdag in enumerate(self.representatives_for_only_hypergraphs):
+        #     if mdag.n_of_edges==0:
         #         only_hypergraphs.append(self.representative_mDAGs_list[i])
         # return only_hypergraphs
         return [mDAG_by_complexity for mDAG_by_hypergraph, mDAG_by_complexity in
@@ -458,8 +458,8 @@ class Observable_unlabelled_mDAGs:
         d = defaultdict(set)
         joint_attributes = level1attributes + level2attributes
         critical_range = len(level1attributes)
-        for mDAG in self.representative_mDAGs_list:
-            d[tuple(mDAG.__getattribute__(prop) for prop in joint_attributes)].add(mDAG)
+        for mdag in self.representative_mDAGs_list:
+            d[tuple(mdag.__getattribute__(prop) for prop in joint_attributes)].add(mdag)
         d2 = defaultdict(dict)
         for key_tuple, partition in d.items():
             d2[key_tuple[:critical_range]][key_tuple] = tuple(partition)
@@ -471,7 +471,7 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
         self.max_nof_events = max_nof_events_for_supports
 
         print("Number of unlabelled graph patterns: ", len(self.all_unlabelled_mDAGs), flush=True)
-        fundamental_list = [mDAG.fundamental_graphQ for mDAG in self.all_unlabelled_mDAGs]
+        fundamental_list = [mdag.fundamental_graphQ for mdag in self.all_unlabelled_mDAGs]
         print("Number of fundamental unlabelled graph patterns: ", len(np.flatnonzero(fundamental_list)), flush=True)
         print("Upper bound on number of equivalence classes: ", len(self.equivalence_classes_as_mDAGs), flush=True)
         print("Upper bound on number of 100% foundational equivalence classes: ", len(self.foundational_eqclasses),
@@ -527,17 +527,17 @@ if __name__ == '__main__':
     Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=4)
 
 
-    for eqclass in Observable_mDAGs4.NOT_latent_free_eqclasses:
-        eqclass_ids=[mDAG.unique_unlabelled_id for mDAG in eqclass]
-        if G_18.unique_unlabelled_id in eqclass_ids:
-            print(eqclass)
-            break
-    G_04 in eqclass
-    print(eqclass[0] in Observable_mDAGs4.singletons_dict[4])
-    len(eqclass)
-    for ns in  Observable_mDAGs4.non_singletons_dict[4]  :
-        if eqclass[0] in ns:
-            print(ns)
+    # for eqclass in Observable_mDAGs4.NOT_latent_free_eqclasses:
+    #     eqclass_ids=[mdag.unique_unlabelled_id for mdag in eqclass]
+    #     if G_18.unique_unlabelled_id in eqclass_ids:
+    #         print(eqclass)
+    #         break
+    # G_04 in eqclass
+    # print(eqclass[0] in Observable_mDAGs4.singletons_dict[4])
+    # len(eqclass)
+    # for ns in  Observable_mDAGs4.non_singletons_dict[4]  :
+    #     if eqclass[0] in ns:
+    #         print(ns)
 
 # =============================================================================
 #     for i in range(len(Observable_mDAGs4.foundational_eqclasses)):
@@ -563,9 +563,9 @@ if __name__ == '__main__':
 # =============================================================================
 #     two_latents=[]
 #     for i in range(len(Observable_mDAGs4.foundational_eqclasses)):
-#         for mDAG in Observable_mDAGs4.equivalence_classes_as_mDAGs[i]:
-#             if len(mDAG.latent_nodes)==2 or len(mDAG.latent_nodes)==1:
-#                 two_latents.append(mDAG)
+#         for mdag in Observable_mDAGs4.equivalence_classes_as_mDAGs[i]:
+#             if len(mdag.latent_nodes)==2 or len(mdag.latent_nodes)==1:
+#                 two_latents.append(mdag)
 #                 break
 #     len(two_latents)
 #     
@@ -609,17 +609,17 @@ if __name__ == '__main__':
 #   
 #   
 #     quantumly_valid=[]
-#     for (mDAG, marginalized_node) in mDAGs_that_reduce_to_Instrumental:
+#     for (mdag, marginalized_node) in mDAGs_that_reduce_to_Instrumental:
 #         X_contains_latent_parents=False
-#         for facet in mDAG.simplicial_complex_instance.simplicial_complex_as_sets:
+#         for facet in mdag.simplicial_complex_instance.simplicial_complex_as_sets:
 #             if marginalized_node in facet:
 #                 X_contains_latent_parents=True
 #                 break
 #         share_facet_with_children=[]
 #         if X_contains_latent_parents:
-#             for c in mDAG.children(marginalized_node):
+#             for c in mdag.children(marginalized_node):
 #                 X_share_facet_with_c=False
-#                 for facet in mDAG.simplicial_complex_instance.simplicial_complex_as_sets:
+#                 for facet in mdag.simplicial_complex_instance.simplicial_complex_as_sets:
 #                     if marginalized_node in facet and c in facet:
 #                         X_share_facet_with_c=True
 #                 share_facet_with_children.append(X_share_facet_with_c)
@@ -725,8 +725,8 @@ if __name__ == '__main__':
 #     i=0
 #     for ob_class in Observable_mDAGs4.foundational_eqclasses:
 #         p1=ob_class[0].all_densely_connected_pairs_unlabelled
-#         for mDAG in ob_class:
-#             if mDAG.all_densely_connected_pairs_unlabelled!=p1:
+#         for mdag in ob_class:
+#             if mdag.all_densely_connected_pairs_unlabelled!=p1:
 #                 print(i)
 #         i=i+1
 # No problem here: all classes are consistent in terms of Dense Connectedness
@@ -789,19 +789,19 @@ if __name__ == '__main__':
 #     for mDAG in Observable_mDAGs4.representative_mDAGs_list:
 #      print(i,"of",len(Observable_mDAGs4.representative_mDAGs_list))
 #      i=i+1
-#      if mDAG.no_infeasible_binary_supports_beyond_esep_up_to(5):
-#          no_inf_sups_beyond_esep4.append(mDAG)
+#      if mdag.no_infeasible_binary_supports_beyond_esep_up_to(5):
+#          no_inf_sups_beyond_esep4.append(mdag)
 #     
 #     len(no_inf_sups_beyond_esep4)
 #     
 # 
 #     no_inf_sups_beyond_esep3=[]
 #     i=0
-#     for mDAG in Observable_mDAGs3.representative_mDAGs_list:
+#     for mdag in Observable_mDAGs3.representative_mDAGs_list:
 #      print(i,"of",len(Observable_mDAGs3.representative_mDAGs_list))
 #      i=i+1
-#      if mDAG.no_infeasible_binary_supports_beyond_esep_up_to(5):
-#          no_inf_sups_beyond_esep3.append(mDAG)
+#      if mdag.no_infeasible_binary_supports_beyond_esep_up_to(5):
+#          no_inf_sups_beyond_esep3.append(mdag)
 #     
 #     len(no_inf_sups_beyond_esep3)
 # =============================================================================
@@ -842,7 +842,7 @@ if __name__ == '__main__':
 #             eqclass_adjmat[i,j] = metagraph_adjmat[c1].any(axis=0)[c2].any()
 #     print(eqclass_adjmat.astype(int))
 # 
-#     [mDAG for mDAG in Observable_mDAGs.singletons_dict[3] if mDAG.no_infeasible_binary_supports_up_to(4)]
+#     [mdag for mdag in Observable_mDAGs.singletons_dict[3] if mdag.no_infeasible_binary_supports_up_to(4)]
 # 
 #    [non_singleton_set for non_singleton_set in Observable_mDAGs.non_singletons_dict[3] if next(iter(non_singleton_set)).support_testing_instance_binary(5).no_infeasible_supports()]
 # 
