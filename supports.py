@@ -279,6 +279,9 @@ class SupportTesting(SupportTester):
 
     @cached_property
     def universal_relabelling_group(self):
+        # print(self.outcome_relabelling_group.shape)
+        # print(self.party_relabelling_group.shape)
+        # return np.array([g1[g2] for g1, g2 in itertools.product(self.outcome_relabelling_group, self.party_relabelling_group)])
         return np.vstack(np.take(self.outcome_relabelling_group, self.party_relabelling_group, axis=-1))
         # hugegroup = np.vstack(np.take(self.outcome_relabelling_group, self.party_relabelling_group, axis=-1))
         # hugegroup = hugegroup[np.lexsort(hugegroup.T)]
@@ -437,12 +440,20 @@ class SupportTesting(SupportTester):
     def convert_integers_into_canonical_under_relabelling(self, list_of_integers):
         if len(list_of_integers) > 0:
             labelled_infeasible_as_lists = self.from_integer_to_list(list_of_integers)
-            labelled_variants = self.universal_relabelling_group[:, labelled_infeasible_as_lists]
-            labelled_variants.sort(axis=-1)
-            labelled_variants = self.from_list_to_integer(labelled_variants).astype(int)
-            labelled_variants.sort(axis=-1)
-            lexsort = np.lexsort(labelled_variants.T)
-            return labelled_variants[lexsort[0]]
+            labelled_variants_as_lists = np.take(self.party_relabelling_group, labelled_infeasible_as_lists, axis=-1)
+            labelled_variants_as_integers = []
+            for list_of_supports in labelled_variants_as_lists:
+                list_of_supports_variants = np.take(self.outcome_relabelling_group, list_of_supports, axis=-1)
+                list_of_supports_variants.sort(axis=-1)
+                int_of_supports_variants = self.from_list_to_integer(list_of_supports_variants).astype(int)
+                int_of_supports_variants.sort(axis=0) #We minimize each support SEPERATELY under the relabelling group
+                labelled_variants_as_integers.append(int_of_supports_variants[0])
+            labelled_variants_as_integers = np.asarray(labelled_variants_as_integers)
+            labelled_variants_as_integers.sort(axis=1)
+            return min(labelled_variants_as_integers, key=tuple)
+            # lexsort = np.lexsort(labelled_variants_as_integers.T)
+            # labelled_variants = labelled_variants_as_integers.take(lexsort, axis=0)
+            # return labelled_variants[0]
         else:
             return list_of_integers
 

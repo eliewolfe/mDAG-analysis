@@ -1,37 +1,15 @@
-# from mDAG_advanced import mDAG
-# import networkx as nx
-# from radix import int_to_bitarray
-# # DirectedStructure = nx.from_dict_of_lists({0:[1,2,3], 1:[2]}, create_using=nx.DiGraph)
-# # simplicial_structure = [(0,1),(0,2),(0,3)]
-# # mDAG1 = mDAG(DirectedStructure, simplicial_structure)
-# # print(mDAG1.skeleton_bitarray.astype(int))
-# # print(mDAG1.skeleton)
-# # print(mDAG1.skeleton_unlabelled)
-# # print(int_to_bitarray(mDAG1.skeleton_unlabelled,4))
-#
-# ds1 = nx.from_dict_of_lists({0:[1],1:[2],2:[3]}, create_using=nx.DiGraph)
-# ds2 = nx.from_dict_of_lists({0:[3],2:[3]}, create_using=nx.DiGraph)
-# ds2.add_nodes_from([1])
-# sc1 = [(0,1),(0,2),(0,3),(1,2),(1,3),(2,3)]
-# sc2 = [(0,1,3),(0,2),(1,2),(2,3)]
-# mDAG1 = mDAG(ds1, sc1)
-# mDAG2 = mDAG(ds2, sc2)
-# # print(mDAG1.skeleton_bitarray.astype(int))
-# # print(mDAG2.skeleton_bitarray.astype(int))
-# print(int_to_bitarray(mDAG1.skeleton_unlabelled,4))
-# print(int_to_bitarray(mDAG2.skeleton_unlabelled,4))
-# print(mDAG1.skeleton_unlabelled)
-# print(mDAG2.skeleton_unlabelled)
-# print(mDAG1.all_esep)
-# print(mDAG2.all_esep)
+from __future__ import absolute_import
+from hypergraphs import Hypergraph
+from directed_structures import DirectedStructure
+from mDAG_advanced import mDAG
 
-class test:
-    def __init__(self):
-        pass
 
-    def m1(self,n):
-        return n+5
-
-if __name__ == '__main__':
-    print(test().__getattribute__('m1')(3))
-    print(test().__getattribute__('m1'))
+G3=mDAG(DirectedStructure([(0,1),(2,3)],4),Hypergraph([(0,1),(0,2,3)],4))
+#Relabel:
+# 1->2, 0->1, 2->0, 3->3
+G4=mDAG(DirectedStructure([(0,3),(1,2)],4),Hypergraph([(1,2),(0,1,3)],4))
+print(G3.unique_unlabelled_id, G4.unique_unlabelled_id)
+l1 = G3.infeasible_binary_supports_n_events_unlabelled(3)
+l2 = G4.infeasible_binary_supports_n_events_unlabelled(3)
+print(G3.infeasible_binary_supports_n_events_unlabelled(3))
+print(G4.infeasible_binary_supports_n_events_unlabelled(3))
