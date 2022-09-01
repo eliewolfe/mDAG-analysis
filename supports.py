@@ -301,17 +301,22 @@ class SupportTesting(SupportTester):
     #         candidates = to_digits(compressed_candidates, self.event_cardinalities)
     #     return np.unique(candidates, axis=0)
     def unique_supports_under_group(self, candidates_raw, group, verbose=False):
-        candidates = candidates_raw.copy()
-        #
-        for group_element in explore_candidates(group[1:], verbose=verbose, message='Getting unique under relabelling'):
-            compressed_candidates = from_digits(candidates, self.event_cardinalities)
-            new_candidates = np.take(group_element, candidates)
-            new_candidates.sort()
-            np.minimum(compressed_candidates,
-                       from_digits(new_candidates, self.event_cardinalities),
-                       out=compressed_candidates)
-            candidates = to_digits(np.unique(compressed_candidates), self.event_cardinalities)
-        return candidates
+        list_of_supports_variants = np.take(group, candidates_raw, axis=-1)
+        list_of_supports_variants.sort(axis=-1)
+        int_of_supports_variants = self.from_list_to_integer(list_of_supports_variants).astype(int)
+        int_of_supports_variants.sort(axis=0) #We minimize each support SEPERATELY under the relabelling group
+        return self.from_integer_to_list(np.unique(int_of_supports_variants[0]))
+
+        # candidates = candidates_raw.copy()
+        # for group_element in explore_candidates(group[1:], verbose=verbose, message='Getting unique under relabelling'):
+        #     compressed_candidates = from_digits(candidates, self.event_cardinalities)
+        #     new_candidates = np.take(group_element, candidates)
+        #     new_candidates.sort()
+        #     np.minimum(compressed_candidates,
+        #                from_digits(new_candidates, self.event_cardinalities),
+        #                out=compressed_candidates)
+        #     candidates = to_digits(np.unique(compressed_candidates), self.event_cardinalities)
+        # return candidates
 
 
     @cached_property
