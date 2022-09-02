@@ -29,15 +29,15 @@ except:
     print("Testing infeasible supports requires pysat.")
 from hypergraphs import Hypergraph, LabelledHypergraph, UndirectedGraph, LabelledUndirectedGraph, hypergraph_full_cleanup
 import methodtools
-from directed_structures import LabelledDirectedStructure, DirectedStructure
-from closure import closure as numeric_closure, is_this_subadjmat_densely_connected
+from directed_structures import LabelledDirectedStructure  # , DirectedStructure
+from closure import closure as numeric_closure  # , is_this_subadjmat_densely_connected
 
  
 def mdag_to_int(ds_bitarray, sc_bitarray):
     sc_int = bitarray_to_int(sc_bitarray)
     ds_int = bitarray_to_int(ds_bitarray)
     #The directed structure is always a square matrix of size n^2.
-    offset = 2**(ds_bitarray.size)
+    offset = 2**ds_bitarray.size
     # print(sc_int, ds_int, offset)
     return ds_int + (sc_int * offset)
     # return bitarray_to_int(np.vstack((sc_bitarray, ds_bitarray)))

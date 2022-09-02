@@ -319,7 +319,7 @@ class SupportTesting(SupportTester):
         if not conserve_memory:
             list_of_supports_variants = np.take(group, candidates_raw, axis=-1)
             list_of_supports_variants.sort(axis=-1)
-            int_of_supports_variants = self.from_list_to_integer(list_of_supports_variants).astype(int)
+            int_of_supports_variants = self.from_list_to_integer(list_of_supports_variants)
             # int_of_supports_variants.sort(axis=0)  # We minimize each support SEPARATELY under the relabelling group
             return self.from_integer_to_list(np.unique(np.amin(int_of_supports_variants, axis=0)))
         else:
@@ -416,7 +416,7 @@ class SupportTesting(SupportTester):
     def unique_infeasible_supports_as_integers_among(self, candidates_as_integers, verbose=False, **kwargs):
         return np.fromiter((occurring_events_as_int for occurring_events_as_int in
                             self.explore_candidates(candidates_as_integers, verbose=verbose) if
-                            not self.feasibleQ_from_integer(occurring_events_as_int, **kwargs)), dtype=int)
+                            not self.feasibleQ_from_integer(occurring_events_as_int, **kwargs)), dtype=np.uint64)
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_as_integers(self, **kwargs):
