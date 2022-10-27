@@ -44,12 +44,16 @@ class SupportTester(object):
 
         self.max_conceivable_events = np.prod(self.observed_cardinalities)
 
+        self.matrix_dtype = np.min_scalar_type(self.observed_cardinalities)
+        self.list_dtype = np.min_scalar_type(self.max_conceivable_events)
+        self.int_dtype = np.min_scalar_type(np.power(self.max_conceivable_events, self.nof_events))
+
         self.event_cardinalities = np.broadcast_to(self.max_conceivable_events, self.nof_events)
 
         self.repeated_observed_cardinalities = np.broadcast_to(np.expand_dims(self.observed_cardinalities, axis=-1),
                                                                (self.nof_observed, self.nof_events)).T.ravel()
 
-        self.conceivable_events_range = np.arange(self.max_conceivable_events, dtype=np.uint)
+        self.conceivable_events_range = np.arange(self.max_conceivable_events).astype(self.list_dtype)
 
         self.relevant_parent_cardinalities = [partsextractor(self.observed_and_latent_cardinalities,
                                                              self.parents_of[idx]) for idx in
@@ -84,20 +88,20 @@ class SupportTester(object):
     def _array_of_potentially_forbidden_events(self):
         return np.asarray([[-self.var(idx, iterator[idx], partsextractor(iterator, self.parents_of[idx])) for idx
                             in range(self.nof_observed)]
-                           for iterator in np.ndindex(self.observed_and_latent_cardinalities)], dtype=np.intp).reshape(
+                           for iterator in np.ndindex(*self.observed_and_latent_cardinalities)], dtype=np.intp).reshape(
             (np.prod(self.observed_cardinalities), -1, self.nof_events ** self.nof_latent, self.nof_observed))
 
     def from_list_to_matrix(self, supports_as_lists):
-        return to_digits(supports_as_lists, self.observed_cardinalities)
+        return to_digits(supports_as_lists, self.observed_cardinalities).astype(self.matrix_dtype)
 
     def from_matrix_to_list(self, supports_as_matrices):
-        return from_digits(supports_as_matrices, self.observed_cardinalities)
+        return from_digits(supports_as_matrices, self.observed_cardinalities).astype(self.list_dtype)
 
     def from_list_to_integer(self, supports_as_lists):
-        return from_digits(supports_as_lists, self.event_cardinalities)
+        return from_digits(supports_as_lists, self.event_cardinalities).astype(self.int_dtype)
 
     def from_integer_to_list(self, supports_as_integers):
-        return to_digits(supports_as_integers, self.event_cardinalities)
+        return to_digits(supports_as_integers, self.event_cardinalities).astype(self.list_dtype)
 
     # def from_matrix_to_integer(self, supports_as_matrices):
     #     return self.from_list_to_integer(self.from_matrix_to_list(supports_as_matrices))
@@ -110,19 +114,19 @@ class SupportTester(object):
         shape = supports_as_matrices_as_array.shape
         return from_digits(
             supports_as_matrices_as_array.reshape(shape[:-2] + (np.prod(shape[-2:]),)),
-            self.repeated_observed_cardinalities)
+            self.repeated_observed_cardinalities).astype(self.int_dtype)
 
     def from_integer_to_matrix(self, supports_as_integers):
         # return self.from_list_to_matrix(self.from_integer_to_list(supports_as_integers))
         return np.reshape(to_digits(
-            supports_as_integers, self.repeated_observed_cardinalities),
-            np.asarray(supports_as_integers, dtype=np.intp).shape + (self.nof_events, self.nof_observed))
+            supports_as_integers, self.repeated_observed_cardinalities).astype(self.matrix_dtype),
+            np.asarray(supports_as_integers, dtype=self.int_dtype).shape + (self.nof_events, self.nof_observed))
 
     def forbidden_events_clauses(self, occurring_events):
         return self._array_of_potentially_forbidden_events[
             np.setdiff1d(
                 self.conceivable_events_range,
-                self.from_matrix_to_list(np.asarray(occurring_events, dtype=np.intp)),
+                self.from_matrix_to_list(np.asarray(occurring_events, dtype=self.matrix_dtype)),
                 assume_unique=True
             )].reshape((-1, self.nof_observed))
 
@@ -153,7 +157,7 @@ class SupportTester(object):
             # return result
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def feasibleQ_from_tuple(self, occurring_events_as_tuple, **kwargs):
+    def feasibleQ_from_tuple(self, occurring_events_as_tuple: np.ndarray, **kwargs):
         return self.feasibleQ_from_matrix(self.from_list_to_matrix(occurring_events_as_tuple), **kwargs)
 
     @methodtools.lru_cache(maxsize=None, typed=False)
@@ -207,6 +211,45 @@ class SupportTester(object):
         return self.infeasibleQ_from_matrix_pair(self.from_list_to_matrix(definitely_occurring_events_tuple),
                                                  self.from_list_to_matrix(potentially_occurring_events_tuple), **kwargs)
 
+    @staticmethod
+    def generate_supports_satisfying_pp_restriction(i, pp_vector,
+                                                    candidate_support_matrices,
+                                                    **kwargs):
+        for s in explore_candidates(candidate_support_matrices,
+                                    message='Enforce ' + str(
+                                        i) + ' is perf. pred. by ' + np.array_str(
+                                        pp_vector),
+                                    **kwargs):
+            s_resorted = s[np.argsort(s[:, i])]
+            # for k, g in itertools.groupby(s_resorted, lambda e: e[i]):
+            #     print((k,g))
+            partitioned = [np.vstack(tuple(g))[:, pp_vector] for k, g in
+                           itertools.groupby(s_resorted, lambda e: e[i])]
+            to_test_for_intersection = [set(map(tuple, pp_values)) for
+                                        pp_values in partitioned]
+            raw_length = np.sum(
+                [len(vals) for vals in to_test_for_intersection])
+            compressed_length = len(set().union(*to_test_for_intersection))
+            if raw_length == compressed_length:
+                yield s
+
+    def extract_support_matrices_satisfying_pprestrictions(self,
+            candidate_support_matrices_raw, pp_restrictions, verbose=True):
+        candidate_support_matrices = candidate_support_matrices_raw.copy()
+        for (i, pp_set) in pp_restrictions:
+            print(
+                "Isolating candidates due to perfect prediction restriction...",
+                i, " by ", pp_set)
+            pp_vector = np.array(pp_set)
+            candidate_support_matrices = np.array(list(
+                self.generate_supports_satisfying_pp_restriction(i, pp_vector,
+                                                            candidate_support_matrices,
+                                                            verbose=verbose)),
+                dtype=self.matrix_dtype)
+        return candidate_support_matrices
+
+
+
 
 # def does_this_support_respect_this_pp_restriction(i, pp_set, s):
 #     if len(pp_set):
@@ -236,31 +279,6 @@ def explore_candidates(candidates, verbose=False, message=''):
         return candidates
 
 
-def generate_supports_satisfying_pp_restriction(i, pp_vector, candidate_support_matrices, **kwargs):
-    for s in explore_candidates(candidate_support_matrices,
-                                message='Enforce ' + str(i) + ' is perf. pred. by ' + np.array_str(pp_vector),
-                                **kwargs):
-        s_resorted = s[np.argsort(s[:, i])]
-        # for k, g in itertools.groupby(s_resorted, lambda e: e[i]):
-        #     print((k,g))
-        partitioned = [np.vstack(tuple(g))[:, pp_vector] for k, g in itertools.groupby(s_resorted, lambda e: e[i])]
-        to_test_for_intersection = [set(map(tuple, pp_values)) for pp_values in partitioned]
-        raw_length = np.sum([len(vals) for vals in to_test_for_intersection])
-        compressed_length = len(set().union(*to_test_for_intersection))
-        if (raw_length == compressed_length):
-            yield s
-
-
-def extract_support_matrices_satisfying_pprestrictions(candidate_support_matrices_raw, pp_restrictions, verbose=True):
-    candidate_support_matrices = candidate_support_matrices_raw.copy()
-    for (i, pp_set) in pp_restrictions:
-        print("Isolating candidates due to perfect prediction restriction...", i, " by ", pp_set)
-        pp_vector = np.array(pp_set)
-        candidate_support_matrices = list(
-            generate_supports_satisfying_pp_restriction(i, pp_vector, candidate_support_matrices, verbose=verbose))
-    return candidate_support_matrices
-
-
 class SupportTesting(SupportTester):
 
     # def support_respects_perfect_prediction_restrictions(self, candidate_s):
@@ -270,16 +288,15 @@ class SupportTesting(SupportTester):
     @cached_property
     def outcome_relabelling_group(self):
         if np.array_equiv(2, self.observed_cardinalities):
-            return np.bitwise_xor.outer(self.conceivable_events_range, self.conceivable_events_range)
+            return np.bitwise_xor.outer(self.conceivable_events_range, self.conceivable_events_range).astype(self.list_dtype)
         else:
-            return from_digits(np.fromiter(
+            return self.from_matrix_to_list(np.fromiter(
                 itertools.chain.from_iterable(itertools.chain.from_iterable(
                     itertools.starmap(
                         itertools.product,
                         itertools.product(*map(itertools.permutations, map(range, self.observed_cardinalities)))
                     ))),
-                int).reshape((-1, self.max_conceivable_events, self.nof_observed)),
-                               self.observed_cardinalities)
+                self.matrix_dtype).reshape((-1, self.max_conceivable_events, self.nof_observed)))
 
     @cached_property
     def party_relabelling_group(self):
@@ -289,33 +306,14 @@ class SupportTesting(SupportTester):
         return np.fromiter(
             itertools.chain.from_iterable(
                 to_reshape.transpose(perm).ravel() for perm in itertools.permutations(range(self.nof_observed))
-            ), int
+            ), self.list_dtype
         ).reshape((-1, self.max_conceivable_events,))
 
     @cached_property
     def universal_relabelling_group(self):
-        # print(self.outcome_relabelling_group.shape)
-        # print(self.party_relabelling_group.shape)
-        # return np.array([g1[g2] for g1, g2 in itertools.product(self.outcome_relabelling_group, self.party_relabelling_group)])
         return np.vstack(np.take(self.outcome_relabelling_group, self.party_relabelling_group, axis=-1))
-        # hugegroup = np.vstack(np.take(self.outcome_relabelling_group, self.party_relabelling_group, axis=-1))
-        # hugegroup = hugegroup[np.lexsort(hugegroup.T)]
-        # hugegroup2 = np.vstack(np.take(self.party_relabelling_group, self.outcome_relabelling_group, axis=-1))
-        # hugegroup2 = hugegroup2[np.lexsort(hugegroup2.T)]
-        # assert np.array_equal(hugegroup, hugegroup2), "subgroups should be commutative"
 
-    # def unique_supports_under_group(self, candidates_raw, group, verbose=True):
-    #     candidates = candidates_raw.copy()
-    #     compressed_candidates = from_digits(candidates, self.event_cardinalities)
-    #     for group_element in explore_candidates(group[1:], verbose=verbose):
-    #         new_candidates = np.take(group_element, candidates)
-    #         new_candidates.sort()
-    #         np.minimum(compressed_candidates,
-    #                    from_digits(new_candidates, self.event_cardinalities),
-    #                    out=compressed_candidates)
-    #         candidates = to_digits(compressed_candidates, self.event_cardinalities)
-    #     return np.unique(candidates, axis=0)
-    def unique_supports_under_group(self, candidates_raw, group, verbose=False, conserve_memory=False):
+    def unique_supports_under_group(self, candidates_raw, group, conserve_memory=True):
         if not conserve_memory:
             list_of_supports_variants = np.take(group, candidates_raw, axis=-1)
             list_of_supports_variants.sort(axis=-1)
@@ -323,7 +321,7 @@ class SupportTesting(SupportTester):
             # int_of_supports_variants.sort(axis=0)  # We minimize each support SEPARATELY under the relabelling group
             return self.from_integer_to_list(np.unique(np.amin(int_of_supports_variants, axis=0)))
         else:
-            candidates = np.array(candidates_raw, copy=True)
+            candidates = np.array(candidates_raw, copy=True, dtype=self.list_dtype)
             # candidates.sort(axis=-1)
             # candidates = np.unique(candidates, axis=0)
             pre_compression_len = len(candidates)
@@ -331,12 +329,11 @@ class SupportTesting(SupportTester):
             while pre_compression_len > post_compression_len:
                 pre_compression_len = len(candidates)
                 for g in group:
-                    candidates_under_g = np.take(g, candidates)
+                    candidates_under_g = g[candidates]
                     candidates_under_g.sort(axis=-1)
                     stacked = np.stack((candidates, candidates_under_g), axis=1)
-                    candidates = np.array([pair[np.lexsort(np.flipud(pair.T))[0]] for pair in stacked])
-                    # candidates = np.array([np.unique(pair, axis=0)[0] for pair in stacked])
-                    candidates = np.unique(candidates, axis=0)
+                    candidates = np.array([pair[np.lexsort(np.rot90(pair))[0]] for pair in stacked], dtype=self.list_dtype)
+                    candidates = np.unique(candidates, axis=0).astype(self.list_dtype)
                 post_compression_len = len(candidates)
             return candidates
 
@@ -355,15 +352,15 @@ class SupportTesting(SupportTester):
     def unique_candidate_supports_as_lists(self):
         if self.max_conceivable_events > self.nof_events:
             candidates = np.pad(np.fromiter(itertools.chain.from_iterable(
-                itertools.combinations(self.conceivable_events_range[1:], self.nof_events - 1)), np.intp).reshape(
+                itertools.combinations(self.conceivable_events_range[1:], self.nof_events - 1)), self.list_dtype).reshape(
                 (-1, self.nof_events - 1)), ((0, 0), (1, 0)), 'constant')
             to_filter = self.from_list_to_matrix(candidates)
-            filtered = extract_support_matrices_satisfying_pprestrictions(to_filter, self.must_perfectpredict)
-            candidates = np.array(list(map(self.from_matrix_to_list, filtered)), dtype=int)
+            filtered = self.extract_support_matrices_satisfying_pprestrictions(to_filter, self.must_perfectpredict)
+            candidates = np.array(list(map(self.from_matrix_to_list, filtered)), dtype=self.list_dtype)
             candidates = self.unique_supports_under_group(candidates, self.outcome_relabelling_group)
             return candidates
         else:
-            return np.empty((0, 0), dtype=np.intp)
+            return np.empty((0, 0), dtype=self.list_dtype)
 
     @cached_property
     def unique_candidate_supports_as_integers(self):
@@ -382,24 +379,12 @@ class SupportTesting(SupportTester):
         return self.attempt_to_find_one_infeasible_support_among(self.unique_candidate_supports_as_lists, **kwargs)
 
     def attempt_to_find_one_infeasible_support_among(self, candidates_as_lists, verbose=False):
-        # for n in range(2, self.nof_events):
-        #     subSupportTester = self.subSupportTesters[n]
-        #     for occurring_events_as_tuple in map(tuple, self.explore_candidates(candidates_as_lists, verbose=verbose)):
-        #         for definitely_occurring_events_as_tuple in itertools.combinations(occurring_events_as_tuple, n):
-        #             passes_inflation_test = subSupportTester.infeasibleQ_from_tuple_pair(definitely_occurring_events_as_tuple, occurring_events_as_tuple, **kwargs)
-        #             if not passes_inflation_test:
-        #                 # print("Got one! Rejected a support of ", self.nof_events, " events using level ", n, " inflation.")
-        #                 return self.from_list_to_matrix(occurring_events_as_tuple)
-        for occurring_events_as_tuple in map(tuple, self.explore_candidates(candidates_as_lists,
-                                                                            verbose=verbose,
-                                                                            message='Finding an infeasible support')):
-            # print("Scanning tuple:", occurring_events_as_tuple)
-            # result = self.feasibleQ_from_tuple(occurring_events_as_tuple)
-            # if not isinstance(result, bool):
-            #     result = result[0]
+        for occurring_events_as_tuple in self.explore_candidates(candidates_as_lists,
+                                                                 verbose=verbose,
+                                                                 message='Finding an infeasible support'):
             if not self.feasibleQ_from_tuple(occurring_events_as_tuple):
                 return self.from_list_to_matrix(occurring_events_as_tuple)
-        return np.empty((0, self.nof_observed), dtype=int)
+        return np.empty((0, self.nof_observed), dtype=self.matrix_dtype)
 
     def no_infeasible_supports_among(self, candidates_as_lists, **kwargs):
         if len(self.attempt_to_find_one_infeasible_support_among(candidates_as_lists, **kwargs)) == 0:
@@ -416,7 +401,7 @@ class SupportTesting(SupportTester):
     def unique_infeasible_supports_as_integers_among(self, candidates_as_integers, verbose=False, **kwargs):
         return np.fromiter((occurring_events_as_int for occurring_events_as_int in
                             self.explore_candidates(candidates_as_integers, verbose=verbose) if
-                            not self.feasibleQ_from_integer(occurring_events_as_int, **kwargs)), dtype=np.uint64)
+                            not self.feasibleQ_from_integer(occurring_events_as_int, **kwargs)), dtype=self.int_dtype)
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_as_integers(self, **kwargs):
@@ -439,15 +424,14 @@ class SupportTesting(SupportTester):
             for list_of_supports in labelled_variants_as_lists:
                 list_of_supports_variants = np.take(self.outcome_relabelling_group, list_of_supports, axis=-1)
                 list_of_supports_variants.sort(axis=-1)
-                int_of_supports_variants = self.from_list_to_integer(list_of_supports_variants).astype(int)
+                int_of_supports_variants = self.from_list_to_integer(list_of_supports_variants)
                 # int_of_supports_variants.sort(axis=0)  # We minimize each support SEPERATELY under the relabelling group
                 labelled_variants_as_integers.append(np.amin(int_of_supports_variants, axis=0))
-            labelled_variants_as_integers = np.asarray(labelled_variants_as_integers)
+            labelled_variants_as_integers = np.asarray(labelled_variants_as_integers, dtype=self.int_dtype)
             labelled_variants_as_integers.sort(axis=1)
-            return np.unique(labelled_variants_as_integers, axis=0)[0]
+            return np.unique(labelled_variants_as_integers, axis=0)[0].astype(self.int_dtype)
             # return labelled_variants_as_integers[np.lexsort(np.flipud(labelled_variants_as_integers.T))[0]]
             # return min(labelled_variants_as_integers, key=tuple)
-
         else:
             return list_of_integers
 
@@ -469,6 +453,9 @@ class CumulativeSupportTesting:
         self.multi_index_shape = np.broadcast_to(self.max_conceivable_events, self.max_nof_events)
         self.repeated_observed_cardinalities = np.broadcast_to(np.expand_dims(self.observed_cardinalities, axis=-1),
                                                                (self.nof_observed, self.max_nof_events)).T.ravel()
+        self.matrix_dtype = np.min_scalar_type(self.observed_cardinalities)
+        self.list_dtype = np.min_scalar_type(self.max_conceivable_events)
+        self.int_dtype = np.min_scalar_type(np.power(self.max_conceivable_events, self.max_nof_events))
 
     @property
     def _all_infeasible_supports(self):
@@ -484,23 +471,23 @@ class CumulativeSupportTesting:
 
     @cached_property
     def all_infeasible_supports(self):
-        return np.fromiter(itertools.chain.from_iterable(self._all_infeasible_supports), np.uint64)
+        return np.fromiter(itertools.chain.from_iterable(self._all_infeasible_supports), self.int_dtype)
 
     @cached_property
     def all_infeasible_supports_unlabelled(self):
-        return np.fromiter(itertools.chain.from_iterable(self._all_infeasible_supports_unlabelled), np.uint64)
+        return np.fromiter(itertools.chain.from_iterable(self._all_infeasible_supports_unlabelled), self.int_dtype)
 
     def from_list_to_matrix(self, supports_as_lists):
-        return to_digits(supports_as_lists, self.observed_cardinalities)
+        return to_digits(supports_as_lists, self.observed_cardinalities).astype(self.matrix_dtype)
 
     def from_matrix_to_list(self, supports_as_matrices):
-        return from_digits(supports_as_matrices, self.observed_cardinalities)
+        return from_digits(supports_as_matrices, self.observed_cardinalities).astype(self.list_dtype)
 
     def from_list_to_integer(self, supports_as_lists):
-        return from_digits(supports_as_lists, self.multi_index_shape)
+        return from_digits(supports_as_lists, self.multi_index_shape).astype(self.int_dtype)
 
     def from_integer_to_list(self, supports_as_integers):
-        return to_digits(supports_as_integers, self.multi_index_shape)
+        return to_digits(supports_as_integers, self.multi_index_shape).astype(self.list_dtype)
 
     def from_matrix_to_integer(self, supports_as_matrices):
         # return self.from_list_to_integer(self.from_matrix_to_list(supports_as_matrices))
@@ -513,7 +500,7 @@ class CumulativeSupportTesting:
     def from_integer_to_matrix(self, supports_as_integers):
         # return self.from_list_to_matrix(self.from_integer_to_list(supports_as_integers))
         return np.reshape(to_digits(
-            supports_as_integers, self.repeated_observed_cardinalities),
+            supports_as_integers, self.repeated_observed_cardinalities).astype(self.matrix_dtype),
             np.asarray(supports_as_integers).shape + (self.max_nof_events, self.nof_observed))
 
     # @cached_property
