@@ -273,30 +273,48 @@ class SupportTesting(SupportTester):
     def universal_relabelling_group(self) -> np.ndarray:
         return np.vstack(np.take(self.outcome_relabelling_group, self.party_relabelling_group, axis=-1))
 
-    def unique_supports_under_group(self,
-                                    candidates_raw: np.ndarray,
-                                    group: np.ndarray,
-                                    conserve_memory=True) -> np.ndarray:
-        if not conserve_memory:
-            list_of_supports_variants = np.take(group, candidates_raw, axis=-1)
-            list_of_supports_variants.sort(axis=-1)
-            int_of_supports_variants = self.from_list_to_integer(list_of_supports_variants)
-            # We minimize each support SEPARATELY under the relabelling group
-            return self.from_integer_to_list(np.unique(np.amin(int_of_supports_variants, axis=0)))
+    # def unique_supports_independent_under_group(self,
+    #                                 candidates_raw: np.ndarray,
+    #                                 group: np.ndarray,
+    #                                 conserve_memory=True) -> np.ndarray:
+    #     if not conserve_memory:
+    #         list_of_supports_variants = np.take(group, candidates_raw, axis=-1)
+    #         list_of_supports_variants.sort(axis=-1)
+    #         int_of_supports_variants = self.from_list_to_integer(list_of_supports_variants)
+    #         # We minimize each support SEPARATELY under the relabelling group
+    #         return self.from_integer_to_list(np.unique(np.amin(int_of_supports_variants, axis=0)))
+    #     else:
+    #         candidates = np.array(candidates_raw, copy=True, dtype=self.list_dtype)
+    #         pre_compression_len = len(candidates)
+    #         post_compression_len = 0
+    #         while pre_compression_len > post_compression_len:
+    #             pre_compression_len = len(candidates)
+    #             for g in group:
+    #                 candidates_under_g = g[candidates]
+    #                 candidates_under_g.sort(axis=-1)
+    #                 stacked = np.stack((candidates, candidates_under_g), axis=1).astype(self.list_dtype)
+    #                 candidates = np.array([pair[np.lexsort(np.rot90(pair))[0]] for pair in stacked], dtype=self.list_dtype)
+    #                 candidates = np.unique(candidates, axis=0).astype(self.list_dtype)
+    #             post_compression_len = len(candidates)
+    #         return candidates
+    def unique_supports_coherent_under_group(self,
+                                             candidates_raw: np.ndarray,
+                                             group: np.ndarray) -> np.ndarray:
+        if len(candidates_raw) > 0:
+            current_list_of_lists = candidates_raw.copy()
+            current_list_of_integers = self.from_list_to_integer(current_list_of_lists)
+            for g in group:
+                temp_list_of_lists = g[current_list_of_lists]
+                temp_list_of_lists.sort(axis=-1)
+                temp_list_of_integers = self.from_list_to_integer(temp_list_of_lists)
+                temp_list_of_integers.sort(axis=-1)
+                if np.all(np.less_equal(temp_list_of_integers, current_list_of_integers)):
+                    current_list_of_integers = temp_list_of_integers
+                    current_list_of_lists = temp_list_of_lists
+            return current_list_of_lists
         else:
-            candidates = np.array(candidates_raw, copy=True, dtype=self.list_dtype)
-            pre_compression_len = len(candidates)
-            post_compression_len = 0
-            while pre_compression_len > post_compression_len:
-                pre_compression_len = len(candidates)
-                for g in group:
-                    candidates_under_g = g[candidates]
-                    candidates_under_g.sort(axis=-1)
-                    stacked = np.stack((candidates, candidates_under_g), axis=1).astype(self.list_dtype)
-                    candidates = np.array([pair[np.lexsort(np.rot90(pair))[0]] for pair in stacked], dtype=self.list_dtype)
-                    candidates = np.unique(candidates, axis=0).astype(self.list_dtype)
-                post_compression_len = len(candidates)
-            return candidates
+            return candidates_raw
+
 
     @cached_property
     def unique_candidate_supports_as_lists(self) -> np.ndarray:
@@ -307,7 +325,7 @@ class SupportTesting(SupportTester):
             to_filter = self.from_list_to_matrix(candidates)
             filtered = self.extract_support_matrices_satisfying_pprestrictions(to_filter, self.must_perfectpredict)
             candidates = np.array(list(map(self.from_matrix_to_list, filtered)), dtype=self.list_dtype)
-            candidates = self.unique_supports_under_group(candidates, self.outcome_relabelling_group)
+            candidates = self.unique_supports_coherent_under_group(candidates, self.outcome_relabelling_group)
             return candidates
         else:
             return np.empty((0, 0), dtype=self.list_dtype)
@@ -368,7 +386,7 @@ class SupportTesting(SupportTester):
     def unique_infeasible_supports_as_matrices(self, **kwargs) -> np.ndarray:
         return self.from_integer_to_matrix(self.unique_infeasible_supports_as_integers(**kwargs))
 
-    def convert_integers_into_canonical_under_relabelling(self, list_of_integers: np.ndarray) -> np.ndarray:
+    def convert_integers_into_canonical_under_independent_relabelling(self, list_of_integers: np.ndarray) -> np.ndarray:
         if len(list_of_integers) > 0:
             labelled_infeasible_as_lists = self.from_integer_to_list(list_of_integers)
             labelled_variants_as_lists = np.take(self.party_relabelling_group, labelled_infeasible_as_lists, axis=-1)
@@ -378,18 +396,41 @@ class SupportTesting(SupportTester):
                 list_of_supports_variants.sort(axis=-1)
                 int_of_supports_variants = self.from_list_to_integer(list_of_supports_variants)
                 # int_of_supports_variants.sort(axis=0)  # We minimize each support SEPERATELY under the relabelling group
-                labelled_variants_as_integers.append(np.amin(int_of_supports_variants, axis=0))
-            labelled_variants_as_integers = np.asarray(labelled_variants_as_integers, dtype=self.int_dtype)
-            labelled_variants_as_integers.sort(axis=1)
-            return np.unique(labelled_variants_as_integers, axis=0)[0].astype(self.int_dtype)
+                labelled_variants_as_integers.append(np.unique(np.amin(int_of_supports_variants, axis=0)))
+            return labelled_variants_as_integers[np.lexsort(np.rot90(labelled_variants_as_integers))[0]]
+            # labelled_variants_as_integers = np.asarray(labelled_variants_as_integers, dtype=self.int_dtype)
+            # labelled_variants_as_integers.sort(axis=1)
+            # return np.unique(labelled_variants_as_integers, axis=0)[0].astype(self.int_dtype)
             # return labelled_variants_as_integers[np.lexsort(np.flipud(labelled_variants_as_integers.T))[0]]
             # return min(labelled_variants_as_integers, key=tuple)
         else:
             return list_of_integers
 
+    def convert_integers_into_canonical_under_coherent_relabelling(self, list_of_integers: np.ndarray) -> np.ndarray:
+        if len(list_of_integers) > 0:
+            current_list_of_integers = list_of_integers.copy()
+            current_list_of_lists = self.from_integer_to_list(current_list_of_integers)
+            for g_parties in self.party_relabelling_group:
+                for g_outcomes in self.outcome_relabelling_group:
+                    temp_list_of_lists = g_parties[g_outcomes][current_list_of_lists]
+                    temp_list_of_lists.sort(axis=-1)
+                    temp_list_of_integers = self.from_list_to_integer(temp_list_of_lists)
+                    temp_list_of_integers.sort(axis=-1)
+                    if np.all(np.less_equal(temp_list_of_integers, current_list_of_integers)):
+                        current_list_of_integers = temp_list_of_integers
+                        current_list_of_lists = temp_list_of_lists
+            return current_list_of_integers
+        else:
+            return list_of_integers
+
     @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_as_integers_unlabelled(self, **kwargs) -> np.ndarray:
-        return self.convert_integers_into_canonical_under_relabelling(
+        return self.convert_integers_into_canonical_under_coherent_relabelling(
+            self.unique_infeasible_supports_as_integers(**kwargs))
+
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def unique_infeasible_supports_as_integers_independent_unlabelled(self, **kwargs) -> np.ndarray:
+        return self.convert_integers_into_canonical_under_independent_relabelling(
             self.unique_infeasible_supports_as_integers(**kwargs))
 
 
@@ -421,6 +462,12 @@ class CumulativeSupportTesting:
             yield SupportTesting(self.parents_of, self.observed_cardinalities, nof_events
                                  ).unique_infeasible_supports_as_integers_unlabelled(name='mgh', use_timer=False)
 
+    @property
+    def _all_infeasible_supports_independent_unlabelled(self):
+        for nof_events in range(2, self.max_nof_events + 1):
+            yield SupportTesting(self.parents_of, self.observed_cardinalities, nof_events
+                                 ).unique_infeasible_supports_as_integers_independent_unlabelled(name='mgh', use_timer=False)
+
     @cached_property
     def all_infeasible_supports(self):
         return np.fromiter(itertools.chain.from_iterable(self._all_infeasible_supports), self.int_dtype)
@@ -428,6 +475,10 @@ class CumulativeSupportTesting:
     @cached_property
     def all_infeasible_supports_unlabelled(self):
         return np.fromiter(itertools.chain.from_iterable(self._all_infeasible_supports_unlabelled), self.int_dtype)
+
+    @cached_property
+    def all_infeasible_supports_independent_unlabelled(self):
+        return np.fromiter(itertools.chain.from_iterable(self._all_infeasible_supports_independent_unlabelled), self.int_dtype)
 
     def from_list_to_matrix(self, supports_as_lists: np.ndarray) -> np.ndarray:
         return to_digits(supports_as_lists, self.observed_cardinalities).astype(self.matrix_dtype)
@@ -461,8 +512,9 @@ class CumulativeSupportTesting:
 
 if __name__ == '__main__':
     parents_of = ([3, 4], [4, 5], [3, 5])
-    observed_cardinalities = (2, 2, 2)
-    nof_events = 3
+    parents_of = ([1, 3], [3, 4], [1, 4])
+    observed_cardinalities = (3, 3, 3)
+    # nof_events = 3
     # st = SupportTesting(parents_of, observed_cardinalities, nof_events)
     #
     # occurring_events_temp = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
@@ -471,9 +523,12 @@ if __name__ == '__main__':
     # print(st.feasibleQ_from_matrix(occurring_events_temp, name='mgh', use_timer=True))
 
     st = SupportTesting(parents_of, observed_cardinalities, 3)
+    cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 4)
     inf = st.unique_infeasible_supports_as_integers_unlabelled(name='mgh', use_timer=False)
-    print(inf)
     print(st.from_integer_to_matrix(inf))
+    print(cst.all_infeasible_supports)
+    print(cst.all_infeasible_supports_unlabelled)
+    print(cst.all_infeasible_supports_independent_unlabelled)
     # sample2 = st.unique_candidate_supports
     # print(st.unique_candidate_supports)
     # print(st.visualize_supports(st.unique_candidate_supports))
@@ -500,19 +555,20 @@ if __name__ == '__main__':
     # #Everything appears to work as desired.
     # #So let's pick a really hard problem, the square!
     #
-    parents_of = ([4, 5, 6], [4, 7, 8], [5, 7, 9], [6, 8, 9])
-    observed_cardinalities = (2, 2, 2, 2)
-    cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 4)
-    print(cst.all_infeasible_supports)
-    print(cst.all_infeasible_supports_unlabelled)
-    discovered = cst.from_integer_to_matrix(cst.all_infeasible_supports_unlabelled)
-    # print(discovered)
-    # print(cst.all_infeasible_supports_matrix)
-    # discovered = to_digits(cst.all_infeasible_supports_matrix, observed_cardinalities)
-    # print(discovered)
-    trulyvariable = discovered.compress(discovered.any(axis=-2).all(axis=-1),
-                                        axis=0)  # makes every variable actually variable
-    print(trulyvariable)
+    # parents_of = ([4, 5, 6], [4, 7, 8], [5, 7, 9], [6, 8, 9])
+    # observed_cardinalities = (2, 2, 2, 2)
+    # cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 4)
+    # print(cst.all_infeasible_supports)
+    # print(cst.all_infeasible_supports_unlabelled)
+    # print(cst.all_infeasible_supports_independent_unlabelled)
+    # discovered = cst.from_integer_to_matrix(cst.all_infeasible_supports_unlabelled)
+    # # print(discovered)
+    # # print(cst.all_infeasible_supports_matrix)
+    # # discovered = to_digits(cst.all_infeasible_supports_matrix, observed_cardinalities)
+    # # print(discovered)
+    # trulyvariable = discovered.compress(discovered.any(axis=-2).all(axis=-1),
+    #                                     axis=0)  # makes every variable actually variable
+    # print(trulyvariable)
     # TODO: it would be good to recognize PRODUCT support matrices. Will be required for d-sep and e-sep filter.
     # see https://www.researchgate.net/post/How-I-can-check-in-MATLAB-if-a-matrix-is-result-of-the-Kronecker-product/542ab19bd039b130378b469d/citation/download?
     # see https://math.stackexchange.com/a/321424
