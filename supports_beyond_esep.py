@@ -157,6 +157,11 @@ class SmartSupportTesting(SupportTesting):
         return self.convert_integers_into_canonical_under_relabelling(
             self.unique_infeasible_supports_beyond_esep_as_integers(**kwargs))
 
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def unique_infeasible_supports_beyond_esep_as_integers_independent_unlabelled(self, **kwargs):
+        return self.convert_integers_into_canonical_under_independent_relabelling(
+            self.unique_infeasible_supports_beyond_esep_as_integers(**kwargs))
+
 
 
     #REDEFINITION
