@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "mDAG-analysis"
+version = "0.0.1"
+description = "Code to find mDAG equivalence classes"
+authors = ["Elie Wolfe <elupus@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = ">=3.8,<3.12"
+progressbar2 = "^4.0.0"
+numpy = "^1.23.3"
+scipy = "^1.9.1"
+python-sat = {extras = ["pblib", "aiger"], version = "^0.1.7-alpha.19"}
+networkx = "^2.8.6"
+more-itertools = "^8.14.0"
+methodtools = "^0.4.5"
+matplotlib = "^3.5.3"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
