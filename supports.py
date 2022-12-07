@@ -68,6 +68,8 @@ class SupportTester(object):
             'v[{0}]_{2}=={1}'.format(idx, val, par))
         self.subSupportTesters = {n: SupportTester(parents_of, observed_cardinalities, n) for n in
                                   range(2, self.nof_events)}
+        self._orbit_under_outcome_relabelling = dict()
+        self._orbit_under_party_relabelling = dict()
 
     @cached_property
     def at_least_one_outcome(self):
@@ -259,110 +261,44 @@ class SupportTesting(SupportTester):
                     ))),
                 self.matrix_dtype).reshape((-1, self.max_conceivable_events, self.nof_observed)))
 
+    def orbit_under_outcome_relabelling(self, n: int):
+        try:
+            return self._orbit_under_outcome_relabelling[n]
+        except KeyError:
+            l = self.from_integer_to_list(n)
+            l_variants = np.take(self.outcome_relabelling_group, l, axis=-1)
+            l_variants.sort(axis=-1)
+            n_orbit = self.from_list_to_integer(l_variants)
+            for n_new in n_orbit.flat:
+                self._orbit_under_outcome_relabelling[n_new] = n_orbit
+            return n_orbit
+
     @cached_property
     def party_relabelling_group(self) -> np.ndarray:
-        assert uniform_base_test(
-            self.observed_cardinalities), "Not meaningful to relabel parties with different cardinalities"
+        # assert uniform_base_test(
+        #     self.observed_cardinalities), "Not meaningful to relabel parties with different cardinalities"
         to_reshape = self.conceivable_events_range.reshape(self.observed_cardinalities)
         return np.fromiter(
             itertools.chain.from_iterable(
-                to_reshape.transpose(perm).ravel() for perm in itertools.permutations(range(self.nof_observed))
+                to_reshape.transpose(perm).ravel()
+                for perm in itertools.permutations(range(self.nof_observed))
+                if np.array_equal(
+                    self.observed_cardinalities,
+                    np.take(self.observed_cardinalities, perm))
             ), self.list_dtype
         ).reshape((-1, self.max_conceivable_events,))
 
-    # @cached_property
-    # def universal_relabelling_group(self) -> np.ndarray:
-    #     return np.vstack(np.take(self.outcome_relabelling_group, self.party_relabelling_group, axis=-1))
-
-    @staticmethod
-    def extract_lexminimal_row(array2d: np.ndarray):
-        return array2d[np.lexsort(np.rot90(array2d))[0]]
-
-    def unique_supports_independent_under_groups(self,
-                                                 candidates_raw: np.ndarray,
-                                                 *groups: np.ndarray) -> np.ndarray:
-        # candidates = candidates_raw[np.lexsort(np.rot90(candidates_raw))].astype(self.list_dtype)
-        candidates = np.array(candidates_raw, copy=True, dtype=self.list_dtype)
-        pre_compression_len = len(candidates)
-        post_compression_len = 0
-        while pre_compression_len > post_compression_len:
-            pre_compression_len = len(candidates)
-            for gs in itertools.product(*groups):
-                g = reduce(np.take, gs)
-                candidates_under_g = g[candidates]
-                candidates_under_g.sort(axis=-1)
-                stacked = np.stack((candidates, candidates_under_g), axis=1).astype(self.list_dtype)
-                candidates = np.array([self.extract_lexminimal_row(pair) for pair in stacked], dtype=self.list_dtype)
-                candidates = np.unique(candidates, axis=0).astype(self.list_dtype)
-            post_compression_len = len(candidates)
-            # post_compression_len = pre_compression_len
-        return candidates
-
-    # def unique_supports_independent_under_groups(self,
-    #                                           candidates_raw: np.ndarray,
-    #                                           *groups: np.ndarray) -> np.ndarray:
-    #     if len(candidates_raw) > 0:
-    #         current_list_of_lists = np.array(candidates_raw, copy=True, dtype=self.list_dtype)
-    #         current_list_of_integers = self.from_list_to_integer(current_list_of_lists)
-    #         pre_compression_len = len(current_list_of_lists)
-    #         post_compression_len = 0
-    #         while pre_compression_len > len(current_list_of_lists):
-    #             pre_compression_len = post_compression_len
-    #             for gs in itertools.product(*groups):
-    #                 g = reduce(np.take, gs)
-    #                 temp_list_of_lists = g[current_list_of_lists]
-    #                 temp_list_of_lists.sort(axis=-1)
-    #                 temp_list_of_integers = self.from_list_to_integer(temp_list_of_lists)
-    #                 stacked = np.stack((current_list_of_integers, temp_list_of_integers),
-    #                                    axis=1).astype(self.int_dtype)
-    #                 current_list_of_integers = np.array([np.min(pair) for pair in stacked], dtype=self.int_dtype)
-    #                 current_list_of_integers = np.unique(current_list_of_integers).astype(self.int_dtype)
-    #                 # current_list_of_integers = np.minimum(current_list_of_integers, temp_list_of_integers)
-    #                 # current_list_of_integers = np.unique(current_list_of_integers)
-    #                 current_list_of_lists = self.from_integer_to_list(current_list_of_integers)
-    #                 #
-    #                 # # Since we are doing a one-to-one comparison, do not sort!
-    #                 # picklist = np.less_equal(current_list_of_integers, temp_list_of_integers)
-    #                 # current_list_of_integers = np.where(picklist, current_list_of_integers, temp_list_of_integers)
-    #                 # picklist = picklist[:, np.newaxis]
-    #                 # current_list_of_lists = np.where(picklist, current_list_of_lists, temp_list_of_lists)
-    #                 # current_list_of_integers, first_found = np.unique(current_list_of_integers, return_index=True)
-    #                 # current_list_of_lists = current_list_of_lists[first_found]
-    #             post_compression_len = len(current_list_of_lists)
-    #         return current_list_of_lists
-    #     else:
-    #         return candidates_raw
-
-    def unique_supports_coherent_under_groups(self,
-                                              candidates_raw: np.ndarray,
-                                              *groups: np.ndarray) -> np.ndarray:
-        if len(candidates_raw) > 0:
-            current_list_of_lists = np.array(candidates_raw, copy=True, dtype=self.list_dtype)
-            # current_list_of_integers = self.from_list_to_integer(current_list_of_lists)
-            for gs in itertools.product(*groups):
-                g = reduce(np.take, gs)
-                temp_list_of_lists = g[current_list_of_lists]
-                temp_list_of_lists.sort(axis=-1)
-                temp_list_of_lists = temp_list_of_lists[np.lexsort(np.rot90(temp_list_of_lists))]
-                if all(np.array_equal(
-                        np.lexsort(np.rot90([new_ver, old_ver])),
-                        [0, 1]) for new_ver, old_ver in zip(temp_list_of_lists, current_list_of_lists)):
-                    current_list_of_lists = temp_list_of_lists
-                # if all(self.from_list_to_integer(new_ver) <= self.from_list_to_integer(old_ver)
-                #        for new_ver, old_ver in zip(temp_list_of_lists, current_list_of_lists)):
-                #     current_list_of_lists = temp_list_of_lists
-                # temp_list_of_integers = self.from_list_to_integer(temp_list_of_lists)
-                # # # Since we are doing a whole-vs-whole comparison, we sort!
-                # order = np.argsort(temp_list_of_integers)
-                # temp_list_of_integers = temp_list_of_integers[order]
-                # temp_list_of_lists = temp_list_of_lists[order]
-                # if np.all(np.less_equal(temp_list_of_integers, current_list_of_integers)):
-                #     current_list_of_integers = temp_list_of_integers
-                #     current_list_of_lists = temp_list_of_lists
-            return current_list_of_lists
-        else:
-            return candidates_raw
-
+    def orbit_under_party_relabelling(self, n: int):
+        try:
+            return self._orbit_under_party_relabelling[n]
+        except KeyError:
+            l = self.from_integer_to_list(n)
+            l_variants = np.take(self.party_relabelling_group, l, axis=-1)
+            l_variants.sort(axis=-1)
+            n_orbit = self.from_list_to_integer(l_variants)
+            for n_new in n_orbit.flat:
+                self._orbit_under_party_relabelling[n_new] = n_orbit
+            return n_orbit
 
     @cached_property
     def unique_candidate_supports_as_lists(self) -> np.ndarray:
@@ -370,10 +306,13 @@ class SupportTesting(SupportTester):
             candidates = np.pad(np.fromiter(itertools.chain.from_iterable(
                 itertools.combinations(self.conceivable_events_range[1:], self.nof_events - 1)), self.list_dtype).reshape(
                 (-1, self.nof_events - 1)), ((0, 0), (1, 0)), 'constant')
-            to_filter = self.from_list_to_matrix(candidates)
-            filtered = self.extract_support_matrices_satisfying_pprestrictions(to_filter, self.must_perfectpredict)
-            candidates = np.array(list(map(self.from_matrix_to_list, filtered)), dtype=self.list_dtype)
-            candidates = self.unique_supports_independent_under_groups(candidates, self.outcome_relabelling_group)
+            if self.must_perfectpredict:
+                to_filter = self.from_list_to_matrix(candidates)
+                filtered = self.extract_support_matrices_satisfying_pprestrictions(to_filter, self.must_perfectpredict)
+                candidates = np.array(list(map(self.from_matrix_to_list, filtered)), dtype=self.list_dtype)
+            candidates_as_ints = self.from_list_to_integer(candidates)
+            candidates_as_ints = set((self.orbit_under_outcome_relabelling(n).min() for n in candidates_as_ints.flat))
+            candidates = self.from_integer_to_list(list(candidates_as_ints))
             return candidates
         else:
             return np.empty((0, 0), dtype=self.list_dtype)
@@ -436,57 +375,26 @@ class SupportTesting(SupportTester):
 
     def convert_integers_into_canonical_under_independent_relabelling(self, list_of_integers: np.ndarray) -> np.ndarray:
         if len(list_of_integers) > 0:
-            labelled_infeasible_as_lists = self.from_integer_to_list(list_of_integers)
-            unlabelled_infeasible_as_lists = self.unique_supports_independent_under_groups(
-                labelled_infeasible_as_lists,
-                self.party_relabelling_group,
-                self.outcome_relabelling_group)
-            return self.from_list_to_integer(unlabelled_infeasible_as_lists)
-            #
-            # labelled_variants_as_lists = np.take(self.party_relabelling_group, labelled_infeasible_as_lists, axis=-1)
-            # labelled_variants_as_integers = []
-            # for list_of_supports in labelled_variants_as_lists:
-            #     list_of_supports_variants = np.take(self.outcome_relabelling_group, list_of_supports, axis=-1)
-            #     list_of_supports_variants.sort(axis=-1)
-            #     int_of_supports_variants = self.from_list_to_integer(list_of_supports_variants)
-            #     # int_of_supports_variants.sort(axis=0)  # We minimize each support SEPERATELY under the relabelling group
-            #     labelled_variants_as_integers.append(np.unique(np.amin(int_of_supports_variants, axis=0)))
-            # return labelled_variants_as_integers[np.lexsort(np.rot90(labelled_variants_as_integers))[0]]
-            # # labelled_variants_as_integers = np.asarray(labelled_variants_as_integers, dtype=self.int_dtype)
-            # # labelled_variants_as_integers.sort(axis=1)
-            # # return np.unique(labelled_variants_as_integers, axis=0)[0].astype(self.int_dtype)
-            # # return labelled_variants_as_integers[np.lexsort(np.flipud(labelled_variants_as_integers.T))[0]]
-            # # return min(labelled_variants_as_integers, key=tuple)
+            compressed = set()
+            for m in list_of_integers.flat:
+                m_party_variants = self.orbit_under_party_relabelling(m)
+                canonical_rep = min(self.orbit_under_outcome_relabelling(n).min() for n in m_party_variants.flat)
+                compressed.add(canonical_rep)
+            return np.fromiter((n for n in compressed), dtype=self.int_dtype)
         else:
             return list_of_integers
 
     def convert_integers_into_canonical_under_coherent_relabelling(self, list_of_integers: np.ndarray) -> np.ndarray:
-        # if len(list_of_integers) > 0:
-        #     labelled_infeasible_as_lists = self.from_integer_to_list(list_of_integers)
-        #     unlabelled_infeasible_as_lists = self.unique_supports_coherent_under_groups(
-        #         labelled_infeasible_as_lists,
-        #         self.party_relabelling_group,
-        #         self.outcome_relabelling_group)
-        #     return self.from_list_to_integer(unlabelled_infeasible_as_lists)
-        # else:
-        #     return list_of_integers
         if len(list_of_integers) > 0:
             current_list_of_integers = list_of_integers.copy()
             current_list_of_lists = self.from_integer_to_list(current_list_of_integers)
             for g_parties in self.party_relabelling_group:
-                # for g_outcomes in self.outcome_relabelling_group:
                 temp_list_of_lists = g_parties[current_list_of_lists]
                 temp_list_of_lists.sort(axis=-1)
-                # temp_list_of_lists = temp_list_of_lists[np.lexsort(np.rot90(temp_list_of_lists))] # Should be handled automatically
-                prior = temp_list_of_lists.copy()
-                temp_list_of_lists = self.unique_supports_independent_under_groups(
-                    temp_list_of_lists,
-                    self.outcome_relabelling_group)
-                if len(prior) > len(temp_list_of_lists):
-                    print("Before outcome relabelling: ", self.from_list_to_matrix(prior))
-                    print("After outcome relabelling: ",
-                          self.from_list_to_matrix(temp_list_of_lists))
                 temp_list_of_integers = self.from_list_to_integer(temp_list_of_lists)
+                temp_list_of_integers = np.fromiter(
+                    (self.orbit_under_outcome_relabelling(n).min() for n in temp_list_of_integers.flat),
+                    dtype=self.int_dtype)
                 temp_list_of_integers.sort(axis=-1)
                 if np.all(np.less_equal(temp_list_of_integers, current_list_of_integers)):
                     current_list_of_integers = temp_list_of_integers
