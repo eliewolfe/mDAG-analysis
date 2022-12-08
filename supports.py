@@ -393,8 +393,11 @@ class SupportTesting(SupportTester):
 
     def convert_integers_into_canonical_under_coherent_relabelling(self, list_of_integers: np.ndarray) -> np.ndarray:
         if len(list_of_integers) > 0:
-            current_list_of_integers = list_of_integers.copy()
-            current_list_of_lists = self.from_integer_to_list(current_list_of_integers)
+            current_list_of_lists = self.from_integer_to_list(list_of_integers)
+            current_pair_of_list_of_integers = np.empty(
+                (2, len(list_of_integers)),
+                dtype=self.int_dtype)
+            current_pair_of_list_of_integers[0] = list_of_integers
             for g_parties in self.party_relabelling_group:
                 temp_list_of_lists = g_parties[current_list_of_lists]
                 temp_list_of_lists.sort(axis=-1)
@@ -403,24 +406,12 @@ class SupportTesting(SupportTester):
                     (self.canonical_under_outcome_relabelling(n) for n in temp_list_of_integers.flat),
                     dtype=self.int_dtype)
                 temp_list_of_integers.sort(axis=-1)
-                # replace = False
-                # for new_n, old_n in zip(temp_list_of_integers.flat,
-                #                         current_list_of_integers.flat):
-                #     if new_n < old_n:
-                #         replace = True
-                #         break
-                #     elif old_n < new_n:
-                #         replace = False
-                #         break
-                #     else:
-                #         continue
-                # if replace:
-                if np.lexsort(np.rot90(np.vstack(
-                        (current_list_of_integers,
-                         temp_list_of_integers))))[0]:
-                    current_list_of_integers = temp_list_of_integers
+                current_pair_of_list_of_integers[1] = temp_list_of_integers
+                order = np.lexsort(np.rot90(current_pair_of_list_of_integers))
+                if order[0]:
+                    current_pair_of_list_of_integers[0] = current_pair_of_list_of_integers[1]
                     current_list_of_lists = temp_list_of_lists
-            return current_list_of_integers
+            return current_pair_of_list_of_integers[0]
         else:
             return list_of_integers
 
