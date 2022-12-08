@@ -68,8 +68,6 @@ class SupportTester(object):
             'v[{0}]_{2}=={1}'.format(idx, val, par))
         self.subSupportTesters = {n: SupportTester(parents_of, observed_cardinalities, n) for n in
                                   range(2, self.nof_events)}
-        self._orbit_under_outcome_relabelling = dict()
-        self._orbit_under_party_relabelling = dict()
 
     @cached_property
     def at_least_one_outcome(self):
@@ -248,6 +246,13 @@ def explore_candidates(candidates, verbose=False, message=''):
 
 
 class SupportTesting(SupportTester):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._canonical_under_outcome_relabelling = dict()
+        self._orbit_under_party_relabelling = dict()
+        self._canonical_under_party_relabelling = dict()
+
+
     @cached_property
     def outcome_relabelling_group(self) -> np.ndarray:
         if np.array_equiv(2, self.observed_cardinalities):
@@ -261,17 +266,19 @@ class SupportTesting(SupportTester):
                     ))),
                 self.matrix_dtype).reshape((-1, self.max_conceivable_events, self.nof_observed)))
 
-    def orbit_under_outcome_relabelling(self, n: int):
+    def canonical_under_outcome_relabelling(self, n: int):
         try:
-            return self._orbit_under_outcome_relabelling[n]
+            return self._canonical_under_outcome_relabelling[n]
         except KeyError:
             l = self.from_integer_to_list(n)
             l_variants = np.take(self.outcome_relabelling_group, l, axis=-1)
             l_variants.sort(axis=-1)
+            l_variants = np.unique(l_variants, axis=0)
             n_orbit = self.from_list_to_integer(l_variants)
+            n_canonical = n_orbit.min()
             for n_new in n_orbit.flat:
-                self._orbit_under_outcome_relabelling[n_new] = n_orbit
-            return n_orbit
+                self._canonical_under_outcome_relabelling[n_new] = n_canonical
+            return n_canonical
 
     @cached_property
     def party_relabelling_group(self) -> np.ndarray:
@@ -311,7 +318,7 @@ class SupportTesting(SupportTester):
                 filtered = self.extract_support_matrices_satisfying_pprestrictions(to_filter, self.must_perfectpredict)
                 candidates = np.array(list(map(self.from_matrix_to_list, filtered)), dtype=self.list_dtype)
             candidates_as_ints = self.from_list_to_integer(candidates)
-            candidates_as_ints = set((self.orbit_under_outcome_relabelling(n).min() for n in candidates_as_ints.flat))
+            candidates_as_ints = set((self.canonical_under_outcome_relabelling(n) for n in candidates_as_ints.flat))
             candidates = self.from_integer_to_list(list(candidates_as_ints))
             return candidates
         else:
@@ -378,7 +385,7 @@ class SupportTesting(SupportTester):
             compressed = set()
             for m in list_of_integers.flat:
                 m_party_variants = self.orbit_under_party_relabelling(m)
-                canonical_rep = min(self.orbit_under_outcome_relabelling(n).min() for n in m_party_variants.flat)
+                canonical_rep = min(self.canonical_under_outcome_relabelling(n) for n in m_party_variants.flat)
                 compressed.add(canonical_rep)
             return np.fromiter((n for n in compressed), dtype=self.int_dtype)
         else:
@@ -393,7 +400,7 @@ class SupportTesting(SupportTester):
                 temp_list_of_lists.sort(axis=-1)
                 temp_list_of_integers = self.from_list_to_integer(temp_list_of_lists)
                 temp_list_of_integers = np.fromiter(
-                    (self.orbit_under_outcome_relabelling(n).min() for n in temp_list_of_integers.flat),
+                    (self.canonical_under_outcome_relabelling(n) for n in temp_list_of_integers.flat),
                     dtype=self.int_dtype)
                 temp_list_of_integers.sort(axis=-1)
                 if np.all(np.less_equal(temp_list_of_integers, current_list_of_integers)):
