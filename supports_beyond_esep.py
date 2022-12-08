@@ -60,11 +60,10 @@ def does_this_esep_rule_out_this_support(ab: np.ndarray, C: np.ndarray, D: np.nd
 
 
 class SmartSupportTesting(SupportTesting):
-    def __init__(self, parents_of, observed_cardinalities, nof_events, esep_relations, pp_relations=tuple()):
-        super().__init__(parents_of, observed_cardinalities, nof_events, pp_relations=pp_relations)
+    def __init__(self, parents_of, observed_cardinalities, nof_events, esep_relations, **kwargs):
+        super().__init__(parents_of, observed_cardinalities, nof_events, **kwargs)
         self.esep_relations = tuple(esep_relations)
         self.dsep_relations = tuple(((ab, C) for (ab, C, D) in self.esep_relations if len(D)==0))
-        self.must_perfectpredict = pp_relations
 
     def infeasible_support_Q_due_to_esep_from_matrix(self, candidate_s: np.ndarray) -> bool:
         return any(does_this_esep_rule_out_this_support(*map(list, e_sep), candidate_s) for e_sep in self.esep_relations)
@@ -79,11 +78,6 @@ class SmartSupportTesting(SupportTesting):
         else:
             # return (False, 0) #Timing of zero.
             return False
-
-    # @cached_property
-    # def _infeasible_support_respects_restrictions(self):
-    #     to_filter = self.from_list_to_matrix(super().unique_candidate_supports_as_lists)
-    #     return np.fromiter(map(self.support_respects_perfect_prediction_restrictions, to_filter), bool)
 
     @cached_property
     def _infeasible_compressed_supports_due_to_esep_picklist(self) -> np.ndarray:
@@ -191,10 +185,9 @@ class SmartSupportTesting(SupportTesting):
         return self.convert_integers_into_canonical_under_coherent_relabelling(
             self.unique_infeasible_supports_beyond_esep_as_expanded_integers(**kwargs))
 
-    # @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_beyond_esep_as_integers_independent_unlabelled(self, **kwargs):
         return self.unique_infeasible_supports_beyond_esep_as_compressed_integers(**kwargs)
-        # return self.compress_integers_into_canonical_under_independent_relabelling(
+
 
 
 

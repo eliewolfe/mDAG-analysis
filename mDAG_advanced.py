@@ -91,7 +91,7 @@ class mDAG:
         discovered_automorphisms = set()
         for mapping in DiGraphMatcher(self.as_graph, self.as_graph).isomorphisms_iter():
             discovered_automorphisms.add(partsextractor(mapping, self.visible_nodes))
-        return np.array(sorted(discovered_automorphisms))
+        return tuple(discovered_automorphisms)
 
     @cached_property
     def automorphic_order(self):
@@ -282,7 +282,8 @@ class mDAG:
                                    observed_cardinalities=np.broadcast_to(2, self.number_of_visible),
                                    nof_events=n,
                                    esep_relations=self.all_esep_numeric,
-                                   pp_relations=self.restricted_perfect_predictions_numeric
+                                   pp_relations=self.restricted_perfect_predictions_numeric,
+                                   visible_automorphisms=self.visible_automorphisms
                                    )
 
     @methodtools.lru_cache(maxsize=None, typed=False)
@@ -293,7 +294,8 @@ class mDAG:
                                    observed_cardinalities=observed_cardinalities,
                                    nof_events=n,
                                    esep_relations=self.all_esep_numeric,
-                                   pp_relations=self.restricted_perfect_predictions_numeric
+                                   pp_relations=self.restricted_perfect_predictions_numeric,
+                                   visible_automorphisms=self.visible_automorphisms
                                    )
     def infeasible_4222_supports_n_events(self,n,**kwargs):
         return tuple(self.support_testing_instance((4, 2, 2, 2),n).unique_infeasible_supports_as_expanded_integers(**kwargs, name='mgh', use_timer=False))

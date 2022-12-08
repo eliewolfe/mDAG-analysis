@@ -1,19 +1,16 @@
 from __future__ import absolute_import
 
 import itertools
-from functools import reduce
 from sys import hexversion
 
-# from tqdm import tqdm
 import methodtools
 import numpy as np
 import progressbar
 from pysat.formula import IDPool  # I wonder if we can't get away without this, but it is SO convenient
 from pysat.solvers import Solver
 
-# from pysat.card import CardEnc, EncType
-# from operator import itemgetter
-from radix import from_digits, to_digits, uniform_base_test
+
+from radix import from_digits, to_digits
 from utilities import partsextractor
 
 if hexversion >= 0x3080000:
@@ -34,10 +31,22 @@ try:
 except ImportError:
     print("Functions which depend on networkx are not available.")
 
+def infer_automorphisms(parents_of):
+    visible_node_count = len(parents_of)
+    total_node_count = max(itertools.chain.from_iterable(parents_of)) + 1
+    g = nx.DiGraph()
+    g.add_nodes_from(range(total_node_count))
+    for i, parents in enumerate(parents_of):
+        for p in parents:
+            g.add_edge(p, i)
+    observed_nodes = tuple(range(visible_node_count))
+    visible_automorphisms = set()
+    for mapping in DiGraphMatcher(g, g).isomorphisms_iter():
+        visible_automorphisms.add(partsextractor(mapping, observed_nodes))
+    return tuple(visible_automorphisms)
 
 class SupportTester(object):
-    def __init__(self, parents_of, observed_cardinalities, nof_events, pp_relations=tuple()):
-        self.must_perfectpredict = pp_relations
+    def __init__(self, parents_of, observed_cardinalities, nof_events, **kwargs):
         self.parents_of = parents_of
         self.nof_events = nof_events
         self.nof_observed = len(self.parents_of)
@@ -252,11 +261,13 @@ def explore_candidates(candidates, verbose=False, message=''):
 
 
 class SupportTesting(SupportTester):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, pp_relations=tuple(), visible_automorphisms=tuple()):
+        super().__init__(*args)
+        self.must_perfectpredict = pp_relations
         self._canonical_under_outcome_relabelling = dict()
         self._orbit_under_external_party_relabelling = dict()
         self._orbit_under_internal_party_relabelling = dict()
+        self.visible_automorphisms = visible_automorphisms
 
 
     @cached_property
@@ -287,24 +298,6 @@ class SupportTesting(SupportTester):
             return n_canonical
 
     @cached_property
-    def as_networkx_graph(self):
-        g = nx.DiGraph()
-        g.add_nodes_from(range(self.nof_observed+self.nof_latent))
-        for i, parents in enumerate(self.parents_of):
-            for p in parents:
-                g.add_edge(p, i)
-        return g
-
-    @cached_property
-    def visible_automorphisms(self):
-        observed_nodes = tuple(range(self.nof_observed))
-        visible_automorphisms = set()
-        for mapping in DiGraphMatcher(self.as_networkx_graph,
-                                      self.as_networkx_graph).isomorphisms_iter():
-            visible_automorphisms.add(partsextractor(mapping, observed_nodes))
-        return visible_automorphisms
-
-    @cached_property
     def internal_party_relabelling_group(self) -> np.ndarray:
         """
         Like the full_party_relabelling group, but restricted to relabellings
@@ -322,19 +315,6 @@ class SupportTesting(SupportTester):
                 perms_as_event_permutations[i] = to_reshape.transpose(
                     perm).ravel()
         return perms_as_event_permutations
-
-    # @cached_property
-    # def full_party_relabelling_group(self) -> np.ndarray:
-    #     to_reshape = self.conceivable_events_range.reshape(self.observed_cardinalities)
-    #     return np.fromiter(
-    #         itertools.chain.from_iterable(
-    #             to_reshape.transpose(perm).ravel()
-    #             for perm in itertools.permutations(range(self.nof_observed))
-    #             if np.array_equal(
-    #                 self.observed_cardinalities,
-    #                 np.take(self.observed_cardinalities, perm))
-    #         ), self.list_dtype
-    #     ).reshape((-1, self.max_conceivable_events,))
 
     @cached_property
     def visible_nonautomorphisms(self):
@@ -526,16 +506,14 @@ class SupportTesting(SupportTester):
         return self.convert_integers_into_canonical_under_coherent_relabelling(
             self.unique_infeasible_supports_as_expanded_integers(**kwargs))
 
-    # @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_as_integers_independent_unlabelled(self, **kwargs) -> np.ndarray:
         return self.unique_infeasible_supports_as_compressed_integers(**kwargs)
-        # return self.compress_integers_into_canonical_under_independent_relabelling(
-        #     self.unique_infeasible_supports_as_expanded_integers(**kwargs))
+
 
 
 class CumulativeSupportTesting:
     # TODO: Add scrollbar
-    def __init__(self, parents_of, observed_cardinalities, max_nof_events):
+    def __init__(self, parents_of, observed_cardinalities, max_nof_events, **kwargs):
         self.parents_of = parents_of
         self.observed_cardinalities = observed_cardinalities
         self.nof_observed = len(self.parents_of)
@@ -548,23 +526,24 @@ class CumulativeSupportTesting:
         self.matrix_dtype = np.min_scalar_type(self.observed_cardinalities)
         self.list_dtype = np.min_scalar_type(self.max_conceivable_events)
         self.int_dtype = np.min_scalar_type(np.power(self.max_conceivable_events, self.max_nof_events))
+        self.kwargs = kwargs
 
     @property
     def _all_infeasible_supports(self):
         for nof_events in range(2, self.max_nof_events + 1):
-            yield SupportTesting(self.parents_of, self.observed_cardinalities, nof_events
+            yield SupportTesting(self.parents_of, self.observed_cardinalities, nof_events, **self.kwargs
                                  ).unique_infeasible_supports_as_expanded_integers(name='mgh', use_timer=False)
 
     @property
     def _all_infeasible_supports_unlabelled(self):
         for nof_events in range(2, self.max_nof_events + 1):
-            yield SupportTesting(self.parents_of, self.observed_cardinalities, nof_events
+            yield SupportTesting(self.parents_of, self.observed_cardinalities, nof_events, **self.kwargs
                                  ).unique_infeasible_supports_as_integers_unlabelled(name='mgh', use_timer=False)
 
     @property
     def _all_infeasible_supports_independent_unlabelled(self):
         for nof_events in range(2, self.max_nof_events + 1):
-            yield SupportTesting(self.parents_of, self.observed_cardinalities, nof_events
+            yield SupportTesting(self.parents_of, self.observed_cardinalities, nof_events, **self.kwargs
                                  ).unique_infeasible_supports_as_integers_independent_unlabelled(name='mgh', use_timer=False)
 
     @cached_property
@@ -612,6 +591,7 @@ class CumulativeSupportTesting:
 if __name__ == '__main__':
     parents_of = ([3, 4], [4, 5], [3, 5])
     parents_of = ([1, 3], [3, 4], [1, 4])
+    visible_automorphisms = infer_automorphisms(parents_of)
     observed_cardinalities = (3, 3, 3)
     # nof_events = 3
     # st = SupportTesting(parents_of, observed_cardinalities, nof_events)
@@ -621,8 +601,8 @@ if __name__ == '__main__':
     # occurring_events_temp = [(0, 0, 0), (0, 1, 0), (0, 0, 1)]
     # print(st.feasibleQ_from_matrix(occurring_events_temp, name='mgh', use_timer=True))
 
-    st = SupportTesting(parents_of, observed_cardinalities, 3)
-    cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 4)
+    st = SupportTesting(parents_of, observed_cardinalities, 3, visible_automorphisms=visible_automorphisms)
+    cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 4, visible_automorphisms=visible_automorphisms)
     inf = st.unique_infeasible_supports_as_integers_unlabelled(name='mgh', use_timer=False)
     print(st.visible_automorphisms)
     print(st.visible_nonautomorphisms)
@@ -631,10 +611,8 @@ if __name__ == '__main__':
     print(cst.all_infeasible_supports_unlabelled)
     print(cst.all_infeasible_supports_independent_unlabelled)
     parents_of = ([3, 4], [4, 5], [3, 5])
-    st = SupportTesting(parents_of, observed_cardinalities, 0)
-    print(st.visible_automorphisms)
-    print(st.visible_nonautomorphisms)
-    cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 4)
+    visible_automorphisms = infer_automorphisms(parents_of)
+    cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 4, visible_automorphisms=visible_automorphisms)
     print(cst.all_infeasible_supports)
     print(cst.all_infeasible_supports_unlabelled)
     print(cst.all_infeasible_supports_independent_unlabelled)
