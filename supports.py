@@ -319,7 +319,7 @@ class SupportTesting(SupportTester):
                 candidates = np.array(list(map(self.from_matrix_to_list, filtered)), dtype=self.list_dtype)
             candidates_as_ints = self.from_list_to_integer(candidates)
             candidates_as_ints = set((self.canonical_under_outcome_relabelling(n) for n in candidates_as_ints.flat))
-            candidates = self.from_integer_to_list(list(candidates_as_ints))
+            candidates = self.from_integer_to_list(sorted(candidates_as_ints))
             return candidates
         else:
             return np.empty((0, 0), dtype=self.list_dtype)
@@ -387,7 +387,7 @@ class SupportTesting(SupportTester):
                 m_party_variants = self.orbit_under_party_relabelling(m)
                 canonical_rep = min(self.canonical_under_outcome_relabelling(n) for n in m_party_variants.flat)
                 compressed.add(canonical_rep)
-            return np.fromiter((n for n in compressed), dtype=self.int_dtype)
+            return np.array(sorted(compressed), dtype=self.int_dtype)
         else:
             return list_of_integers
 
