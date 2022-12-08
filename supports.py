@@ -28,6 +28,12 @@ else:
     cached_property = property
 from typing import List, Tuple
 
+try:
+    import networkx as nx
+    from networkx.algorithms.isomorphism import DiGraphMatcher
+except ImportError:
+    print("Functions which depend on networkx are not available.")
+
 
 class SupportTester(object):
     def __init__(self, parents_of, observed_cardinalities, nof_events, pp_relations=tuple()):
@@ -249,8 +255,8 @@ class SupportTesting(SupportTester):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._canonical_under_outcome_relabelling = dict()
-        self._orbit_under_party_relabelling = dict()
-        self._canonical_under_party_relabelling = dict()
+        self._orbit_under_external_party_relabelling = dict()
+        self._orbit_under_internal_party_relabelling = dict()
 
 
     @cached_property
@@ -281,34 +287,108 @@ class SupportTesting(SupportTester):
             return n_canonical
 
     @cached_property
-    def party_relabelling_group(self) -> np.ndarray:
-        # assert uniform_base_test(
-        #     self.observed_cardinalities), "Not meaningful to relabel parties with different cardinalities"
+    def as_networkx_graph(self):
+        g = nx.DiGraph()
+        g.add_nodes_from(range(self.nof_observed+self.nof_latent))
+        for i, parents in enumerate(self.parents_of):
+            for p in parents:
+                g.add_edge(p, i)
+        return g
+
+    @cached_property
+    def visible_automorphisms(self):
+        observed_nodes = tuple(range(self.nof_observed))
+        visible_automorphisms = set()
+        for mapping in DiGraphMatcher(self.as_networkx_graph,
+                                      self.as_networkx_graph).isomorphisms_iter():
+            visible_automorphisms.add(partsextractor(mapping, observed_nodes))
+        return visible_automorphisms
+
+    @cached_property
+    def internal_party_relabelling_group(self) -> np.ndarray:
+        """
+        Like the full_party_relabelling group, but restricted to relabellings
+        of the parties consistent with the automorphism of the DAG itself.
+        """
+        to_reshape = self.conceivable_events_range.reshape(self.observed_cardinalities)
+        perms_as_event_permutations = np.empty(
+            (len(self.visible_automorphisms),
+             self.max_conceivable_events),
+            dtype=self.list_dtype
+        )
+        for i, perm in enumerate(self.visible_automorphisms):
+            if np.array_equal(self.observed_cardinalities,
+                              np.take(self.observed_cardinalities, perm)):
+                perms_as_event_permutations[i] = to_reshape.transpose(
+                    perm).ravel()
+        return perms_as_event_permutations
+
+    # @cached_property
+    # def full_party_relabelling_group(self) -> np.ndarray:
+    #     to_reshape = self.conceivable_events_range.reshape(self.observed_cardinalities)
+    #     return np.fromiter(
+    #         itertools.chain.from_iterable(
+    #             to_reshape.transpose(perm).ravel()
+    #             for perm in itertools.permutations(range(self.nof_observed))
+    #             if np.array_equal(
+    #                 self.observed_cardinalities,
+    #                 np.take(self.observed_cardinalities, perm))
+    #         ), self.list_dtype
+    #     ).reshape((-1, self.max_conceivable_events,))
+
+    @cached_property
+    def visible_nonautomorphisms(self):
+        return [perm for perm in
+                itertools.permutations(range(self.nof_observed))
+                if perm not in self.visible_automorphisms]
+
+    @cached_property
+    def external_party_relabelling_group(self) -> np.ndarray:
         to_reshape = self.conceivable_events_range.reshape(self.observed_cardinalities)
         return np.fromiter(
             itertools.chain.from_iterable(
                 to_reshape.transpose(perm).ravel()
-                for perm in itertools.permutations(range(self.nof_observed))
+                for perm in self.visible_nonautomorphisms
                 if np.array_equal(
                     self.observed_cardinalities,
                     np.take(self.observed_cardinalities, perm))
             ), self.list_dtype
         ).reshape((-1, self.max_conceivable_events,))
 
-    def orbit_under_party_relabelling(self, n: int):
+    def orbit_under_external_party_relabelling(self, n: int):
+        """
+        Used for selecting optimal group element, so duplicates must be preserved.
+        """
         try:
-            return self._orbit_under_party_relabelling[n]
+            return self._orbit_under_external_party_relabelling[n]
         except KeyError:
             l = self.from_integer_to_list(n)
-            l_variants = np.take(self.party_relabelling_group, l, axis=-1)
+            l_variants = np.take(self.external_party_relabelling_group, l, axis=-1)
             l_variants.sort(axis=-1)
             n_orbit = self.from_list_to_integer(l_variants)
             for n_new in n_orbit.flat:
-                self._orbit_under_party_relabelling[n_new] = n_orbit
+                self._orbit_under_external_party_relabelling[n_new] = n_orbit
+            return n_orbit
+
+    def orbit_under_internal_party_relabelling(self, n: int):
+        """
+        Used for selecting canonical representative, so duplicates may be discarded.
+        """
+        try:
+            return self._orbit_under_internal_party_relabelling[n]
+        except KeyError:
+            l = self.from_integer_to_list(n)
+            l_variants = np.take(self.internal_party_relabelling_group, l, axis=-1)
+            l_variants.sort(axis=-1)
+            l_variants = np.unique(l_variants, axis=0)
+            n_orbit = self.from_list_to_integer(l_variants)
+            for n_new in n_orbit.flat:
+                self._orbit_under_internal_party_relabelling[n_new] = n_orbit
             return n_orbit
 
     @cached_property
     def unique_candidate_supports_as_lists(self) -> np.ndarray:
+        # TODO: Leverage internal symmetry to avoid certain calculations.
         if self.max_conceivable_events > self.nof_events:
             candidates = np.pad(np.fromiter(itertools.chain.from_iterable(
                 itertools.combinations(self.conceivable_events_range[1:], self.nof_events - 1)), self.list_dtype).reshape(
@@ -381,10 +461,16 @@ class SupportTesting(SupportTester):
         return self.from_integer_to_matrix(self.unique_infeasible_supports_as_integers(**kwargs))
 
     def convert_integers_into_canonical_under_independent_relabelling(self, list_of_integers: np.ndarray) -> np.ndarray:
+        """
+        Since this is used to filter out supports which are implied by others
+         plus graph symmetry, we use the internal party relabelling group as
+         opposed to the full (S_N) party relabelling group.
+        """
+        # TODO: In principle we can speed this up by crossing off multiple redundancies each time we find an orbit.
         if len(list_of_integers) > 0:
             compressed = set()
             for m in list_of_integers.flat:
-                m_party_variants = self.orbit_under_party_relabelling(m)
+                m_party_variants = self.orbit_under_internal_party_relabelling(m)
                 canonical_rep = min(self.canonical_under_outcome_relabelling(n) for n in m_party_variants.flat)
                 compressed.add(canonical_rep)
             return np.array(sorted(compressed), dtype=self.int_dtype)
@@ -392,26 +478,40 @@ class SupportTesting(SupportTester):
             return list_of_integers
 
     def convert_integers_into_canonical_under_coherent_relabelling(self, list_of_integers: np.ndarray) -> np.ndarray:
-        if len(list_of_integers) > 0:
-            current_list_of_lists = self.from_integer_to_list(list_of_integers)
-            current_pair_of_list_of_integers = np.empty(
-                (2, len(list_of_integers)),
-                dtype=self.int_dtype)
-            current_pair_of_list_of_integers[0] = list_of_integers
-            for g_parties in self.party_relabelling_group:
-                temp_list_of_lists = g_parties[current_list_of_lists]
-                temp_list_of_lists.sort(axis=-1)
-                temp_list_of_integers = self.from_list_to_integer(temp_list_of_lists)
-                temp_list_of_integers = np.fromiter(
-                    (self.canonical_under_outcome_relabelling(n) for n in temp_list_of_integers.flat),
-                    dtype=self.int_dtype)
-                temp_list_of_integers.sort(axis=-1)
-                current_pair_of_list_of_integers[1] = temp_list_of_integers
-                order = np.lexsort(np.rot90(current_pair_of_list_of_integers))
-                if order[0]:
-                    current_pair_of_list_of_integers[0] = current_pair_of_list_of_integers[1]
-                    current_list_of_lists = temp_list_of_lists
-            return current_pair_of_list_of_integers[0]
+        """
+        This function is used to compare with other DAGs, so we invoke full S_N
+        in a coherent fashion.
+        Note that we can skip party relabellings which correspond to internal symmetries.
+        """
+        if len(list_of_integers) and len(self.external_party_relabelling_group):
+            variant_lists_of_integers = np.empty(
+                (len(self.external_party_relabelling_group),
+                 len(list_of_integers)),
+            dtype=self.int_dtype)
+            for i, n in enumerate(list_of_integers.flat):
+                variant_lists_of_integers[:, i] = self.orbit_under_external_party_relabelling(n)
+            variant_lists_of_integers.sort(axis=-1)
+            order = np.lexsort(np.rot90(variant_lists_of_integers))
+            return variant_lists_of_integers[order[0]]
+            # current_list_of_lists = self.from_integer_to_list(list_of_integers)
+            # current_pair_of_list_of_integers = np.empty(
+            #     (2, len(list_of_integers)),
+            #     dtype=self.int_dtype)
+            # current_pair_of_list_of_integers[0] = list_of_integers
+            # for g_parties in self.full_party_relabelling_group:
+            #     temp_list_of_lists = g_parties[current_list_of_lists]
+            #     temp_list_of_lists.sort(axis=-1)
+            #     temp_list_of_integers = self.from_list_to_integer(temp_list_of_lists)
+            #     temp_list_of_integers = np.fromiter(
+            #         (self.canonical_under_outcome_relabelling(n) for n in temp_list_of_integers.flat),
+            #         dtype=self.int_dtype)
+            #     temp_list_of_integers.sort(axis=-1)
+            #     current_pair_of_list_of_integers[1] = temp_list_of_integers
+            #     order = np.lexsort(np.rot90(current_pair_of_list_of_integers))
+            #     if order[0]:
+            #         current_pair_of_list_of_integers[0] = current_pair_of_list_of_integers[1]
+            #         current_list_of_lists = temp_list_of_lists
+            # return current_pair_of_list_of_integers[0]
         else:
             return list_of_integers
 
@@ -517,11 +617,16 @@ if __name__ == '__main__':
     st = SupportTesting(parents_of, observed_cardinalities, 3)
     cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 4)
     inf = st.unique_infeasible_supports_as_integers_unlabelled(name='mgh', use_timer=False)
+    print(st.visible_automorphisms)
+    print(st.visible_nonautomorphisms)
     print(st.from_integer_to_matrix(inf))
     print(cst.all_infeasible_supports)
     print(cst.all_infeasible_supports_unlabelled)
     print(cst.all_infeasible_supports_independent_unlabelled)
     parents_of = ([3, 4], [4, 5], [3, 5])
+    st = SupportTesting(parents_of, observed_cardinalities, 0)
+    print(st.visible_automorphisms)
+    print(st.visible_nonautomorphisms)
     cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 4)
     print(cst.all_infeasible_supports)
     print(cst.all_infeasible_supports_unlabelled)

@@ -17,6 +17,7 @@ except ImportError:
     print("Visualization with matplotlib is disabled.")
 try:
     import networkx as nx
+    from networkx.algorithms.isomorphism import DiGraphMatcher
 except ImportError:
     print("Functions which depend on networkx are not available.")
 
@@ -85,6 +86,12 @@ class mDAG:
             zip(self.nonsingleton_latent_nodes, self.simplicial_complex_instance.compressed_simplicial_complex)))
         return g
 
+    @cached_property
+    def visible_automorphisms(self):
+        discovered_automorphisms = set()
+        for mapping in DiGraphMatcher(self.as_graph, self.as_graph).isomorphisms_iter():
+            discovered_automorphisms.add(partsextractor(mapping, self.visible_nodes))
+        return np.array(sorted(discovered_automorphisms))
 
 
     @cached_property
@@ -508,14 +515,14 @@ class mDAG:
         nx.draw_networkx_nodes(G, pos, nodelist=[node], node_color="tab:green")
         nx.draw_networkx_nodes(G, pos, nodelist=self.nonsingleton_latent_nodes, node_color="tab:red")
         nx.draw_networkx_labels(G, pos)
-        nx.draw_networkx_edges(G,pos,edgelist=self.directed_structure_instance.edge_list)
+        nx.draw_networkx_edges(G, pos, edgelist=self.directed_structure_instance.edge_list)
         latent_edges=[]
         f=0
         for facet in self.simplicial_complex_instance.simplicial_complex_as_sets:
             for element in facet:
                 latent_edges.append((self.latent_nodes[f],element))
             f=f+1
-        nx.draw_networkx_edges(G,pos,edgelist=latent_edges)
+        nx.draw_networkx_edges(G, pos, edgelist=latent_edges)
         plt.show()
     
     @cached_property
