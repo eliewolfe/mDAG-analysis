@@ -372,13 +372,21 @@ class SupportTesting(SupportTester):
          plus graph symmetry, we use the internal party relabelling group as
          opposed to the full (S_N) party relabelling group.
         """
-        # TODO: In principle we can speed this up by crossing off multiple redundancies each time we find an orbit.
         if len(set_of_integers) and (len(self.visible_automorphisms) > 1):
             compressed = set()
-            for m in set_of_integers:
-                m_party_variants = self.orbit_under_internal_party_relabelling(m)
-                canonical_rep = min(self.canonical_under_outcome_relabelling(n) for n in m_party_variants.flat)
-                compressed.add(canonical_rep)
+            remaining_to_compress = set_of_integers.copy()
+            while len(remaining_to_compress):
+                m = remaining_to_compress.pop()
+                m_party_variants = self.orbit_under_internal_party_relabelling(
+                    m)
+                m_party_variants = [self.canonical_under_outcome_relabelling(n)
+                                  for n in m_party_variants.flat]
+                compressed.add(min(m_party_variants))
+                remaining_to_compress.difference_update(m_party_variants)
+            # for m in set_of_integers:
+            #     m_party_variants = self.orbit_under_internal_party_relabelling(m)
+            #     canonical_rep = min(self.canonical_under_outcome_relabelling(n) for n in m_party_variants.flat)
+            #     compressed.add(canonical_rep)
             return np.array(sorted(compressed), dtype=self.int_dtype)
         else:
             return np.array(sorted(set_of_integers), dtype=self.int_dtype)
@@ -386,10 +394,19 @@ class SupportTesting(SupportTester):
     def expand_integers_from_canonical_via_internal_party_relabelling(self, list_of_integers: np.ndarray) -> np.ndarray:
         if len(list_of_integers) and (len(self.visible_automorphisms) > 1):
             expanded = set()
-            for m in list_of_integers.flat:
-                m_party_variants = self.orbit_under_internal_party_relabelling(m)
-                for n in m_party_variants.flat:
-                    expanded.add(self.canonical_under_outcome_relabelling(n))
+            remaining_to_expand = set(list_of_integers.flat)
+            while len(remaining_to_expand):
+                m = remaining_to_expand.pop()
+                m_party_variants = self.orbit_under_internal_party_relabelling(
+                    m)
+                m_party_variants = [self.canonical_under_outcome_relabelling(n)
+                                  for n in m_party_variants.flat]
+                expanded.update(m_party_variants)
+                remaining_to_expand.difference_update(m_party_variants)
+            # for m in list_of_integers.flat:
+            #     m_party_variants = self.orbit_under_internal_party_relabelling(m)
+            #     for n in m_party_variants.flat:
+            #         expanded.add(self.canonical_under_outcome_relabelling(n))
             return np.array(sorted(expanded), dtype=self.int_dtype)
         else:
             return list_of_integers
