@@ -403,7 +403,21 @@ class SupportTesting(SupportTester):
                     (self.canonical_under_outcome_relabelling(n) for n in temp_list_of_integers.flat),
                     dtype=self.int_dtype)
                 temp_list_of_integers.sort(axis=-1)
-                if np.all(np.less_equal(temp_list_of_integers, current_list_of_integers)):
+                # replace = False
+                # for new_n, old_n in zip(temp_list_of_integers.flat,
+                #                         current_list_of_integers.flat):
+                #     if new_n < old_n:
+                #         replace = True
+                #         break
+                #     elif old_n < new_n:
+                #         replace = False
+                #         break
+                #     else:
+                #         continue
+                # if replace:
+                if np.lexsort(np.rot90(np.vstack(
+                        (current_list_of_integers,
+                         temp_list_of_integers))))[0]:
                     current_list_of_integers = temp_list_of_integers
                     current_list_of_lists = temp_list_of_lists
             return current_list_of_integers
