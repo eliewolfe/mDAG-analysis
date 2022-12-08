@@ -386,94 +386,31 @@ class SupportTesting(SupportTester):
                 self._orbit_under_internal_party_relabelling[n_new] = n_orbit
             return n_orbit
 
-    @cached_property
-    def unique_candidate_supports_as_lists(self) -> np.ndarray:
-        # TODO: Leverage internal symmetry to avoid certain calculations.
-        if self.max_conceivable_events > self.nof_events:
-            candidates = np.pad(np.fromiter(itertools.chain.from_iterable(
-                itertools.combinations(self.conceivable_events_range[1:], self.nof_events - 1)), self.list_dtype).reshape(
-                (-1, self.nof_events - 1)), ((0, 0), (1, 0)), 'constant')
-            if self.must_perfectpredict:
-                to_filter = self.from_list_to_matrix(candidates)
-                filtered = self.extract_support_matrices_satisfying_pprestrictions(to_filter, self.must_perfectpredict)
-                candidates = np.array(list(map(self.from_matrix_to_list, filtered)), dtype=self.list_dtype)
-            candidates_as_ints = self.from_list_to_integer(candidates)
-            candidates_as_ints = set((self.canonical_under_outcome_relabelling(n) for n in candidates_as_ints.flat))
-            candidates = self.from_integer_to_list(sorted(candidates_as_ints))
-            return candidates
-        else:
-            return np.empty((0, 0), dtype=self.list_dtype)
-
-    @cached_property
-    def unique_candidate_supports_as_integers(self) -> np.ndarray:
-        return self.from_list_to_integer(self.unique_candidate_supports_as_lists)
-
-    @cached_property
-    def unique_candidate_supports_as_matrices(self) -> np.ndarray:
-        return self.from_list_to_matrix(self.unique_candidate_supports_as_lists)
-
-    @staticmethod
-    def explore_candidates(candidates, **kwargs):
-        return explore_candidates(candidates, **kwargs)
-
-    @methodtools.lru_cache(maxsize=None, typed=False)
-    def attempt_to_find_one_infeasible_support(self, **kwargs) -> np.ndarray:
-        return self.attempt_to_find_one_infeasible_support_among(self.unique_candidate_supports_as_lists, **kwargs)
-
-    def attempt_to_find_one_infeasible_support_among(
-            self, candidates_as_lists: np.ndarray, verbose=False) -> np.ndarray:
-        for occurring_events_as_tuple in self.explore_candidates(candidates_as_lists,
-                                                                 verbose=verbose,
-                                                                 message='Finding an infeasible support'):
-            if not self.feasibleQ_from_tuple(occurring_events_as_tuple):
-                return self.from_list_to_matrix(occurring_events_as_tuple)
-        return np.empty((0, self.nof_observed), dtype=self.matrix_dtype)
-
-    def no_infeasible_supports_among(self, candidates_as_lists, **kwargs) -> bool:
-        if len(self.attempt_to_find_one_infeasible_support_among(candidates_as_lists, **kwargs)) == 0:
-            return True
-        else:
-            return False
-
-    @methodtools.lru_cache(maxsize=None, typed=False)
-    def no_infeasible_supports(self, **kwargs) -> bool:
-        return self.no_infeasible_supports_among(self.unique_candidate_supports_as_lists, **kwargs)
-        # return all(self.feasibleQ_from_integer(occurring_events_as_int, **kwargs)[0] for occurring_events_as_int in
-        #            self.explore_candidates(self.unique_candidate_supports_as_integers, verbose=verbose))
-
-    def unique_infeasible_supports_as_integers_among(
-            self, candidates_as_integers, verbose=False, **kwargs) -> np.ndarray:
-        return np.fromiter((occurring_events_as_int for occurring_events_as_int in
-                            self.explore_candidates(candidates_as_integers, verbose=verbose) if
-                            not self.feasibleQ_from_integer(occurring_events_as_int, **kwargs)), dtype=self.int_dtype)
-
-    @methodtools.lru_cache(maxsize=None, typed=False)
-    def unique_infeasible_supports_as_integers(self, **kwargs) -> np.ndarray:
-        """
-        Return a signature of infeasible support for a given parents_of, observed_cardinalities, and nof_events
-        :param kwargs: optional arguments to pysat.Solver
-        :param verbose: option to display progressbar
-        """
-        return self.unique_infeasible_supports_as_integers_among(self.unique_candidate_supports_as_integers, **kwargs)
-
-    @methodtools.lru_cache(maxsize=None, typed=False)
-    def unique_infeasible_supports_as_matrices(self, **kwargs) -> np.ndarray:
-        return self.from_integer_to_matrix(self.unique_infeasible_supports_as_integers(**kwargs))
-
-    def convert_integers_into_canonical_under_independent_relabelling(self, list_of_integers: np.ndarray) -> np.ndarray:
+    def compress_integers_into_canonical_under_independent_relabelling(self, set_of_integers: set) -> np.ndarray:
         """
         Since this is used to filter out supports which are implied by others
          plus graph symmetry, we use the internal party relabelling group as
          opposed to the full (S_N) party relabelling group.
         """
         # TODO: In principle we can speed this up by crossing off multiple redundancies each time we find an orbit.
-        if len(list_of_integers) > 0:
+        if len(set_of_integers) and (len(self.visible_automorphisms) > 1):
             compressed = set()
-            for m in list_of_integers.flat:
+            for m in set_of_integers:
                 m_party_variants = self.orbit_under_internal_party_relabelling(m)
                 canonical_rep = min(self.canonical_under_outcome_relabelling(n) for n in m_party_variants.flat)
                 compressed.add(canonical_rep)
             return np.array(sorted(compressed), dtype=self.int_dtype)
+        else:
+            return np.array(sorted(set_of_integers), dtype=self.int_dtype)
+
+    def expand_integers_from_canonical_via_internal_party_relabelling(self, list_of_integers: np.ndarray) -> np.ndarray:
+        if len(list_of_integers) and (len(self.visible_automorphisms) > 1):
+            expanded = set()
+            for m in list_of_integers.flat:
+                m_party_variants = self.orbit_under_internal_party_relabelling(m)
+                for n in m_party_variants.flat:
+                    expanded.add(self.canonical_under_outcome_relabelling(n))
+            return np.array(sorted(expanded), dtype=self.int_dtype)
         else:
             return list_of_integers
 
@@ -493,37 +430,107 @@ class SupportTesting(SupportTester):
             variant_lists_of_integers.sort(axis=-1)
             order = np.lexsort(np.rot90(variant_lists_of_integers))
             return variant_lists_of_integers[order[0]]
-            # current_list_of_lists = self.from_integer_to_list(list_of_integers)
-            # current_pair_of_list_of_integers = np.empty(
-            #     (2, len(list_of_integers)),
-            #     dtype=self.int_dtype)
-            # current_pair_of_list_of_integers[0] = list_of_integers
-            # for g_parties in self.full_party_relabelling_group:
-            #     temp_list_of_lists = g_parties[current_list_of_lists]
-            #     temp_list_of_lists.sort(axis=-1)
-            #     temp_list_of_integers = self.from_list_to_integer(temp_list_of_lists)
-            #     temp_list_of_integers = np.fromiter(
-            #         (self.canonical_under_outcome_relabelling(n) for n in temp_list_of_integers.flat),
-            #         dtype=self.int_dtype)
-            #     temp_list_of_integers.sort(axis=-1)
-            #     current_pair_of_list_of_integers[1] = temp_list_of_integers
-            #     order = np.lexsort(np.rot90(current_pair_of_list_of_integers))
-            #     if order[0]:
-            #         current_pair_of_list_of_integers[0] = current_pair_of_list_of_integers[1]
-            #         current_list_of_lists = temp_list_of_lists
-            # return current_pair_of_list_of_integers[0]
         else:
             return list_of_integers
+
+    @cached_property
+    def unique_candidate_supports_as_compressed_lists(self) -> np.ndarray:
+        if self.max_conceivable_events > self.nof_events:
+            candidates = np.pad(np.fromiter(itertools.chain.from_iterable(
+                itertools.combinations(self.conceivable_events_range[1:], self.nof_events - 1)), self.list_dtype).reshape(
+                (-1, self.nof_events - 1)), ((0, 0), (1, 0)), 'constant')
+            if self.must_perfectpredict:
+                to_filter = self.from_list_to_matrix(candidates)
+                filtered = self.extract_support_matrices_satisfying_pprestrictions(to_filter, self.must_perfectpredict)
+                candidates = np.array(list(map(self.from_matrix_to_list, filtered)), dtype=self.list_dtype)
+            candidates_as_ints = self.from_list_to_integer(candidates)
+            candidates_as_ints = set((self.canonical_under_outcome_relabelling(n) for n in candidates_as_ints.flat))
+            candidates_as_ints = self.compress_integers_into_canonical_under_independent_relabelling(candidates_as_ints) # New!
+            candidates = self.from_integer_to_list(candidates_as_ints)
+            return candidates
+        else:
+            return np.empty((0, 0), dtype=self.list_dtype)
+
+    @cached_property
+    def unique_candidate_supports_as_compressed_integers(self) -> np.ndarray:
+        return self.from_list_to_integer(self.unique_candidate_supports_as_compressed_lists)
+
+    @cached_property
+    def unique_candidate_supports_as_compressed_matrices(self) -> np.ndarray:
+        return self.from_list_to_matrix(self.unique_candidate_supports_as_compressed_lists)
+
+    @staticmethod
+    def explore_candidates(candidates, **kwargs):
+        return explore_candidates(candidates, **kwargs)
+
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def attempt_to_find_one_infeasible_support(self, **kwargs) -> np.ndarray:
+        return self.attempt_to_find_one_infeasible_support_among(self.unique_candidate_supports_as_compressed_lists, **kwargs)
+
+    def attempt_to_find_one_infeasible_support_among(
+            self, candidates_as_lists: np.ndarray, verbose=False) -> np.ndarray:
+        for occurring_events_as_tuple in self.explore_candidates(candidates_as_lists,
+                                                                 verbose=verbose,
+                                                                 message='Finding an infeasible support'):
+            if not self.feasibleQ_from_tuple(occurring_events_as_tuple):
+                return self.from_list_to_matrix(occurring_events_as_tuple)
+        return np.empty((0, self.nof_observed), dtype=self.matrix_dtype)
+
+    def no_infeasible_supports_among(self, candidates_as_lists, **kwargs) -> bool:
+        if len(self.attempt_to_find_one_infeasible_support_among(candidates_as_lists, **kwargs)) == 0:
+            return True
+        else:
+            return False
+
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def no_infeasible_supports(self, **kwargs) -> bool:
+        return self.no_infeasible_supports_among(self.unique_candidate_supports_as_compressed_lists, **kwargs)
+
+    def unique_infeasible_supports_as_integers_among(
+            self, candidates_as_integers, verbose=False, **kwargs) -> np.ndarray:
+        """This function does NOT apply expansion due to self symmetry."""
+        return np.fromiter((occurring_events_as_int for occurring_events_as_int in
+                            self.explore_candidates(candidates_as_integers, verbose=verbose) if
+                            not self.feasibleQ_from_integer(occurring_events_as_int, **kwargs)), dtype=self.int_dtype)
+
+    def unique_infeasible_supports_as_integers_expanded_among(self,
+                                                              *args, **kwargs) -> np.ndarray:
+        """This function DOES apply expansion due to self symmetry."""
+        return self.expand_integers_from_canonical_via_internal_party_relabelling(
+            self.unique_infeasible_supports_as_integers_among(*args, **kwargs)
+        )
+
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def unique_infeasible_supports_as_expanded_integers(self, **kwargs) -> np.ndarray:
+        """
+        Return a signature of infeasible support for a given parents_of, observed_cardinalities, and nof_events
+        """
+        return self.unique_infeasible_supports_as_integers_expanded_among(self.unique_candidate_supports_as_compressed_integers, **kwargs)
+
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def unique_infeasible_supports_as_compressed_integers(self, **kwargs) -> np.ndarray:
+        """
+        Return infeasible support UP TO INTERNAL SYMMETRY for a given parents_of, observed_cardinalities, and nof_events
+        """
+        return self.unique_infeasible_supports_as_integers_among(self.unique_candidate_supports_as_compressed_integers, **kwargs)
+
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def unique_infeasible_supports_as_expanded_matrices(self, **kwargs) -> np.ndarray:
+        return self.from_integer_to_matrix(self.unique_infeasible_supports_as_expanded_integers(**kwargs))
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def unique_infeasible_supports_as_compressed_matrices(self, **kwargs) -> np.ndarray:
+        return self.from_integer_to_matrix(self.unique_infeasible_supports_as_compressed_integers(**kwargs))
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_as_integers_unlabelled(self, **kwargs) -> np.ndarray:
         return self.convert_integers_into_canonical_under_coherent_relabelling(
-            self.unique_infeasible_supports_as_integers(**kwargs))
+            self.unique_infeasible_supports_as_expanded_integers(**kwargs))
 
-    @methodtools.lru_cache(maxsize=None, typed=False)
+    # @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_as_integers_independent_unlabelled(self, **kwargs) -> np.ndarray:
-        return self.convert_integers_into_canonical_under_independent_relabelling(
-            self.unique_infeasible_supports_as_integers(**kwargs))
+        return self.unique_infeasible_supports_as_compressed_integers(**kwargs)
+        # return self.compress_integers_into_canonical_under_independent_relabelling(
+        #     self.unique_infeasible_supports_as_expanded_integers(**kwargs))
 
 
 class CumulativeSupportTesting:
@@ -546,7 +553,7 @@ class CumulativeSupportTesting:
     def _all_infeasible_supports(self):
         for nof_events in range(2, self.max_nof_events + 1):
             yield SupportTesting(self.parents_of, self.observed_cardinalities, nof_events
-                                 ).unique_infeasible_supports_as_integers(name='mgh', use_timer=False)
+                                 ).unique_infeasible_supports_as_expanded_integers(name='mgh', use_timer=False)
 
     @property
     def _all_infeasible_supports_unlabelled(self):

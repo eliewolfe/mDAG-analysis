@@ -86,118 +86,159 @@ class SmartSupportTesting(SupportTesting):
     #     return np.fromiter(map(self.support_respects_perfect_prediction_restrictions, to_filter), bool)
 
     @cached_property
-    def _infeasible_support_due_to_esep_picklist(self) -> np.ndarray:
-        to_filter = self.from_list_to_matrix(self.unique_candidate_supports_as_lists)
+    def _infeasible_compressed_supports_due_to_esep_picklist(self) -> np.ndarray:
+        to_filter = self.from_list_to_matrix(self.unique_candidate_supports_as_compressed_lists)
         return np.fromiter(map(self.infeasible_support_Q_due_to_esep_from_matrix, to_filter), bool)
 
     @cached_property
-    def infeasible_supports_due_to_esep_as_integers(self) -> np.ndarray:
-        return np.asarray(self.unique_candidate_supports_as_integers, dtype=self.int_dtype)[self._infeasible_support_due_to_esep_picklist]
+    def infeasible_supports_due_to_esep_as_compressed_integers(self) -> np.ndarray:
+        return np.asarray(self.unique_candidate_supports_as_compressed_integers, dtype=self.int_dtype)[self._infeasible_compressed_supports_due_to_esep_picklist]
+    @cached_property
+    def infeasible_supports_due_to_esep_as_expanded_integers(self) -> np.ndarray:
+        return self.expand_integers_from_canonical_via_internal_party_relabelling(
+            self.infeasible_supports_due_to_esep_as_compressed_integers)
 
     @cached_property
-    def _infeasible_support_due_to_dsep_picklist(self) -> np.ndarray:
-        to_filter = self.from_list_to_matrix(self.unique_candidate_supports_as_lists)
+    def _infeasible_compressed_support_due_to_dsep_picklist(self) -> np.ndarray:
+        to_filter = self.from_list_to_matrix(self.unique_candidate_supports_as_compressed_lists)
         return np.fromiter(map(self.infeasible_support_Q_due_to_dsep_from_matrix, to_filter), bool)
 
     @cached_property
-    def infeasible_supports_due_to_dsep_as_integers(self) -> np.ndarray:
-        return np.asarray(self.unique_candidate_supports_as_integers, dtype=self.int_dtype)[self._infeasible_support_due_to_dsep_picklist]
+    def infeasible_supports_due_to_dsep_as_compressed_integers(self) -> np.ndarray:
+        return np.asarray(self.unique_candidate_supports_as_compressed_integers, dtype=self.int_dtype)[self._infeasible_compressed_support_due_to_dsep_picklist]
+    @cached_property
+    def infeasible_supports_due_to_dsep_as_expanded_integers(self) -> np.ndarray:
+        return self.expand_integers_from_canonical_via_internal_party_relabelling(
+            self.infeasible_supports_due_to_dsep_as_compressed_integers)
 
     @cached_property
-    def infeasible_supports_due_to_esep_as_matrices(self) -> np.ndarray:
-        return self.from_integer_to_matrix(self.infeasible_supports_due_to_esep_as_integers)
+    def infeasible_supports_due_to_esep_as_expanded_matrices(self) -> np.ndarray:
+        return self.from_integer_to_matrix(self.infeasible_supports_due_to_esep_as_expanded_integers)
+    @cached_property
+    def infeasible_supports_due_to_esep_as_compressed_matrices(self) -> np.ndarray:
+        return self.from_integer_to_matrix(self.infeasible_supports_due_to_esep_as_compressed_integers)
 
     @cached_property
-    def infeasible_supports_due_to_dsep_as_matrices(self) -> np.ndarray:
-        return self.from_integer_to_matrix(self.infeasible_supports_due_to_dsep_as_integers)
+    def infeasible_supports_due_to_dsep_as_expanded_matrices(self) -> np.ndarray:
+        return self.from_integer_to_matrix(self.infeasible_supports_due_to_dsep_as_expanded_integers)
+    @cached_property
+    def infeasible_supports_due_to_dsep_as_compressed_matrices(self) -> np.ndarray:
+        return self.from_integer_to_matrix(self.infeasible_supports_due_to_dsep_as_compressed_integers)
 
     @cached_property
-    def unique_candidate_supports_not_infeasible_due_to_esep_as_integers(self) -> np.ndarray:
-        return np.asarray(self.unique_candidate_supports_as_integers, dtype=self.int_dtype)[
-            np.logical_not(self._infeasible_support_due_to_esep_picklist)]
+    def unique_candidate_supports_not_infeasible_due_to_esep_as_compressed_integers(self) -> np.ndarray:
+        return np.asarray(self.unique_candidate_supports_as_compressed_integers, dtype=self.int_dtype)[
+            np.logical_not(self._infeasible_compressed_supports_due_to_esep_picklist)]
 
     @cached_property
-    def unique_candidate_supports_not_infeasible_due_to_dsep_as_integers(self) -> np.ndarray:
-        return np.asarray(self.unique_candidate_supports_as_integers, dtype=self.int_dtype)[
-            np.logical_not(self._infeasible_support_due_to_dsep_picklist)]
+    def unique_candidate_supports_not_infeasible_due_to_dsep_as_compressed_integers(self) -> np.ndarray:
+        return np.asarray(self.unique_candidate_supports_as_compressed_integers, dtype=self.int_dtype)[
+            np.logical_not(self._infeasible_compressed_support_due_to_dsep_picklist)]
 
     @cached_property
-    def unique_candidate_supports_not_infeasible_due_to_esep_as_lists(self) -> np.ndarray:
-        return np.asarray(self.unique_candidate_supports_as_lists, dtype=self.int_dtype)[
-            np.logical_not(self._infeasible_support_due_to_esep_picklist)]
+    def unique_candidate_supports_not_infeasible_due_to_esep_as_compressed_lists(self) -> np.ndarray:
+        return np.asarray(self.unique_candidate_supports_as_compressed_lists, dtype=self.int_dtype)[
+            np.logical_not(self._infeasible_compressed_supports_due_to_esep_picklist)]
 
     @cached_property
-    def unique_candidate_supports_not_infeasible_due_to_dsep_as_lists(self) -> np.ndarray:
-        return np.asarray(self.unique_candidate_supports_as_lists, dtype=np.intp)[
-            np.logical_not(self._infeasible_support_due_to_dsep_picklist)]
+    def unique_candidate_supports_not_infeasible_due_to_dsep_as_compressed_lists(self) -> np.ndarray:
+        return np.asarray(self.unique_candidate_supports_as_compressed_lists, dtype=np.intp)[
+            np.logical_not(self._infeasible_compressed_support_due_to_dsep_picklist)]
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def unique_infeasible_supports_beyond_esep_as_integers(self, **kwargs):
+    def unique_infeasible_supports_beyond_esep_as_expanded_integers(self, **kwargs):
         """
         Return a signature of infeasible support for a given parents_of, observed_cardinalities, and nof_events
-        :param kwargs: optional arguments to pysat.Solver
         """
-        return self.unique_infeasible_supports_as_integers_among(self.unique_candidate_supports_not_infeasible_due_to_esep_as_integers, **kwargs)
-        # return np.fromiter((occuring_events_as_int for occuring_events_as_int in self.explore_candidates(self.unique_candidate_supports_not_infeasible_due_to_esep_as_integers, verbose=verbose) if
-        #      not self.feasibleQ_from_integer(occuring_events_as_int, **kwargs)), dtype=int)
+        return self.unique_infeasible_supports_as_integers_expanded_among(self.unique_candidate_supports_not_infeasible_due_to_esep_as_compressed_integers, **kwargs)
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def unique_infeasible_supports_beyond_dsep_as_integers(self, **kwargs):
-        return self.unique_infeasible_supports_as_integers_among(self.unique_candidate_supports_not_infeasible_due_to_dsep_as_integers, **kwargs)
+    def unique_infeasible_supports_beyond_esep_as_compressed_integers(self,
+                                                                    **kwargs):
+        """
+        Return infeasible support UP TO INTERNAL SYMMETRY for a given parents_of, observed_cardinalities, and nof_events
+        """
+        return self.unique_infeasible_supports_as_integers_among(
+            self.unique_candidate_supports_not_infeasible_due_to_esep_as_compressed_integers,
+            **kwargs)
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def unique_infeasible_supports_beyond_esep_as_matrices(self, **kwargs):
-        return self.from_integer_to_matrix(self.unique_infeasible_supports_beyond_esep_as_integers(**kwargs))
+    def unique_infeasible_supports_beyond_dsep_as_expanded_integers(self, **kwargs):
+        return self.unique_infeasible_supports_as_integers_expanded_among(self.unique_candidate_supports_not_infeasible_due_to_dsep_as_compressed_integers, **kwargs)
+
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def unique_infeasible_supports_beyond_dsep_as_matrices(self, **kwargs):
-        return self.from_integer_to_matrix(self.unique_infeasible_supports_beyond_dsep_as_integers(**kwargs))
+    def unique_infeasible_supports_beyond_dsep_as_compressed_integers(self,
+                                                                      **kwargs):
+        return self.unique_infeasible_supports_as_integers_among(
+            self.unique_candidate_supports_not_infeasible_due_to_dsep_as_compressed_integers,
+            **kwargs)
+
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def unique_infeasible_supports_beyond_esep_as_expanded_matrices(self, **kwargs):
+        return self.from_integer_to_matrix(self.unique_infeasible_supports_beyond_esep_as_expanded_integers(**kwargs))
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def unique_infeasible_supports_beyond_esep_as_compressed_matrices(self, **kwargs):
+        return self.from_integer_to_matrix(self.unique_infeasible_supports_beyond_esep_as_compressed_integers(**kwargs))
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def unique_infeasible_supports_beyond_dsep_as_expanded_matrices(self, **kwargs):
+        return self.from_integer_to_matrix(self.unique_infeasible_supports_beyond_dsep_as_expanded_integers(**kwargs))
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def unique_infeasible_supports_beyond_dsep_as_compressed_matrices(self, **kwargs):
+        return self.from_integer_to_matrix(self.unique_infeasible_supports_beyond_dsep_as_compressed_integers(**kwargs))
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_beyond_esep_as_integers_unlabelled(self, **kwargs):
         return self.convert_integers_into_canonical_under_coherent_relabelling(
-            self.unique_infeasible_supports_beyond_esep_as_integers(**kwargs))
+            self.unique_infeasible_supports_beyond_esep_as_expanded_integers(**kwargs))
 
-    @methodtools.lru_cache(maxsize=None, typed=False)
+    # @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_beyond_esep_as_integers_independent_unlabelled(self, **kwargs):
-        return self.convert_integers_into_canonical_under_independent_relabelling(
-            self.unique_infeasible_supports_beyond_esep_as_integers(**kwargs))
+        return self.unique_infeasible_supports_beyond_esep_as_compressed_integers(**kwargs)
+        # return self.compress_integers_into_canonical_under_independent_relabelling(
+
 
 
 
     #REDEFINITION
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def unique_infeasible_supports_as_integers(self, **kwargs):
+    def unique_infeasible_supports_as_expanded_integers(self, **kwargs):
         """
         Return a signature of infeasible support for a given parents_of, observed_cardinalities, and nof_events
         :param kwargs: optional arguments to pysat.Solver
         CHANGED: Now returns each infeasible support as a single integer.
         """
-        return np.sort(np.hstack((self.unique_infeasible_supports_beyond_esep_as_integers(**kwargs),
-                          self.infeasible_supports_due_to_esep_as_integers)).astype(self.int_dtype)).astype(self.int_dtype)
+        return np.sort(np.hstack((self.unique_infeasible_supports_beyond_esep_as_expanded_integers(**kwargs),
+                          self.infeasible_supports_due_to_esep_as_expanded_integers)).astype(self.int_dtype)).astype(self.int_dtype)
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def unique_infeasible_supports_as_compressed_integers(self, **kwargs):
+        return np.sort(np.hstack((self.unique_infeasible_supports_beyond_esep_as_compressed_integers(**kwargs),
+                          self.infeasible_supports_due_to_esep_as_compressed_integers)).astype(self.int_dtype)).astype(self.int_dtype)
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def unique_infeasible_supports_as_matrices(self, **kwargs):
-        return self.from_integer_to_matrix(self.unique_infeasible_supports_as_integers(**kwargs))
-
+    def unique_infeasible_supports_as_expanded_matrices(self, **kwargs):
+        return self.from_integer_to_matrix(self.unique_infeasible_supports_as_expanded_integers(**kwargs))
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def unique_infeasible_supports_as_compressed_matrices(self, **kwargs):
+        return self.from_integer_to_matrix(self.unique_infeasible_supports_as_compressed_integers(**kwargs))
 
     def attempt_to_find_one_infeasible_support_beyond_dsep(self, **kwargs):
-        return self.attempt_to_find_one_infeasible_support_among(self.unique_candidate_supports_not_infeasible_due_to_dsep_as_lists, **kwargs)
+        return self.attempt_to_find_one_infeasible_support_among(self.unique_candidate_supports_not_infeasible_due_to_dsep_as_compressed_lists, **kwargs)
     def attempt_to_find_one_infeasible_support_beyond_esep(self, **kwargs):
-        return self.attempt_to_find_one_infeasible_support_among(self.unique_candidate_supports_not_infeasible_due_to_esep_as_lists, **kwargs)
+        return self.attempt_to_find_one_infeasible_support_among(self.unique_candidate_supports_not_infeasible_due_to_esep_as_compressed_lists, **kwargs)
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def no_infeasible_supports_beyond_esep(self, **kwargs):
-        return self.no_infeasible_supports_among(self.unique_candidate_supports_not_infeasible_due_to_esep_as_lists, **kwargs)
+        return self.no_infeasible_supports_among(self.unique_candidate_supports_not_infeasible_due_to_esep_as_compressed_lists, **kwargs)
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def no_infeasible_supports_beyond_dsep(self, **kwargs):
-        return self.no_infeasible_supports_among(self.unique_candidate_supports_not_infeasible_due_to_dsep_as_lists,
+        return self.no_infeasible_supports_among(self.unique_candidate_supports_not_infeasible_due_to_dsep_as_compressed_lists,
                                                  **kwargs)
 
     @cached_property
     def interesting_due_to_esep(self):
-        return not set(self.unique_candidate_supports_not_infeasible_due_to_dsep_as_integers).issubset(
-            self.unique_candidate_supports_not_infeasible_due_to_esep_as_integers)
+        return not set(self.unique_candidate_supports_not_infeasible_due_to_dsep_as_compressed_integers).issubset(
+            self.unique_candidate_supports_not_infeasible_due_to_esep_as_compressed_integers)
 
 
 

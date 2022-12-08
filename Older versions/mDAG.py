@@ -166,14 +166,14 @@ class mDAG:
     def infeasible_binary_supports_n_events(self, n):
         return SupportTesting(self.parents_of_for_supports_analysis,
                               np.broadcast_to(2, self.number_of_visible),
-                              n).unique_infeasible_supports_as_integers(name='mgh', use_timer=False)
+                              n).unique_infeasible_supports_as_expanded_integers(name='mgh', use_timer=False)
 
     def smart_infeasible_binary_supports_n_events(self, n):
         return SmartSupportTesting(self.parents_of_for_supports_analysis,
                                    np.broadcast_to(2, self.number_of_visible),
                                    n, chunked(map(lambda vars: list(self.as_integer_labels(tuple(vars))),
                                                   itertools.chain.from_iterable(self.all_esep)), 3)
-                                   ).unique_infeasible_supports_beyond_esep_as_integers(name='mgh', use_timer=False)
+                                   ).unique_infeasible_supports_beyond_esep_as_expanded_integers(name='mgh', use_timer=False)
 
     def infeasible_binary_supports_n_events_unlabelled(self, n):
         return SupportTesting(self.parents_of_for_supports_analysis,

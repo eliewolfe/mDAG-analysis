@@ -93,6 +93,9 @@ class mDAG:
             discovered_automorphisms.add(partsextractor(mapping, self.visible_nodes))
         return np.array(sorted(discovered_automorphisms))
 
+    @cached_property
+    def automorphic_order(self):
+        return len(self.visible_automorphisms)
 
     @cached_property
     def as_extended_bit_array(self):
@@ -105,7 +108,7 @@ class mDAG:
 
     @cached_property
     def relative_complexity_for_sat_solver(self):  # choose eqclass representative which minimizes this
-        return (self.as_extended_bit_array.sum(), self.n_of_edges, self.simplicial_complex_instance.tally)
+        return (self.as_extended_bit_array.sum(), self.n_of_edges, self.simplicial_complex_instance.tally, -self.automorphic_order)
                 
     @cached_property
     def parents_of_for_supports_analysis(self):
@@ -293,20 +296,26 @@ class mDAG:
                                    pp_relations=self.restricted_perfect_predictions_numeric
                                    )
     def infeasible_4222_supports_n_events(self,n,**kwargs):
-        return tuple(self.support_testing_instance((4, 2, 2, 2),n).unique_infeasible_supports_as_integers(**kwargs, name='mgh', use_timer=False))
+        return tuple(self.support_testing_instance((4, 2, 2, 2),n).unique_infeasible_supports_as_expanded_integers(**kwargs, name='mgh', use_timer=False))
     def infeasible_binary_supports_n_events(self, n, **kwargs):
-        return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_as_integers(**kwargs, name='mgh', use_timer=False))
+        return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_as_expanded_integers(**kwargs, name='mgh', use_timer=False))
     def infeasible_binary_supports_n_events_beyond_esep(self, n, **kwargs):
-        return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_integers(**kwargs, name='mgh', use_timer=False))
+        return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_expanded_integers(**kwargs, name='mgh', use_timer=False))
     def infeasible_binary_supports_n_events_beyond_dsep(self, n, **kwargs):
-        return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_dsep_as_integers(**kwargs, name='mgh', use_timer=False))
+        return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_dsep_as_expanded_integers(**kwargs, name='mgh', use_timer=False))
 
     def infeasible_binary_supports_n_events_as_matrices(self, n, **kwargs):
-        return self.support_testing_instance_binary(n).unique_infeasible_supports_as_matrices(**kwargs, name='mgh', use_timer=False)
+        return self.support_testing_instance_binary(n).unique_infeasible_supports_as_expanded_matrices(**kwargs, name='mgh', use_timer=False)
     def infeasible_binary_supports_n_events_beyond_esep_as_matrices(self, n, **kwargs):
-        return self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_matrices(**kwargs, name='mgh', use_timer=False)
+        return self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_expanded_matrices(**kwargs, name='mgh', use_timer=False)
     def infeasible_binary_supports_n_events_beyond_dsep_as_matrices(self, n, **kwargs):
-        return self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_dsep_as_matrices(**kwargs, name='mgh', use_timer=False)
+        return self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_dsep_as_expanded_matrices(**kwargs, name='mgh', use_timer=False)
+    def representative_infeasible_binary_supports_n_events_as_matrices(self, n, **kwargs):
+        return self.support_testing_instance_binary(n).unique_infeasible_supports_as_compressed_matrices(**kwargs, name='mgh', use_timer=False)
+    def representative_infeasible_binary_supports_n_events_beyond_esep_as_matrices(self, n, **kwargs):
+        return self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_compressed_matrices(**kwargs, name='mgh', use_timer=False)
+    def representative_infeasible_binary_supports_n_events_beyond_dsep_as_matrices(self, n, **kwargs):
+        return self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_dsep_as_compressed_matrices(**kwargs, name='mgh', use_timer=False)
 
     def infeasible_binary_supports_n_events_unlabelled(self, n, **kwargs):
         return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_as_integers_unlabelled(**kwargs, name='mgh', use_timer=False))
