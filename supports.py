@@ -199,13 +199,15 @@ class SupportTester(object):
         return clauses
 
     def array_of_positive_outcomes(self, occurring_events: np.ndarray) -> List:
-        for world, outcomes in enumerate(occurring_events):
-            for clause in self.positive_outcome_clause(world, tuple(outcomes)):
-                yield clause
+        return [clause for world, outcomes in enumerate(occurring_events)
+                for clause in self.positive_outcome_clause(world, tuple(outcomes))]
+        # for world, outcomes in enumerate(occurring_events):
+        #     for clause in self.positive_outcome_clause(world, tuple(outcomes)):
+        #         yield clause
 
     def _sat_solver_clauses(self, occurring_events: np.ndarray) -> List:
         assert self.nof_events == len(occurring_events), 'The number of events does not match the expected number.'
-        return list(self.array_of_positive_outcomes(occurring_events)) + \
+        return self.array_of_positive_outcomes(occurring_events) + \
                self.at_least_one_outcome + \
                self.forbidden_events_clauses(occurring_events)
 
@@ -262,13 +264,19 @@ class SupportTester(object):
     def potentially_feasibleQ_from_matrix_pair(self,
                                                definitely_occurring_events_matrix: np.ndarray,
                                                potentially_occurring_events_matrix: np.ndarray,
+                                               return_model=False,
                                                **kwargs) -> bool:
         with Solver(bootstrap_with=self._sat_solver_clauses_bonus(definitely_occurring_events_matrix,
                                                                   potentially_occurring_events_matrix), **kwargs) as s:
             if not self.cached_properties_computed_yet:
                 print(f"Initialization of problem complete. ({self.nof_events} events)")
                 self.cached_properties_computed_yet = True
-            return s.solve()
+            sol = s.solve()
+            if (not return_model) or (not sol):
+                return sol
+            else:
+                return s.get_model()
+
 
     @staticmethod
     def generate_supports_satisfying_pp_restriction(i: int, pp_vector: np.ndarray,
