@@ -45,8 +45,27 @@ def infer_automorphisms(parents_of):
         visible_automorphisms.add(partsextractor(mapping, observed_nodes))
     return tuple(visible_automorphisms)
 
+# def depth(l):
+#     if hasattr(l, '__iter__'):
+#         if len(l):
+#             return 1 + max(depth(item) for item in l)
+#         else:
+#             return 1
+#     else:
+#         return 0
+
 class SupportTester(object):
     def __init__(self, parents_of, observed_cardinalities, nof_events, **kwargs):
+        # For Victor Gitton:
+        # if depth(parents_of) == 2:
+        #     self.parents_of = parents_of
+        #     self.causal_symmetries_to_enforce = [self.parents_of]
+        # elif depth(parents_of) == 3:
+        #     self.parents_of = parents_of[0]
+        #     self.causal_symmetries_to_enforce = parents_of
+        # else:
+        #     assert False, "Ill formatted input!"
+
         self.parents_of = parents_of
         self.nof_events = nof_events
         self.nof_observed = len(self.parents_of)
@@ -85,6 +104,19 @@ class SupportTester(object):
                                   range(2, self.nof_events)}
         self.cached_properties_computed_yet = False
         self._forbidden_event_clauses = dict()
+
+    def reverse_var(self, id):
+        str = self.vpool.obj(abs(id))
+        if id < 0:
+            return str.replace("==", "!=")
+        else:
+            return str
+
+    def reverse_vars(self, stuff):
+        if hasattr(stuff, '__iter__'):
+            return [self.reverse_vars(substuff) for substuff in stuff]
+        else:
+            return self.reverse_var(stuff)
 
     @cached_property
     def at_least_one_outcome(self):
@@ -171,6 +203,9 @@ class SupportTester(object):
 
     def feasibleQ_from_matrix(self, occurring_events: np.ndarray, **kwargs) -> bool:
         with Solver(bootstrap_with=self._sat_solver_clauses(occurring_events), **kwargs) as s:
+            if not self.cached_properties_computed_yet:
+                # print("Initialization of problem complete.")
+                self.cached_properties_computed_yet = True
             return s.solve()
 
     @methodtools.lru_cache(maxsize=None, typed=False)
@@ -217,6 +252,9 @@ class SupportTester(object):
                                                **kwargs) -> bool:
         with Solver(bootstrap_with=self._sat_solver_clauses_bonus(definitely_occurring_events_matrix,
                                                                   potentially_occurring_events_matrix), **kwargs) as s:
+            if not self.cached_properties_computed_yet:
+                print(f"Initialization of problem complete. ({self.nof_events} events)")
+                self.cached_properties_computed_yet = True
             return s.solve()
 
     @staticmethod
@@ -643,7 +681,7 @@ if __name__ == '__main__':
     print(cst.all_infeasible_supports)
     print(cst.all_infeasible_supports_unlabelled)
     print(cst.all_infeasible_supports_independent_unlabelled)
-    parents_of = ([3, 4], [4, 5], [3, 5])
+    parents_of = ([3, 4], [4, 5], [5, 3])
     visible_automorphisms = infer_automorphisms(parents_of)
     cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 4, visible_automorphisms=visible_automorphisms)
     print(cst.all_infeasible_supports)
@@ -693,3 +731,65 @@ if __name__ == '__main__':
     # TODO: it would be good to recognize PRODUCT support matrices. Will be required for d-sep and e-sep filter.
     # see https://www.researchgate.net/post/How-I-can-check-in-MATLAB-if-a-matrix-is-result-of-the-Kronecker-product/542ab19bd039b130378b469d/citation/download?
     # see https://math.stackexchange.com/a/321424
+
+    # # Special problem for Victor Gitton
+    # parents_of = np.array(([3, 4], [4, 5], [5, 3]))
+    # # parents_of_subtracted = parents_of - 3
+    # # party_and_source_sym = np.array([np.take(perm, parents_of_subtracted)+3 for perm in itertools.permutations(range(3))])
+    # party_and_source_sym = np.array([np.take(parents_of, perm, axis=0) for perm in
+    #                       itertools.permutations(range(3))])
+    # party_sym = np.array([np.roll(parents_of, i, axis=0) for i in range(3)])
+    # print(party_sym)
+    # party_and_source_sym = np.vstack((party_sym, party_sym[:, :, [1, 0]]))
+    # party_and_source_sym = [parents_of[list(p_perm)][:, s_perm]
+    #                         for p_perm in itertools.permutations(range(3))
+    #                         for s_perm in itertools.permutations(range(2))
+    #                         ]
+    # print(party_and_source_sym)
+    # observed_cardinalities = (3, 3, 3)
+    # occurring_events_temp = np.array([(0, 0, 0), (1, 1, 1), (2, 2, 2)]
+    #                                  + list(itertools.permutations(range(3))))
+    #
+    #
+    # st = SupportTester(parents_of=parents_of,
+    #               observed_cardinalities=observed_cardinalities,
+    #               nof_events=(3+6))
+    # print("3 outcome with no symmetry: ", st.feasibleQ_from_matrix(occurring_events_temp, name='mgh'))
+    #
+    # st = SupportTester(parents_of=party_sym,
+    #               observed_cardinalities=observed_cardinalities,
+    #               nof_events=(3+6))
+    # print("3 outcome with only party symmetry: ", st.feasibleQ_from_matrix(occurring_events_temp, name='mgh'))
+    #
+    # st = SupportTester(parents_of=party_and_source_sym,
+    #               observed_cardinalities=observed_cardinalities,
+    #               nof_events=(3+6))
+    # print("3 outcome w/ transposition symmetry: ", st.feasibleQ_from_matrix_CONSERVATIVE(occurring_events_temp, name='mgh'))
+    #
+    #
+    #
+    # occurring_events_card_4 = np.array([(0, 0, 0), (1, 1, 1), (2, 2, 2), (3, 3, 3)]
+    #                                  + list(itertools.permutations(range(4), 3)))
+    #
+    # max_n = len(occurring_events_card_4)
+    # rejected_yet = False
+    # for n in range(7, max_n+1):
+    #     if rejected_yet:
+    #         break
+    #     print(f"Working on cardinality 4 with {n} definite events...")
+    #     st = SupportTester(parents_of=party_sym,
+    #                        observed_cardinalities=(4, 4, 4),
+    #                        nof_events=n)
+    #     # for definitely_occurring_events in itertools.combinations(occurring_events_card_4, n):
+    #     definitely_occurring_events = occurring_events_card_4[:n]
+    #     rejected_yet = not st.potentially_feasibleQ_from_matrix_pair(
+    #         definitely_occurring_events_matrix=definitely_occurring_events,
+    #         potentially_occurring_events_matrix=occurring_events_card_4
+    #     )
+    #     if rejected_yet:
+    #         print(f"search completed at {n} events")
+    #         print(definitely_occurring_events)
+    #         break
+    # print("In the end, were we able to prove infeasibility? ", rejected_yet)
+
+
