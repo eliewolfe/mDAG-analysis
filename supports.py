@@ -30,6 +30,8 @@ try:
 except ImportError:
     print("Functions which depend on networkx are not available.")
 
+from scipy.special import comb
+
 def infer_automorphisms(parents_of):
     visible_node_count = len(parents_of)
     total_node_count = max(itertools.chain.from_iterable(parents_of)) + 1
@@ -227,24 +229,42 @@ class SupportTester(object):
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def subSupportTester(self, n: int):
-        return self.__class__(self.parents_of, self.observed_cardinalities, n)
+        if n != self.nof_events:
+            return self.__class__(self.parents_of, self.observed_cardinalities, n)
+        else:
+            return self
 
-    def feasibleQ_from_matrix_CONSERVATIVE(self, occurring_events: np.ndarray, **kwargs) -> bool:
-        for n in range(2, self.nof_events):
+
+    def feasibleQ_from_matrix_CONSERVATIVE(self, occurring_events: np.ndarray,
+                                           min_definite=2,
+                                           max_definite=np.inf,
+                                           always_include=tuple(),
+                                           **kwargs) -> bool:
+        sanitized_always_include = tuple(map(tuple, always_include))
+        others_to_potentially_include = tuple(set(map(tuple, occurring_events)).difference(
+            sanitized_always_include))
+        fixed_count = len(always_include)
+        flex_count = len(others_to_potentially_include)
+        for n in range(
+                max(min_definite, 2),
+                min(max_definite, len(occurring_events)) + 1):
             subSupportTester = self.subSupportTester(n)
-            for definitely_occurring_events in itertools.combinations(occurring_events, n):
-                passes_inflation_test = subSupportTester.potentially_feasibleQ_from_matrix_pair(
-                    definitely_occurring_events_matrix=np.array(definitely_occurring_events,
-                                                                dtype=self.matrix_dtype),
-                    potentially_occurring_events_matrix=occurring_events,
-                    **kwargs)
-                if not passes_inflation_test:
-                    print("Got on! Rejected a support of ", self.nof_events, " events using level ", n, " inflation.")
-                    print("Rejected the support by requiring the following events to occur in diagonal worlds:")
-                    print(definitely_occurring_events)
-                    return passes_inflation_test
-        with Solver(bootstrap_with=self._sat_solver_clauses(occurring_events), **kwargs) as s:
-            return s.solve()
+            max_to_check = comb(flex_count, n - fixed_count, exact=True)
+            with progressbar.ProgressBar(max_value=max_to_check) as bar:
+                for i, extra_occurring_events in enumerate(itertools.combinations(others_to_potentially_include, n-fixed_count)):
+                    definitely_occurring_events = np.array(
+                        sanitized_always_include + extra_occurring_events,
+                        dtype=self.matrix_dtype)
+                    passes_inflation_test = subSupportTester.potentially_feasibleQ_from_matrix_pair(
+                        definitely_occurring_events_matrix=definitely_occurring_events,
+                        potentially_occurring_events_matrix=occurring_events,
+                        **kwargs)
+                    bar.update(i)
+                    if not passes_inflation_test:
+                        print("Got one! Rejected a support of ", self.nof_events, " events using level ", n, " inflation.")
+                        print("Rejected the support by requiring the following events to occur in diagonal worlds:")
+                        print(definitely_occurring_events)
+                        return passes_inflation_test
 
     def _sat_solver_clauses_bonus(self,
                                   definitely_occurring_events: np.ndarray,

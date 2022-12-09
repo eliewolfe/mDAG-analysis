@@ -1,8 +1,7 @@
 from supports import SupportTester
 import numpy as np
-import itertools
-from functools import cached_property
 import methodtools
+
 
 class SupportTester_PartyCausalSymmetry(SupportTester):
     def __init__(self, *args, **kwargs):
@@ -97,30 +96,11 @@ if __name__ == '__main__':
     #     print(st.reverse_vars(clause))
     print("3 outcome with only party symmetry: ",
           st.feasibleQ_from_matrix(occurring_events_card3, name='mgh'))
-    AT_LEAST_ONE_CLAUSES = st.reverse_vars(st.at_least_one_outcome)
-    MUST_OCCUR_CLAUSES = st.reverse_vars(st.array_of_positive_outcomes(occurring_events_card3))
-    FORBIDDEN_EVENT_CLAUSES = st.reverse_vars(st.forbidden_events_clauses(occurring_events_card3))
+    # AT_LEAST_ONE_CLAUSES = st.reverse_vars(st.at_least_one_outcome)
+    # MUST_OCCUR_CLAUSES = st.reverse_vars(st.array_of_positive_outcomes(occurring_events_card3))
+    # FORBIDDEN_EVENT_CLAUSES = st.reverse_vars(st.forbidden_events_clauses(occurring_events_card3))
 
-    # st = SupportTester_PartyCausalSymmetry(parents_of=parents_of,
-    #                                        observed_cardinalities=observed_cardinalities,
-    #                                        nof_events=2)
-    # print(st.potentially_feasibleQ_from_matrix_pair(
-    #     definitely_occurring_events_matrix=[(0, 0, 0), (1, 1, 1)],
-    #     potentially_occurring_events_matrix=occurring_events_card3))
 
-    # print("Some forbidden event clauses: \n", sorted(st.reverse_vars(next(iter(st._forbidden_event_clauses.values())))))
-
-    # stFC = SupportTester_FullCausalSymmetry(parents_of=parents_of,
-    #                                        observed_cardinalities=observed_cardinalities,
-    #                                        nof_events=len(occurring_events_card3))
-    # print("3 outcome with full causal symmetry: ",
-    #       stFC.feasibleQ_from_matrix(occurring_events_card3, name='mgh'))
-    # for clause in st._sat_solver_clauses(occurring_events_card3):
-    #     print(st.reverse_vars(clause))
-    # print("3 outcome with full party symmetry: ",
-    #       st.feasibleQ_from_matrix_CONSERVATIVE(occurring_events_card3, name='mgh'))
-    #
-    #
     observed_cardinalities = (4, 4, 4)
     occurring_events_card4 = np.array([(0, 0, 0),
                                        (1, 1, 1),
@@ -128,41 +108,86 @@ if __name__ == '__main__':
                                        (3, 3, 3)]
                                        + list(
         itertools.permutations(range(4), 3)))
-    victor_definite_events = np.array([
-            (0, 1, 2),
-            (0, 1, 3),
-            (0, 2, 3),
-            (1, 2, 3),
-            (0, 0, 0),
-            (1, 1, 1)])
-    print("Studying the 6-event inflation for cardinality 4...")
+    # victor_definite_events = np.array([
+    #         (0, 1, 2),
+    #         (0, 1, 3),
+    #         (0, 2, 3),
+    #         (1, 2, 3),
+    #         (0, 0, 0),
+    #         (1, 1, 1)])
+    # print("Studying the 6-event inflation for cardinality 4...")
+    # st = SupportTester_PartyCausalSymmetry(parents_of=parents_of,
+    #                    observed_cardinalities=observed_cardinalities,
+    #                    nof_events=6)
+    # AT_LEAST_ONE_CLAUSES = st.reverse_vars(st.at_least_one_outcome)
+    # MUST_OCCUR_CLAUSES = st.reverse_vars(st.array_of_positive_outcomes(victor_definite_events))
+    # FORBIDDEN_EVENT_CLAUSES = st.reverse_vars(st.forbidden_events_clauses(occurring_events_card4))
+    # model = st.potentially_feasibleQ_from_matrix_pair(
+    #     definitely_occurring_events_matrix=victor_definite_events,
+    #     potentially_occurring_events_matrix=occurring_events_card4,
+    #     return_model=True)
+    # print(model, " !")
+    # if model:
+    #     grid_values = []
+    #     for int_clause in model:
+    #         if int_clause >= 0:
+    #             grid_values.append(st.reverse_vars(int_clause))
+    #     triple_vals = [(int(s[3:5]), int(s[6:8]), int(s[-1])) for s in grid_values]
+    #     grid = np.zeros((st.latent_cardinality, st.latent_cardinality), dtype=int)
+    #     for (i, j, v) in triple_vals:
+    #         grid[i, j] = v+1
+    #     print(grid)
     st = SupportTester_PartyCausalSymmetry(parents_of=parents_of,
-                       observed_cardinalities=observed_cardinalities,
-                       nof_events=6)
-    AT_LEAST_ONE_CLAUSES = st.reverse_vars(st.at_least_one_outcome)
-    MUST_OCCUR_CLAUSES = st.reverse_vars(st.array_of_positive_outcomes(victor_definite_events))
-    FORBIDDEN_EVENT_CLAUSES = st.reverse_vars(st.forbidden_events_clauses(occurring_events_card4))
-    model = st.potentially_feasibleQ_from_matrix_pair(
-        definitely_occurring_events_matrix=[
-            (0, 1, 2),
-            (0, 1, 3),
-            (0, 2, 3),
-            (1, 2, 3),
-            (0, 0, 0),
-            (1, 1, 1)],
-        potentially_occurring_events_matrix=occurring_events_card4,
-        return_model=True)
-    print(model, " !")
-    if model:
-        grid_values = []
-        for int_clause in model:
-            if int_clause >= 0:
-                grid_values.append(st.reverse_vars(int_clause))
-        triple_vals = [(int(s[3:5]), int(s[6:8]), int(s[-1])) for s in grid_values]
-        grid = np.zeros((st.latent_cardinality, st.latent_cardinality), dtype=int)
-        for (i, j, v) in triple_vals:
-            grid[i, j] = v+1
-        print(grid)
+                                           observed_cardinalities=observed_cardinalities,
+                                           nof_events=0)
+    print(st.feasibleQ_from_matrix_CONSERVATIVE(occurring_events_card4,
+                                                min_definite=3,
+                                                max_definite=6,
+                                                always_include=((0, 0, 0),),
+                                                return_model=True))
+    #
+    # rejected_yet = False
+    # definite_events_which_triggered_nonSAT = []
+    # for n in range(2, 6):
+    #     print(f"Working on {n} events...")
+    #     if rejected_yet:
+    #         break
+    #     st = SupportTester_PartyCausalSymmetry(parents_of=parents_of,
+    #                                            observed_cardinalities=observed_cardinalities,
+    #                                            nof_events=n)
+    #     max_to_check = comb(len(occurring_events_card4)-1, n-1)
+    #     with ProgressBar(max_value=max_to_check) as bar:
+    #         for i, other_definite_events in enumerate(itertools.combinations(occurring_events_card4[1:], n-1)):
+    #             definite_events = np.zeros((n, 3), dtype=int)
+    #             definite_events[1:] = other_definite_events
+    #             rejected_yet = not st.potentially_feasibleQ_from_matrix_pair(
+    #                 definitely_occurring_events_matrix=definite_events,
+    #                 potentially_occurring_events_matrix=occurring_events_card4)
+    #             bar.update(i)
+    #             if rejected_yet:
+    #                 definite_events_which_triggered_nonSAT = definite_events
+    #                 break
+    # print(definite_events_which_triggered_nonSAT)
+    #
+    #
+    #
+    # definite_events = [(0, 0, 0), (1, 1, 1), (2, 2, 2)]
+    #
+    # model = st.potentially_feasibleQ_from_matrix_pair(
+    #     definitely_occurring_events_matrix=definite_events,
+    #     potentially_occurring_events_matrix=occurring_events_card4,
+    #     return_model=True)
+    # print(model, " !")
+    # if model:
+    #     grid_values = []
+    #     for int_clause in model:
+    #         if int_clause >= 0:
+    #             grid_values.append(st.reverse_vars(int_clause))
+    #     triple_vals = [(int(s[3:5]), int(s[6:8]), int(s[-1])) for s in grid_values]
+    #     grid = np.zeros((st.latent_cardinality, st.latent_cardinality), dtype=int)
+    #     for (i, j, v) in triple_vals:
+    #         grid[i, j] = v+1
+    #     print(grid)
 
 
     # print("Studying the maximal inflation for cardinality 4...")
