@@ -52,11 +52,11 @@ class SupportTester(object):
         self.nof_observed = len(self.parents_of)
         assert self.nof_observed == len(observed_cardinalities)
         self.nof_latent = max(itertools.chain.from_iterable(self.parents_of)) + 1 - self.nof_observed
-        self.observed_cardinalities = observed_cardinalities
+        self.observed_cardinalities = np.asarray(observed_cardinalities, dtype=int)
         self.observed_cardinalities_ranges = list(map(range, self.observed_cardinalities))
-
+        self.latent_cardinalities = np.repeat(self.nof_events, self.nof_latent)
         self.observed_and_latent_cardinalities = tuple(np.hstack((observed_cardinalities,
-                                                                  np.repeat(self.nof_events, self.nof_latent))))
+                                                                  self.latent_cardinalities)))
 
         self.max_conceivable_events = np.prod(self.observed_cardinalities)
 
@@ -81,8 +81,10 @@ class SupportTester(object):
         self.var = lambda idx, val, par: -self.vpool.id(
             'v[{0}]_{2}==0'.format(idx, val, par)) if idx in self.binary_variables and val == 1 else self.vpool.id(
             'v[{0}]_{2}=={1}'.format(idx, val, par))
-        self.subSupportTesters = {n: SupportTester(parents_of, observed_cardinalities, n) for n in
+        self.subSupportTesters = {n: self.__class__(parents_of, observed_cardinalities, n) for n in
                                   range(2, self.nof_events)}
+        self.cached_properties_computed_yet = False
+        self._forbidden_event_clauses = dict()
 
     @cached_property
     def at_least_one_outcome(self):
@@ -110,7 +112,7 @@ class SupportTester(object):
         return to_digits(supports_as_integers, self.event_cardinalities).astype(self.list_dtype)
 
     def from_matrix_to_integer(self, supports_as_matrices: np.ndarray) -> np.ndarray:
-        supports_as_matrices_as_array = np.asarray(supports_as_matrices, dtype=np.intp)
+        supports_as_matrices_as_array = np.asarray(supports_as_matrices, dtype=self.matrix_dtype)
         shape = supports_as_matrices_as_array.shape
         return from_digits(
             supports_as_matrices_as_array.reshape(shape[:-2] + (np.prod(shape[-2:]),)),
@@ -121,13 +123,38 @@ class SupportTester(object):
             supports_as_integers, self.repeated_observed_cardinalities).astype(self.matrix_dtype),
             np.asarray(supports_as_integers, dtype=self.int_dtype).shape + (self.nof_events, self.nof_observed))
 
+    def forbidden_event_clauses(self, event: int):
+        """Get the clauses associated with a particular event not occurring anywhere in the off-diagonal worlds."""
+        forbidden_event_as_row = self.from_list_to_matrix(event)
+        hash = int(event)
+        try:
+            return self._forbidden_event_clauses[hash]
+        except KeyError:
+            forbidden_event_clauses = set()
+            observed_iterator_as_list = forbidden_event_as_row.tolist()
+            for latent_iterator in itertools.product(
+                    range(self.nof_events),
+                    repeat=self.nof_latent):
+                iterator = observed_iterator_as_list.copy()
+                iterator.extend(latent_iterator)
+                no_go_clause = tuple(sorted(-self.var(
+                    i, val, partsextractor(iterator, self.parents_of[i]))
+                                            for i, val in enumerate(
+                    forbidden_event_as_row.flat)))
+                forbidden_event_clauses.add(no_go_clause)
+            forbidden_event_clauses = list(map(sorted, forbidden_event_clauses))
+            self._forbidden_event_clauses[hash] = forbidden_event_clauses
+            return forbidden_event_clauses
     def forbidden_events_clauses(self, occurring_events: np.ndarray) -> List:
-        return self._array_of_potentially_forbidden_events[
-            np.setdiff1d(
-                self.conceivable_events_range,
-                self.from_matrix_to_list(np.asarray(occurring_events, dtype=self.matrix_dtype)),
-                assume_unique=True
-            )].reshape((-1, self.nof_observed)).tolist()
+        """Get the clauses associated with all nonoccurring event as not occurring anywhere in the off-diagonal worlds."""
+        occurring_events_as_list = self.from_matrix_to_list(occurring_events)
+        forbidden_events_as_list = np.setdiff1d(
+            self.conceivable_events_range,
+            occurring_events_as_list,
+            assume_unique=True)
+        return list(itertools.chain.from_iterable([
+            self.forbidden_event_clauses(event) for event in forbidden_events_as_list.flat
+        ]))
 
     def array_of_positive_outcomes(self, occurring_events: np.ndarray) -> List:
         for i, iterator in enumerate(occurring_events):
@@ -165,10 +192,14 @@ class SupportTester(object):
         for n in range(2, self.nof_events):
             subSupportTester = self.subSupportTesters[n]
             for definitely_occurring_events in itertools.combinations(occurring_events, n):
-                passes_inflation_test = subSupportTester.infeasibleQ_from_matrix_pair(definitely_occurring_events,
-                                                                                      occurring_events, **kwargs)
+                passes_inflation_test = subSupportTester.potentially_feasibleQ_from_matrix_pair(
+                    definitely_occurring_events_matrix=definitely_occurring_events,
+                    potentially_occurring_events_matrix=occurring_events,
+                    **kwargs)
                 if not passes_inflation_test:
-                    # print("Got on! Rejected a support of ", self.nof_events, " events using level ", n, " inflation.")
+                    print("Got on! Rejected a support of ", self.nof_events, " events using level ", n, " inflation.")
+                    print("Rejected the support by requiring the following events to occur in diagonal worlds:")
+                    print(definitely_occurring_events)
                     return passes_inflation_test
         with Solver(bootstrap_with=self._sat_solver_clauses(occurring_events), **kwargs) as s:
             return s.solve()
@@ -187,21 +218,13 @@ class SupportTester(object):
                self.at_least_one_outcome + \
                self.forbidden_events_clauses(potentially_occurring_events)
 
-    def infeasibleQ_from_matrix_pair(self,
-                                     definitely_occurring_events_matrix: np.ndarray,
-                                     potentially_occurring_events_matrix: np.ndarray,
-                                     **kwargs) -> bool:
+    def potentially_feasibleQ_from_matrix_pair(self,
+                                               definitely_occurring_events_matrix: np.ndarray,
+                                               potentially_occurring_events_matrix: np.ndarray,
+                                               **kwargs) -> bool:
         with Solver(bootstrap_with=self._sat_solver_clauses_bonus(definitely_occurring_events_matrix,
                                                                   potentially_occurring_events_matrix), **kwargs) as s:
             return s.solve()
-
-    @methodtools.lru_cache(maxsize=None, typed=False)
-    def infeasibleQ_from_tuple_pair(self,
-                                    definitely_occurring_events_tuple: np.ndarray,
-                                    potentially_occurring_events_tuple: np.ndarray,
-                                    **kwargs) -> bool:
-        return self.infeasibleQ_from_matrix_pair(self.from_list_to_matrix(definitely_occurring_events_tuple),
-                                                 self.from_list_to_matrix(potentially_occurring_events_tuple), **kwargs)
 
     @staticmethod
     def generate_supports_satisfying_pp_restriction(i: int, pp_vector: np.ndarray,
