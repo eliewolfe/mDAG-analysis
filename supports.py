@@ -149,7 +149,7 @@ class SupportTester(object):
     def forbidden_event_clauses(self, event: int):
         """Get the clauses associated with a particular event not occurring anywhere in the off-diagonal worlds."""
         forbidden_event_as_row = self.from_list_to_matrix(event)
-        forbidden_event_clauses = set()
+        forbidden_event_clauses = []
         observed_iterator_as_list = forbidden_event_as_row.tolist()
         for latent_iterator in itertools.product(
                 range(self.nof_events),
@@ -160,8 +160,7 @@ class SupportTester(object):
                 i, val, partsextractor(iterator, self.parents_of[i]))
                                         for i, val in enumerate(
                 forbidden_event_as_row.flat)))
-            forbidden_event_clauses.add(no_go_clause)
-        forbidden_event_clauses = list(map(sorted, forbidden_event_clauses))
+            forbidden_event_clauses.append(no_go_clause)
         return forbidden_event_clauses
     def forbidden_events_clauses(self, occurring_events: np.ndarray) -> List:
         """Get the clauses associated with all nonoccurring event as not occurring anywhere in the off-diagonal worlds."""
