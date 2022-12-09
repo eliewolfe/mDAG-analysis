@@ -1,4 +1,5 @@
 from supports import SupportTester
+import numpy as np
 
 class SupportTester_PartyCausalSymmetry(SupportTester):
     def __init__(self, *args, **kwargs):
@@ -6,8 +7,20 @@ class SupportTester_PartyCausalSymmetry(SupportTester):
         self.var = lambda idx, val, par: -self.vpool.id(
             'v_{2}==0'.format(idx, val, par)) if idx in self.binary_variables and val == 1 else self.vpool.id(
             'v_{2}=={1}'.format(idx, val, par))
+    def at_least_one_outcome(self):
+        list(map(sorted, set(map(frozenset, super().at_least_one_outcome()))))
 
-class SupportTester_FullCausalSymmetry(SupportTester):
+    def forbidden_event_clauses(self, event: int):
+        list(map(sorted, set(map(frozenset, super().forbidden_event_clauses(event)))))
+
+    def array_of_positive_outcomes(self, occurring_events: np.ndarray):
+        list(map(sorted,
+                 set(map(frozenset, super().array_of_positive_outcomes(occurring_events)))))
+
+
+
+
+class SupportTester_FullCausalSymmetry(SupportTester_PartyCausalSymmetry):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.var = lambda idx, val, par: -self.vpool.id(
@@ -15,7 +28,6 @@ class SupportTester_FullCausalSymmetry(SupportTester):
             'v_{2}=={1}'.format(idx, val, sorted(par)))
 
 if __name__ == '__main__':
-    import numpy as np
     import itertools
 
 # Special problem for Victor Gitton
