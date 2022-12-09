@@ -38,25 +38,49 @@ class SupportTester_PartyCausalSymmetry(SupportTester):
     # def forbidden_events_clauses(self, event: int):
     #     return list(map(sorted, set(map(frozenset, self.forbidden_events_clauses(event)))))
 
-    def array_of_positive_outcomes(self, occurring_events: np.ndarray):
-        # return list(map(sorted,
-        #          set(map(frozenset, super().array_of_positive_outcomes(occurring_events)))))
-        wrong_values_template = set(self.visible_outcomes)
-        for raw_i, iterator in enumerate(occurring_events):
-            i = raw_i * self.observed_cardinality
-            for p, val in enumerate(iterator):
-                if p == 0:
-                    left_s = i
-                    right_s = i + 1
-                elif p == 1:
-                    left_s = i + 1
-                    right_s = i + 2
-                elif p == 2:
-                    left_s = i + 2
-                    right_s = i
-                yield [self.var(left_s, right_s, val)]
-                for wrong_val in wrong_values_template.difference({val}):
-                    yield [-self.var(left_s, right_s, wrong_val)]
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def positive_outcome_clause(self,
+                                 world: int,
+                                 outcomes: tuple):
+        i = world * self.observed_cardinality
+        for p, val in enumerate(outcomes):
+            if p == 0:
+                left_s = i
+                right_s = i + 1
+            elif p == 1:
+                left_s = i + 1
+                right_s = i + 2
+            elif p == 2:
+                left_s = i + 2
+                right_s = i
+            yield [self.var(left_s, right_s, val)]
+            wrong_values = set(range(self.observed_cardinalities[p]))
+            wrong_values.remove(outcomes[p])
+            for wrong_val in wrong_values:
+                yield [-self.var(left_s, right_s, wrong_val)]
+
+
+
+
+    # def array_of_positive_outcomes(self, occurring_events: np.ndarray):
+    #     # return list(map(sorted,
+    #     #          set(map(frozenset, super().array_of_positive_outcomes(occurring_events)))))
+    #     wrong_values_template = set(self.visible_outcomes)
+    #     for raw_i, iterator in enumerate(occurring_events):
+    #         i = raw_i * self.observed_cardinality
+    #         for p, val in enumerate(iterator):
+    #             if p == 0:
+    #                 left_s = i
+    #                 right_s = i + 1
+    #             elif p == 1:
+    #                 left_s = i + 1
+    #                 right_s = i + 2
+    #             elif p == 2:
+    #                 left_s = i + 2
+    #                 right_s = i
+    #             yield [self.var(left_s, right_s, val)]
+    #             for wrong_val in wrong_values_template.difference({val}):
+    #                 yield [-self.var(left_s, right_s, wrong_val)]
 
 
 
