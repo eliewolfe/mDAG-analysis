@@ -92,13 +92,6 @@ class SupportTester(object):
                 for idx in self.nonbinary_variables
                 for par in np.ndindex(self.relevant_parent_cardinalities[idx])]
 
-    @cached_property
-    def _array_of_potentially_forbidden_events(self):
-        return np.asarray([[-self.var(idx, iterator[idx], partsextractor(iterator, self.parents_of[idx])) for idx
-                            in range(self.nof_observed)]
-                           for iterator in np.ndindex(*self.observed_and_latent_cardinalities)], dtype=np.intp).reshape(
-            (np.prod(self.observed_cardinalities), -1, self.nof_events ** self.nof_latent, self.nof_observed))
-
     def from_list_to_matrix(self, supports_as_lists: np.ndarray) -> np.ndarray:
         return to_digits(supports_as_lists, self.observed_cardinalities).astype(self.matrix_dtype)
 
