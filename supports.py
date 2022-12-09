@@ -9,7 +9,6 @@ import progressbar
 from pysat.formula import IDPool  # I wonder if we can't get away without this, but it is SO convenient
 from pysat.solvers import Solver
 
-
 from radix import from_digits, to_digits
 from utilities import partsextractor
 
@@ -100,10 +99,8 @@ class SupportTester(object):
         self.var = lambda idx, val, par: -self.vpool.id(
             'v[{0}]_{2}==0'.format(idx, val, par)) if idx in self.binary_variables and val == 1 else self.vpool.id(
             'v[{0}]_{2}=={1}'.format(idx, val, par))
-        self.subSupportTesters = {n: self.__class__(parents_of, observed_cardinalities, n) for n in
-                                  range(2, self.nof_events)}
         self.cached_properties_computed_yet = False
-        self._forbidden_event_clauses = dict()
+
 
     def reverse_var(self, id):
         str = self.vpool.obj(abs(id))
@@ -148,28 +145,24 @@ class SupportTester(object):
             supports_as_integers, self.repeated_observed_cardinalities).astype(self.matrix_dtype),
             np.asarray(supports_as_integers, dtype=self.int_dtype).shape + (self.nof_events, self.nof_observed))
 
+    @methodtools.lru_cache(maxsize=None, typed=False)
     def forbidden_event_clauses(self, event: int):
         """Get the clauses associated with a particular event not occurring anywhere in the off-diagonal worlds."""
         forbidden_event_as_row = self.from_list_to_matrix(event)
-        hash = int(event)
-        try:
-            return self._forbidden_event_clauses[hash]
-        except KeyError:
-            forbidden_event_clauses = set()
-            observed_iterator_as_list = forbidden_event_as_row.tolist()
-            for latent_iterator in itertools.product(
-                    range(self.nof_events),
-                    repeat=self.nof_latent):
-                iterator = observed_iterator_as_list.copy()
-                iterator.extend(latent_iterator)
-                no_go_clause = tuple(sorted(-self.var(
-                    i, val, partsextractor(iterator, self.parents_of[i]))
-                                            for i, val in enumerate(
-                    forbidden_event_as_row.flat)))
-                forbidden_event_clauses.add(no_go_clause)
-            forbidden_event_clauses = list(map(sorted, forbidden_event_clauses))
-            self._forbidden_event_clauses[hash] = forbidden_event_clauses
-            return forbidden_event_clauses
+        forbidden_event_clauses = set()
+        observed_iterator_as_list = forbidden_event_as_row.tolist()
+        for latent_iterator in itertools.product(
+                range(self.nof_events),
+                repeat=self.nof_latent):
+            iterator = observed_iterator_as_list.copy()
+            iterator.extend(latent_iterator)
+            no_go_clause = tuple(sorted(-self.var(
+                i, val, partsextractor(iterator, self.parents_of[i]))
+                                        for i, val in enumerate(
+                forbidden_event_as_row.flat)))
+            forbidden_event_clauses.add(no_go_clause)
+        forbidden_event_clauses = list(map(sorted, forbidden_event_clauses))
+        return forbidden_event_clauses
     def forbidden_events_clauses(self, occurring_events: np.ndarray) -> List:
         """Get the clauses associated with all nonoccurring event as not occurring anywhere in the off-diagonal worlds."""
         occurring_events_as_list = self.from_matrix_to_list(occurring_events)
@@ -216,12 +209,17 @@ class SupportTester(object):
     def feasibleQ_from_integer(self, occurring_events_as_integer, **kwargs) -> bool:
         return self.feasibleQ_from_matrix(self.from_integer_to_matrix(occurring_events_as_integer), **kwargs)
 
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def subSupportTester(self, n: int):
+        return self.__class__(self.parents_of, self.observed_cardinalities, n)
+
     def feasibleQ_from_matrix_CONSERVATIVE(self, occurring_events: np.ndarray, **kwargs) -> bool:
         for n in range(2, self.nof_events):
-            subSupportTester = self.subSupportTesters[n]
+            subSupportTester = self.subSupportTester(n)
             for definitely_occurring_events in itertools.combinations(occurring_events, n):
                 passes_inflation_test = subSupportTester.potentially_feasibleQ_from_matrix_pair(
-                    definitely_occurring_events_matrix=definitely_occurring_events,
+                    definitely_occurring_events_matrix=np.array(definitely_occurring_events,
+                                                                dtype=self.matrix_dtype),
                     potentially_occurring_events_matrix=occurring_events,
                     **kwargs)
                 if not passes_inflation_test:
