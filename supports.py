@@ -174,19 +174,34 @@ class SupportTester(object):
             self.forbidden_event_clauses(event) for event in forbidden_events_as_list.flat
         ]))
 
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def positive_outcome_clause(self,
+                                 world: int,
+                                 outcomes: Tuple):
+        clauses = []
+        iterator_plus = tuple(outcomes) + tuple(np.repeat(world, self.nof_latent))
+        for idx in self.nonbinary_variables:
+            # NEXT LINE IS OPTIONAL, CAN BE COMMENTED OUT
+            clauses.append( [self.var(idx, outcomes[idx], partsextractor(iterator_plus,
+                                                               self.parents_of[
+                                                                   idx]))] )
+            wrong_values = set(range(self.observed_cardinalities[idx]))
+            wrong_values.remove(outcomes[idx])
+            for wrong_value in wrong_values:
+                # if wrong_value != iterator[idx]:
+                clauses.append( [-self.var(idx, wrong_value,
+                                 partsextractor(iterator_plus,
+                                                self.parents_of[idx]))] )
+        for idx in self.binary_variables:
+            clauses.append( [self.var(idx, outcomes[idx], partsextractor(iterator_plus,
+                                                               self.parents_of[
+                                                                   idx]))] )
+        return clauses
+
     def array_of_positive_outcomes(self, occurring_events: np.ndarray) -> List:
-        for i, iterator in enumerate(occurring_events):
-            iterator_plus = tuple(iterator) + tuple(np.repeat(i, self.nof_latent))
-            for idx in self.nonbinary_variables:
-                # NEXT LINE IS OPTIONAL, CAN BE COMMENTED OUT
-                yield [self.var(idx, iterator[idx], partsextractor(iterator_plus, self.parents_of[idx]))]
-                wrong_values = set(range(self.observed_cardinalities[idx]))
-                wrong_values.remove(iterator[idx])
-                for wrong_value in wrong_values:
-                    # if wrong_value != iterator[idx]:
-                    yield [-self.var(idx, wrong_value, partsextractor(iterator_plus, self.parents_of[idx]))]
-            for idx in self.binary_variables:
-                yield [self.var(idx, iterator[idx], partsextractor(iterator_plus, self.parents_of[idx]))]
+        for world, outcomes in enumerate(occurring_events):
+            for clause in self.positive_outcome_clause(world, tuple(outcomes)):
+                yield clause
 
     def _sat_solver_clauses(self, occurring_events: np.ndarray) -> List:
         assert self.nof_events == len(occurring_events), 'The number of events does not match the expected number.'
