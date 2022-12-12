@@ -71,7 +71,7 @@ def multiple_classifications(*args):
     return list(filter(None, itertools.starmap(set.intersection, itertools.product(*args))))
 
 class Observable_unlabelled_mDAGs:
-    def __init__(self, n):
+    def __init__(self, n, fully_foundational=True):
         """
         Parameters
         ----------
@@ -82,6 +82,7 @@ class Observable_unlabelled_mDAGs:
         self.tuple_n = tuple(range(self.n))
         self.set_n = set(self.tuple_n)
         self.sort_by_length = lambda s: sorted(s, key=len)
+        self.fully_foundational = fully_foundational
 
     @cached_property
     def all_directed_structures(self):
@@ -355,8 +356,12 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def representative_mDAGs_list(self):
-    #     return self.representatives(self.equivalence_classes_as_mDAGs)
-        return self.smart_representatives(self.foundational_eqclasses, 'relative_complexity_for_sat_solver')
+        if self.fully_foundational:
+            return self.smart_representatives(self.foundational_eqclasses,
+                                              'relative_complexity_for_sat_solver')
+        else:
+            return self.smart_representatives(self.equivalence_classes_as_mDAGs,
+                                              'relative_complexity_for_sat_solver')
     
     @property
     def CI_classes(self):
@@ -399,7 +404,13 @@ class Observable_unlabelled_mDAGs:
     @property
     def representatives_for_only_hypergraphs(self):
         #choosing representatives with the smaller number of edges will guarantee that Hypergraph-only mDAGs are chosen
-        return self.smart_representatives(self.equivalence_classes_as_mDAGs, 'n_of_edges')
+        if self.fully_foundational:
+            return self.smart_representatives(self.foundational_eqclasses,
+                                              'n_of_edges')
+        else:
+            return self.smart_representatives(self.equivalence_classes_as_mDAGs,
+                                              'n_of_edges')
+        # return self.smart_representatives(self.equivalence_classes_as_mDAGs, 'n_of_edges')
 
     @cached_property
     def equivalent_to_only_hypergraph_representative(self):
@@ -466,17 +477,24 @@ class Observable_unlabelled_mDAGs:
         return [val for val in d2.values() if len(val) > 1]
 
 class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
-    def __init__(self, nof_observed_variables=4, max_nof_events_for_supports=3):
-        super().__init__(nof_observed_variables)
+    def __init__(self, nof_observed_variables=4, max_nof_events_for_supports=3, fully_foundational=False):
+        super().__init__(nof_observed_variables, fully_foundational=fully_foundational)
         self.max_nof_events = max_nof_events_for_supports
+
 
         print("Number of unlabelled graph patterns: ", len(self.all_unlabelled_mDAGs), flush=True)
         fundamental_list = [mdag.fundamental_graphQ for mdag in self.all_unlabelled_mDAGs]
-        print("Number of fundamental unlabelled graph patterns: ", len(np.flatnonzero(fundamental_list)), flush=True)
-        print("Upper bound on number of equivalence classes: ", len(self.equivalence_classes_as_mDAGs), flush=True)
-        print("Upper bound on number of 100% foundational equivalence classes: ", len(self.foundational_eqclasses),
-              flush=True)
-        print("Number of Foundational CI classes: ", len(self.CI_classes))
+        if self.fully_foundational:
+            print("Number of fundamental unlabelled graph patterns: ", len(np.flatnonzero(fundamental_list)), flush=True)
+            print(
+                "Upper bound on number of 100% foundational equivalence classes: ",
+                len(self.foundational_eqclasses),
+                flush=True)
+            print("Number of Foundational CI classes: ", len(self.CI_classes))
+        else:
+            print("Number of distinct CI classes: ", len(self.CI_classes))
+            print("Upper bound on number of equivalence classes: ", len(self.equivalence_classes_as_mDAGs), flush=True)
+
 
 
         self.singletons_dict = dict({1: list(itertools.chain.from_iterable(
@@ -487,7 +505,7 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
                    self.esep_classes), key=len)})
         print("# of singleton classes from ESEP+Prop 6.8: ", len(self.singletons_dict[1]))
         print("# of non-singleton classes from ESEP+Prop 6.8: ", self.lowerbound_count_accounting_for_hypergraph_inequivalence(self.non_singletons_dict[1]),
-              ", comprising {} total foundational graph patterns (no repetitions)".format(
+              ", comprising {} total graph patterns (no repetitions)".format(
                   ilen(itertools.chain.from_iterable(self.non_singletons_dict[1]))))
         
         
@@ -499,7 +517,7 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
                    self.Dense_connectedness_and_esep), key=len)})
         print("# of singleton classes from also considering Dense Connectedness: ", len(self.singletons_dict[1]))
         print("# of non-singleton classes from also considering Dense Connectedness: ", self.lowerbound_count_accounting_for_hypergraph_inequivalence(self.non_singletons_dict[1]),
-              ", comprising {} total foundational graph patterns (no repetitions)".format(
+              ", comprising {} total graph patterns (no repetitions)".format(
                   ilen(itertools.chain.from_iterable(self.non_singletons_dict[1]))))
 
         smart_supports_dict = dict()
@@ -517,7 +535,7 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
                        smart_supports_dict[k]), key=len)
             print("# of singleton classes from also considering Supports Up To {}: ".format(k), len(self.singletons_dict[k]))
             print("# of non-singleton classes from also considering Supports Up To {}: ".format(k), self.lowerbound_count_accounting_for_hypergraph_inequivalence(self.non_singletons_dict[k]),
-                  ", comprising {} total foundational graph patterns".format(
+                  ", comprising {} total graph patterns".format(
                       ilen(itertools.chain.from_iterable(self.non_singletons_dict[k]))))     
    
 
