@@ -56,7 +56,10 @@ def infer_automorphisms(parents_of):
 #         return 0
 
 class SupportTester(object):
-    def __init__(self, parents_of, observed_cardinalities, nof_events, **kwargs):
+    def __init__(self,
+                 parents_of: Tuple,
+                 observed_cardinalities: np.ndarray,
+                 nof_events: int, **kwargs):
         # For Victor Gitton:
         # if depth(parents_of) == 2:
         #     self.parents_of = parents_of
@@ -101,7 +104,7 @@ class SupportTester(object):
         self.var = lambda idx, val, par: -self.vpool.id(
             'v[{0}]_{2}==0'.format(idx, val, par)) if idx in self.binary_variables and val == 1 else self.vpool.id(
             'v[{0}]_{2}=={1}'.format(idx, val, par))
-        self.cached_properties_computed_yet = False
+        # self.cached_properties_computed_yet = False
 
 
     def reverse_var(self, id):
@@ -214,9 +217,9 @@ class SupportTester(object):
 
     def feasibleQ_from_matrix(self, occurring_events: np.ndarray, **kwargs) -> bool:
         with Solver(bootstrap_with=self._sat_solver_clauses(occurring_events), **kwargs) as s:
-            if not self.cached_properties_computed_yet:
-                # print("Initialization of problem complete.")
-                self.cached_properties_computed_yet = True
+            # if not self.cached_properties_computed_yet:
+            #     # print("Initialization of problem complete.")
+            #     self.cached_properties_computed_yet = True
             return s.solve()
 
     @methodtools.lru_cache(maxsize=None, typed=False)
@@ -285,11 +288,14 @@ class SupportTester(object):
                                                potentially_occurring_events_matrix: np.ndarray,
                                                return_model=False,
                                                **kwargs) -> bool:
+        new_support_as_tuples = set(map(tuple, potentially_occurring_events_matrix))
+        definite_events_as_tuples = set(map(tuple, definitely_occurring_events_matrix))
+        assert definite_events_as_tuples.issubset(new_support_as_tuples), "Input is not of format where definite events are a subset of the potential events."
         with Solver(bootstrap_with=self._sat_solver_clauses_bonus(definitely_occurring_events_matrix,
                                                                   potentially_occurring_events_matrix), **kwargs) as s:
-            if not self.cached_properties_computed_yet:
-                print(f"Initialization of problem complete. ({self.nof_events} events)")
-                self.cached_properties_computed_yet = True
+            # if not self.cached_properties_computed_yet:
+            #     # print(f"Initialization of problem complete. ({self.nof_events} events)")
+            #     self.cached_properties_computed_yet = True
             sol = s.solve()
             if (not return_model) or (not sol):
                 return sol
@@ -621,6 +627,29 @@ class SupportTesting(SupportTester):
         return self.unique_infeasible_supports_as_compressed_integers(**kwargs)
 
 
+def one_off(parents_of: Tuple, support_as_matrix: np.ndarray,
+            definite_events=tuple(),
+            stclass=SupportTester,
+            **kwargs):
+    support_as_array = np.asarray(support_as_matrix)
+    (nrows, ncols) = support_as_array.shape
+    new_support = np.empty((nrows, ncols), dtype=int)
+    observed_cardinalities = np.empty(ncols, dtype=int)
+    for i, col in enumerate(support_as_array.T):
+        unique_vals, inverse = np.unique(col, return_inverse=True)
+        observed_cardinalities[i] = len(unique_vals)
+        new_support[:, i] = inverse
+    n_definite = len(definite_events)
+    if n_definite == 0:
+        st = stclass(parents_of, observed_cardinalities, nof_events=nrows)
+        return st.feasibleQ_from_matrix(new_support, **kwargs)
+    else:
+        st = stclass(parents_of, observed_cardinalities, nof_events=n_definite)
+        return st.potentially_feasibleQ_from_matrix_pair(
+            definitely_occurring_events_matrix=np.asarray(definite_events),
+            potentially_occurring_events_matrix=new_support, **kwargs)
+
+
 
 class CumulativeSupportTesting:
     # TODO: Add scrollbar
@@ -701,9 +730,10 @@ class CumulativeSupportTesting:
 
 if __name__ == '__main__':
     parents_of = ([3, 4], [4, 5], [3, 5])
-    parents_of = ([1, 3], [3, 4], [1, 4])
-    visible_automorphisms = infer_automorphisms(parents_of)
-    observed_cardinalities = (3, 3, 3)
+    print("One off: ", one_off(parents_of, [(1, 0, 0), (0, 1, 0), (0, 0, 1)]))
+    print("One off: ", one_off(parents_of, [(1, 0, 0), (0, 1, 0), (0, 0, 1)],
+                               definite_events=[(1, 0, 0), (0, 1, 0)]))
+    print("One off: ", one_off(parents_of, [(0, 0, 0), (0, 1, 0), (0, 0, 1)]))
     # nof_events = 3
     # st = SupportTesting(parents_of, observed_cardinalities, nof_events)
     #
@@ -712,11 +742,14 @@ if __name__ == '__main__':
     # occurring_events_temp = [(0, 0, 0), (0, 1, 0), (0, 0, 1)]
     # print(st.feasibleQ_from_matrix(occurring_events_temp, name='mgh', use_timer=True))
 
+    parents_of = ([1, 3], [3, 4], [1, 4])
+    visible_automorphisms = infer_automorphisms(parents_of)
+    observed_cardinalities = (3, 3, 3)
     st = SupportTesting(parents_of, observed_cardinalities, 3, visible_automorphisms=visible_automorphisms)
     cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 4, visible_automorphisms=visible_automorphisms)
     inf = st.unique_infeasible_supports_as_integers_unlabelled(name='mgh', use_timer=False)
-    print(st.visible_automorphisms)
-    print(st.visible_nonautomorphisms)
+    print("UC automorphisms:", st.visible_automorphisms)
+    print("UC nonautomorphisms:", st.visible_nonautomorphisms)
     print(st.from_integer_to_matrix(inf))
     print(cst.all_infeasible_supports)
     print(cst.all_infeasible_supports_unlabelled)
