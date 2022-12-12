@@ -140,13 +140,6 @@ class SmartSupportTesting(SupportTesting):
             np.logical_not(self._infeasible_compressed_support_due_to_dsep_picklist)]
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def unique_infeasible_supports_beyond_esep_as_expanded_integers(self, **kwargs):
-        """
-        Return a signature of infeasible support for a given parents_of, observed_cardinalities, and nof_events
-        """
-        return self.unique_infeasible_supports_as_integers_expanded_among(self.unique_candidate_supports_not_infeasible_due_to_esep_as_compressed_integers, **kwargs)
-
-    @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_beyond_esep_as_compressed_integers(self,
                                                                     **kwargs):
         """
@@ -157,8 +150,11 @@ class SmartSupportTesting(SupportTesting):
             **kwargs)
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def unique_infeasible_supports_beyond_dsep_as_expanded_integers(self, **kwargs):
-        return self.unique_infeasible_supports_as_integers_expanded_among(self.unique_candidate_supports_not_infeasible_due_to_dsep_as_compressed_integers, **kwargs)
+    def unique_infeasible_supports_beyond_esep_as_expanded_integers(self, **kwargs):
+        """
+        Return a signature of infeasible support for a given parents_of, observed_cardinalities, and nof_events
+        """
+        return self.expand_integers_from_canonical_via_internal_party_relabelling(self.unique_infeasible_supports_beyond_esep_as_compressed_integers(**kwargs))
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_beyond_dsep_as_compressed_integers(self,
@@ -167,6 +163,9 @@ class SmartSupportTesting(SupportTesting):
             self.unique_candidate_supports_not_infeasible_due_to_dsep_as_compressed_integers,
             **kwargs)
 
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def unique_infeasible_supports_beyond_dsep_as_expanded_integers(self, **kwargs):
+        return self.expand_integers_from_canonical_via_internal_party_relabelling(self.unique_infeasible_supports_beyond_dsep_as_compressed_integers(**kwargs))
     @methodtools.lru_cache(maxsize=None, typed=False)
     def unique_infeasible_supports_beyond_esep_as_expanded_matrices(self, **kwargs):
         return self.from_integer_to_matrix(self.unique_infeasible_supports_beyond_esep_as_expanded_integers(**kwargs))
@@ -184,9 +183,6 @@ class SmartSupportTesting(SupportTesting):
     def unique_infeasible_supports_beyond_esep_as_integers_unlabelled(self, **kwargs):
         return self.convert_integers_into_canonical_under_coherent_relabelling(
             self.unique_infeasible_supports_beyond_esep_as_expanded_integers(**kwargs))
-
-    def unique_infeasible_supports_beyond_esep_as_integers_independent_unlabelled(self, **kwargs):
-        return self.unique_infeasible_supports_beyond_esep_as_compressed_integers(**kwargs)
 
 
 

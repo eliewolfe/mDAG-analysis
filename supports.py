@@ -536,14 +536,14 @@ class SupportTesting(SupportTester):
             candidates = np.pad(np.fromiter(itertools.chain.from_iterable(
                 itertools.combinations(self.conceivable_events_range[1:], self.nof_events - 1)), self.list_dtype).reshape(
                 (-1, self.nof_events - 1)), ((0, 0), (1, 0)), 'constant')
-            if self.must_perfectpredict:
-                to_filter = self.from_list_to_matrix(candidates)
-                filtered = self.extract_support_matrices_satisfying_pprestrictions(to_filter, self.must_perfectpredict)
-                candidates = np.array(list(map(self.from_matrix_to_list, filtered)), dtype=self.list_dtype)
             candidates_as_ints = self.from_list_to_integer(candidates)
             candidates_as_ints = set((self.canonical_under_outcome_relabelling(n) for n in candidates_as_ints.flat))
             candidates_as_ints = self.compress_integers_into_canonical_under_independent_relabelling(candidates_as_ints) # New!
             candidates = self.from_integer_to_list(candidates_as_ints)
+            if self.must_perfectpredict: # Is the list empty, or are there perfect prediction relations?
+                to_filter = self.from_list_to_matrix(candidates)
+                filtered = self.extract_support_matrices_satisfying_pprestrictions(to_filter, self.must_perfectpredict)
+                candidates = np.array(list(map(self.from_matrix_to_list, filtered)), dtype=self.list_dtype)
             return candidates
         else:
             return np.empty((0, 0), dtype=self.list_dtype)
@@ -623,9 +623,6 @@ class SupportTesting(SupportTester):
         return self.convert_integers_into_canonical_under_coherent_relabelling(
             self.unique_infeasible_supports_as_expanded_integers(**kwargs))
 
-    def unique_infeasible_supports_as_integers_independent_unlabelled(self, **kwargs) -> np.ndarray:
-        return self.unique_infeasible_supports_as_compressed_integers(**kwargs)
-
 
 def one_off(parents_of: Tuple, support_as_matrix: np.ndarray,
             definite_events=tuple(),
@@ -681,10 +678,10 @@ class CumulativeSupportTesting:
                                  ).unique_infeasible_supports_as_integers_unlabelled(name='mgh', use_timer=False)
 
     @property
-    def _all_infeasible_supports_independent_unlabelled(self):
+    def _all_infeasible_supports_compressed(self):
         for nof_events in range(2, self.max_nof_events + 1):
             yield SupportTesting(self.parents_of, self.observed_cardinalities, nof_events, **self.kwargs
-                                 ).unique_infeasible_supports_as_integers_independent_unlabelled(name='mgh', use_timer=False)
+                                 ).unique_infeasible_supports_as_compressed_integers(name='mgh', use_timer=False)
 
     @cached_property
     def all_infeasible_supports(self):
@@ -695,8 +692,8 @@ class CumulativeSupportTesting:
         return np.fromiter(itertools.chain.from_iterable(self._all_infeasible_supports_unlabelled), self.int_dtype)
 
     @cached_property
-    def all_infeasible_supports_independent_unlabelled(self):
-        return np.fromiter(itertools.chain.from_iterable(self._all_infeasible_supports_independent_unlabelled), self.int_dtype)
+    def all_infeasible_supports_compressed(self):
+        return np.fromiter(itertools.chain.from_iterable(self._all_infeasible_supports_compressed), self.int_dtype)
 
     def from_list_to_matrix(self, supports_as_lists: np.ndarray) -> np.ndarray:
         return to_digits(supports_as_lists, self.observed_cardinalities).astype(self.matrix_dtype)
@@ -753,13 +750,13 @@ if __name__ == '__main__':
     print(st.from_integer_to_matrix(inf))
     print(cst.all_infeasible_supports)
     print(cst.all_infeasible_supports_unlabelled)
-    print(cst.all_infeasible_supports_independent_unlabelled)
+    print(cst.all_infeasible_supports_compressed)
     parents_of = ([3, 4], [4, 5], [5, 3])
     visible_automorphisms = infer_automorphisms(parents_of)
     cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 4, visible_automorphisms=visible_automorphisms)
     print(cst.all_infeasible_supports)
     print(cst.all_infeasible_supports_unlabelled)
-    print(cst.all_infeasible_supports_independent_unlabelled)
+    print(cst.all_infeasible_supports_compressed)
 
     # sample2 = st.unique_candidate_supports
     # print(st.unique_candidate_supports)
