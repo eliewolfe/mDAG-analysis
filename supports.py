@@ -307,13 +307,14 @@ class SupportTester(object):
     def generate_supports_satisfying_pp_restriction(i: int, pp_vector: np.ndarray,
                                                     candidate_support_matrices: np.ndarray,
                                                     **kwargs) -> np.ndarray:
+        pp_vector_as_array = np.asarray(pp_vector)
         for s in explore_candidates(candidate_support_matrices,
                                     message='Enforce ' + str(
                                         i) + ' is perf. pred. by ' + np.array_str(
-                                        pp_vector),
+                                        pp_vector_as_array),
                                     **kwargs):
             s_resorted = s[np.argsort(s[:, i])]
-            partitioned = [np.vstack(tuple(g))[:, pp_vector] for k, g in
+            partitioned = [np.vstack(tuple(g))[:, pp_vector_as_array] for k, g in
                            itertools.groupby(s_resorted, lambda e: e[i])]
             to_test_for_intersection = [set(map(tuple, pp_values)) for
                                         pp_values in partitioned]
@@ -328,7 +329,7 @@ class SupportTester(object):
             candidate_support_matrices_raw: np.ndarray,
             pp_restrictions: Tuple,
             verbose=True) -> np.ndarray:
-        if len(pp_restrictions) > 1:
+        if len(pp_restrictions):
             candidate_support_matrices = candidate_support_matrices_raw.copy()
             for (i, pp_set) in pp_restrictions:
                 print(
@@ -861,5 +862,23 @@ if __name__ == '__main__':
     #         print(definitely_occurring_events)
     #         break
     # print("In the end, were we able to prove infeasibility? ", rejected_yet)
+
+    print("Now testing PP relations per Marina bug report.")
+    parents_of = ([3], [0, 3], [1])
+    observed_cardinalities = (2, 2, 2)
+    st_raw = SupportTesting(parents_of, observed_cardinalities, 4, pp_relations=tuple())
+    all_candidate_matrices = st_raw.unique_candidate_supports_as_compressed_matrices
+    must_perfectpredict = [(1, [0])]
+    st_restricted = SupportTesting(parents_of,
+                                   observed_cardinalities,
+                                   3, pp_relations=must_perfectpredict)
+    print("Method 1\n", st_raw.extract_support_matrices_satisfying_pprestrictions(
+        all_candidate_matrices,
+        must_perfectpredict)[:3])
+    print("Method 2\n",
+          st_restricted.unique_candidate_supports_as_compressed_matrices[:3])
+    print("Method 3\n",
+          list(SupportTesting.generate_supports_satisfying_pp_restriction(1, [0],
+                                                                     all_candidate_matrices))[:3])
 
 
