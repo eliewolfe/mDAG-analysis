@@ -130,10 +130,18 @@ class SupportTester(object):
         return to_digits(supports_as_lists, self.observed_cardinalities).astype(self.matrix_dtype)
 
     def from_matrix_to_list(self, supports_as_matrices: np.ndarray) -> np.ndarray:
-        return from_digits(supports_as_matrices, self.observed_cardinalities).astype(self.list_dtype)
+        transformed = from_digits(supports_as_matrices, self.observed_cardinalities)
+        try:
+            return transformed.astype(self.list_dtype)
+        except AttributeError:
+            return transformed
 
     def from_list_to_integer(self, supports_as_lists: np.ndarray) -> np.ndarray:
-        return from_digits(supports_as_lists, self.event_cardinalities).astype(self.int_dtype)
+        transformed = from_digits(supports_as_lists, self.event_cardinalities)
+        try:
+            return transformed.astype(self.int_dtype)
+        except AttributeError:
+            return transformed
 
     def from_integer_to_list(self, supports_as_integers: np.ndarray) -> np.ndarray:
         return to_digits(supports_as_integers, self.event_cardinalities).astype(self.list_dtype)
@@ -141,9 +149,13 @@ class SupportTester(object):
     def from_matrix_to_integer(self, supports_as_matrices: np.ndarray) -> np.ndarray:
         supports_as_matrices_as_array = np.asarray(supports_as_matrices, dtype=self.matrix_dtype)
         shape = supports_as_matrices_as_array.shape
-        return from_digits(
+        transformed = from_digits(
             supports_as_matrices_as_array.reshape(shape[:-2] + (np.prod(shape[-2:]),)),
-            self.repeated_observed_cardinalities).astype(self.int_dtype)
+            self.repeated_observed_cardinalities)
+        try:
+            return transformed.astype(self.int_dtype)
+        except AttributeError:
+            return transformed
 
     def from_integer_to_matrix(self, supports_as_integers: np.ndarray) -> np.ndarray:
         return np.reshape(to_digits(
@@ -880,5 +892,6 @@ if __name__ == '__main__':
     print("Method 3\n",
           list(SupportTesting.generate_supports_satisfying_pp_restriction(1, [0],
                                                                      all_candidate_matrices))[:3])
+
 
 
