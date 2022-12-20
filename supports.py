@@ -85,7 +85,7 @@ class SupportTester(object):
 
         self.matrix_dtype = np.min_scalar_type(self.observed_cardinalities)
         self.list_dtype = np.min_scalar_type(self.max_conceivable_events)
-        self.int_dtype = np.min_scalar_type(np.power(self.max_conceivable_events, self.nof_events))
+        self.int_dtype = np.min_scalar_type(np.power(np.cast['uintp'](self.max_conceivable_events), self.nof_events))
 
         self.event_cardinalities = np.broadcast_to(self.max_conceivable_events, self.nof_events)
 
@@ -234,7 +234,7 @@ class SupportTester(object):
             #     self.cached_properties_computed_yet = True
             return s.solve()
 
-    @methodtools.lru_cache(maxsize=None, typed=False)
+    # @methodtools.lru_cache(maxsize=None, typed=False) # Not worth caching.
     def feasibleQ_from_tuple(self, occurring_events_as_tuple: np.ndarray, **kwargs) -> bool:
         return self.feasibleQ_from_matrix(self.from_list_to_matrix(occurring_events_as_tuple), **kwargs)
 
