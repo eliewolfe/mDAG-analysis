@@ -56,7 +56,7 @@ class DirectedStructure:
         #     map(stringify_in_list, numeric_edge_list))
         self.number_of_visible = n
         self.visible_nodes = list(range(self.number_of_visible))
-        self.as_set_of_tuples = set(map(nx.utils.to_tuple, numeric_edge_list))
+        self.as_set_of_tuples = set(map(tuple, numeric_edge_list))
         self.edge_list = sorted(set(self.as_set_of_tuples))
         self.as_tuples = tuple(self.edge_list)
         self.number_of_edges = len(self.edge_list)
