@@ -81,11 +81,12 @@ class SupportTester(object):
         self.observed_and_latent_cardinalities = tuple(np.hstack((observed_cardinalities,
                                                                   self.latent_cardinalities)))
 
-        self.max_conceivable_events = np.prod(self.observed_cardinalities)
+        self.max_conceivable_events = int(np.prod(self.observed_cardinalities))
 
         self.matrix_dtype = np.min_scalar_type(self.observed_cardinalities)
         self.list_dtype = np.min_scalar_type(self.max_conceivable_events)
-        self.int_dtype = np.min_scalar_type(np.power(np.cast['uintp'](self.max_conceivable_events), self.nof_events))
+        # self.int_dtype = np.min_scalar_type(np.power(np.cast['O'](self.max_conceivable_events), self.nof_events))
+        self.int_dtype = np.min_scalar_type(self.max_conceivable_events**self.nof_events)
 
         self.event_cardinalities = np.broadcast_to(self.max_conceivable_events, self.nof_events)
 
