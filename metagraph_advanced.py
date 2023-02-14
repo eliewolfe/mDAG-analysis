@@ -541,21 +541,22 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
 
 if __name__ == '__main__':
     # Observable_mDAGs2 = Observable_mDAGs_Analysis(nof_observed_variables=2, max_nof_events_for_supports=0)
-    # Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
-    Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=4)
+    #Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
+    Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
 
 
-    # for eqclass in Observable_mDAGs4.NOT_latent_free_eqclasses:
-    #     eqclass_ids=[mdag.unique_unlabelled_id for mdag in eqclass]
-    #     if G_18.unique_unlabelled_id in eqclass_ids:
-    #         print(eqclass)
-    #         break
-    # G_04 in eqclass
-    # print(eqclass[0] in Observable_mDAGs4.singletons_dict[4])
-    # len(eqclass)
-    # for ns in  Observable_mDAGs4.non_singletons_dict[4]  :
-    #     if eqclass[0] in ns:
-    #         print(ns)
+
+# for eqclass in Observable_mDAGs4.NOT_latent_free_eqclasses:
+#     eqclass_ids=[mdag.unique_unlabelled_id for mdag in eqclass]
+#     if G_18.unique_unlabelled_id in eqclass_ids:
+#         print(eqclass)
+#         break
+# G_04 in eqclass
+# print(eqclass[0] in Observable_mDAGs4.singletons_dict[4])
+# len(eqclass)
+# for ns in  Observable_mDAGs4.non_singletons_dict[4]  :
+#     if eqclass[0] in ns:
+#         print(ns)
 
 # =============================================================================
 #     for i in range(len(Observable_mDAGs4.foundational_eqclasses)):

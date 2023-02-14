@@ -465,7 +465,11 @@ class mDAG:
     def singleton_visible_predecessors(self, x):
         return partsextractor(self.directed_structure_instance.observable_parentsplus_list, x)
 
-
+    def two_layer_circuit(self):
+        for node in self.visible_nodes:
+            if len(self.children(node))>0 and len(self.singleton_predecessors(node))>1:
+                return False
+        return True
 
     @cached_property
     def numerical_districts(self):
