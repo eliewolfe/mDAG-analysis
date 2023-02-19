@@ -588,7 +588,7 @@ class SupportTesting(SupportTester):
         return np.empty((0, self.nof_observed), dtype=self.matrix_dtype)
 
     def no_infeasible_supports_among(self, candidates_as_lists, **kwargs) -> bool:
-        if len(self.attempt_to_find_one_infeasible_support_among(candidates_as_lists, **kwargs)) == 0:
+        if len(self.attempt_to_find_one_infeasible_support_among(candidates_as_lists)) == 0: # I REMOVED A **kwargs FROM attempt_to_find_one_infeasible_support_among HERE
             return True
         else:
             return False

@@ -30,7 +30,7 @@ except:
     print("Testing infeasible supports requires pysat.")
 from hypergraphs import Hypergraph, LabelledHypergraph, UndirectedGraph, LabelledUndirectedGraph, hypergraph_full_cleanup
 import methodtools
-from directed_structures import LabelledDirectedStructure  # , DirectedStructure
+from directed_structures import LabelledDirectedStructure, DirectedStructure
 from closure import closure as numeric_closure  # , is_this_subadjmat_densely_connected
 
  
@@ -908,3 +908,5 @@ class Unlabelled_mDAG(mDAG):
 #         assert labelled_directed_structure_instance.variable_names == labelled_simplicial_complex_instance.variable_names, "Name conflict."
 #         self.variable_names = labelled_directed_structure_instance.variable_names
 #         super().__init__(labelled_directed_structure_instance, labelled_simplicial_complex_instance)
+
+G_Evans=mDAG(DirectedStructure([(0,2)],3),Hypergraph([(0,1),(0,2)],3))
