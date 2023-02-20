@@ -87,9 +87,19 @@ class mDAG:
         return g
 
     @cached_property
+    def as_graph_with_singleton_latents(self):  # let DirectedStructure be a DAG initially without latents
+        g = self.directed_structure_instance.as_networkx_graph.copy()
+        g.add_nodes_from(self.latent_nodes)
+        g.add_edges_from(itertools.chain.from_iterable(
+            zip(itertools.repeat(i), children) for i, children in
+            zip(self.latent_nodes, self.simplicial_complex_instance.extended_simplicial_complex_as_sets)))
+        return g
+
+    @cached_property
     def visible_automorphisms(self):
         discovered_automorphisms = set()
-        for mapping in DiGraphMatcher(self.as_graph, self.as_graph).isomorphisms_iter():
+        for mapping in DiGraphMatcher(self.as_graph_with_singleton_latents,
+                                      self.as_graph_with_singleton_latents).isomorphisms_iter():
             discovered_automorphisms.add(partsextractor(mapping, self.visible_nodes))
         return tuple(discovered_automorphisms)
 
