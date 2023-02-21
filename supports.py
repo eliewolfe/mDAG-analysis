@@ -579,7 +579,7 @@ class SupportTesting(SupportTester):
         return self.attempt_to_find_one_infeasible_support_among(self.unique_candidate_supports_as_compressed_lists, **kwargs)
 
     def attempt_to_find_one_infeasible_support_among(
-            self, candidates_as_lists: np.ndarray, verbose=False) -> np.ndarray:
+            self, candidates_as_lists: np.ndarray, verbose=False, **kwargs) -> np.ndarray:
         for occurring_events_as_tuple in self.explore_candidates(candidates_as_lists,
                                                                  verbose=verbose,
                                                                  message='Finding an infeasible support'):
@@ -588,7 +588,8 @@ class SupportTesting(SupportTester):
         return np.empty((0, self.nof_observed), dtype=self.matrix_dtype)
 
     def no_infeasible_supports_among(self, candidates_as_lists, **kwargs) -> bool:
-        if len(self.attempt_to_find_one_infeasible_support_among(candidates_as_lists)) == 0: # I REMOVED A **kwargs FROM attempt_to_find_one_infeasible_support_among HERE
+        if len(self.attempt_to_find_one_infeasible_support_among(candidates_as_lists,
+                                                                 **kwargs)) == 0:
             return True
         else:
             return False
