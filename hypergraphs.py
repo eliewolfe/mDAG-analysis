@@ -166,12 +166,29 @@ class Hypergraph:
                 if s2.issubset(s1):
                     contained = True
                     if len(s2) > len(s1):
-                        dominance_count += 0
+                        dominance_count += 1
                     break
             so_far_so_good = contained and (dominance_count <= 1)
             if not so_far_so_good:
                 break
         return so_far_so_good
+
+    def is_S1_strictly_above_S2(S1, S2):
+        """
+        S1 and S2 are simplicial complices, in our data structure as lists of tuples.
+        """
+        dominance_count = 0
+        for s2 in S2.simplicial_complex_as_sets:
+            contained = False
+            for s1 in S1.simplicial_complex_as_sets:
+                if s2.issubset(s1):
+                    contained = True
+                    if len(s2) > len(s1):
+                        dominance_count += 1
+                    break
+            if not contained:
+                return False
+        return ((dominance_count > 0) or (S1.number_of_nonsingleton_latent > S2.number_of_nonsingleton_latent))
 
     def __str__(self):
         return self.as_string

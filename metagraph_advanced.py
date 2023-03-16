@@ -169,6 +169,42 @@ class Observable_unlabelled_mDAGs:
         return tuple(next(iter(eqclass)) for eqclass in d.values())
 
     @cached_property
+    def all_unlabelled_mDAGs_latent_free_equivalent(self):
+        pass_count = 0
+        known_collection = set([])
+        recently_discovered_latent_free = set([mDAG(ds, Hypergraph([], self.n)) for ds in self.all_unlabelled_directed_structures])
+        while len(recently_discovered_latent_free) > 0:
+            previously_discovered = recently_discovered_latent_free.copy()
+            known_collection.update(previously_discovered)
+            print(f"Pass #{pass_count+1}, Boring count: {len(known_collection)}")
+            #STEP ONE: INCREASE LATENT POWER
+            after_adding_latents = dict()
+            for m in previously_discovered:
+                ds = m.directed_structure_instance
+                orig_sc = m.simplicial_complex_instance
+                CI_count = len(m.all_CI)
+                for sc in self.all_simplicial_complices:
+                    if sc.is_S1_strictly_above_S2(orig_sc):
+                        m2 = mDAG(ds, sc)
+                        if len(m2.all_CI) == CI_count:  # That is, no loss of CI relations
+                            after_adding_latents[m2.unique_unlabelled_id] = m2
+            #STEP TWO: DROP DIRECTED EDGES SAFELY
+            recently_discovered_latent_free_dict = after_adding_latents.copy()
+            for m in after_adding_latents.values():
+                for m_equiv in m.equivalent_under_edge_dropping:
+                    recently_discovered_latent_free_dict[m_equiv.unique_unlabelled_id] = m_equiv
+            recently_discovered_latent_free = set(recently_discovered_latent_free_dict.values())
+            pass_count += 1
+        # print("Most recently discovered: ", previously_discovered)
+        return known_collection
+        #
+        # print("Hardest to infer boring: ",hardest_to_infer)
+        # d = defaultdict(list)
+        # for m in new_collection:
+        #     d[m.unique_unlabelled_id].append(m)
+        # return tuple(next(iter(eqclass)) for eqclass in d.values())
+
+    @cached_property
     def meta_graph_nodes(self):
         return tuple(self.dict_ind_unlabelled_mDAGs.keys())
 

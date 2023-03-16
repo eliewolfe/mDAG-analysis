@@ -32,6 +32,7 @@ from hypergraphs import Hypergraph, LabelledHypergraph, UndirectedGraph, Labelle
 import methodtools
 from directed_structures import LabelledDirectedStructure, DirectedStructure
 from closure import closure as numeric_closure  # , is_this_subadjmat_densely_connected
+from more_itertools import powerset
 
  
 def mdag_to_int(ds_bitarray, sc_bitarray):
@@ -427,6 +428,21 @@ class mDAG:
             self.as_graph.predecessors(pair[1]))]  # as_graph includes both visible at latent parents
         return candidates
 
+    @cached_property
+    def equivalent_under_edge_dropping(self):
+        equivalent_mdags = []
+        for edges_to_drop in powerset(self.droppable_edges):
+            if len(edges_to_drop):
+                equivalent_mdags.append(mDAG(DirectedStructure(
+                    self.directed_structure_instance.as_set_of_tuples.difference(edges_to_drop),
+                    self.number_of_visible),
+                     self.simplicial_complex_instance))
+        return equivalent_mdags
+
+
+
+
+
     @property
     def generate_weaker_mDAG_HLP(self):
         if self.droppable_edges:
@@ -485,7 +501,7 @@ class mDAG:
         return c
         
     def descendants(self,node):
-        return nx.descendants(self.as_graph,node)
+        return nx.descendants(self.as_graph, node)
 
     @cached_property
     def splittable_faces(self):
@@ -497,9 +513,12 @@ class mDAG:
     @cached_property
     def eventually_splittable_faces(self):
         candidates = itertools.chain.from_iterable(map(self._all_bipartitions, self.simplicial_complex_instance.compressed_simplicial_complex))
-        candidates = [(C, D) for C, D in candidates if
-                      all(self.set_predecessors(C).difference(C).issubset(self.singleton_predecessors(d)) for d in D)]
-        return candidates
+        result = []
+        for C, D in candidates:
+            if all((self.set_predecessors(C).difference(C)).issubset(
+                self.singleton_predecessors(d).difference(D)) for d in D):
+                result.append((C, D))
+        return result
 
     @cached_property
     def has_no_eventually_splittable_face(self):
