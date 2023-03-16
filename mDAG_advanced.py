@@ -205,6 +205,15 @@ class mDAG:
         for x, y, Z in self._all_2_vs_any_partitions(self.visible_nodes):
             if nx.d_separated(self.as_graph, {x}, {y}, set(Z)):
                 yield (self.fake_frozenset([x, y]), self.fake_frozenset(Z))
+
+    @cached_property
+    def d_separable_pairs(self):
+        discovered_pairs = set()
+        for x, y, Z in self._all_2_vs_any_partitions(self.visible_nodes):
+            if nx.d_separated(self.as_graph, {x}, {y}, set(Z)):
+                discovered_pairs.add(self.fake_frozenset([x, y]))
+        return discovered_pairs
+
     @cached_property
     def all_CI_numeric(self):
         return set(self._all_CI_generator_numeric)
@@ -257,6 +266,23 @@ class mDAG:
     @cached_property
     def all_esep_unlabelled(self):
         return min(self._all_CI_like_unlabelled_generator('all_esep_numeric'))
+
+    @property
+    def _e_separable_pairs(self):
+        for to_delete in itertools.combinations(self.visible_nodes, self.number_of_visible-2):
+            graph_copy = self.as_graph.copy()  # Don't forget to copy!
+            graph_copy.remove_nodes_from(to_delete)
+            remaining = set(self.visible_nodes).difference(to_delete)
+            for x, y, Z in self._all_2_vs_any_partitions(tuple(remaining)):
+                if nx.d_separated(graph_copy, {x}, {y}, set(Z)):
+                    yield self.fake_frozenset([x, y])
+    @cached_property
+    def e_separable_pairs(self):
+        return set(self._e_separable_pairs)
+
+    @cached_property
+    def interesting_via_e_sep_theorem(self):
+        return len(self.e_separable_pairs.difference(self.d_separable_pairs)) > 0
 
     # @methodtools.lru_cache(maxsize=None, typed=False)
     # def support_testing_instance(self, n):
@@ -464,11 +490,20 @@ class mDAG:
     @cached_property
     def splittable_faces(self):
         candidates = itertools.chain.from_iterable(map(self._all_bipartitions, self.simplicial_complex_instance.compressed_simplicial_complex))
-        # candidates = [(C,D) for C,D in candidates if all(set(self.as_graph.predecessors(c).issubset(self.as_graph.predecessors(d)) for c in C for d in D)]
         candidates = [(C, D) for C, D in candidates if
                       all(self.set_predecessors(C).issubset(self.singleton_predecessors(d)) for d in D)]
-        # print(candidates)
         return candidates
+
+    @cached_property
+    def eventually_splittable_faces(self):
+        candidates = itertools.chain.from_iterable(map(self._all_bipartitions, self.simplicial_complex_instance.compressed_simplicial_complex))
+        candidates = [(C, D) for C, D in candidates if
+                      all(self.set_predecessors(C).difference(C).issubset(self.singleton_predecessors(d)) for d in D)]
+        return candidates
+
+    @cached_property
+    def has_no_eventually_splittable_face(self):
+        return len(self.eventually_splittable_faces) == 0
     
     def set_visible_predecessors(self,X):
         return frozenset(itertools.chain.from_iterable(partsextractor(self.directed_structure_instance.observable_parentsplus_list, X)))
