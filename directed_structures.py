@@ -139,6 +139,13 @@ class DirectedStructure:
         """
         return D1.number_of_edges == D2.number_of_edges + 1 and D2.as_set_of_tuples.issubset(D1.as_set_of_tuples)
 
+    def is_D1_strictly_above_D2(D1, D2):
+        """
+        D1 and D2 are networkx.DiGraph objects.
+        We say that D1 can 'simulate' D2 if the edges of D2 are contained within those of D1.
+        """
+        return D1.number_of_edges > D2.number_of_edges and D2.as_set_of_tuples.issubset(D1.as_set_of_tuples)
+
 
 
 class LabelledDirectedStructure(DirectedStructure):

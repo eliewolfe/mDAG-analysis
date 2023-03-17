@@ -171,12 +171,12 @@ class Observable_unlabelled_mDAGs:
     @cached_property
     def all_unlabelled_mDAGs_latent_free_equivalent(self):
         pass_count = 0
-        known_collection = set([])
+        known_collection_dict = dict()
         recently_discovered_latent_free = set([mDAG(ds, Hypergraph([], self.n)) for ds in self.all_unlabelled_directed_structures])
         while len(recently_discovered_latent_free) > 0:
             previously_discovered = recently_discovered_latent_free.copy()
-            known_collection.update(previously_discovered)
-            print(f"Pass #{pass_count+1}, Boring count: {len(known_collection)}")
+            known_collection_dict.update({m.unique_unlabelled_id: m for m in previously_discovered})
+            print(f"Pass #{pass_count+1}, Boring count: {len(known_collection_dict)}")
             #STEP ONE: INCREASE LATENT POWER
             after_adding_latents = dict()
             for m in previously_discovered:
@@ -191,12 +191,23 @@ class Observable_unlabelled_mDAGs:
             #STEP TWO: DROP DIRECTED EDGES SAFELY
             recently_discovered_latent_free_dict = after_adding_latents.copy()
             for m in after_adding_latents.values():
+                # orig_ds = m.directed_structure_instance
+                # orig_sc = m.simplicial_complex_instance
+                # CI_count = len(m.all_CI)
                 for m_equiv in m.equivalent_under_edge_dropping:
                     recently_discovered_latent_free_dict[m_equiv.unique_unlabelled_id] = m_equiv
-            recently_discovered_latent_free = set(recently_discovered_latent_free_dict.values())
+                    # for ds_stronger in self.all_unlabelled_directed_structures:
+                    #     if ds_stronger.is_D1_strictly_above_D2(orig_ds):
+                    #         m2 = mDAG(ds_stronger, orig_sc)
+                    #         if len(m2.all_CI) == CI_count:
+                    #             recently_discovered_latent_free_dict[
+                    #                 m2.unique_unlabelled_id] = m2
+
+            recently_discovered_latent_free = set(m for (k, m) in recently_discovered_latent_free_dict.items()
+                                                  if k not in known_collection_dict.keys())
             pass_count += 1
         # print("Most recently discovered: ", previously_discovered)
-        return known_collection
+        return set(known_collection_dict.values())
         #
         # print("Hardest to infer boring: ",hardest_to_infer)
         # d = defaultdict(list)
