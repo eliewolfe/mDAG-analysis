@@ -3,15 +3,18 @@ from metagraph_advanced import Observable_unlabelled_mDAGs
 
 
 n=3
-metagraph = Observable_unlabelled_mDAGs(n)
+metagraph = Observable_unlabelled_mDAGs(n, fully_foundational=False, verbose=False)
 labelled_mDAGs = metagraph.all_labelled_mDAGs
 print(f"Number of {n}-vis node labelled mDAGs: {len(labelled_mDAGs)}")
 unlabelled_mDAGs = list(metagraph.all_unlabelled_mDAGs_faster)
 print(f"Number of {n}-vis node unlabelled mDAGs: {len(unlabelled_mDAGs)}")
+unresolved_by_esep = [m for m in unlabelled_mDAGs if m.all_esep_unlabelled in metagraph.latent_free_esep_patterns]
+print(f"Number of {n}-vis node unlabelled mDAGs with potentially-boring e-sep patterns: {len(unresolved_by_esep)}")
 provably_boring = metagraph.all_unlabelled_mDAGs_latent_free_equivalent
 provably_boring_unique_unlabelled_ids = set(m.unique_unlabelled_id for m in provably_boring)
 print(f"Number of {n}-vis node unlabelled boring mDAGs: {len(provably_boring)}")
-potentially_interesting = [m for m in unlabelled_mDAGs if m.unique_unlabelled_id not in provably_boring_unique_unlabelled_ids]
+# potentially_interesting = [m for m in unlabelled_mDAGs if m.unique_unlabelled_id not in provably_boring_unique_unlabelled_ids]
+potentially_interesting = [m for m in unresolved_by_esep if m.unique_unlabelled_id not in provably_boring_unique_unlabelled_ids]
 print(f"Number of {n}-vis node unlabelled potentially interesting mDAGs: {len(potentially_interesting)}")
 # print(potentially_interesting)
 print(f"**ALL FURTHER REDUCTIONS ARE PERFORMED ON THE SET OF POTENTIALLY INTERESTING mDAGs**")
@@ -34,7 +37,7 @@ print(f"Remaining after testing with supports on 2 events: {len(canonical_fundam
 print("\n\n NOW CONSIDERING 4 NODES \n")
 
 n=4
-metagraph = Observable_unlabelled_mDAGs(n)
+metagraph = Observable_unlabelled_mDAGs(n, fully_foundational=False, verbose=False)
 
 # labelled_mDAGs = metagraph.all_labelled_mDAGs
 # print(f"Number of {n}-vis node labelled mDAGs: {len(labelled_mDAGs)}")
@@ -42,15 +45,20 @@ unlabelled_mDAGs = list(metagraph.all_unlabelled_mDAGs_faster)
 print(f"Number of {n}-vis node unlabelled mDAGs: {len(unlabelled_mDAGs)}")
 # provably_boring = metagraph.all_unlabelled_mDAGs_latent_free_equivalent
 potentially_interesting_classes = metagraph.NOT_latent_free_eqclasses
-potentially_interesting = set().union(*potentially_interesting_classes)
+potentially_interesting_after_HLP = set().union(*potentially_interesting_classes)
+print(f"Number of {n}-vis node unlabelled mDAGs not resolved by HLP: {len(potentially_interesting_after_HLP)}")
+unresolved_by_esep = [m for m in unlabelled_mDAGs if m.all_esep_unlabelled in metagraph.latent_free_esep_patterns]
+print(f"Number of {n}-vis node unlabelled mDAGs not resolved by e-sep: {len(unresolved_by_esep)}")
+unresolved_by_esep_or_HLP = [m for m in potentially_interesting_after_HLP if m.all_esep_unlabelled in metagraph.latent_free_esep_patterns]
+print(f"Number of {n}-vis node unlabelled mDAGs resolved by e-sep or HLP: {len(unresolved_by_esep_or_HLP)}")
 # provably_boring_unique_unlabelled_ids = set(m.unique_unlabelled_id for m in provably_boring)
 # print(f"Number of {n}-vis node unlabelled boring mDAGs: {len(provably_boring)}")
 # potentially_interesting = [m for m in unlabelled_mDAGs if m.unique_unlabelled_id not in provably_boring_unique_unlabelled_ids]
-print(f"Number of {n}-vis node unlabelled potentially interesting mDAGs: {len(potentially_interesting)}")
+# print(f"Number of {n}-vis node unlabelled potentially interesting mDAGs: {len(potentially_interesting)}")
 print(f"**ALL FURTHER REDUCTIONS ARE PERFORMED ON THE SET OF POTENTIALLY INTERESTING mDAGs**")
-fundamental_unlabelled = [m for m in potentially_interesting if m.fundamental_graphQ]
+fundamental_unlabelled = [m for m in unresolved_by_esep_or_HLP if m.fundamental_graphQ]
 # print(f"Number of {n}-vis node unlabelled fundamental mDAGs: {len(fundamental_unlabelled)}")
-# canonical_unlabelled = [m for m in potentially_interesting if m.has_no_eventually_splittable_face]
+# canonical_unlabelled = [m for m in unresolved_by_esep_or_HLP if m.has_no_eventually_splittable_face]
 # print(f"Number of {n}-vis node unlabelled canonical mDAGs: {len(canonical_unlabelled)}")
 canonical_fundamental_unlabelled = [m for m in fundamental_unlabelled if m.has_no_eventually_splittable_face]
 print(f"Number of {n}-vis node unlabelled fundamental canonical mDAGs: {len(canonical_fundamental_unlabelled)}")

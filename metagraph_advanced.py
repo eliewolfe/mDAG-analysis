@@ -71,7 +71,7 @@ def multiple_classifications(*args):
     return list(filter(None, itertools.starmap(set.intersection, itertools.product(*args))))
 
 class Observable_unlabelled_mDAGs:
-    def __init__(self, n, fully_foundational=True):
+    def __init__(self, n, fully_foundational=False, verbose=True):
         """
         Parameters
         ----------
@@ -83,6 +83,7 @@ class Observable_unlabelled_mDAGs:
         self.set_n = set(self.tuple_n)
         self.sort_by_length = lambda s: sorted(s, key=len)
         self.fully_foundational = fully_foundational
+        self.verbose = verbose
 
     @cached_property
     def all_directed_structures(self):
@@ -167,6 +168,21 @@ class Observable_unlabelled_mDAGs:
                 mdag = mDAG(ds, sc)
                 d[mdag.unique_unlabelled_id].append(mdag)
         return tuple(next(iter(eqclass)) for eqclass in d.values())
+
+    @cached_property
+    def latent_free_CI_patterns(self):
+        recognized_CI_patterns = set()
+        for ds in self.all_unlabelled_directed_structures:
+            recognized_CI_patterns.add(mDAG(ds, Hypergraph([], self.n)).all_CI_unlabelled)
+        return recognized_CI_patterns
+
+    @cached_property
+    def latent_free_esep_patterns(self):
+        recognized_esep_patterns = set()
+        for ds in self.all_unlabelled_directed_structures:
+            recognized_esep_patterns.add(
+                mDAG(ds, Hypergraph([], self.n)).all_esep_unlabelled)
+        return recognized_esep_patterns
 
     @cached_property
     def all_unlabelled_mDAGs_latent_free_equivalent(self):
@@ -281,7 +297,8 @@ class Observable_unlabelled_mDAGs:
     def meta_graph(self):
         g = nx.DiGraph()
         g.add_nodes_from(self.meta_graph_nodes)
-        print('Adding dominance relations...', flush=True)
+        if self.verbose:
+            print('Adding dominance relations...', flush=True)
         g.add_edges_from(self.unlabelled_dominances)
         edge_count = g.number_of_edges()
 
@@ -290,20 +307,20 @@ class Observable_unlabelled_mDAGs:
         # new_edge_count =  g.number_of_edges()
         # print('Number of latent-free equivalence relations added: ', new_edge_count-edge_count)
         # edge_count = new_edge_count
-
-        print('Adding HLP equivalence relations...', flush=True)
+        if self.verbose:
+            print('Adding HLP equivalence relations...', flush=True)
         g.add_edges_from(self.HLP_edges)
         new_edge_count =  g.number_of_edges()
-        print('Number of HLP equivalence relations added: ', new_edge_count-edge_count)
+        if self.verbose:
+            print('Number of HLP equivalence relations added: ', new_edge_count-edge_count)
         edge_count = new_edge_count
-
-        print('Adding FaceSplitting equivalence relations...', flush=True)
+        if self.verbose:
+            print('Adding FaceSplitting equivalence relations...', flush=True)
         g.add_edges_from(self.FaceSplitting_edges)
         new_edge_count = g.number_of_edges()
-        print('Number of FaceSplitting equivalence relations added: ', new_edge_count - edge_count)
-        edge_count = new_edge_count
-
-        print('Metagraph has been constructed. Total edge count: ', g.number_of_edges(), flush=True)
+        if self.verbose:
+            print('Number of FaceSplitting equivalence relations added: ', new_edge_count - edge_count)
+            print('Metagraph has been constructed. Total edge count: ', g.number_of_edges(), flush=True)
         return g
 
 
