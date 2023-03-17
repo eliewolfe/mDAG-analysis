@@ -13,7 +13,15 @@ from radix import bitarray_to_int
 from merge import merge_intersection
 from utilities import stringify_in_tuple, stringify_in_list, partsextractor
 
-from scipy.special import comb
+# from scipy.special import comb
+import networkx as nx
+from functools import lru_cache
+
+@lru_cache(maxsize=5)
+def empty_graph(n):
+    baseg = nx.Graph()
+    baseg.add_nodes_from(range(n))
+    return baseg
 
 def has_length_greater_than_one(stuff):
     return len(stuff)>1
@@ -339,6 +347,16 @@ class UndirectedGraph:
     @cached_property
     def as_edges_unlabelled_integer(self):
         return min(self.edges_bit_array_to_integer(ba) for ba in bit_array_permutations(self.as_edges_bit_array))
+
+    @cached_property
+    def as_networkx_graph(self):
+        g = empty_graph(self.nof_nodes).copy()
+        g.add_edges_from(self.as_edges)
+        return g
+
+    @cached_property
+    def cliques(self):
+        return list(nx.enumerate_all_cliques(self.as_networkx_graph))
 
 class LabelledUndirectedGraph(UndirectedGraph):
      def __init__(self, variable_names, hyperedges):

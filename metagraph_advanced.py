@@ -185,6 +185,14 @@ class Observable_unlabelled_mDAGs:
         return recognized_esep_patterns
 
     @cached_property
+    def latent_free_esep_plus_patterns(self):
+        recognized_patterns = set()
+        for ds in self.all_unlabelled_directed_structures:
+            recognized_patterns.add(
+                mDAG(ds, Hypergraph([], self.n)).all_esep_plus_unlabelled)
+        return recognized_patterns
+
+    @cached_property
     def all_unlabelled_mDAGs_latent_free_equivalent(self):
         pass_count = 0
         known_collection_dict = dict()

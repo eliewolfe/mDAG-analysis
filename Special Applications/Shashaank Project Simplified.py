@@ -10,12 +10,13 @@ fundamental_unlabelled = [m for m in unlabelled_mDAGs if m.fundamental_graphQ]
 print(f"Number of {n}-vis node unfactorizable mDAGs: {len(fundamental_unlabelled)}")
 print(f"**ALL FURTHER ANALYSIS PERFORMED ON UNFACTORIZABLE mDAGs**")
 potentially_interesting_classes = metagraph.NOT_latent_free_eqclasses
-potentially_interesting_after_HLP = set().union(*potentially_interesting_classes)
-potentially_interesting_after_HLP = [m for m in potentially_interesting_after_HLP if m.fundamental_graphQ]
+potentially_interesting_after_HLP = list(set().union(*potentially_interesting_classes).intersection(fundamental_unlabelled))
 print(f"Number of {n}-vis node unlabelled mDAGs not resolved by HLP: {len(potentially_interesting_after_HLP)}")
 unresolved_by_esep = [m for m in fundamental_unlabelled if m.all_esep_unlabelled in metagraph.latent_free_esep_patterns]
 print(f"Number of {n}-vis node unlabelled mDAGs not resolved by e-sep: {len(unresolved_by_esep)}")
-unresolved_by_esep_or_HLP = [m for m in potentially_interesting_after_HLP if m.all_esep_unlabelled in metagraph.latent_free_esep_patterns]
+unresolved_by_esep_plus = [m for m in fundamental_unlabelled if m.all_esep_plus_unlabelled in metagraph.latent_free_esep_plus_patterns]
+print(f"Number of {n}-vis node unlabelled mDAGs not resolved by e-sep plus: {len(unresolved_by_esep_plus)}")
+unresolved_by_esep_or_HLP = set(potentially_interesting_after_HLP).intersection(unresolved_by_esep_plus)
 print(f"Number of {n}-vis node unlabelled mDAGs resolved by e-sep or HLP: {len(unresolved_by_esep_or_HLP)}")
 print("As we proceed now to supports, we wonder if there are graphs with multiple CI relations that could be problematic.")
 print("They are, if any: ", [m for m in unresolved_by_esep_or_HLP if len(m.all_CI)>1])
@@ -36,12 +37,13 @@ fundamental_unlabelled = [m for m in unlabelled_mDAGs if m.fundamental_graphQ]
 print(f"Number of {n}-vis node unfactorizable mDAGs: {len(fundamental_unlabelled)}")
 print(f"**ALL FURTHER ANALYSIS PERFORMED ON UNFACTORIZABLE mDAGs**")
 potentially_interesting_classes = metagraph.NOT_latent_free_eqclasses
-potentially_interesting_after_HLP = set().union(*potentially_interesting_classes)
-potentially_interesting_after_HLP = [m for m in potentially_interesting_after_HLP if m.fundamental_graphQ]
+potentially_interesting_after_HLP = list(set().union(*potentially_interesting_classes).intersection(fundamental_unlabelled))
 print(f"Number of {n}-vis node unlabelled mDAGs not resolved by HLP: {len(potentially_interesting_after_HLP)}")
 unresolved_by_esep = [m for m in fundamental_unlabelled if m.all_esep_unlabelled in metagraph.latent_free_esep_patterns]
 print(f"Number of {n}-vis node unlabelled mDAGs not resolved by e-sep: {len(unresolved_by_esep)}")
-unresolved_by_esep_or_HLP = [m for m in potentially_interesting_after_HLP if m.all_esep_unlabelled in metagraph.latent_free_esep_patterns]
+unresolved_by_esep_plus = [m for m in fundamental_unlabelled if m.all_esep_plus_unlabelled in metagraph.latent_free_esep_plus_patterns]
+print(f"Number of {n}-vis node unlabelled mDAGs not resolved by e-sep plus: {len(unresolved_by_esep_plus)}")
+unresolved_by_esep_or_HLP = set(potentially_interesting_after_HLP).intersection(unresolved_by_esep_plus)
 print(f"Number of {n}-vis node unlabelled mDAGs resolved by e-sep or HLP: {len(unresolved_by_esep_or_HLP)}")
 print("As we proceed now to supports, we wonder if there are graphs with multiple CI relations that could be problematic.")
 print("They are, if any: ", [m for m in unresolved_by_esep_or_HLP if len(m.all_CI)>1])

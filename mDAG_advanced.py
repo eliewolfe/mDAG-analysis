@@ -174,12 +174,52 @@ class mDAG:
     def skeleton_unlabelled(self):
         return self.skeleton_instance.as_edges_unlabelled_integer
 
+    @cached_property
+    def cliques_with_common_ancestor_aside_from_external_visible(self):
+        perfect_correlation_sets = set()
+        for clique in self.skeleton_instance.cliques:
+            if len(clique) > 2:
+                common_ancestors = set(self.latent_nodes)
+                for v in clique:
+                    common_ancestors.intersection_update(nx.ancestors(self.as_graph_with_singleton_latents, v))
+                for a in common_ancestors:
+                    if len(set(self.as_graph_with_singleton_latents.successors(a)).intersection(clique))>0:
+                        perfect_correlation_sets.add((self.fake_frozenset(clique),))
+                        break
+        return perfect_correlation_sets
+
+    @cached_property
+    def cliques_with_common_ancestor_aside_from_external_visible_unlabelled(self):
+        return min(self._all_CI_like_unlabelled_generator('cliques_with_common_ancestor_aside_from_external_visible'))
+
+    @cached_property
+    def all_esep_plus_unlabelled(self):
+        return self.all_esep_unlabelled + self.cliques_with_common_ancestor_aside_from_external_visible_unlabelled
+
 
 
     @cached_property
     def common_cause_connected_sets(self):
         return hypergraph_full_cleanup([self.directed_structure_instance.adjMat.descendantsplus_of(list(facet))
                                        for facet in self.simplicial_complex_instance.extended_simplicial_complex_as_sets])
+
+    # @cached_property
+    # def minimal_perfect_correlation_sets(self):
+    #     admit_perfect_correlation_sets = set()
+    #     for facet in self.simplicial_complex_instance.extended_simplicial_complex_as_sets:
+    #         admit_perfect_correlation_sets.add(
+    #             (self.fake_frozenset(
+    #                 self.directed_structure_instance.adjMat.descendantsplus_of(list(facet))
+    #             ),))
+    #     return self.fake_frozenset(admit_perfect_correlation_sets)
+    #
+    # @cached_property
+    # def minimal_perfect_correlation_sets_unlabelled(self):
+    #     return min(self._all_CI_like_unlabelled_generator('minimal_perfect_correlation_sets'))
+    #
+    # @cached_property
+    # def common_ancestors_sets_unlabelled_as_int(self):
+    #     return self.fake_frozenset(self.common_cause_connected_sets)
 
 
 
@@ -847,10 +887,10 @@ class mDAG:
             return True
         if node2 in self.set_visible_predecessors(self.singeleton_closures[node1]):
             return True
-        combined_closure = list(set(itertools.chain.from_iterable([
-            self.singeleton_closures[node1],
-            self.singeleton_closures[node2]
-        ])))
+        # combined_closure = list(set(itertools.chain.from_iterable([
+        #     self.singeleton_closures[node1],
+        #     self.singeleton_closures[node2]
+        # ])))
         if self.set_closure([node1, node2], return_bidirectedQ=True)[-1]:
         # if is_this_subadjmat_densely_connected(self.simplicial_complex_instance.as_bidirected_adjmat, combined_closure):
             return True
@@ -973,4 +1013,8 @@ class Unlabelled_mDAG(mDAG):
 #         self.variable_names = labelled_directed_structure_instance.variable_names
 #         super().__init__(labelled_directed_structure_instance, labelled_simplicial_complex_instance)
 
-G_Evans=mDAG(DirectedStructure([(0,2)],3),Hypergraph([(0,1),(0,2)],3))
+if __name__ == '__main__':
+    G_Evans=mDAG(DirectedStructure([(0,2)],3),Hypergraph([(0,1),(0,2)],3))
+    G_triangle = mDAG(DirectedStructure([], 3),
+                   Hypergraph([(0, 1), (0, 2), (1, 2)], 3))
+    print(G_triangle.cliques_with_common_ancestor_aside_from_external_visible_unlabelled)
