@@ -474,49 +474,49 @@ class QmDAG:
     #     #If everything has worked as planned...
     #     return [True, candidate_Y]
 
-    def assess_Fritz_Wolfe_and_Gonzales_style(self, target, set_of_visible_parents_to_delete, set_of_C_facets_to_delete, set_of_Q_facets_to_delete):
-        visible_parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, target]))
-        set_of_C_facets_to_delete_drop_target = set(facet.difference({target}) for facet in set_of_C_facets_to_delete)
-        set_of_Q_facets_to_delete_drop_target = set(facet.difference({target}) for facet in set_of_Q_facets_to_delete)
-        set_of_visible_parents_to_keep = visible_parents.difference(set_of_visible_parents_to_delete)
-        set_of_C_facets_to_keep = self.classical_sibling_sets_of(target).difference(set_of_C_facets_to_delete_drop_target)
-        set_of_Q_facets_to_keep = self.quantum_sibling_sets_of(target).difference(set_of_Q_facets_to_delete_drop_target)
-        candidate_Y = visible_parents.union(self.latent_siblings_of(target))
-        candidate_Y.difference_update(self.directed_structure_instance.adjMat.descendantsplus_of(target))
-        #CONDITION 1: Y must not be correlated with any dropped edges
-        for facet in set_of_C_facets_to_delete_drop_target:
-            candidate_Y.difference_update(
-                self.directed_structure_instance.adjMat.descendantsplus_of(list(facet)))
-            if len(candidate_Y) == 0:
-                return [False, candidate_Y]
-        for facet in set_of_Q_facets_to_delete_drop_target:
-            candidate_Y.difference_update(
-                self.directed_structure_instance.adjMat.descendantsplus_of(list(facet)))
-            if len(candidate_Y)==0:
-                return [False, candidate_Y]
-        for common_cause_connected_set in self.as_mDAG.common_cause_connected_sets:
-            if not common_cause_connected_set.isdisjoint(set_of_visible_parents_to_delete):
-                candidate_Y.difference_update(common_cause_connected_set)
-                if len(candidate_Y) == 0:
-                    return [False, candidate_Y]
-        #CONDITION 2: Y must be correlated with every kept edge
-        things_Y_should_not_be_disjoint_from = [self.directed_structure_instance.adjMat.descendantsplus_of(list(facet))
-                                                for facet in set_of_C_facets_to_keep]
-        things_Y_should_not_be_disjoint_from.extend([self.directed_structure_instance.adjMat.descendantsplus_of(list(facet))
-                                                for facet in set_of_Q_facets_to_keep])
-        for common_cause_connected_set in self.as_mDAG.common_cause_connected_sets:
-            for visible_parent in set_of_visible_parents_to_keep:
-                if visible_parent in common_cause_connected_set:
-                    things_Y_should_not_be_disjoint_from.append(common_cause_connected_set)
-        if any(candidate_Y.isdisjoint(stuff) for stuff in things_Y_should_not_be_disjoint_from):
-            return [False, [candidate_Y]]
-        else:
-            valid_Ys = [candidate_Y]
-            for r in range(1, len(candidate_Y)):
-                for subcandidate_Y in map(set, itertools.combinations(candidate_Y, r)):
-                    if not any(subcandidate_Y.isdisjoint(stuff) for stuff in things_Y_should_not_be_disjoint_from):
-                        valid_Ys.append(subcandidate_Y)
-            return [True, minimal_sets_within(valid_Ys)]
+    # def assess_Fritz_Wolfe_and_Gonzales_style(self, target, set_of_visible_parents_to_delete, set_of_C_facets_to_delete, set_of_Q_facets_to_delete):
+    #     visible_parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, target]))
+    #     set_of_C_facets_to_delete_drop_target = set(facet.difference({target}) for facet in set_of_C_facets_to_delete)
+    #     set_of_Q_facets_to_delete_drop_target = set(facet.difference({target}) for facet in set_of_Q_facets_to_delete)
+    #     set_of_visible_parents_to_keep = visible_parents.difference(set_of_visible_parents_to_delete)
+    #     set_of_C_facets_to_keep = self.classical_sibling_sets_of(target).difference(set_of_C_facets_to_delete_drop_target)
+    #     set_of_Q_facets_to_keep = self.quantum_sibling_sets_of(target).difference(set_of_Q_facets_to_delete_drop_target)
+    #     candidate_Y = visible_parents.union(self.latent_siblings_of(target))
+    #     candidate_Y.difference_update(self.directed_structure_instance.adjMat.descendantsplus_of(target))
+    #     #CONDITION 1: Y must not be correlated with any dropped edges
+    #     for facet in set_of_C_facets_to_delete_drop_target:
+    #         candidate_Y.difference_update(
+    #             self.directed_structure_instance.adjMat.descendantsplus_of(list(facet)))
+    #         if len(candidate_Y) == 0:
+    #             return [False, candidate_Y]
+    #     for facet in set_of_Q_facets_to_delete_drop_target:
+    #         candidate_Y.difference_update(
+    #             self.directed_structure_instance.adjMat.descendantsplus_of(list(facet)))
+    #         if len(candidate_Y)==0:
+    #             return [False, candidate_Y]
+    #     for common_cause_connected_set in self.as_mDAG.common_cause_connected_sets:
+    #         if not common_cause_connected_set.isdisjoint(set_of_visible_parents_to_delete):
+    #             candidate_Y.difference_update(common_cause_connected_set)
+    #             if len(candidate_Y) == 0:
+    #                 return [False, candidate_Y]
+    #     #CONDITION 2: Y must be correlated with every kept edge
+    #     things_Y_should_not_be_disjoint_from = [self.directed_structure_instance.adjMat.descendantsplus_of(list(facet))
+    #                                             for facet in set_of_C_facets_to_keep]
+    #     things_Y_should_not_be_disjoint_from.extend([self.directed_structure_instance.adjMat.descendantsplus_of(list(facet))
+    #                                             for facet in set_of_Q_facets_to_keep])
+    #     for common_cause_connected_set in self.as_mDAG.common_cause_connected_sets:
+    #         for visible_parent in set_of_visible_parents_to_keep:
+    #             if visible_parent in common_cause_connected_set:
+    #                 things_Y_should_not_be_disjoint_from.append(common_cause_connected_set)
+    #     if any(candidate_Y.isdisjoint(stuff) for stuff in things_Y_should_not_be_disjoint_from):
+    #         return [False, [candidate_Y]]
+    #     else:
+    #         valid_Ys = [candidate_Y]
+    #         for r in range(1, len(candidate_Y)):
+    #             for subcandidate_Y in map(set, itertools.combinations(candidate_Y, r)):
+    #                 if not any(subcandidate_Y.isdisjoint(stuff) for stuff in things_Y_should_not_be_disjoint_from):
+    #                     valid_Ys.append(subcandidate_Y)
+    #         return [True, minimal_sets_within(valid_Ys)]
 
     def _yield_from_Fritz_trick(self, choice_of_nodes,
                                 new_directed_structure, new_C_simplicial_complex, new_Q_simplicial_complex,
@@ -682,177 +682,177 @@ class QmDAG:
 
 
 
-    def apply_Fritz_trick_OLD(self, node_decomposition=True, safe_for_inference=True, districts_check=False):
-        new_directed_structure = [tuple(map(str, edge)) for edge in self.directed_structure_instance.edge_list]
-        new_C_simplicial_complex = set(frozenset(map(str, h)) for h in self.C_simplicial_complex_instance.simplicial_complex_as_sets)
-        new_Q_simplicial_complex = set(frozenset(map(str, h)) for h in self.Q_simplicial_complex_instance.simplicial_complex_as_sets)
-        new_node_names = list(map(str, self.visible_nodes))
-        allnode_name_variants = [{str(target)} for target in self.visible_nodes]
-        specialcases_dict = dict()
-        for target in self.visible_nodes:
-            str_target = str(target)
-            visible_parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, target]))
-            C_facets_with_target = set(
-                facet for facet in self.C_simplicial_complex_instance.simplicial_complex_as_sets if target in facet)
-            Q_facets_with_target = set(
-                facet for facet in self.Q_simplicial_complex_instance.simplicial_complex_as_sets if target in facet)
-            all_facets_with_target = C_facets_with_target.union(Q_facets_with_target)
-            specialcases_dict[str_target] = (visible_parents,
-                                             C_facets_with_target,
-                                             Q_facets_with_target,
-                                             all_facets_with_target,
-                                             set())
-
-
-        for target in self.visible_nodes:
-            str_target = str(target)
-            (visible_parents,
-             C_facets_with_target,
-             Q_facets_with_target,
-             all_facets_with_target,
-             emptyset) = specialcases_dict[str_target]
-            # C_facets_with_target = hypergraph_canonicalize_with_deduplication(extended_C_facets_with_target)
-            # Q_facets_with_target = hypergraph_canonicalize_with_deduplication(raw_Q_facets_with_target)
-
-            visible_children = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[target, :]))
-            for set_of_visible_parents_to_delete in [set(subset) for i in range(0, len(visible_parents) + 1) for
-                                                     subset in itertools.combinations(visible_parents, i)]:
-                for set_of_C_facets_to_delete in [set(subset) for i in range(0, len(C_facets_with_target) + 1) for
-                                                  subset in itertools.combinations(C_facets_with_target, i)]:
-                    for set_of_Q_facets_to_delete in [set(subset) for i in range(0, len(Q_facets_with_target) + 1)
-                                                      for subset in
-                                                      itertools.combinations(Q_facets_with_target, i)]:
-                        if not ((len(set_of_visible_parents_to_delete)==len(visible_parents)
-                        ) and (len(set_of_C_facets_to_delete)==len(C_facets_with_target)
-                        ) and (len(set_of_Q_facets_to_delete)==len(Q_facets_with_target)
-                        )) and not ((len(set_of_visible_parents_to_delete)==0
-                        ) and (len(set_of_C_facets_to_delete)==0
-                        ) and (len(set_of_Q_facets_to_delete)==0
-                        )):
-
-                            Fritz_assessment = self.assess_Fritz_Wolfe_and_Gonzales_style(target, set_of_visible_parents_to_delete,
-                                                          set_of_C_facets_to_delete, set_of_Q_facets_to_delete)
-                            if Fritz_assessment[0]:
-
-                                Ys = Fritz_assessment[1]
-                                # print(target, set_of_Q_facets_to_delete, Q_facets_with_target, Y)
-                                sub_targets = []
-                                Ys_as_string_sets = []
-                                for Y in Ys:
-                                    sub_targets.append(str_target + "_" + str(Y))
-                                    Ys_as_string_sets.append(set(map(str, Y)))
-                                # new_directed_structure.append((sub_target, str_target))
-                                set_of_C_facets_not_to_delete = C_facets_with_target.difference(set_of_C_facets_to_delete)
-                                set_of_Q_facets_not_to_delete = Q_facets_with_target.difference(
-                                    set_of_Q_facets_to_delete)
-                                set_of_all_facets_not_to_delete = set_of_C_facets_not_to_delete.union(set_of_Q_facets_not_to_delete)
-                                visible_parents_not_to_delete = set(visible_parents).difference(
-                                    set_of_visible_parents_to_delete)
-                                for (sub_target, Y_as_string_sets) in zip(sub_targets, Ys_as_string_sets):
-                                    specialcases_dict[sub_target] = (visible_parents_not_to_delete,
-                                                                    set_of_C_facets_not_to_delete,
-                                                                    set_of_Q_facets_to_delete,
-                                                                    set_of_all_facets_not_to_delete,
-                                                                    Y_as_string_sets)
-                                allnode_name_variants[target].update(sub_targets)
-                                new_node_names.extend(sub_targets)
-                                for facet in set_of_all_facets_not_to_delete:
-                                    new_cfacet = set(key
-                                                     for key, val in
-                                                     specialcases_dict.items() if
-                                                     facet in val[3])
-                                    new_cfacet.difference_update(sub_targets)
-                                    new_C_simplicial_complex.discard(frozenset(new_cfacet))
-                                    new_cfacet.update(sub_targets)
-                                    new_C_simplicial_complex.add(frozenset(new_cfacet))
-                                # for qfacet in raw_set_of_Q_facets_not_to_delete:
-                                #     new_qfacet = set(key
-                                #                      for key, val in
-                                #                      specialcases_dict.items() if
-                                #                      any(subqfacet.issuperset(qfacet) for
-                                #                          subqfacet in val[2]))
-                                #     new_qfacet.discard(sub_target)
-                                #     new_Q_simplicial_complex.discard(frozenset(new_qfacet))
-                                #     new_qfacet.add(sub_target)
-                                #     new_Q_simplicial_complex.add(frozenset(new_qfacet))
-                                for sub_target in sub_targets:
-                                    for p in visible_parents_not_to_delete:
-                                        for str_p in allnode_name_variants[p]:
-                                            new_directed_structure.append((str_p, sub_target))
-                                    for c in visible_children:
-                                        for str_c in allnode_name_variants[c]:
-                                            if target in specialcases_dict[str_c][0]:
-                                                new_directed_structure.append((sub_target, str_c))
-        new_C_simplicial_complex = hypergraph_full_cleanup(new_C_simplicial_complex)
-        new_Q_simplicial_complex = hypergraph_full_cleanup(new_Q_simplicial_complex)
-        core_nodes = tuple(map(str, self.visible_nodes))
-        if not node_decomposition:
-            for choice_of_nodes in itertools.product(*allnode_name_variants):
-                if not set(core_nodes).issuperset(choice_of_nodes):
-                    perfect_prediction_restrictions = {name:specialcases_dict[name][4] for name in choice_of_nodes if specialcases_dict[name][4]}
-                    nodes_to_marginalize_away = set(itertools.chain.from_iterable(perfect_prediction_restrictions.values()))
-                    if nodes_to_marginalize_away.issubset(choice_of_nodes):
-                        if safe_for_inference:
-                            yield self.labelled_multi_marginalize(
-                                                       nodes_to_marginalize_away,
-                                                       choice_of_nodes,
-                                                       new_directed_structure,
-                                                       new_C_simplicial_complex,
-                                                       new_Q_simplicial_complex,
-                                                        districts_check=districts_check)
-                        else:
-                            # print(allnode_name_variants, choice_of_nodes)
-                            coreQmDAG = QmDAG(
-                                LabelledDirectedStructure(choice_of_nodes, new_directed_structure),
-                                LabelledHypergraph(choice_of_nodes, new_C_simplicial_complex),
-                                LabelledHypergraph(choice_of_nodes, new_Q_simplicial_complex))
-                            coreQmDAG.restricted_perfect_predictions = perfect_prediction_restrictions
-                            tonums = coreQmDAG.directed_structure_instance.translation_dict
-                            # print(tonums)
-                            coreQmDAG.restricted_perfect_predictions_numeric = [
-                                (tonums[i], tuple(partsextractor(tonums, j))) for i,j in perfect_prediction_restrictions.items()]
-                            # print(coreQmDAG)
-                            yield coreQmDAG
-                            # for to_fix_to_PD in itertools.chain.from_iterable(
-                            #         itertools.combinations(choice_of_bonus_nodes, r) for r in range(1, self.number_of_visible-2)):
-                            #     remaining_nodes = set(choice_of_nodes).difference(to_fix_to_PD)
-                            #     if len(remaining_nodes)>=3:
-                            #         yield coreQmDAG.subgraph(remaining_nodes)
-        else:
-            bonus_node_variants = [name_variants.difference(core_nodes) for name_variants in allnode_name_variants if
-                                   len(name_variants) >= 2]
-            bonus_node_variants = [name_variants.union({'-1'}) for name_variants in bonus_node_variants]
-            # all_bonus_nodes = list(itertools.chain.from_iterable(bonus_node_variants))
-            for bonus_nodes in itertools.product(*bonus_node_variants):
-                actual_bonus_nodes = set(bonus_nodes).difference({'-1'})
-                new_nodes = tuple(core_nodes) + tuple(actual_bonus_nodes)
-                if len(actual_bonus_nodes) > 0:
-                    perfect_prediction_restrictions = {name: specialcases_dict[name][4] for name in actual_bonus_nodes if
-                                                       specialcases_dict[name][4]}
-                    if safe_for_inference:
-                        # nodes_to_marginalize_away = [specialcases_dict[name][4] for name in actual_bonus_nodes]
-                        nodes_to_marginalize_away = set(itertools.chain.from_iterable(perfect_prediction_restrictions.values()))
-                        yield self.labelled_multi_marginalize(
-                            nodes_to_marginalize_away,
-                            new_nodes,
-                            new_directed_structure,
-                            new_C_simplicial_complex,
-                            new_Q_simplicial_complex,
-                            districts_check=districts_check)
-                    else:
-                        postFritz_QmDAG = QmDAG(
-                            LabelledDirectedStructure(new_nodes, new_directed_structure),
-                            LabelledHypergraph(new_nodes, new_C_simplicial_complex),
-                            LabelledHypergraph(new_nodes, new_Q_simplicial_complex))
-                        postFritz_QmDAG.restricted_perfect_predictions = perfect_prediction_restrictions
-                        tonums = postFritz_QmDAG.directed_structure_instance.translation_dict
-                        restricted_perfect_predictions_numeric = [
-                            (tonums[i], tuple(partsextractor(tonums, j))) for i,j in perfect_prediction_restrictions.items()]
-                        yield QmDAG(
-                            LabelledDirectedStructure(new_nodes, new_directed_structure),
-                            LabelledHypergraph(new_nodes, new_C_simplicial_complex),
-                            LabelledHypergraph(new_nodes, new_Q_simplicial_complex),
-                            pp_restrictions=restricted_perfect_predictions_numeric)
+    # def apply_Fritz_trick_OLD(self, node_decomposition=True, safe_for_inference=True, districts_check=False):
+    #     new_directed_structure = [tuple(map(str, edge)) for edge in self.directed_structure_instance.edge_list]
+    #     new_C_simplicial_complex = set(frozenset(map(str, h)) for h in self.C_simplicial_complex_instance.simplicial_complex_as_sets)
+    #     new_Q_simplicial_complex = set(frozenset(map(str, h)) for h in self.Q_simplicial_complex_instance.simplicial_complex_as_sets)
+    #     new_node_names = list(map(str, self.visible_nodes))
+    #     allnode_name_variants = [{str(target)} for target in self.visible_nodes]
+    #     specialcases_dict = dict()
+    #     for target in self.visible_nodes:
+    #         str_target = str(target)
+    #         visible_parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, target]))
+    #         C_facets_with_target = set(
+    #             facet for facet in self.C_simplicial_complex_instance.simplicial_complex_as_sets if target in facet)
+    #         Q_facets_with_target = set(
+    #             facet for facet in self.Q_simplicial_complex_instance.simplicial_complex_as_sets if target in facet)
+    #         all_facets_with_target = C_facets_with_target.union(Q_facets_with_target)
+    #         specialcases_dict[str_target] = (visible_parents,
+    #                                          C_facets_with_target,
+    #                                          Q_facets_with_target,
+    #                                          all_facets_with_target,
+    #                                          set())
+    #
+    #
+    #     for target in self.visible_nodes:
+    #         str_target = str(target)
+    #         (visible_parents,
+    #          C_facets_with_target,
+    #          Q_facets_with_target,
+    #          all_facets_with_target,
+    #          emptyset) = specialcases_dict[str_target]
+    #         # C_facets_with_target = hypergraph_canonicalize_with_deduplication(extended_C_facets_with_target)
+    #         # Q_facets_with_target = hypergraph_canonicalize_with_deduplication(raw_Q_facets_with_target)
+    #
+    #         visible_children = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[target, :]))
+    #         for set_of_visible_parents_to_delete in [set(subset) for i in range(0, len(visible_parents) + 1) for
+    #                                                  subset in itertools.combinations(visible_parents, i)]:
+    #             for set_of_C_facets_to_delete in [set(subset) for i in range(0, len(C_facets_with_target) + 1) for
+    #                                               subset in itertools.combinations(C_facets_with_target, i)]:
+    #                 for set_of_Q_facets_to_delete in [set(subset) for i in range(0, len(Q_facets_with_target) + 1)
+    #                                                   for subset in
+    #                                                   itertools.combinations(Q_facets_with_target, i)]:
+    #                     if not ((len(set_of_visible_parents_to_delete)==len(visible_parents)
+    #                     ) and (len(set_of_C_facets_to_delete)==len(C_facets_with_target)
+    #                     ) and (len(set_of_Q_facets_to_delete)==len(Q_facets_with_target)
+    #                     )) and not ((len(set_of_visible_parents_to_delete)==0
+    #                     ) and (len(set_of_C_facets_to_delete)==0
+    #                     ) and (len(set_of_Q_facets_to_delete)==0
+    #                     )):
+    #
+    #                         Fritz_assessment = self.assess_Fritz_Wolfe_and_Gonzales_style(target, set_of_visible_parents_to_delete,
+    #                                                       set_of_C_facets_to_delete, set_of_Q_facets_to_delete)
+    #                         if Fritz_assessment[0]:
+    #
+    #                             Ys = Fritz_assessment[1]
+    #                             # print(target, set_of_Q_facets_to_delete, Q_facets_with_target, Y)
+    #                             sub_targets = []
+    #                             Ys_as_string_sets = []
+    #                             for Y in Ys:
+    #                                 sub_targets.append(str_target + "_" + str(Y))
+    #                                 Ys_as_string_sets.append(set(map(str, Y)))
+    #                             # new_directed_structure.append((sub_target, str_target))
+    #                             set_of_C_facets_not_to_delete = C_facets_with_target.difference(set_of_C_facets_to_delete)
+    #                             set_of_Q_facets_not_to_delete = Q_facets_with_target.difference(
+    #                                 set_of_Q_facets_to_delete)
+    #                             set_of_all_facets_not_to_delete = set_of_C_facets_not_to_delete.union(set_of_Q_facets_not_to_delete)
+    #                             visible_parents_not_to_delete = set(visible_parents).difference(
+    #                                 set_of_visible_parents_to_delete)
+    #                             for (sub_target, Y_as_string_sets) in zip(sub_targets, Ys_as_string_sets):
+    #                                 specialcases_dict[sub_target] = (visible_parents_not_to_delete,
+    #                                                                 set_of_C_facets_not_to_delete,
+    #                                                                 set_of_Q_facets_to_delete,
+    #                                                                 set_of_all_facets_not_to_delete,
+    #                                                                 Y_as_string_sets)
+    #                             allnode_name_variants[target].update(sub_targets)
+    #                             new_node_names.extend(sub_targets)
+    #                             for facet in set_of_all_facets_not_to_delete:
+    #                                 new_cfacet = set(key
+    #                                                  for key, val in
+    #                                                  specialcases_dict.items() if
+    #                                                  facet in val[3])
+    #                                 new_cfacet.difference_update(sub_targets)
+    #                                 new_C_simplicial_complex.discard(frozenset(new_cfacet))
+    #                                 new_cfacet.update(sub_targets)
+    #                                 new_C_simplicial_complex.add(frozenset(new_cfacet))
+    #                             # for qfacet in raw_set_of_Q_facets_not_to_delete:
+    #                             #     new_qfacet = set(key
+    #                             #                      for key, val in
+    #                             #                      specialcases_dict.items() if
+    #                             #                      any(subqfacet.issuperset(qfacet) for
+    #                             #                          subqfacet in val[2]))
+    #                             #     new_qfacet.discard(sub_target)
+    #                             #     new_Q_simplicial_complex.discard(frozenset(new_qfacet))
+    #                             #     new_qfacet.add(sub_target)
+    #                             #     new_Q_simplicial_complex.add(frozenset(new_qfacet))
+    #                             for sub_target in sub_targets:
+    #                                 for p in visible_parents_not_to_delete:
+    #                                     for str_p in allnode_name_variants[p]:
+    #                                         new_directed_structure.append((str_p, sub_target))
+    #                                 for c in visible_children:
+    #                                     for str_c in allnode_name_variants[c]:
+    #                                         if target in specialcases_dict[str_c][0]:
+    #                                             new_directed_structure.append((sub_target, str_c))
+    #     new_C_simplicial_complex = hypergraph_full_cleanup(new_C_simplicial_complex)
+    #     new_Q_simplicial_complex = hypergraph_full_cleanup(new_Q_simplicial_complex)
+    #     core_nodes = tuple(map(str, self.visible_nodes))
+    #     if not node_decomposition:
+    #         for choice_of_nodes in itertools.product(*allnode_name_variants):
+    #             if not set(core_nodes).issuperset(choice_of_nodes):
+    #                 perfect_prediction_restrictions = {name:specialcases_dict[name][4] for name in choice_of_nodes if specialcases_dict[name][4]}
+    #                 nodes_to_marginalize_away = set(itertools.chain.from_iterable(perfect_prediction_restrictions.values()))
+    #                 if nodes_to_marginalize_away.issubset(choice_of_nodes):
+    #                     if safe_for_inference:
+    #                         yield self.labelled_multi_marginalize(
+    #                                                    nodes_to_marginalize_away,
+    #                                                    choice_of_nodes,
+    #                                                    new_directed_structure,
+    #                                                    new_C_simplicial_complex,
+    #                                                    new_Q_simplicial_complex,
+    #                                                     districts_check=districts_check)
+    #                     else:
+    #                         # print(allnode_name_variants, choice_of_nodes)
+    #                         coreQmDAG = QmDAG(
+    #                             LabelledDirectedStructure(choice_of_nodes, new_directed_structure),
+    #                             LabelledHypergraph(choice_of_nodes, new_C_simplicial_complex),
+    #                             LabelledHypergraph(choice_of_nodes, new_Q_simplicial_complex))
+    #                         coreQmDAG.restricted_perfect_predictions = perfect_prediction_restrictions
+    #                         tonums = coreQmDAG.directed_structure_instance.translation_dict
+    #                         # print(tonums)
+    #                         coreQmDAG.restricted_perfect_predictions_numeric = [
+    #                             (tonums[i], tuple(partsextractor(tonums, j))) for i,j in perfect_prediction_restrictions.items()]
+    #                         # print(coreQmDAG)
+    #                         yield coreQmDAG
+    #                         # for to_fix_to_PD in itertools.chain.from_iterable(
+    #                         #         itertools.combinations(choice_of_bonus_nodes, r) for r in range(1, self.number_of_visible-2)):
+    #                         #     remaining_nodes = set(choice_of_nodes).difference(to_fix_to_PD)
+    #                         #     if len(remaining_nodes)>=3:
+    #                         #         yield coreQmDAG.subgraph(remaining_nodes)
+    #     else:
+    #         bonus_node_variants = [name_variants.difference(core_nodes) for name_variants in allnode_name_variants if
+    #                                len(name_variants) >= 2]
+    #         bonus_node_variants = [name_variants.union({'-1'}) for name_variants in bonus_node_variants]
+    #         # all_bonus_nodes = list(itertools.chain.from_iterable(bonus_node_variants))
+    #         for bonus_nodes in itertools.product(*bonus_node_variants):
+    #             actual_bonus_nodes = set(bonus_nodes).difference({'-1'})
+    #             new_nodes = tuple(core_nodes) + tuple(actual_bonus_nodes)
+    #             if len(actual_bonus_nodes) > 0:
+    #                 perfect_prediction_restrictions = {name: specialcases_dict[name][4] for name in actual_bonus_nodes if
+    #                                                    specialcases_dict[name][4]}
+    #                 if safe_for_inference:
+    #                     # nodes_to_marginalize_away = [specialcases_dict[name][4] for name in actual_bonus_nodes]
+    #                     nodes_to_marginalize_away = set(itertools.chain.from_iterable(perfect_prediction_restrictions.values()))
+    #                     yield self.labelled_multi_marginalize(
+    #                         nodes_to_marginalize_away,
+    #                         new_nodes,
+    #                         new_directed_structure,
+    #                         new_C_simplicial_complex,
+    #                         new_Q_simplicial_complex,
+    #                         districts_check=districts_check)
+    #                 else:
+    #                     postFritz_QmDAG = QmDAG(
+    #                         LabelledDirectedStructure(new_nodes, new_directed_structure),
+    #                         LabelledHypergraph(new_nodes, new_C_simplicial_complex),
+    #                         LabelledHypergraph(new_nodes, new_Q_simplicial_complex))
+    #                     postFritz_QmDAG.restricted_perfect_predictions = perfect_prediction_restrictions
+    #                     tonums = postFritz_QmDAG.directed_structure_instance.translation_dict
+    #                     restricted_perfect_predictions_numeric = [
+    #                         (tonums[i], tuple(partsextractor(tonums, j))) for i,j in perfect_prediction_restrictions.items()]
+    #                     yield QmDAG(
+    #                         LabelledDirectedStructure(new_nodes, new_directed_structure),
+    #                         LabelledHypergraph(new_nodes, new_C_simplicial_complex),
+    #                         LabelledHypergraph(new_nodes, new_Q_simplicial_complex),
+    #                         pp_restrictions=restricted_perfect_predictions_numeric)
 
     def _unique_unlabelled_ids_obtainable_by_Fritz_for_QC(self, **kwargs):
         for new_QmDAG in self.apply_Fritz_trick(**kwargs):
@@ -932,13 +932,13 @@ if __name__ == '__main__':
     HardmDAG_g = mDAG(HardDAGds, Hypergraph([(0, 2), (0, 3), (1, 2, 3)], 4))
     # print(HardmDAG_g.support_testing_instance((2, 2, 2, 2), 3).attempt_to_find_one_infeasible_support_beyond_dsep(
     #     verbose=True))
-    infeasible_support_candidate=[[0, 0, 0, 0],
- [0, 0, 1, 0],
- [0, 1, 0, 0],
- [1, 0, 0, 0],
- [1, 1, 0, 1],
- [2, 0, 0, 1],
- [2, 1, 1, 0]]
+    infeasible_support_candidate = [[0, 0, 0, 0],
+                                    [0, 0, 1, 0],
+                                    [0, 1, 0, 0],
+                                    [1, 0, 0, 0],
+                                    [1, 1, 0, 1],
+                                    [2, 0, 0, 1],
+                                    [2, 1, 1, 0]]
     print(HardmDAG_a.support_testing_instance((3, 2, 2, 2), 7).feasibleQ_from_matrix(infeasible_support_candidate))
     print(HardmDAG_b.support_testing_instance((3, 2, 2, 2), 7).feasibleQ_from_matrix(infeasible_support_candidate))
     print(HardmDAG_c.support_testing_instance((3, 2, 2, 2), 7).feasibleQ_from_matrix(infeasible_support_candidate))
@@ -966,25 +966,25 @@ if __name__ == '__main__':
     #     print(after_Fritz.restricted_perfect_predictions_numeric)
     #     print(after_Fritz.as_mDAG.support_testing_instance((2,4,4), 8).unique_infeasible_supports_beyond_dsep_as_matrices())
 
-# =============================================================================
-#     QG = QmDAG(DirectedStructure([(0,3), (1,2)],4),Hypergraph([], 4),Hypergraph([(0,1),(1,3),(3,2),(2,0)],4))
-#     for (n,dag) in QG.unique_unlabelled_ids_obtainable_by_Fritz_for_QC(node_decomposition=False):
-#         if n in known_QC_Gaps_QmDAGs_ids:
-#             print(n,dag)
-#             break
-#     dag.condition(0).unique_unlabelled_id
-# =============================================================================
-print("Testing IV vs UC:")
-IV_DAG = mDAG(DirectedStructure([(0, 1), (1, 2)], 3), Hypergraph([(1, 2)], 3))
-UC_DAG = mDAG(DirectedStructure([(1, 0), (1, 2)], 3), Hypergraph([(0, 1), (1, 2)], 3))
-tripartite_support=np.array([
-        [0, 0, 0],
-        [0, 1, 1],
-        [1, 0, 0],
-        [1, 1, 0],
-        [2, 0, 1],
-        [2, 1, 1]])
-print(IV_DAG.support_testing_instance((3, 2, 2), 6).feasibleQ_from_matrix(tripartite_support))
-print(UC_DAG.support_testing_instance((3, 2, 2), 6).feasibleQ_from_matrix(tripartite_support))
+    # =============================================================================
+    #     QG = QmDAG(DirectedStructure([(0,3), (1,2)],4),Hypergraph([], 4),Hypergraph([(0,1),(1,3),(3,2),(2,0)],4))
+    #     for (n,dag) in QG.unique_unlabelled_ids_obtainable_by_Fritz_for_QC(node_decomposition=False):
+    #         if n in known_QC_Gaps_QmDAGs_ids:
+    #             print(n,dag)
+    #             break
+    #     dag.condition(0).unique_unlabelled_id
+    # =============================================================================
+    print("Testing IV vs UC:")
+    IV_DAG = mDAG(DirectedStructure([(0, 1), (1, 2)], 3), Hypergraph([(1, 2)], 3))
+    UC_DAG = mDAG(DirectedStructure([(1, 0), (1, 2)], 3), Hypergraph([(0, 1), (1, 2)], 3))
+    tripartite_support=np.array([
+            [0, 0, 0],
+            [0, 1, 1],
+            [1, 0, 0],
+            [1, 1, 0],
+            [2, 0, 1],
+            [2, 1, 1]])
+    print(IV_DAG.support_testing_instance((3, 2, 2), 6).feasibleQ_from_matrix(tripartite_support))
+    print(UC_DAG.support_testing_instance((3, 2, 2), 6).feasibleQ_from_matrix(tripartite_support))
 
 

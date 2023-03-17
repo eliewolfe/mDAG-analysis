@@ -746,6 +746,18 @@ if __name__ == '__main__':
     print("One off: ", one_off(parents_of, [(1, 0, 0), (0, 1, 0), (0, 0, 1)],
                                definite_events=[(1, 0, 0), (0, 1, 0)]))
     print("One off: ", one_off(parents_of, [(0, 0, 0), (0, 1, 0), (0, 0, 1)]))
+
+    # print("One off MARINA RELEVANT: ", one_off(parents_of=[[4, 6], [0, 5],
+    #                                                        [1, 4], [1, 2, 6]],
+    #                                            support_as_matrix=[[0, 0, 0, 0],
+    #                                                               [0, 0, 1, 0],
+    #                                                               [0, 1, 0, 0],
+    #                                                               [1, 0, 0, 0],
+    #                                                               [1, 1, 0, 1],
+    #                                                               [2, 0, 0, 1],
+    #                                                               [2, 1, 1, 0]]))
+    # print("Checking for bad automorphism detection:", infer_automorphisms([[4, 6], [0, 5],
+    #                                                        [1, 4], [1, 2, 6]]))
     # nof_events = 3
     # st = SupportTesting(parents_of, observed_cardinalities, nof_events)
     #
@@ -766,12 +778,12 @@ if __name__ == '__main__':
     print(cst.all_infeasible_supports)
     print(cst.all_infeasible_supports_unlabelled)
     print(cst.all_infeasible_supports_compressed)
-    parents_of = ([3, 4], [4, 5], [5, 3])
-    visible_automorphisms = infer_automorphisms(parents_of)
-    cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 4, visible_automorphisms=visible_automorphisms)
-    print(cst.all_infeasible_supports)
-    print(cst.all_infeasible_supports_unlabelled)
-    print(cst.all_infeasible_supports_compressed)
+    # parents_of = ([3, 4], [4, 5], [5, 3])
+    # visible_automorphisms = infer_automorphisms(parents_of)
+    # cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 4, visible_automorphisms=visible_automorphisms)
+    # print(cst.all_infeasible_supports)
+    # print(cst.all_infeasible_supports_unlabelled)
+    # print(cst.all_infeasible_supports_compressed)
 
     # sample2 = st.unique_candidate_supports
     # print(st.unique_candidate_supports)
@@ -877,23 +889,33 @@ if __name__ == '__main__':
     #         break
     # print("In the end, were we able to prove infeasibility? ", rejected_yet)
 
-    print("Now testing PP relations per Marina bug report.")
-    parents_of = ([3], [0, 3], [1])
-    observed_cardinalities = (2, 2, 2)
-    st_raw = SupportTesting(parents_of, observed_cardinalities, 4, pp_relations=tuple())
-    all_candidate_matrices = st_raw.unique_candidate_supports_as_compressed_matrices
-    must_perfectpredict = [(1, [0])]
-    st_restricted = SupportTesting(parents_of,
-                                   observed_cardinalities,
-                                   3, pp_relations=must_perfectpredict)
-    print("Method 1\n", st_raw.extract_support_matrices_satisfying_pprestrictions(
-        all_candidate_matrices,
-        must_perfectpredict)[:3])
-    print("Method 2\n",
-          st_restricted.unique_candidate_supports_as_compressed_matrices[:3])
-    print("Method 3\n",
-          list(SupportTesting.generate_supports_satisfying_pp_restriction(1, [0],
-                                                                     all_candidate_matrices))[:3])
+    # print("Now testing PP relations per Marina bug report.")
+    # parents_of = ([3], [0, 3], [1])
+    # observed_cardinalities = (2, 2, 2)
+    # st_raw = SupportTesting(parents_of, observed_cardinalities, 4, pp_relations=tuple())
+    # all_candidate_matrices = st_raw.unique_candidate_supports_as_compressed_matrices
+    # must_perfectpredict = [(1, [0])]
+    # st_restricted = SupportTesting(parents_of,
+    #                                observed_cardinalities,
+    #                                3, pp_relations=must_perfectpredict)
+    # print("Method 1\n", st_raw.extract_support_matrices_satisfying_pprestrictions(
+    #     all_candidate_matrices,
+    #     must_perfectpredict)[:3])
+    # print("Method 2\n",
+    #       st_restricted.unique_candidate_supports_as_compressed_matrices[:3])
+    # print("Method 3\n",
+    #       list(SupportTesting.generate_supports_satisfying_pp_restriction(1, [0],
+    #                                                                  all_candidate_matrices))[:3])
+
+    parents_of_graph_a = ([4, 5], [0, 6], [1, 4, 6], [1, 2, 5])
+    parents_of_graph_c = ([4, 5], [0, 6], [1, 4], [1, 2, 5, 6])
+    observed_cardinalities = (3, 2, 2, 2)
+    st_raw = SupportTesting(parents_of_graph_c, observed_cardinalities, 7)
+    result = st_raw.attempt_to_find_one_infeasible_support(verbose=True)
+    print(result)
+
+
+
 
 
 

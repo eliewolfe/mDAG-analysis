@@ -1,15 +1,14 @@
 from __future__ import absolute_import
 import numpy as np
-import itertools
 from sys import hexversion
 if hexversion >= 0x3080000:
-    from functools import cached_property
+    pass
 elif hexversion >= 0x3060000:
-    from backports.cached_property import cached_property
+    pass
 else:
     cached_property = property
 
-import adjmat_utils
+import adjmat_class
 from scipy.sparse.csgraph import connected_components
 
 def closure_district_step(core_B, working_B, ds_adjmat, sc_adjmat, return_bidirectedQ=False):
@@ -24,12 +23,12 @@ def closure_district_step(core_B, working_B, ds_adjmat, sc_adjmat, return_bidire
         else:
             return working_B, (num_components==1)
     else:
-        new_ds_adjmat = adjmat_utils.subadjmat(ds_adjmat, new_working_B)
+        new_ds_adjmat = adjmat_class(ds_adjmat).subadjmat(new_working_B)
         # new_sc_adjmat = adjmat_utils.subadjmat(sc_adjmat, new_working_B)
         return closure_ancestors_step(core_B, new_working_B, new_ds_adjmat, sc_adjmat, num_components, return_bidirectedQ=return_bidirectedQ)
 
 def closure_ancestors_step(core_B, working_B, ds_adjmat, sc_adjmat, num_components, return_bidirectedQ=False):
-    new_working_B = adjmat_utils.ancestorsplus_of(ds_adjmat, core_B)
+    new_working_B = adjmat_class(ds_adjmat).ancestorsplus_of(core_B)
     assert len(working_B) >= len(new_working_B), "Candidate closure should never grow."
     if len(working_B) == len(new_working_B):
         if not return_bidirectedQ:
@@ -38,7 +37,7 @@ def closure_ancestors_step(core_B, working_B, ds_adjmat, sc_adjmat, num_componen
             return working_B, (num_components==1)
     else:
         # new_ds_adjmat = adjmat_utils.subadjmat(ds_adjmat, new_working_B)
-        new_sc_adjmat = adjmat_utils.subadjmat(sc_adjmat, new_working_B)
+        new_sc_adjmat = adjmat_class(sc_adjmat).subadjmat(new_working_B)
         return closure_district_step(core_B, new_working_B, ds_adjmat, new_sc_adjmat, return_bidirectedQ=return_bidirectedQ)
 
 

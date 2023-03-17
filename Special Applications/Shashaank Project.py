@@ -13,7 +13,7 @@ provably_boring_unique_unlabelled_ids = set(m.unique_unlabelled_id for m in prov
 print(f"Number of {n}-vis node unlabelled boring mDAGs: {len(provably_boring)}")
 potentially_interesting = [m for m in unlabelled_mDAGs if m.unique_unlabelled_id not in provably_boring_unique_unlabelled_ids]
 print(f"Number of {n}-vis node unlabelled potentially interesting mDAGs: {len(potentially_interesting)}")
-print(potentially_interesting)
+# print(potentially_interesting)
 print(f"**ALL FURTHER REDUCTIONS ARE PERFORMED ON THE SET OF POTENTIALLY INTERESTING mDAGs**")
 fundamental_unlabelled = [m for m in potentially_interesting if m.fundamental_graphQ]
 print(f"Number of {n}-vis node unlabelled fundamental mDAGs: {len(fundamental_unlabelled)}")
@@ -28,8 +28,8 @@ canonical_fundamental_unlabelled_after_esep_v2 = [m for m in canonical_fundament
 print(f"Remaining after applying Shashaank e-sep vs d-sep test: {len(canonical_fundamental_unlabelled_after_esep_v2)}")
 canonical_fundamental_unlabelled_after_esep_and_binary_supports_2_events = [
     m for m in canonical_fundamental_unlabelled_after_esep_v2 if m.no_infeasible_binary_supports_beyond_dsep_up_to(2)]
-print(f"Remaining after testing with supports [all HLP amenable]: {len(canonical_fundamental_unlabelled_after_esep_and_binary_supports_2_events)}")
-print(canonical_fundamental_unlabelled_after_esep_and_binary_supports_2_events)
+print(f"Remaining after testing with supports on 2 events: {len(canonical_fundamental_unlabelled_after_esep_and_binary_supports_2_events)}")
+
 
 print("\n\n NOW CONSIDERING 4 NODES \n")
 
@@ -49,9 +49,9 @@ potentially_interesting = set().union(*potentially_interesting_classes)
 print(f"Number of {n}-vis node unlabelled potentially interesting mDAGs: {len(potentially_interesting)}")
 print(f"**ALL FURTHER REDUCTIONS ARE PERFORMED ON THE SET OF POTENTIALLY INTERESTING mDAGs**")
 fundamental_unlabelled = [m for m in potentially_interesting if m.fundamental_graphQ]
-print(f"Number of {n}-vis node unlabelled fundamental mDAGs: {len(fundamental_unlabelled)}")
-canonical_unlabelled = [m for m in potentially_interesting if m.has_no_eventually_splittable_face]
-print(f"Number of {n}-vis node unlabelled canonical mDAGs: {len(canonical_unlabelled)}")
+# print(f"Number of {n}-vis node unlabelled fundamental mDAGs: {len(fundamental_unlabelled)}")
+# canonical_unlabelled = [m for m in potentially_interesting if m.has_no_eventually_splittable_face]
+# print(f"Number of {n}-vis node unlabelled canonical mDAGs: {len(canonical_unlabelled)}")
 canonical_fundamental_unlabelled = [m for m in fundamental_unlabelled if m.has_no_eventually_splittable_face]
 print(f"Number of {n}-vis node unlabelled fundamental canonical mDAGs: {len(canonical_fundamental_unlabelled)}")
 canonical_fundamental_unlabelled_after_esep_v2 = [m for m in canonical_fundamental_unlabelled if not m.interesting_via_e_sep_theorem]
@@ -61,8 +61,17 @@ canonical_fundamental_unlabelled_after_esep_v2 = [m for m in canonical_fundament
 print(f"Remaining after applying Shashaank e-sep vs d-sep test: {len(canonical_fundamental_unlabelled_after_esep_v2)}")
 canonical_fundamental_unlabelled_after_esep_and_binary_supports_2_events = [
     m for m in canonical_fundamental_unlabelled_after_esep_v2 if m.no_infeasible_binary_supports_beyond_dsep_up_to(2)]
-print(f"Remaining after testing with supports: {len(canonical_fundamental_unlabelled_after_esep_and_binary_supports_2_events)}")
-print(canonical_fundamental_unlabelled_after_esep_and_binary_supports_2_events)
+print(f"Remaining after testing with supports up to 2: {len(canonical_fundamental_unlabelled_after_esep_and_binary_supports_2_events)}")
+# print(canonical_fundamental_unlabelled_after_esep_and_binary_supports_2_events)
+canonical_fundamental_unlabelled_after_esep_and_binary_supports_4_events = [
+    m for m in canonical_fundamental_unlabelled_after_esep_and_binary_supports_2_events if m.no_infeasible_binary_supports_beyond_dsep_up_to(4)]
+print(f"Remaining after testing with supports up to 4: {len(canonical_fundamental_unlabelled_after_esep_and_binary_supports_4_events)}")
+# print(canonical_fundamental_unlabelled_after_esep_and_binary_supports_4_events)
+from the_7_hard_graphs import the_7_hard_graphs
+print("If everything works correctly, we should have just the 7 hard graphs and the Bell DAG leftover.")
+print(set(canonical_fundamental_unlabelled_after_esep_and_binary_supports_4_events).difference(the_7_hard_graphs))
+print("Yup!")
+
 
 #
 # n=4
