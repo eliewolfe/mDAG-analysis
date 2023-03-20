@@ -137,7 +137,8 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def dict_id_to_canonical_id(self):
-        print("Computing canonical (unlabelled) graphs...", flush=True)
+        if self.verbose:
+            print("Computing canonical (unlabelled) graphs...", flush=True)
         return {mdag.unique_id: mdag.unique_unlabelled_id for mdag in self.all_labelled_mDAGs}
 
 
