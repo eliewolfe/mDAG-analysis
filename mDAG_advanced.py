@@ -259,6 +259,10 @@ class mDAG:
     def all_CI_numeric(self):
         return set(self._all_CI_generator_numeric)
 
+    @cached_property
+    def CI_count(self):
+        return len(self.all_CI_numeric)
+
     def _all_CI_like_unlabelled_generator(self, attribute):
         for perm in itertools.permutations(self.visible_nodes):
             yield self.fake_frozenset(
@@ -530,17 +534,17 @@ class mDAG:
     def singleton_predecessors(self, x):
         return partsextractor(self.all_parentsplus_list, x)
     
-    def singleton_visible_predecessors(self,x):
+    def singleton_visible_predecessors(self, x):
         return partsextractor(self.directed_structure_instance.observable_parentsplus_list, x)
 
-    def children(self,node):
-        c=[]
+    def children(self, node):
+        c = []
         for v in self.visible_nodes:
-            if node in self.singleton_visible_predecessors(v) and node!=v:
+            if node in self.singleton_visible_predecessors(v) and node != v:
                 c.append(v)
         return c
         
-    def descendants(self,node):
+    def descendants(self, node):
         return nx.descendants(self.as_graph, node)
 
     @cached_property
@@ -652,7 +656,8 @@ class mDAG:
         for s in self.simplicial_complex_instance.compressed_simplicial_complex:
             simp_complex.append(tuple(s))
         candidates = [(C, D) for C, D in candidates if
-                      all(self.set_visible_predecessors(C).issubset(self.singleton_visible_predecessors(d)) for d in D) and all(c not in itertools.chain.from_iterable(set(simp_complex)-{tuple(set(C)|set(D))}) for c in C)]  
+                      all(self.set_visible_predecessors(C).issubset(self.singleton_visible_predecessors(d)) for d in D) and
+                      all(c not in itertools.chain.from_iterable(set(simp_complex)-{tuple(set(C)|set(D))}) for c in C)]
         # print(candidates)
         return candidates
     

@@ -156,6 +156,12 @@ class Observable_unlabelled_mDAGs:
 
     def lookup_mDAG(self, indices):
         return partsextractor(self.dict_ind_unlabelled_mDAGs, indices)
+    @cached_property
+    def dict_labelled_to_unlabelled_mDAGs(self):
+        return {mdag: self.lookup_mDAG(mdag.unique_unlabelled_id) for mdag in self.all_labelled_mDAGs}
+
+    def convert_to_unlabelled(self, mdags):
+        return partsextractor(self.dict_labelled_to_unlabelled_mDAGs, mdags)
 
     @property
     def all_unlabelled_mDAGs(self):
@@ -163,6 +169,7 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def all_unlabelled_mDAGs_faster(self):
+        "Warning: This function returns mDAGs who's id does not match unique_id."
         d = defaultdict(list)
         for ds in self.all_unlabelled_directed_structures:
             for sc in self.all_simplicial_complices:
@@ -171,74 +178,92 @@ class Observable_unlabelled_mDAGs:
         return tuple(next(iter(eqclass)) for eqclass in d.values())
 
     @cached_property
+    def latent_free_DAGs_unlabelled(self):
+        empty_sc = Hypergraph([], self.n)
+        return set([mDAG(ds, empty_sc) for ds in self.all_unlabelled_directed_structures])
+
+    @cached_property
+    def latent_free_DAGs_labelled(self):
+        empty_sc = Hypergraph([], self.n)
+        return set([mDAG(ds, empty_sc) for ds in self.all_directed_structures])
+
+    @cached_property
     def latent_free_CI_patterns(self):
-        recognized_CI_patterns = set()
-        for ds in self.all_unlabelled_directed_structures:
-            recognized_CI_patterns.add(mDAG(ds, Hypergraph([], self.n)).all_CI_unlabelled)
-        return recognized_CI_patterns
+        recognized_patterns = set()
+        for m in self.latent_free_DAGs_unlabelled:
+            recognized_patterns.add(m.all_CI_unlabelled)
+        return recognized_patterns
 
     @cached_property
     def latent_free_esep_patterns(self):
-        recognized_esep_patterns = set()
-        for ds in self.all_unlabelled_directed_structures:
-            recognized_esep_patterns.add(
-                mDAG(ds, Hypergraph([], self.n)).all_esep_unlabelled)
-        return recognized_esep_patterns
+        recognized_patterns = set()
+        for m in self.latent_free_DAGs_unlabelled:
+            recognized_patterns.add(m.all_esep_unlabelled)
+        return recognized_patterns
 
     @cached_property
     def latent_free_esep_plus_patterns(self):
         recognized_patterns = set()
-        for ds in self.all_unlabelled_directed_structures:
-            recognized_patterns.add(
-                mDAG(ds, Hypergraph([], self.n)).all_esep_plus_unlabelled)
+        for m in self.latent_free_DAGs_unlabelled:
+            recognized_patterns.add(m.all_esep_plus_unlabelled)
         return recognized_patterns
 
-    @cached_property
-    def all_unlabelled_mDAGs_latent_free_equivalent(self):
-        pass_count = 0
-        known_collection_dict = dict()
-        recently_discovered_latent_free = set([mDAG(ds, Hypergraph([], self.n)) for ds in self.all_unlabelled_directed_structures])
-        while len(recently_discovered_latent_free) > 0:
-            previously_discovered = recently_discovered_latent_free.copy()
-            known_collection_dict.update({m.unique_unlabelled_id: m for m in previously_discovered})
-            print(f"Pass #{pass_count+1}, Boring count: {len(known_collection_dict)}")
-            #STEP ONE: INCREASE LATENT POWER
-            after_adding_latents = dict()
-            for m in previously_discovered:
-                ds = m.directed_structure_instance
-                orig_sc = m.simplicial_complex_instance
-                CI_count = len(m.all_CI)
-                for sc in self.all_simplicial_complices:
-                    if sc.is_S1_strictly_above_S2(orig_sc):
-                        m2 = mDAG(ds, sc)
-                        if len(m2.all_CI) == CI_count:  # That is, no loss of CI relations
-                            after_adding_latents[m2.unique_unlabelled_id] = m2
-            #STEP TWO: DROP DIRECTED EDGES SAFELY
-            recently_discovered_latent_free_dict = after_adding_latents.copy()
-            for m in after_adding_latents.values():
-                # orig_ds = m.directed_structure_instance
-                # orig_sc = m.simplicial_complex_instance
-                # CI_count = len(m.all_CI)
-                for m_equiv in m.equivalent_under_edge_dropping:
-                    recently_discovered_latent_free_dict[m_equiv.unique_unlabelled_id] = m_equiv
-                    # for ds_stronger in self.all_unlabelled_directed_structures:
-                    #     if ds_stronger.is_D1_strictly_above_D2(orig_ds):
-                    #         m2 = mDAG(ds_stronger, orig_sc)
-                    #         if len(m2.all_CI) == CI_count:
-                    #             recently_discovered_latent_free_dict[
-                    #                 m2.unique_unlabelled_id] = m2
-
-            recently_discovered_latent_free = set(m for (k, m) in recently_discovered_latent_free_dict.items()
-                                                  if k not in known_collection_dict.keys())
-            pass_count += 1
-        # print("Most recently discovered: ", previously_discovered)
-        return set(known_collection_dict.values())
-        #
-        # print("Hardest to infer boring: ",hardest_to_infer)
-        # d = defaultdict(list)
-        # for m in new_collection:
-        #     d[m.unique_unlabelled_id].append(m)
-        # return tuple(next(iter(eqclass)) for eqclass in d.values())
+    # @cached_property
+    # def all_unlabelled_mDAGs_latent_free_equivalent(self):
+    #     pass_count = 0
+    #     known_collection_dict = dict()
+    #     recently_discovered_latent_free = set(self.convert_to_unlabelled([mDAG(ds, Hypergraph([], self.n)) for ds in self.all_unlabelled_directed_structures]))
+    #     while len(recently_discovered_latent_free) > 0:
+    #         previously_discovered = recently_discovered_latent_free.copy()
+    #         known_collection_dict.update({m.unique_unlabelled_id: m for m in previously_discovered})
+    #         print(f"Pass #{pass_count+1}, Boring count: {len(known_collection_dict)}")
+    #         #STEP ONE: INCREASE LATENT POWER
+    #         after_adding_latents = dict()
+    #         for m in previously_discovered:
+    #             ds = m.directed_structure_instance
+    #             orig_sc = m.simplicial_complex_instance
+    #             CI_count = len(m.all_CI)
+    #             for sc in self.all_simplicial_complices:
+    #                 if sc.is_S1_strictly_above_S2(orig_sc):
+    #                     m2 = mDAG(ds, sc)
+    #                     if m2.unique_unlabelled_id not in known_collection_dict.keys():
+    #                         if len(m2.all_CI) == CI_count:  # That is, no loss of CI relations
+    #                             after_adding_latents[m2.unique_unlabelled_id] = self.convert_to_unlabelled(m2)
+    #         #STEP TWO: DROP DIRECTED EDGES SAFELY
+    #         recently_discovered_latent_free_dict = after_adding_latents.copy()
+    #         for i, m in enumerate(after_adding_latents.values()):
+    #             # print(f"Now trying to expand discovery on mDAG #{i} of {len(after_adding_latents)}, namely, {m}")
+    #             newly_discovered_for_this_sc_dict = {m.unique_unlabelled_id: m}
+    #             while len(newly_discovered_for_this_sc_dict) > 0:
+    #                 # print("Recently discovered: ", newly_discovered_for_this_sc_dict)
+    #                 previously_discovered = newly_discovered_for_this_sc_dict.copy()
+    #                 newly_discovered_for_this_sc_dict = dict()
+    #                 orig_ds = m.directed_structure_instance
+    #                 orig_sc = m.simplicial_complex_instance
+    #                 CI_count = len(m.all_CI)
+    #                 for m_equiv in set(self.convert_to_unlabelled(m.equivalent_under_edge_dropping)).difference(recently_discovered_latent_free_dict.values()):
+    #                     m_equiv_unlabelled = self.convert_to_unlabelled(m_equiv)
+    #                     newly_discovered_for_this_sc_dict[m_equiv_unlabelled.unique_id] = m_equiv_unlabelled
+    #                     recently_discovered_latent_free_dict[m_equiv_unlabelled.unique_id] = m_equiv_unlabelled
+    #                     for ds_stronger in self.all_directed_structures:  # IDEA: CANNOT RELY ON ONLY UNLABELLED DAGS!
+    #                         if ds_stronger.is_D1_strictly_above_D2(orig_ds):
+    #                             m2 = mDAG(ds_stronger, orig_sc)
+    #                             m2_unlabelled = self.convert_to_unlabelled(m2)
+    #                             if m2_unlabelled.unique_id not in recently_discovered_latent_free_dict.keys():
+    #                                 if len(m2_unlabelled.all_CI) == CI_count:
+    #                                     newly_discovered_for_this_sc_dict[m2_unlabelled.unique_id] = self.convert_to_unlabelled(m2_unlabelled)
+    #                                     recently_discovered_latent_free_dict[m2_unlabelled.unique_id] = self.convert_to_unlabelled(m2_unlabelled)
+    #         recently_discovered_latent_free = set(m for (k, m) in recently_discovered_latent_free_dict.items()
+    #                                               if k not in known_collection_dict.keys())
+    #         pass_count += 1
+    #     # print("Most recently discovered: ", previously_discovered)
+    #     return set(known_collection_dict.values())
+    #     #
+    #     # print("Hardest to infer boring: ",hardest_to_infer)
+    #     # d = defaultdict(list)
+    #     # for m in new_collection:
+    #     #     d[m.unique_unlabelled_id].append(m)
+    #     # return tuple(next(iter(eqclass)) for eqclass in d.values())
 
     @cached_property
     def meta_graph_nodes(self):
@@ -266,6 +291,25 @@ class Observable_unlabelled_mDAGs:
         for d in  map(lambda ds: ds.as_integer, self.all_unlabelled_directed_structures):
             for h1, h2 in self.hypergraph_dominances:
                 yield (self.mdag_int_pair_to_canonical_int(h1, d), self.mdag_int_pair_to_canonical_int(h2, d))
+
+    @property
+    def boring_dominances(self):
+        for h in map(lambda sc: sc.as_integer, self.all_simplicial_complices):
+            for d1, d2 in self.directed_dominances:
+                strong_int = self.mdag_int_pair_to_canonical_int(h, d1)
+                weak_int = self.mdag_int_pair_to_canonical_int(h, d2)
+                strong_mDAG = self.lookup_mDAG(strong_int)
+                weak_mDAG = self.lookup_mDAG(weak_int)
+                if strong_mDAG.CI_count == weak_mDAG.CI_count:
+                    yield (strong_int, weak_int)
+        for d in  map(lambda ds: ds.as_integer, self.all_unlabelled_directed_structures):
+            for h1, h2 in self.hypergraph_dominances:
+                strong_int = self.mdag_int_pair_to_canonical_int(h1, d)
+                weak_int = self.mdag_int_pair_to_canonical_int(h2, d)
+                strong_mDAG = self.lookup_mDAG(strong_int)
+                weak_mDAG = self.lookup_mDAG(weak_int)
+                if strong_mDAG.CI_count == weak_mDAG.CI_count:
+                    yield (strong_int, weak_int)
 
     @property
     def dominates_latent_free_with_invariant_CI_edges(self):
@@ -303,33 +347,34 @@ class Observable_unlabelled_mDAGs:
         
 
     @cached_property
-    def meta_graph(self):
+    def HLP_meta_graph(self):
         g = nx.DiGraph()
         g.add_nodes_from(self.meta_graph_nodes)
         if self.verbose:
             print('Adding dominance relations...', flush=True)
-        g.add_edges_from(self.unlabelled_dominances)
+        g.add_edges_from(self.boring_dominances)
         edge_count = g.number_of_edges()
-
-        # print('Adding latent-free equivalence relations', flush=True)
-        # g.add_edges_from(self.dominates_latent_free_with_invariant_CI_edges)
-        # new_edge_count =  g.number_of_edges()
-        # print('Number of latent-free equivalence relations added: ', new_edge_count-edge_count)
-        # edge_count = new_edge_count
         if self.verbose:
             print('Adding HLP equivalence relations...', flush=True)
         g.add_edges_from(self.HLP_edges)
         new_edge_count =  g.number_of_edges()
         if self.verbose:
             print('Number of HLP equivalence relations added: ', new_edge_count-edge_count)
-        edge_count = new_edge_count
+        if self.verbose:
+            print('HLP Metagraph has been constructed. Total edge count: ', g.number_of_edges(), flush=True)
+        return g
+
+    @cached_property
+    def meta_graph(self):
+        g = self.HLP_meta_graph.copy()
+        edge_count = g.number_of_edges()
         if self.verbose:
             print('Adding FaceSplitting equivalence relations...', flush=True)
         g.add_edges_from(self.FaceSplitting_edges)
         new_edge_count = g.number_of_edges()
         if self.verbose:
             print('Number of FaceSplitting equivalence relations added: ', new_edge_count - edge_count)
-            print('Metagraph has been constructed. Total edge count: ', g.number_of_edges(), flush=True)
+            print('Full metagraph has been constructed. Total edge count: ', g.number_of_edges(), flush=True)
         return g
 
 
@@ -356,8 +401,6 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def latent_free_eqclasses(self):
-        # return list(filter(lambda eqclass: all(mdag.fundamental_graphQ for mdag in eqclass),
-        #                    self.equivalence_classes_as_mDAGs))
         return [eqclass for eqclass,latent_free_Q in
                 zip(self.equivalence_classes_as_mDAGs, self.latent_free_eqclasses_picklist) if latent_free_Q]
     
