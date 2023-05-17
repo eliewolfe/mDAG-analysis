@@ -39,7 +39,7 @@ print(f"Number of {n}-vis node unlabelled mDAGs unresolved by e-sep or HLP: {len
 still_remaining_after_supports_on_two_events = set([m for m in unresolved_by_esep_or_HLP if m.no_infeasible_binary_supports_beyond_dsep_up_to(2)])
 print(f"Remaining after testing with supports up to 2: {len(still_remaining_after_supports_on_two_events)}")
 still_remaining_after_supports_on_three_events = set([m for m in unresolved_by_esep_or_HLP if m.no_infeasible_binary_supports_beyond_dsep_up_to(3)])
-print(f"Remaining after testing with supports up to 2: {len(still_remaining_after_supports_on_three_events)}")
+print(f"Remaining after testing with supports up to 3: {len(still_remaining_after_supports_on_three_events)}")
 still_remaining_after_supports_on_four_events = set([m for m in still_remaining_after_supports_on_three_events if m.no_infeasible_binary_supports_beyond_dsep_up_to(4)])
 print(f"Remaining after testing with supports up to 4: {len(still_remaining_after_supports_on_four_events)}")
 
@@ -73,6 +73,8 @@ unresolved_by_Shaashank = set([m for m in unlabelled_mDAGs if not m.interesting_
 print(f"Number of {n}-vis node unlabelled mDAGs not resolved by Shaashank's theorem: {len(unresolved_by_Shaashank)}")
 unresolved_by_Shaashank_or_HLP = set(potentially_interesting_after_HLP).intersection(unresolved_by_Shaashank)
 print(f"Number of {n}-vis node unlabelled mDAGs unresolved by Shaashank's theorem or HLP: {len(unresolved_by_Shaashank_or_HLP)}")
+unresolved_by_Shaashank_or_HLP_or_dsep = set(unresolved_by_CI_or_HLP).intersection(unresolved_by_Shaashank)
+print(f"Number of {n}-vis node unlabelled mDAGs unresolved by Shaashank's theorem or HLP or d-sep: {len(unresolved_by_Shaashank_or_HLP_or_dsep)}")
 
 unresolved_by_esep = set([m for m in unlabelled_mDAGs if m.all_esep_unlabelled in metagraph.latent_free_esep_patterns])
 print(f"Number of {n}-vis node unlabelled mDAGs not resolved by e-sep: {len(unresolved_by_esep)}")
@@ -84,6 +86,6 @@ print(f"Number of {n}-vis node unlabelled mDAGs unresolved by e-sep or HLP: {len
 still_remaining_after_supports_on_two_events = set([m for m in unresolved_by_esep_or_HLP if m.no_infeasible_binary_supports_beyond_dsep_up_to(2)])
 print(f"Remaining after testing with supports up to 2: {len(still_remaining_after_supports_on_two_events)}")
 still_remaining_after_supports_on_three_events = set([m for m in unresolved_by_esep_or_HLP if m.no_infeasible_binary_supports_beyond_dsep_up_to(3)])
-print(f"Remaining after testing with supports up to 2: {len(still_remaining_after_supports_on_three_events)}")
+print(f"Remaining after testing with supports up to 3: {len(still_remaining_after_supports_on_three_events)}")
 still_remaining_after_supports_on_four_events = set([m for m in still_remaining_after_supports_on_three_events if m.no_infeasible_binary_supports_beyond_dsep_up_to(4)])
 print(f"Remaining after testing with supports up to 4: {len(still_remaining_after_supports_on_four_events)}")
