@@ -187,6 +187,18 @@ class Observable_unlabelled_mDAGs:
         empty_sc = Hypergraph([], self.n)
         return set([mDAG(ds, empty_sc) for ds in self.all_directed_structures])
 
+    # @cached_property
+    # def latent_free_DAG_ids(self):
+    #     return set([m.unique_id for m in self.latent_free_DAGs_unlabelled])
+
+    @cached_property
+    def latent_free_DAG_ids_and_CI_unlabelled(self):
+        return {m.unique_unlabelled_id: m.all_CI_unlabelled for m in self.latent_free_DAGs_unlabelled}
+
+    @cached_property
+    def latent_free_DAG_ids_and_CI_labelled(self):
+        return {m.unique_id: m.all_CI for m in self.latent_free_DAGs}
+
     @cached_property
     def latent_free_CI_patterns(self):
         recognized_patterns = set()
@@ -311,27 +323,27 @@ class Observable_unlabelled_mDAGs:
                 if strong_mDAG.CI_count == weak_mDAG.CI_count:
                     yield (strong_int, weak_int)
 
-    @property
-    def dominates_latent_free_with_invariant_CI_edges(self):
-        print("All simplicial complices:", self.all_simplicial_complices)
-        latent_free = self.all_simplicial_complices[0]
-        latent_free_as_int = latent_free.as_integer
-        non_latent_free = self.all_simplicial_complices[1:]
-        for D1, D2 in itertools.permutations(self.all_directed_structures, 2):
-            if D1.can_D1_minimally_simulate_D2(D2):
-                mdag1 = mDAG(D1, latent_free)
-                mdag2 = mDAG(D2, latent_free)
-                if mdag1.all_CI == mdag2.all_CI:
-                    yield (self.mdag_int_pair_to_canonical_int(latent_free_as_int, D2.as_integer),
-                           self.mdag_int_pair_to_canonical_int(latent_free_as_int, D1.as_integer))
-        for ds in self.all_unlabelled_directed_structures:
-            ds_as_int = ds.as_integer
-            mdag2 = mDAG(ds, latent_free)
-            for S_strong in non_latent_free:
-                mdag1 = mDAG(ds, S_strong)
-                if mdag1.all_CI == mdag2.all_CI:
-                    yield (self.mdag_int_pair_to_canonical_int(latent_free_as_int, ds_as_int),
-                           self.mdag_int_pair_to_canonical_int(S_strong.as_integer, ds_as_int))
+    # @property
+    # def dominates_latent_free_with_invariant_CI_edges(self):
+    #     print("All simplicial complices:", self.all_simplicial_complices)
+    #     latent_free = self.all_simplicial_complices[0]
+    #     latent_free_as_int = latent_free.as_integer
+    #     non_latent_free = self.all_simplicial_complices[1:]
+    #     for D1, D2 in itertools.permutations(self.all_directed_structures, 2):
+    #         if D1.can_D1_minimally_simulate_D2(D2):
+    #             mdag1 = mDAG(D1, latent_free)
+    #             mdag2 = mDAG(D2, latent_free)
+    #             if mdag1.all_CI == mdag2.all_CI:
+    #                 yield (self.mdag_int_pair_to_canonical_int(latent_free_as_int, D2.as_integer),
+    #                        self.mdag_int_pair_to_canonical_int(latent_free_as_int, D1.as_integer))
+    #     for ds in self.all_unlabelled_directed_structures:
+    #         ds_as_int = ds.as_integer
+    #         mdag2 = mDAG(ds, latent_free)
+    #         for S_strong in non_latent_free:
+    #             mdag1 = mDAG(ds, S_strong)
+    #             if mdag1.all_CI == mdag2.all_CI:
+    #                 yield (self.mdag_int_pair_to_canonical_int(latent_free_as_int, ds_as_int),
+    #                        self.mdag_int_pair_to_canonical_int(S_strong.as_integer, ds_as_int))
 
     @property
     def HLP_edges(self):
@@ -363,6 +375,18 @@ class Observable_unlabelled_mDAGs:
         if self.verbose:
             print('HLP Metagraph has been constructed. Total edge count: ', g.number_of_edges(), flush=True)
         return g
+
+    @cached_property
+    def boring_by_virtue_of_HLP(self):
+        proven_boring = set()
+        for lf_id, lf_CI in self.latent_free_DAG_ids_and_CI_unlabelled.items():
+            # print(f"Processing LF {self.dict_ind_unlabelled_mDAGs[lf_id]}")
+            dominated_by_LF = sorted(nx.ancestors(self.HLP_meta_graph, lf_id) | {lf_id})
+            dominated_by_LF = [self.dict_ind_unlabelled_mDAGs[m] for m in dominated_by_LF]
+            # print(f"Dominated by it: {dominated_by_LF}")
+            dominated_by_LF = [m for m in dominated_by_LF if m.all_CI_unlabelled==lf_CI]
+            proven_boring.update(dominated_by_LF)
+        return proven_boring
 
     @cached_property
     def meta_graph(self):
@@ -657,8 +681,10 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
 
 if __name__ == '__main__':
     # Observable_mDAGs2 = Observable_mDAGs_Analysis(nof_observed_variables=2, max_nof_events_for_supports=0)
-    #Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
-    Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
+    # Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
+    # Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
+    metagraph_class_instance = Observable_unlabelled_mDAGs(3, fully_foundational=False, verbose=False)
+    print(metagraph_class_instance.boring_by_virtue_of_HLP)
 
 
 
