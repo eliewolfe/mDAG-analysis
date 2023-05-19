@@ -256,6 +256,10 @@ class mDAG:
         return discovered_pairs
 
     @cached_property
+    def d_unseparable_pairs(self):
+        return set(itertools.combinations(self.visible_nodes, 2)).difference(self.d_separable_pairs)
+
+    @cached_property
     def all_CI_numeric(self):
         return set(self._all_CI_generator_numeric)
 
@@ -312,22 +316,22 @@ class mDAG:
     def all_esep_unlabelled(self):
         return min(self._all_CI_like_unlabelled_generator('all_esep_numeric'))
 
-    @property
-    def _e_separable_pairs(self):
-        for to_delete in itertools.combinations(self.visible_nodes, self.number_of_visible-2):
-            graph_copy = self.as_graph.copy()  # Don't forget to copy!
-            graph_copy.remove_nodes_from(to_delete)
-            remaining = set(self.visible_nodes).difference(to_delete)
-            for x, y, Z in self._all_2_vs_any_partitions(tuple(remaining)):
-                if nx.d_separated(graph_copy, {x}, {y}, set(Z)):
-                    yield self.fake_frozenset([x, y])
+    # @property
+    # def _e_separable_pairs(self):
+    #     for to_delete in itertools.combinations(self.visible_nodes, self.number_of_visible-2):
+    #         graph_copy = self.as_graph.copy()  # Don't forget to copy!
+    #         graph_copy.remove_nodes_from(to_delete)
+    #         remaining = set(self.visible_nodes).difference(to_delete)
+    #         for x, y, Z in self._all_2_vs_any_partitions(tuple(remaining)):
+    #             if nx.d_separated(graph_copy, {x}, {y}, set(Z)):
+    #                 yield self.fake_frozenset([x, y])
     @cached_property
     def e_separable_pairs(self):
-        return set(self._e_separable_pairs)
+        return set(itertools.combinations(self.visible_nodes, 2)).difference(self.skeleton_instance.as_edges)
 
     @cached_property
     def interesting_via_e_sep_theorem(self):
-        return len(self.e_separable_pairs.difference(self.d_separable_pairs)) > 0
+        return not self.d_unseparable_pairs.issubset(self.skeleton_instance.as_edges)
 
     # @methodtools.lru_cache(maxsize=None, typed=False)
     # def support_testing_instance(self, n):
