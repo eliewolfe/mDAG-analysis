@@ -310,6 +310,11 @@ class Observable_unlabelled_mDAGs:
                 S1.can_S1_minimally_simulate_S2(S2)]
 
     @property
+    def hypergraph_strong_dominances(self):
+        return [(S1.as_integer, S2.as_integer) for S1, S2 in itertools.permutations(self.all_simplicial_complices, 2) if
+                S1.are_S1_facets_one_more_than_S2_facets(S2)]
+
+    @property
     def directed_dominances(self):
         # return [(D1.as_integer, D2.as_integer) for D1, D2 in itertools.permutations(self.all_unlabelled_directed_structures, 2) if
         #         D1.can_D1_minimally_simulate_D2(D2)]
@@ -338,6 +343,7 @@ class Observable_unlabelled_mDAGs:
                     yield (strong_int, weak_int)
         for d in  map(lambda ds: ds.as_integer, self.all_unlabelled_directed_structures):
             for h1, h2 in self.hypergraph_dominances:
+            # for h1, h2 in self.hypergraph_strong_dominances:
                 strong_int = self.mdag_int_pair_to_canonical_int(h1, d)
                 weak_int = self.mdag_int_pair_to_canonical_int(h2, d)
                 strong_mDAG = self.lookup_mDAG(strong_int)

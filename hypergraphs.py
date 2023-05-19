@@ -181,6 +181,12 @@ class Hypergraph:
                 break
         return so_far_so_good
 
+    def are_S1_facets_one_more_than_S2_facets(S1, S2):
+        if S1.simplicial_complex_as_sets.issuperset(S2.simplicial_complex_as_sets):
+            if S1.number_of_nonsingleton_latent == S2.number_of_nonsingleton_latent + 1:
+                return True
+        return False
+
     def is_S1_strictly_above_S2(S1, S2):
         """
         S1 and S2 are simplicial complices, in our data structure as lists of tuples.
