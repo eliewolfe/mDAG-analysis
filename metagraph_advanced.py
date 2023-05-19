@@ -26,6 +26,7 @@ from hypergraphs import Hypergraph, LabelledHypergraph
 from directed_structures import DirectedStructure, LabelledDirectedStructure
 from mDAG_advanced import mDAG
 from functools import lru_cache
+from supports import explore_candidates
 
 # @lru_cache(maxsize=None)
 # def mDAG(directed_structure_instance, simplicial_complex_instance):
@@ -71,7 +72,9 @@ def multiple_classifications(*args):
     return list(filter(None, itertools.starmap(set.intersection, itertools.product(*args))))
 
 class Observable_unlabelled_mDAGs:
-    def __init__(self, n, fully_foundational=False, verbose=True):
+    def __init__(self, n: int,
+                 fully_foundational=False,
+                 verbose=True):
         """
         Parameters
         ----------
@@ -84,6 +87,7 @@ class Observable_unlabelled_mDAGs:
         self.sort_by_length = lambda s: sorted(s, key=len)
         self.fully_foundational = fully_foundational
         self.verbose = verbose
+        self.experimental_speedup = False
 
     @cached_property
     def all_directed_structures(self):
@@ -96,7 +100,9 @@ class Observable_unlabelled_mDAGs:
     @cached_property
     def all_unlabelled_directed_structures(self):
         d = defaultdict(list)
-        for ds in self.all_directed_structures:
+        for ds in explore_candidates(self.all_directed_structures,
+                                     verbose=False,
+                                     message="Iterating over directed structures."):
             d[ds.as_unlabelled_integer].append(ds)
         return tuple(next(iter(eqclass)) for eqclass in d.values())
         # return [ds for ds in excessive_unlabelled_directed_structures
@@ -133,13 +139,25 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def all_labelled_mDAGs(self):
-        return [mDAG(ds, sc) for sc in self.all_simplicial_complices for ds in self.all_directed_structures]
+        if self.experimental_speedup:
+            return self.most_labelled_mDAGs
+        else:
+            return [mDAG(ds, sc) for sc, ds in itertools.product(self.all_simplicial_complices,
+                                                                 self.all_directed_structures)]
+
+    @cached_property
+    def most_labelled_mDAGs(self):
+        return [mDAG(ds, sc) for sc, ds in itertools.product(self.all_simplicial_complices,
+                                                             self.all_unlabelled_directed_structures)]
 
     @cached_property
     def dict_id_to_canonical_id(self):
-        if self.verbose:
-            print("Computing canonical (unlabelled) graphs...", flush=True)
-        return {mdag.unique_id: mdag.unique_unlabelled_id for mdag in self.all_labelled_mDAGs}
+        # if self.verbose:
+        #     print("Dictionary creations: mDAG ids to unlabelled ids...", flush=True)
+        return {mdag.unique_id: mdag.unique_unlabelled_id for mdag in
+                explore_candidates(self.all_labelled_mDAGs,
+                                   verbose=False,
+                                   message="mDAG ids to unlabelled id")}
 
 
     def mdag_int_pair_to_single_int(self, sc_int, ds_int):
@@ -152,7 +170,13 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def dict_ind_unlabelled_mDAGs(self):
-        return {mdag.unique_unlabelled_id: mdag for mdag in self.all_labelled_mDAGs}
+        # if self.verbose:
+        #     print("Dictionary creations: ids to mDAGs", flush=True)
+        return {mdag.unique_unlabelled_id: mdag for mdag in explore_candidates(
+            self.all_labelled_mDAGs,
+            verbose=self.verbose,
+            message="Mapping unlabelled ids to mDAGs"
+        )}
 
     def lookup_mDAG(self, indices):
         return partsextractor(self.dict_ind_unlabelled_mDAGs, indices)
@@ -171,10 +195,8 @@ class Observable_unlabelled_mDAGs:
     def all_unlabelled_mDAGs_faster(self):
         "Warning: This function returns mDAGs who's id does not match unique_id."
         d = defaultdict(list)
-        for ds in self.all_unlabelled_directed_structures:
-            for sc in self.all_simplicial_complices:
-                mdag = mDAG(ds, sc)
-                d[mdag.unique_unlabelled_id].append(mdag)
+        for mdag in self.most_labelled_mDAGs:
+            d[mdag.unique_unlabelled_id].append(mdag)
         return tuple(next(iter(eqclass)) for eqclass in d.values())
 
     @cached_property
@@ -364,27 +386,31 @@ class Observable_unlabelled_mDAGs:
         g.add_nodes_from(self.meta_graph_nodes)
         if self.verbose:
             print('Adding dominance relations...', flush=True)
-        g.add_edges_from(self.boring_dominances)
+        # g.add_edges_from(self.boring_dominances)
+        g.add_edges_from(self.unlabelled_dominances)
         edge_count = g.number_of_edges()
         if self.verbose:
             print('Adding HLP equivalence relations...', flush=True)
         g.add_edges_from(self.HLP_edges)
         new_edge_count =  g.number_of_edges()
-        if self.verbose:
-            print('Number of HLP equivalence relations added: ', new_edge_count-edge_count)
-        if self.verbose:
-            print('HLP Metagraph has been constructed. Total edge count: ', g.number_of_edges(), flush=True)
+        # if self.verbose:
+        #     print('Number of HLP equivalence relations added: ', new_edge_count-edge_count)
+        # if self.verbose:
+        #     print('HLP Metagraph has been constructed. Total edge count: ', g.number_of_edges(), flush=True)
         return g
 
     @cached_property
     def boring_by_virtue_of_HLP(self):
+        HLP_meta_graph = self.HLP_meta_graph
         proven_boring = set()
-        for lf_id, lf_CI in self.latent_free_DAG_ids_and_CI_unlabelled.items():
+        for lf_id, lf_CI in explore_candidates(self.latent_free_DAG_ids_and_CI_unlabelled.items(),
+                                               verbose=self.verbose,
+                                               message="Running HLP in reverse"):
             # print(f"Processing LF {self.dict_ind_unlabelled_mDAGs[lf_id]}")
-            ids_dominated_by_LF = sorted(nx.ancestors(self.HLP_meta_graph, lf_id) | {lf_id})
+            ids_dominated_by_LF = sorted(nx.ancestors(HLP_meta_graph, lf_id) | {lf_id})
             dominated_by_LF = [self.dict_ind_unlabelled_mDAGs[m] for m in ids_dominated_by_LF]
             # print(f"Dominated by it: {dominated_by_LF}")
-            # dominated_by_LF = [m for m in dominated_by_LF if m.all_CI_unlabelled==lf_CI]
+            dominated_by_LF = [m for m in dominated_by_LF if m.all_CI_unlabelled==lf_CI]
             proven_boring.update(dominated_by_LF)
         return proven_boring
 
