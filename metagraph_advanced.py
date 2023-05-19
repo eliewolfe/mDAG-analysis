@@ -215,11 +215,17 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def latent_free_DAG_ids_and_CI_unlabelled(self):
-        return {m.unique_unlabelled_id: m.all_CI_unlabelled for m in self.latent_free_DAGs_unlabelled}
+        return {m.unique_unlabelled_id: m.all_CI_unlabelled for m in sorted(
+            self.latent_free_DAGs_unlabelled,
+            key=lambda m: m.CI_count,
+            reverse=False)}
 
     @cached_property
     def latent_free_DAG_ids_and_CI_labelled(self):
-        return {m.unique_id: m.all_CI for m in self.latent_free_DAGs}
+        return {m.unique_id: m.all_CI for m in sorted(
+            self.latent_free_DAGs,
+            key=lambda m: m.CI_count,
+            reverse=False)}
 
     @cached_property
     def latent_free_CI_patterns(self):
@@ -329,11 +335,14 @@ class Observable_unlabelled_mDAGs:
                 yield (self.mdag_int_pair_to_canonical_int(h, d1), self.mdag_int_pair_to_canonical_int(h, d2))
         for d in  map(lambda ds: ds.as_integer, self.all_unlabelled_directed_structures):
             for h1, h2 in self.hypergraph_dominances:
+            # for h1, h2 in self.hypergraph_strong_dominances:
                 yield (self.mdag_int_pair_to_canonical_int(h1, d), self.mdag_int_pair_to_canonical_int(h2, d))
 
     @property
     def boring_dominances(self):
-        for h in map(lambda sc: sc.as_integer, self.all_simplicial_complices):
+        for h in map(lambda sc: sc.as_integer, explore_candidates(self.all_simplicial_complices,
+                                                                  verbose=self.verbose,
+                                                                  message="Finding edge-droppings which preserve CI")):
             for d1, d2 in self.directed_dominances:
                 strong_int = self.mdag_int_pair_to_canonical_int(h, d1)
                 weak_int = self.mdag_int_pair_to_canonical_int(h, d2)
@@ -341,7 +350,9 @@ class Observable_unlabelled_mDAGs:
                 weak_mDAG = self.lookup_mDAG(weak_int)
                 if strong_mDAG.CI_count == weak_mDAG.CI_count:
                     yield (strong_int, weak_int)
-        for d in  map(lambda ds: ds.as_integer, self.all_unlabelled_directed_structures):
+        for d in  map(lambda ds: ds.as_integer, explore_candidates(self.all_unlabelled_directed_structures,
+                                                                   verbose=self.verbose,
+                                                                   message="Finding hyperedge poppings which preserve CI")):
             for h1, h2 in self.hypergraph_dominances:
             # for h1, h2 in self.hypergraph_strong_dominances:
                 strong_int = self.mdag_int_pair_to_canonical_int(h1, d)
@@ -407,7 +418,7 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def boring_by_virtue_of_HLP(self):
-        HLP_meta_graph = self.HLP_meta_graph
+        HLP_meta_graph = self.HLP_meta_graph.copy()
         proven_boring = set()
         for lf_id, lf_CI in explore_candidates(self.latent_free_DAG_ids_and_CI_unlabelled.items(),
                                                verbose=self.verbose,
@@ -417,6 +428,8 @@ class Observable_unlabelled_mDAGs:
             dominated_by_LF = [self.dict_ind_unlabelled_mDAGs[m] for m in ids_dominated_by_LF]
             # print(f"Dominated by it: {dominated_by_LF}")
             dominated_by_LF = [m for m in dominated_by_LF if m.all_CI_unlabelled==lf_CI]
+            HLP_meta_graph.remove_nodes_from(m.unique_unlabelled_id for m in dominated_by_LF)
+            # print(f"Number of nodes remaining in metagraph: {HLP_meta_graph.number_of_nodes()}")
             proven_boring.update(dominated_by_LF)
         return proven_boring
 
