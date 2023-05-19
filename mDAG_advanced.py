@@ -35,7 +35,7 @@ from closure import closure as numeric_closure  # , is_this_subadjmat_densely_co
 from more_itertools import powerset
 
  
-def mdag_to_int(ds_bitarray, sc_bitarray):
+def mdag_to_int(ds_bitarray: np.ndarray, sc_bitarray: np.ndarray):
     sc_int = bitarray_to_int(sc_bitarray)
     ds_int = bitarray_to_int(ds_bitarray)
     #The directed structure is always a square matrix of size n^2.
