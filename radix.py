@@ -4,6 +4,12 @@ import itertools
 import operator
 from functools import lru_cache
 
+try:
+    from numba import njot
+except ImportError:
+    def njit(*args, **kwargs):
+        return lambda f: f
+
 @lru_cache(maxsize=16)
 def _reversed_base(base):
     if len(base)>1:
@@ -40,8 +46,8 @@ def _binary_base_test(base):
 def binary_base_test(base):
     return _binary_base_test(tuple(base))
 
-
-def flip_array_last_axis(m):
+@njit
+def flip_array_last_axis(m: np.ndarray):
     return m[..., ::-1]
 
 def to_bits(integers, mantissa, sanity_check=False):
@@ -81,6 +87,7 @@ def to_bits(integers, mantissa, sanity_check=False):
 # def from_bits(smooshed_bit_array):
 #     return pack_a_bit.reduce(smooshed_bit_array, axis=-1)
 
+@njit
 def from_littleordered_bytes(byte_array):
     #Assumes numpy array
     if byte_array.ndim == 1:
@@ -157,13 +164,17 @@ def _to_digits(integer, base):
     if len(base)<=32:
         return np.stack(np.unravel_index(np.asarray(integer, dtype=np.intp), base), axis=-1)
     else:
-        arrays = []
-        x = np.array(integer, copy=True)
-        #print(reversed_base(base))
-        for b in reversed(base):
-            x, remainder = np.divmod(x, b)
-            arrays.append(remainder)
-        return flip_array_last_axis(np.stack(arrays, axis=-1))
+        return _to_digits_numba(integer, base)
+
+@njit
+def _to_digits_numba(integer, base):
+    arrays = []
+    x = np.array(integer, copy=True)
+    #print(reversed_base(base))
+    for b in np.flipud(base).flat:
+        x, remainder = np.divmod(x, b)
+        arrays.append(remainder)
+    return flip_array_last_axis(np.stack(arrays, axis=-1))
 
 def to_digits(integer, base, sanity_check=False):
     if sanity_check:
