@@ -381,10 +381,10 @@ class Observable_unlabelled_mDAGs:
         proven_boring = set()
         for lf_id, lf_CI in self.latent_free_DAG_ids_and_CI_unlabelled.items():
             # print(f"Processing LF {self.dict_ind_unlabelled_mDAGs[lf_id]}")
-            dominated_by_LF = sorted(nx.ancestors(self.HLP_meta_graph, lf_id) | {lf_id})
-            dominated_by_LF = [self.dict_ind_unlabelled_mDAGs[m] for m in dominated_by_LF]
+            ids_dominated_by_LF = sorted(nx.ancestors(self.HLP_meta_graph, lf_id) | {lf_id})
+            dominated_by_LF = [self.dict_ind_unlabelled_mDAGs[m] for m in ids_dominated_by_LF]
             # print(f"Dominated by it: {dominated_by_LF}")
-            dominated_by_LF = [m for m in dominated_by_LF if m.all_CI_unlabelled==lf_CI]
+            # dominated_by_LF = [m for m in dominated_by_LF if m.all_CI_unlabelled==lf_CI]
             proven_boring.update(dominated_by_LF)
         return proven_boring
 
