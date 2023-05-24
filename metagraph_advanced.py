@@ -490,6 +490,10 @@ class Observable_unlabelled_mDAGs:
                 zip(self.equivalence_classes_as_mDAGs, self.NOT_latent_free_eqclasses_picklist) if not_latent_free_Q]
 
     @cached_property
+    def boring_by_virtue_of_Evans(self):
+        return set().union(*self.latent_free_eqclasses)
+
+    @cached_property
     def NOT_latent_free_representative_mDAGs_list(self):
     #     return self.representatives(self.equivalence_classes_as_mDAGs)
         return self.smart_representatives(self.NOT_latent_free_eqclasses, 'relative_complexity_for_sat_solver')

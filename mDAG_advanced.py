@@ -63,6 +63,7 @@ class mDAG:
         self.latent_nodes = tuple(range(self.number_of_visible, self.simplicial_complex_instance.number_of_visible_plus_latent))
         self.nonsingleton_latent_nodes = tuple(range(self.number_of_visible, self.simplicial_complex_instance.number_of_visible_plus_nonsingleton_latent))
         self.total_number_of_nodes=len(self.nonsingleton_latent_nodes)+self.number_of_visible
+        self.number_of_root_nodes = self.simplicial_complex_instance.number_of_latent
 
     @cached_property
     def as_string(self):
@@ -119,7 +120,7 @@ class mDAG:
 
     @cached_property
     def relative_complexity_for_sat_solver(self):  # choose eqclass representative which minimizes this
-        return (self.as_extended_bit_array.sum(), self.n_of_edges, self.simplicial_complex_instance.tally, -self.automorphic_order)
+        return (self.number_of_root_nodes, self.as_extended_bit_array.sum(), self.n_of_edges, self.simplicial_complex_instance.tally, -self.automorphic_order)
                 
     @cached_property
     def parents_of_for_supports_analysis(self):
