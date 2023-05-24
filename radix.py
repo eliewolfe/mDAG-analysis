@@ -1,14 +1,9 @@
 from __future__ import absolute_import
 import numpy as np
 import itertools
-import operator
+# import operator
 from functools import lru_cache
 
-try:
-    from numba import njot
-except ImportError:
-    def njit(*args, **kwargs):
-        return lambda f: f
 
 @lru_cache(maxsize=16)
 def _reversed_base(base):
@@ -46,7 +41,7 @@ def _binary_base_test(base):
 def binary_base_test(base):
     return _binary_base_test(tuple(base))
 
-@njit
+
 def flip_array_last_axis(m: np.ndarray):
     return m[..., ::-1]
 
@@ -87,21 +82,17 @@ def to_bits(integers, mantissa, sanity_check=False):
 # def from_bits(smooshed_bit_array):
 #     return pack_a_bit.reduce(smooshed_bit_array, axis=-1)
 
-@njit
-def from_littleordered_bytes(byte_array):
+def from_littleordered_bytes(byte_array: np.ndarray):
     #Assumes numpy array
     if byte_array.ndim == 1:
         return np.asarray(int.from_bytes(byte_array.tolist(), byteorder='little', signed=False))
     else:
         return np.vstack(list(map(from_littleordered_bytes, byte_array)))
 
-def from_bits(smooshed_bit_array):
+def from_bits(smooshed_bit_array: np.ndarray):
     mantissa = smooshed_bit_array.shape[-1]
     if mantissa > 0:
-        # possible_mantissas = np.array([8,16,32,64])
-        # effective_mantissa = possible_mantissas.compress(np.floor_divide(possible_mantissas, mantissa))[0]
         ready_for_viewing = np.packbits(flip_array_last_axis(smooshed_bit_array), axis=-1, bitorder='little')
-        # return from_littleordered_bytes(ready_for_viewing)
         final_dimension = ready_for_viewing.shape[-1]
         if mantissa<=8:
             return np.squeeze(ready_for_viewing, axis=-1)
@@ -129,7 +120,6 @@ def from_bits(smooshed_bit_array):
                 ).view(np.uint64), axis=-1)
         elif mantissa > 64:
             print("Warning: Integers exceeding 2^64, possible overflow errors.")
-            # print("Byte array in little endian ordering: ", ready_for_viewing)
             return np.squeeze(from_littleordered_bytes(ready_for_viewing), axis=-1)
     else:
         return np.zeros(smooshed_bit_array.shape[:-2], dtype=int)
@@ -166,7 +156,6 @@ def _to_digits(integer, base):
     else:
         return _to_digits_numba(integer, base)
 
-@njit
 def _to_digits_numba(integer, base):
     arrays = []
     x = np.array(integer, copy=True)
@@ -269,7 +258,7 @@ if __name__ == '__main__':
     print("Testing sanity_check option:")
     encoded_integers = to_bits(integers, 65, sanity_check=True)
     encoded_integers = to_bits(integers, 66)
-    # print("Encoded integers: ", encoded_integers)
+    print("Encoded integers: ", encoded_integers)
     recoded_integers = from_bits(encoded_integers)
     print("Decoded integers: ", recoded_integers)
     print(np.array_equiv(integers, recoded_integers))
