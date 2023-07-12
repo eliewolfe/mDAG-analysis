@@ -69,8 +69,10 @@ class Hypergraph:
         self.simplicial_complex_as_sets = hypergraph_canonicalize_with_deduplication(any_simplicial_complex)
         self.compressed_simplicial_complex = hypergraph_to_list_of_tuples(self.simplicial_complex_as_sets)
         self.number_of_nonsingleton_latent = len(self.simplicial_complex_as_sets)
-
-        self.singleton_hyperedges = set(frozenset({v}) for v in set(range(self.number_of_visible)).difference(itertools.chain.from_iterable(self.simplicial_complex_as_sets)))
+        self.vis_nodes_with_singleton_latent_parents = set(
+            range(self.number_of_visible)).difference(
+            itertools.chain.from_iterable(self.simplicial_complex_as_sets))
+        self.singleton_hyperedges = set(frozenset({v}) for v in self.vis_nodes_with_singleton_latent_parents)
         self.extended_simplicial_complex_as_sets = self.simplicial_complex_as_sets.union(self.singleton_hyperedges)
         self.number_of_latent = len(self.extended_simplicial_complex_as_sets)
 
@@ -79,6 +81,9 @@ class Hypergraph:
             assert max(map(max, self.compressed_simplicial_complex)) + 1 <= self.number_of_visible, "More nodes referenced than expected."
         self.number_of_visible_plus_latent = self.number_of_visible + self.number_of_latent
         self.number_of_visible_plus_nonsingleton_latent = self.number_of_visible + self.number_of_nonsingleton_latent
+
+
+
         # self.max_number_of_latents = comb(self.number_of_visible, np.floor_divide(self.number_of_visible,2), exact=True)
 
     # @cached_property

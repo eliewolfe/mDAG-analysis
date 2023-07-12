@@ -33,6 +33,7 @@ import methodtools
 from directed_structures import LabelledDirectedStructure, DirectedStructure
 from closure import closure as numeric_closure  # , is_this_subadjmat_densely_connected
 from more_itertools import powerset
+from merge import merge_intersection
 
  
 def mdag_to_int(ds_bitarray: np.ndarray, sc_bitarray: np.ndarray):
@@ -63,7 +64,27 @@ class mDAG:
         self.latent_nodes = tuple(range(self.number_of_visible, self.simplicial_complex_instance.number_of_visible_plus_latent))
         self.nonsingleton_latent_nodes = tuple(range(self.number_of_visible, self.simplicial_complex_instance.number_of_visible_plus_nonsingleton_latent))
         self.total_number_of_nodes=len(self.nonsingleton_latent_nodes)+self.number_of_visible
+        self.nof_nonsingleton_latents = len(self.nonsingleton_latent_nodes)
+        self.vis_nodes_with_no_children = set(self.directed_structure_instance.nodes_with_no_children)
+        self.vis_nodes_with_no_parents = set(self.simplicial_complex_instance.vis_nodes_with_singleton_latent_parents).intersection(self.directed_structure_instance.nodes_with_no_parents)
+
         self.number_of_root_nodes = self.simplicial_complex_instance.number_of_latent
+
+    @cached_property
+    def is_SWIG_like(self):
+        is_SWIG_like = len(self.vis_nodes_with_no_children) and len(
+            self.vis_nodes_with_no_parents.difference(
+                self.vis_nodes_with_no_children))
+        if not is_SWIG_like:
+            return False
+        else:
+            for u in self.vis_nodes_with_no_children:
+                for v in self.vis_nodes_with_no_parents.difference([u]):
+                    to_contract_DAG = self.directed_structure_instance.as_networkx_graph
+                    contracted_DAG = nx.contracted_nodes(to_contract_DAG, u, v, copy=True)
+                    if nx.is_directed_acyclic_graph(contracted_DAG):
+                        return True
+        return False
 
     @cached_property
     def as_string(self):
@@ -204,6 +225,18 @@ class mDAG:
         return hypergraph_full_cleanup([self.directed_structure_instance.adjMat.descendantsplus_of(list(facet))
                                        for facet in self.simplicial_complex_instance.extended_simplicial_complex_as_sets])
 
+    @cached_property
+    def all_visible_share_one_root_ancestor(self):
+        return len(self.common_cause_connected_sets) == 1
+
+    @cached_property
+    def interesting_via_no_dsep_but_no_common_ancestor(self):
+        return (self.no_dsep_relations and (not self.all_visible_share_one_root_ancestor))
+
+    @cached_property
+    def is_connected(self):
+        return (len(merge_intersection(self.common_cause_connected_sets)) == 1)
+
     # @cached_property
     # def minimal_perfect_correlation_sets(self):
     #     admit_perfect_correlation_sets = set()
@@ -256,6 +289,7 @@ class mDAG:
                 discovered_pairs.add(self.fake_frozenset([x, y]))
         return discovered_pairs
 
+
     @cached_property
     def d_unseparable_pairs(self):
         return set(itertools.combinations(self.visible_nodes, 2)).difference(self.d_separable_pairs)
@@ -263,6 +297,10 @@ class mDAG:
     @cached_property
     def all_CI_numeric(self):
         return set(self._all_CI_generator_numeric)
+
+    @cached_property
+    def no_dsep_relations(self):
+        return len(self.all_CI_numeric) == 0
 
     @cached_property
     def CI_count(self):
@@ -331,7 +369,7 @@ class mDAG:
         return set(itertools.combinations(self.visible_nodes, 2)).difference(self.skeleton_instance.as_edges)
 
     @cached_property
-    def interesting_via_e_sep_theorem(self):
+    def interesting_via_non_maximal(self):
         return not self.d_unseparable_pairs.issubset(self.skeleton_instance.as_edges)
 
     # @methodtools.lru_cache(maxsize=None, typed=False)
@@ -1024,7 +1062,6 @@ class Unlabelled_mDAG(mDAG):
 #         super().__init__(labelled_directed_structure_instance, labelled_simplicial_complex_instance)
 
 if __name__ == '__main__':
-    G_Evans=mDAG(DirectedStructure([(0,2)],3),Hypergraph([(0,1),(0,2)],3))
     G_triangle = mDAG(DirectedStructure([], 3),
                    Hypergraph([(0, 1), (0, 2), (1, 2)], 3))
     print(G_triangle.cliques_with_common_ancestor_aside_from_external_visible_unlabelled)

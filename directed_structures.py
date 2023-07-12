@@ -75,6 +75,14 @@ class DirectedStructure:
         return r
 
     @cached_property
+    def nodes_with_no_parents(self):
+        return np.flatnonzero(np.logical_not(self.as_bit_square_matrix.any(axis=0)))
+
+    @cached_property
+    def nodes_with_no_children(self):
+        return np.flatnonzero(np.logical_not(self.as_bit_square_matrix.any(axis=1)))
+
+    @cached_property
     def as_bit_square_matrix_plus_eye(self):
         #Used for computing parents_plus
         return np.bitwise_or(self.as_bit_square_matrix, np.identity(self.number_of_visible, dtype=bool))

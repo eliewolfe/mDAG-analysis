@@ -24,7 +24,7 @@ canonical_unlabelled = [m for m in potentially_interesting if m.has_no_eventuall
 print(f"Number of {n}-vis node unlabelled canonical mDAGs: {len(canonical_unlabelled)}")
 canonical_fundamental_unlabelled = [m for m in fundamental_unlabelled if m.has_no_eventually_splittable_face]
 print(f"Number of {n}-vis node unlabelled fundamental canonical mDAGs: {len(canonical_fundamental_unlabelled)}")
-canonical_fundamental_unlabelled_after_esep_v2 = [m for m in canonical_fundamental_unlabelled if not m.interesting_via_e_sep_theorem]
+canonical_fundamental_unlabelled_after_esep_v2 = [m for m in canonical_fundamental_unlabelled if not m.interesting_via_non_maximal]
 # print(canonical_fundamental_unlabelled_after_esep_v2)
 # print(canonical_fundamental_unlabelled_after_esep_v2[1].eventually_splittable_faces)
 # print(canonical_fundamental_unlabelled_after_esep_v2[1].splittable_faces)
@@ -62,7 +62,7 @@ fundamental_unlabelled = [m for m in unresolved_by_esep_or_HLP if m.fundamental_
 # print(f"Number of {n}-vis node unlabelled canonical mDAGs: {len(canonical_unlabelled)}")
 canonical_fundamental_unlabelled = [m for m in fundamental_unlabelled if m.has_no_eventually_splittable_face]
 print(f"Number of {n}-vis node unlabelled fundamental canonical mDAGs: {len(canonical_fundamental_unlabelled)}")
-canonical_fundamental_unlabelled_after_esep_v2 = [m for m in canonical_fundamental_unlabelled if not m.interesting_via_e_sep_theorem]
+canonical_fundamental_unlabelled_after_esep_v2 = [m for m in canonical_fundamental_unlabelled if not m.interesting_via_non_maximal]
 # print(canonical_fundamental_unlabelled_after_esep_v2)
 # print(canonical_fundamental_unlabelled_after_esep_v2[1].eventually_splittable_faces)
 # print(canonical_fundamental_unlabelled_after_esep_v2[1].splittable_faces)
