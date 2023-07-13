@@ -5,7 +5,7 @@ from sys import hexversion
 
 import methodtools
 import numpy as np
-import progressbar
+import progressbar as pb
 from pysat.formula import IDPool  # I wonder if we can't get away without this, but it is SO convenient
 from pysat.solvers import Solver
 
@@ -266,7 +266,7 @@ class SupportTester(object):
                 min(max_definite, len(occurring_events)) + 1):
             subSupportTester = self.subSupportTester(n)
             max_to_check = comb(flex_count, n - fixed_count, exact=True)
-            with progressbar.ProgressBar(max_value=max_to_check) as bar:
+            with pb.ProgressBar(max_value=max_to_check) as bar:
                 for i, extra_occurring_events in enumerate(itertools.combinations(others_to_potentially_include, n-fixed_count)):
                     definitely_occurring_events = np.array(
                         sanitized_always_include + extra_occurring_events,
@@ -365,11 +365,11 @@ def explore_candidates(candidates, verbose=False, message=''):
             text = 'shape=' + str(np.asarray(candidates).shape)
         else:
             text = message
-        return progressbar.progressbar(
+        return pb.shortcuts.progressbar(
             candidates, widgets=[
                 '[', text, '] '
-                , progressbar.SimpleProgress(), progressbar.Bar()
-                , ' (', progressbar.ETA(), ') '])
+                , pb.SimpleProgress(), pb.Bar()
+                , ' (', pb.ETA(), ') '])
     else:
         return candidates
 
