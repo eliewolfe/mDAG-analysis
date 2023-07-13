@@ -8,8 +8,8 @@ import progressbar
 from utilities import partsextractor
 from collections import defaultdict
 
-
 from sys import hexversion
+import gc
 
 if hexversion >= 0x3080000:
     from functools import cached_property
@@ -401,15 +401,18 @@ class Observable_unlabelled_mDAGs:
     def HLP_meta_graph(self):
         g = nx.DiGraph()
         g.add_nodes_from(self.meta_graph_nodes)
+        gc.collect(generation=2)
         if self.verbose:
             print('Adding dominance relations...', flush=True)
         # g.add_edges_from(self.boring_dominances)
         g.add_edges_from(self.unlabelled_dominances)
-        edge_count = g.number_of_edges()
+        gc.collect(generation=2)
+        # edge_count = g.number_of_edges()
         if self.verbose:
             print('Adding HLP equivalence relations...', flush=True)
         g.add_edges_from(self.HLP_edges)
-        new_edge_count =  g.number_of_edges()
+        gc.collect(generation=2)
+        # new_edge_count =  g.number_of_edges()
         # if self.verbose:
         #     print('Number of HLP equivalence relations added: ', new_edge_count-edge_count)
         # if self.verbose:
@@ -440,6 +443,7 @@ class Observable_unlabelled_mDAGs:
         if self.verbose:
             print('Adding FaceSplitting equivalence relations...', flush=True)
         g.add_edges_from(self.FaceSplitting_edges)
+        gc.collect(generation=2)
         new_edge_count = g.number_of_edges()
         if self.verbose:
             print('Number of FaceSplitting equivalence relations added: ', new_edge_count - edge_count)
