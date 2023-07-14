@@ -8,7 +8,7 @@ import progressbar
 from utilities import partsextractor
 from collections import defaultdict
 
-from sys import hexversion
+from sys import hexversion, stderr
 import gc
 
 if hexversion >= 0x3080000:
@@ -22,15 +22,14 @@ elif hexversion >= 0x3060000:
 else:
     cached_property = property
 
-from hypergraphs import Hypergraph, LabelledHypergraph
-from directed_structures import DirectedStructure, LabelledDirectedStructure
+from hypergraphs import Hypergraph
+from directed_structures import DirectedStructure
 from mDAG_advanced import mDAG
-from functools import lru_cache
+# from functools import lru_cache
 from supports import explore_candidates
 
-# @lru_cache(maxsize=None)
-# def mDAG(directed_structure_instance, simplicial_complex_instance):
-#     return uncached_mDAG(directed_structure_instance, simplicial_complex_instance)
+def eprint(*args, **kwargs):
+    print(*args, file=stderr, **kwargs)
 
 
 def evaluate_property_or_method(instance, attribute):
@@ -403,13 +402,13 @@ class Observable_unlabelled_mDAGs:
         g.add_nodes_from(self.meta_graph_nodes)
         gc.collect(generation=2)
         if self.verbose:
-            print('Adding dominance relations...', flush=True)
+            eprint('Adding dominance relations...', flush=True)
         # g.add_edges_from(self.boring_dominances)
         g.add_edges_from(self.unlabelled_dominances)
         gc.collect(generation=2)
         # edge_count = g.number_of_edges()
         if self.verbose:
-            print('Adding HLP equivalence relations...', flush=True)
+            eprint('Adding HLP equivalence relations...', flush=True)
         g.add_edges_from(self.HLP_edges)
         gc.collect(generation=2)
         # new_edge_count =  g.number_of_edges()
@@ -441,13 +440,13 @@ class Observable_unlabelled_mDAGs:
         g = self.HLP_meta_graph.copy()
         edge_count = g.number_of_edges()
         if self.verbose:
-            print('Adding FaceSplitting equivalence relations...', flush=True)
+            eprint('Adding FaceSplitting equivalence relations...', flush=True)
         g.add_edges_from(self.FaceSplitting_edges)
         gc.collect(generation=2)
         new_edge_count = g.number_of_edges()
-        if self.verbose:
-            print('Number of FaceSplitting equivalence relations added: ', new_edge_count - edge_count)
-            print('Full metagraph has been constructed. Total edge count: ', g.number_of_edges(), flush=True)
+        # if self.verbose:
+        #     print('Number of FaceSplitting equivalence relations added: ', new_edge_count - edge_count)
+        #     print('Full metagraph has been constructed. Total edge count: ', g.number_of_edges(), flush=True)
         return g
 
 

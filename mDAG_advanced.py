@@ -34,6 +34,7 @@ from directed_structures import LabelledDirectedStructure, DirectedStructure
 from closure import closure as numeric_closure  # , is_this_subadjmat_densely_connected
 from more_itertools import powerset
 from merge import merge_intersection
+from adjmat_class import AdjMat
 
  
 def mdag_to_int(ds_bitarray: np.ndarray, sc_bitarray: np.ndarray):
@@ -149,9 +150,7 @@ class mDAG:
 
     @cached_property
     def parents_of(self):
-        p=[]
-        for visible_node in self.visible_nodes:
-            p.append([])
+        p = [[]] * self.number_of_visible
         for edge in self.directed_structure_instance.edge_list:
             p[edge[1]].append(edge[0])
         latent_node=len(self.visible_nodes)
@@ -219,6 +218,35 @@ class mDAG:
         return self.all_esep_unlabelled + self.cliques_with_common_ancestor_aside_from_external_visible_unlabelled
 
 
+    def perfectly_correlated_subgraph(self, subnodes):
+        new_hypergraph = hypergraph_full_cleanup([
+            facet.intersection(subnodes) for facet in
+            self.simplicial_complex_instance.extended_simplicial_complex_as_sets])
+        subnodes_as_list = list(subnodes)
+        subindices = np.ix_(subnodes_as_list, subnodes_as_list)
+        subadjmat = np.eye(self.number_of_visible)
+        subadjmat[subindices] = self.directed_structure_instance.as_bit_square_matrix[subindices]
+        subadjmat_closure = AdjMat(subadjmat).transitive_closure_plus
+        for subfacet in new_hypergraph:
+            subfact_as_list = list(subfacet)
+            # print(f"Assessing mDAG: {self}")
+            # print(f"Checking nodes for perfect correlation: {subnodes}")
+            # print(f"Via facet: {subfact_as_list}")
+            # print(f"leading to AdjMat: {subadjmat_closure}")
+            common_ancestor_check = np.any(subadjmat_closure[subfact_as_list], axis=0)[subnodes_as_list].all()
+            if common_ancestor_check:
+                return True
+        return False
+
+    @cached_property
+    def perfectly_correlatable_sets_in_subgraph(self):
+        perfectly_correlatable_sets = []
+        for r in range(2, self.number_of_visible+1):
+            for subnodes in itertools.combinations(self.visible_nodes, r):
+                if self.perfectly_correlated_subgraph(subnodes):
+                        perfectly_correlatable_sets.append(subnodes)
+        return hypergraph_full_cleanup(perfectly_correlatable_sets)
+
 
     @cached_property
     def common_cause_connected_sets(self):
@@ -282,21 +310,45 @@ class mDAG:
                 yield (self.fake_frozenset([x, y]), self.fake_frozenset(Z))
 
     @cached_property
+    def all_CI_numeric(self):
+        return set(self._all_CI_generator_numeric)
+
+    @cached_property
     def d_separable_pairs(self):
         discovered_pairs = set()
         for x, y, Z in self._all_2_vs_any_partitions(self.visible_nodes):
-            if nx.d_separated(self.as_graph, {x}, {y}, set(Z)):
+            if (self.fake_frozenset([x, y]), self.fake_frozenset(Z)) in self.all_CI_numeric:
                 discovered_pairs.add(self.fake_frozenset([x, y]))
         return discovered_pairs
-
 
     @cached_property
     def d_unseparable_pairs(self):
         return set(itertools.combinations(self.visible_nodes, 2)).difference(self.d_separable_pairs)
 
     @cached_property
-    def all_CI_numeric(self):
-        return set(self._all_CI_generator_numeric)
+    def d_unrestricted_sets(self):
+        d_unrestricted_sets = []
+        visible_nodes_as_set = set(self.visible_nodes)
+        for r in range(2, self.number_of_visible+1):
+            for subnodes in itertools.combinations(visible_nodes_as_set, r):
+                complement = visible_nodes_as_set.difference(subnodes)
+                no_restrictions_found = True
+                for xy_tuple in itertools.combinations(subnodes, 2):
+                    if any(((dsep[0] == xy_tuple) and
+                             complement.issuperset(dsep[1]))
+                            for dsep in self.all_CI_numeric):
+                        no_restrictions_found = False
+                        break
+                if no_restrictions_found:
+                    d_unrestricted_sets.append(subnodes)
+        return d_unrestricted_sets
+
+    @cached_property
+    def interesting_via_generalized_maximality(self):
+        for subnodes in set(self.d_unrestricted_sets).difference(self.skeleton_instance.as_frozenset_edges):
+            if not self.perfectly_correlated_subgraph(subnodes):
+                return True
+        return False
 
     @cached_property
     def no_dsep_relations(self):

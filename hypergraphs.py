@@ -308,6 +308,7 @@ class UndirectedGraph:
             assert max(map(max, hyperedges)) + 1 <= self.nof_nodes, "More nodes referenced than expected."
         self.as_edges = tuple(set(itertools.chain.from_iterable(
             itertools.combinations(sorted(hyperedge), 2) for hyperedge in hyperedges)))
+        self.as_frozenset_edges = set(map(frozenset, self.as_edges))
         self.as_string = stringify_in_list(map(stringify_in_tuple, self.as_edges))
 
     # @property
