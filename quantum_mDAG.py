@@ -165,7 +165,8 @@ class QmDAG:
 
     @cached_property
     def subgraphs(self):
-        return set(self._subgraphs_generator())
+        return {self.subgraph(to_keep) for to_keep in itertools.combinations(self.visible_nodes, self.number_of_visible-1)}
+        # return set(self._subgraphs_generator())
 
     @cached_property
     def unique_unlabelled_ids_obtainable_by_PD_trick(self):
