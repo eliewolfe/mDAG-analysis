@@ -170,22 +170,26 @@ class Hypergraph:
         S1 and S2 are simplicial complices, in our data structure as lists of tuples.
         """
         # Modifying to restrict to minimal differences for speed
-        dominance_count = 0
-        for s2 in S2.simplicial_complex_as_sets.difference(S1.simplicial_complex_as_sets):
-            contained = False
-            for s1 in S1.simplicial_complex_as_sets.difference(S2.simplicial_complex_as_sets):
-                if s2.issubset(s1):
-                    contained = True
-                    len_difference = len(s2) - len(s1)
-                    if len_difference:
-                        if len_difference > 1:
-                            return False
-                        dominance_count += 1
-                        if dominance_count > 1:
-                            return False
-                    break
-            if not contained:
-                return False
+        in_S1_but_not_S2 = S1.simplicial_complex_as_sets.difference(S2.simplicial_complex_as_sets)
+        count_of_in_S1_but_not_S2 = len(in_S1_but_not_S2)
+        if count_of_in_S1_but_not_S2 != 1:
+            return False
+        in_S2_but_not_S1 = S2.simplicial_complex_as_sets.difference(
+            S1.simplicial_complex_as_sets)
+        count_of_in_S2_but_not_S1 = len(in_S2_but_not_S1)
+        the_hyperredge_in_S1_but_not_S2 = in_S1_but_not_S2.pop()
+        len_of_the_hyperredge_in_S1_but_not_S2 = len(the_hyperredge_in_S1_but_not_S2)
+        if count_of_in_S2_but_not_S1 == 0:
+            if len_of_the_hyperredge_in_S1_but_not_S2 == 2:
+                return True
+            return min((len(s2.difference(the_hyperredge_in_S1_but_not_S2)) for s2 in S2.simplicial_complex_as_sets), default=0) == 1
+        if count_of_in_S2_but_not_S1 > 1:
+            return False
+        the_hyperredge_in_S2_but_not_S1 = in_S2_but_not_S1.pop()
+        if not the_hyperredge_in_S2_but_not_S1.issubset(the_hyperredge_in_S1_but_not_S2):
+            return False
+        if len_of_the_hyperredge_in_S1_but_not_S2 - len(the_hyperredge_in_S2_but_not_S1) > 1:
+            return False
         return True
 
     def are_S1_facets_one_more_than_S2_facets(S1, S2):
