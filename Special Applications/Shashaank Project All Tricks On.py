@@ -65,6 +65,8 @@ print("Conjecture sanity check: ", metagraph.boring_by_virtue_of_Evans.issubset(
 print("Does Evans approach coincide with HLP? ", len(metagraph.boring_by_virtue_of_Evans) == len(metagraph.boring_by_virtue_of_HLP))
 
 unresolved = potentially_interesting_after_HLP.copy()
+unresolved = set([m for m in unresolved if not m.interesting_via_non_maximal])
+print(f"Number unresolved after maximality test:  {len(unresolved)}")
 unresolved = set([m for m in unresolved if not m.interesting_via_generalized_maximality])
 print(f"Number unresolved after generalized maximality test:  {len(unresolved)}")
 
@@ -111,6 +113,8 @@ print(f"Number of {n}-vis node unlabelled mDAGs not resolved by HLP: {len(potent
 print("Conjecture sanity check: ", metagraph.boring_by_virtue_of_Evans.issubset(metagraph.boring_by_virtue_of_HLP))
 print("Does Evans approach coincide with HLP? ", len(metagraph.boring_by_virtue_of_Evans) == len(metagraph.boring_by_virtue_of_HLP))
 unresolved = potentially_interesting_after_HLP.copy()
+unresolved = set([m for m in unresolved if not m.interesting_via_non_maximal])
+print(f"Number unresolved after maximality test:  {len(unresolved)}")
 unresolved = set([m for m in unresolved if not m.interesting_via_generalized_maximality])
 print(f"Number unresolved after generalized maximality test:  {len(unresolved)}")
 unresolved_by_subgraph = set([m for m in unresolved if
