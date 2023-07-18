@@ -314,10 +314,10 @@ class Observable_unlabelled_mDAGs:
         return [(S1.as_integer, S2.as_integer) for S1, S2 in itertools.permutations(self.all_simplicial_complices, 2) if
                 S1.can_S1_minimally_simulate_S2(S2)]
 
-    @property
-    def hypergraph_strong_dominances(self):
-        return [(S1.as_integer, S2.as_integer) for S1, S2 in itertools.permutations(self.all_simplicial_complices, 2) if
-                S1.are_S1_facets_one_more_than_S2_facets(S2)]
+    # @property
+    # def hypergraph_strong_dominances(self):
+    #     return [(S1.as_integer, S2.as_integer) for S1, S2 in itertools.permutations(self.all_simplicial_complices, 2) if
+    #             S1.are_S1_facets_one_more_than_S2_facets(S2)]
 
     @property
     def directed_dominances(self):

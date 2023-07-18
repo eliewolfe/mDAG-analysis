@@ -568,6 +568,13 @@ class mDAG:
         return candidates
 
     @cached_property
+    def addable_edges(self):
+        candidates = set(self.skeleton_instance.as_edges).difference(self.directed_structure_instance.edge_list)
+        candidates = [pair for pair in candidates if set(self.as_graph.predecessors(pair[0])).issubset(
+            self.as_graph.predecessors(pair[1]))]  # as_graph includes both visible at latent parents
+        return candidates
+
+    @cached_property
     def equivalent_under_edge_dropping(self):
         equivalent_mdags = []
         for edges_to_drop in powerset(self.droppable_edges):
@@ -584,7 +591,7 @@ class mDAG:
 
     @property
     def generate_weaker_mDAG_HLP(self):
-        if self.droppable_edges:
+        if self.droppable_edges and not self.addable_edges:
             new_bit_square_matrix = self.directed_structure_instance.as_bit_square_matrix.copy()
             new_bit_square_matrix[tuple(np.asarray(self.droppable_edges, dtype=int).reshape((-1,2)).T)] = False
             yield mdag_to_int(new_bit_square_matrix, self.simplicial_complex_instance.as_bit_array)

@@ -171,12 +171,15 @@ class Hypergraph:
         """
         # Modifying to restrict to minimal differences for speed
         dominance_count = 0
-        for s2 in S2.simplicial_complex_as_sets:
+        for s2 in S2.simplicial_complex_as_sets.difference(S1.simplicial_complex_as_sets):
             contained = False
-            for s1 in S1.simplicial_complex_as_sets:
+            for s1 in S1.simplicial_complex_as_sets.difference(S2.simplicial_complex_as_sets):
                 if s2.issubset(s1):
                     contained = True
-                    if len(s2) > len(s1):
+                    len_difference = len(s2) - len(s1)
+                    if len_difference:
+                        if len_difference > 1:
+                            return False
                         dominance_count += 1
                         if dominance_count > 1:
                             return False
@@ -194,19 +197,17 @@ class Hypergraph:
     def is_S1_strictly_above_S2(S1, S2):
         """
         S1 and S2 are simplicial complices, in our data structure as lists of tuples.
+        DO NOT USE FOR HLP METAGRAPH GENERATION
         """
-        dominance_count = 0
         for s2 in S2.simplicial_complex_as_sets:
             contained = False
             for s1 in S1.simplicial_complex_as_sets:
                 if s2.issubset(s1):
                     contained = True
-                    if len(s2) > len(s1):
-                        dominance_count += 1
                     break
             if not contained:
                 return False
-        return ((dominance_count > 0) or (S1.number_of_nonsingleton_latent > S2.number_of_nonsingleton_latent))
+        return True
 
     def __str__(self):
         return self.as_string
