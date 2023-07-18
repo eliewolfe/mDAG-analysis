@@ -309,17 +309,20 @@ class Observable_unlabelled_mDAGs:
         return tuple(self.dict_ind_unlabelled_mDAGs.keys())
 
 
-    @property
+    @cached_property
     def hypergraph_dominances(self):
-        return [(S1.as_integer, S2.as_integer) for S1, S2 in itertools.permutations(self.all_simplicial_complices, 2) if
+        hdominances = [(S1.as_integer, S2.as_integer) for S1, S2 in itertools.permutations(self.all_simplicial_complices, 2) if
                 S1.can_S1_minimally_simulate_S2(S2)]
+        if self.verbose:
+            eprint("Number of hypergraph dominance relations: ", len(hdominances))
+        return hdominances
 
     # @property
     # def hypergraph_strong_dominances(self):
     #     return [(S1.as_integer, S2.as_integer) for S1, S2 in itertools.permutations(self.all_simplicial_complices, 2) if
     #             S1.are_S1_facets_one_more_than_S2_facets(S2)]
 
-    @property
+    @cached_property
     def directed_dominances(self):
         # return [(D1.as_integer, D2.as_integer) for D1, D2 in itertools.permutations(self.all_unlabelled_directed_structures, 2) if
         #         D1.can_D1_minimally_simulate_D2(D2)]
@@ -426,7 +429,7 @@ class Observable_unlabelled_mDAGs:
                                                verbose=self.verbose,
                                                message="Running HLP in reverse"):
             # print(f"Processing LF {self.dict_ind_unlabelled_mDAGs[lf_id]}")
-            ids_dominated_by_LF = sorted(nx.ancestors(HLP_meta_graph, lf_id) | {lf_id})
+            ids_dominated_by_LF = sorted({lf_id}.union(nx.ancestors(HLP_meta_graph, lf_id)))
             dominated_by_LF = [self.dict_ind_unlabelled_mDAGs[m] for m in ids_dominated_by_LF]
             # print(f"Dominated by it: {dominated_by_LF}")
             dominated_by_LF = [m for m in dominated_by_LF if m.all_CI_unlabelled==lf_CI]
