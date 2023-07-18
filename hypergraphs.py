@@ -170,9 +170,7 @@ class Hypergraph:
         S1 and S2 are simplicial complices, in our data structure as lists of tuples.
         """
         # Modifying to restrict to minimal differences for speed
-        # return all(any(s2.issubset(s1) for s1 in S1) for s2 in map(set, S2))
         dominance_count = 0
-        so_far_so_good = True
         for s2 in S2.simplicial_complex_as_sets:
             contained = False
             for s1 in S1.simplicial_complex_as_sets:
@@ -180,11 +178,12 @@ class Hypergraph:
                     contained = True
                     if len(s2) > len(s1):
                         dominance_count += 1
+                        if dominance_count > 1:
+                            return False
                     break
-            so_far_so_good = contained and (dominance_count <= 1)
-            if not so_far_so_good:
-                break
-        return so_far_so_good
+            if not contained:
+                return False
+        return True
 
     def are_S1_facets_one_more_than_S2_facets(S1, S2):
         if S1.simplicial_complex_as_sets.issuperset(S2.simplicial_complex_as_sets):
