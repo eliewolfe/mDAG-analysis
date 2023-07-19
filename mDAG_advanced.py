@@ -208,30 +208,34 @@ class mDAG:
         return self.skeleton_instance.as_edges_integer
 
     @cached_property
+    def skeleton_adj_mat(self):
+        return self.skeleton_instance.as_adjacency_matrix
+
+    @cached_property
     def skeleton_unlabelled(self):
         return self.skeleton_instance.as_edges_unlabelled_integer
 
-    @cached_property
-    def cliques_with_common_ancestor_aside_from_external_visible(self):
-        perfect_correlation_sets = set()
-        for clique in self.skeleton_instance.cliques:
-            if len(clique) > 2:
-                common_ancestors = set(self.latent_nodes)
-                for v in clique:
-                    common_ancestors.intersection_update(nx.ancestors(self.as_graph_with_singleton_latents, v))
-                for a in common_ancestors:
-                    if len(set(self.as_graph_with_singleton_latents.successors(a)).intersection(clique))>0:
-                        perfect_correlation_sets.add((self.fake_frozenset(clique),))
-                        break
-        return perfect_correlation_sets
-
-    @cached_property
-    def cliques_with_common_ancestor_aside_from_external_visible_unlabelled(self):
-        return min(self._all_CI_like_unlabelled_generator('cliques_with_common_ancestor_aside_from_external_visible'))
-
-    @cached_property
-    def all_esep_plus_unlabelled(self):
-        return self.all_esep_unlabelled + self.cliques_with_common_ancestor_aside_from_external_visible_unlabelled
+    # @cached_property
+    # def cliques_with_common_ancestor_aside_from_external_visible(self):
+    #     perfect_correlation_sets = set()
+    #     for clique in self.skeleton_instance.cliques:
+    #         if len(clique) > 2:
+    #             common_ancestors = set(self.latent_nodes)
+    #             for v in clique:
+    #                 common_ancestors.intersection_update(nx.ancestors(self.as_graph_with_singleton_latents, v))
+    #             for a in common_ancestors:
+    #                 if len(set(self.as_graph_with_singleton_latents.successors(a)).intersection(clique))>0:
+    #                     perfect_correlation_sets.add((self.fake_frozenset(clique),))
+    #                     break
+    #     return perfect_correlation_sets
+    #
+    # @cached_property
+    # def cliques_with_common_ancestor_aside_from_external_visible_unlabelled(self):
+    #     return min(self._all_CI_like_unlabelled_generator('cliques_with_common_ancestor_aside_from_external_visible'))
+    #
+    # @cached_property
+    # def all_esep_plus_unlabelled(self):
+    #     return self.all_esep_unlabelled + self.cliques_with_common_ancestor_aside_from_external_visible_unlabelled
 
 
     def perfectly_correlated_subgraph(self, subnodes):
@@ -322,8 +326,9 @@ class mDAG:
     @property
     def _all_CI_generator_numeric(self):
         for x, y, Z in self._all_2_vs_any_partitions(self.visible_nodes):
-            if nx.d_separated(self.as_graph, {x}, {y}, set(Z)):
-                yield (self.fake_frozenset([x, y]), self.fake_frozenset(Z))
+            if not self.skeleton_adj_mat[x, y]:
+                if nx.d_separated(self.as_graph, {x}, {y}, set(Z)):
+                    yield (self.fake_frozenset([x, y]), self.fake_frozenset(Z))
 
     @cached_property
     def all_CI_numeric(self):
@@ -333,8 +338,9 @@ class mDAG:
     def d_separable_pairs(self):
         discovered_pairs = set()
         for x, y, Z in self._all_2_vs_any_partitions(self.visible_nodes):
-            if (self.fake_frozenset([x, y]), self.fake_frozenset(Z)) in self.all_CI_numeric:
-                discovered_pairs.add(self.fake_frozenset([x, y]))
+            if not self.skeleton_adj_mat[x, y]:
+                if (self.fake_frozenset([x, y]), self.fake_frozenset(Z)) in self.all_CI_numeric:
+                    discovered_pairs.add(self.fake_frozenset([x, y]))
         return discovered_pairs
 
     @cached_property
@@ -408,8 +414,9 @@ class mDAG:
                 graph_copy.remove_nodes_from(to_delete)
                 remaining = set(self.visible_nodes).difference(to_delete)
                 for x, y, Z in self._all_2_vs_any_partitions(tuple(remaining)):
-                    if nx.d_separated(graph_copy, {x}, {y}, set(Z)):
-                        yield (self.fake_frozenset([x, y]), self.fake_frozenset(Z), self.fake_frozenset(to_delete))
+                    if not self.skeleton_adj_mat[x, y]:
+                        if nx.d_separated(graph_copy, {x}, {y}, set(Z)):
+                            yield (self.fake_frozenset([x, y]), self.fake_frozenset(Z), self.fake_frozenset(to_delete))
     @cached_property
     def all_esep_numeric(self):
         return set(self._all_e_sep_generator_numeric)
@@ -1141,4 +1148,4 @@ class Unlabelled_mDAG(mDAG):
 if __name__ == '__main__':
     G_triangle = mDAG(DirectedStructure([], 3),
                    Hypergraph([(0, 1), (0, 2), (1, 2)], 3))
-    print(G_triangle.cliques_with_common_ancestor_aside_from_external_visible_unlabelled)
+    print(G_triangle)

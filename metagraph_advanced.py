@@ -109,11 +109,16 @@ class Observable_unlabelled_mDAGs:
                                      message="Iterating over simplicial complices.")}.values())
 
     @cached_property
-    def all_noncanonical_directed_structures(self):
-        return set(self.all_directed_structures).difference(self.all_unlabelled_directed_structures)
-        # return [ds for ds in excessive_unlabelled_directed_structures
-        #        if all(all(any((edge2[0]==edge[0]-i and edge2[1]==edge[1]-i) for edge2 in ds.edge_list) for i in range(1,edge[0])) for edge in ds.edge_list)]
+    def truly_all_directed_structures(self):
+        truly_all = []
+        for ds in self.all_unlabelled_directed_structures:
+            truly_all.extend(ds.equivalents_under_symmetry)
+        return truly_all
 
+    @cached_property
+    def all_noncanonical_directed_structures(self):
+        # return set(self.truly_all_directed_structures).difference(self.all_unlabelled_directed_structures)
+        return set(self.all_directed_structures).difference(self.all_unlabelled_directed_structures)
 
     # @cached_property
     # def all_simplicial_complices_old(self):
@@ -331,11 +336,11 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def hypergraph_dominances(self):
-        hdominances = tuple((S1.as_integer, S2.as_integer) for S1, S2 in itertools.permutations(self.all_simplicial_complices, 2) if
+        return tuple((S1.as_integer, S2.as_integer) for S1, S2 in itertools.permutations(self.all_simplicial_complices, 2) if
                 S1.can_S1_minimally_simulate_S2(S2))
-        if self.verbose:
-            eprint("Number of hypergraph dominance relations: ", len(hdominances))
-        return hdominances
+        # if self.verbose:
+        #     eprint("Number of hypergraph dominance relations: ", len(hdominances))
+        # return hdominances
 
     @cached_property
     def hypergraph_dominances_up_to_symmetry(self):
@@ -362,15 +367,34 @@ class Observable_unlabelled_mDAGs:
                 itertools.permutations(self.all_directed_structures, 2) if
                 D1.can_D1_minimally_simulate_D2(D2)}.values())
 
+    @cached_property
+    def directed_dominances(self):
+        return tuple((D1.as_integer, D2.as_integer)
+                for D1, D2 in
+                itertools.permutations(self.truly_all_directed_structures, 2) if
+                D1.can_D1_minimally_simulate_D2(D2))
+
     @property
-    def unlabelled_dominances(self):
+    def _all_hypergraph_dominances(self):
+        for d in  map(lambda ds: ds.as_integer, self.all_unlabelled_directed_structures):
+            for h1, h2 in self.hypergraph_dominances:
+                yield (self.mdag_int_pair_to_canonical_int(d, h1), self.mdag_int_pair_to_canonical_int(d, h2))
+
+    @property
+    def _all_directed_dominances(self):
         for h in map(lambda sc: sc.as_integer, self.all_simplicial_complices):
             for d1, d2 in self.directed_dominances_up_to_symmetry:
                 yield (self.mdag_int_pair_to_canonical_int(d1, h), self.mdag_int_pair_to_canonical_int(d2, h))
-        for d in  map(lambda ds: ds.as_integer, self.all_unlabelled_directed_structures):
-            for h1, h2 in self.hypergraph_dominances:
-            # for h1, h2 in self.hypergraph_strong_dominances:
-                yield (self.mdag_int_pair_to_canonical_int(d, h1), self.mdag_int_pair_to_canonical_int(d, h2))
+
+    # @property
+    # def unlabelled_dominances(self):
+    #     for h in map(lambda sc: sc.as_integer, self.all_simplicial_complices):
+    #         for d1, d2 in self.directed_dominances_up_to_symmetry:
+    #             yield (self.mdag_int_pair_to_canonical_int(d1, h), self.mdag_int_pair_to_canonical_int(d2, h))
+    #     for d in  map(lambda ds: ds.as_integer, self.all_unlabelled_directed_structures):
+    #         for h1, h2 in self.hypergraph_dominances:
+    #         # for h1, h2 in self.hypergraph_strong_dominances:
+    #             yield (self.mdag_int_pair_to_canonical_int(d, h1), self.mdag_int_pair_to_canonical_int(d, h2))
 
     @property
     def boring_dominances(self):
@@ -438,8 +462,14 @@ class Observable_unlabelled_mDAGs:
         gc.collect(generation=2)
         if self.verbose:
             eprint('Adding dominance relations...', flush=True)
-        # g.add_edges_from(self.boring_dominances)
-        g.add_edges_from(set(self.unlabelled_dominances))
+        raw_dir_dom = tuple(self._all_directed_dominances)
+        raw_hyp_dom = tuple(self._all_hypergraph_dominances)
+        dedup_dir_dom = set(raw_dir_dom)
+        dedup_hyp_dom = set(raw_hyp_dom)
+        print(f"Directed dominances before and after deduplication: {len(raw_dir_dom)} vs {len(dedup_dir_dom)}")
+        print(f"Hypergraph dominances before and after deduplication: {len(raw_hyp_dom)} vs {len(dedup_hyp_dom)}")
+        g.add_edges_from(dedup_dir_dom.union(dedup_hyp_dom))
+        # g.add_edges_from(set(self.boring_dominances))
         gc.collect(generation=2)
         # edge_count = g.number_of_edges()
         if self.verbose:
@@ -473,12 +503,12 @@ class Observable_unlabelled_mDAGs:
     @cached_property
     def meta_graph(self):
         g = self.HLP_meta_graph.copy()
-        edge_count = g.number_of_edges()
+        # edge_count = g.number_of_edges()
         if self.verbose:
             eprint('Adding FaceSplitting equivalence relations...', flush=True)
         g.add_edges_from(self.FaceSplitting_edges)
         gc.collect(generation=2)
-        new_edge_count = g.number_of_edges()
+        # new_edge_count = g.number_of_edges()
         # if self.verbose:
         #     print('Number of FaceSplitting equivalence relations added: ', new_edge_count - edge_count)
         #     print('Full metagraph has been constructed. Total edge count: ', g.number_of_edges(), flush=True)
