@@ -86,14 +86,14 @@ class Observable_unlabelled_mDAGs:
         self.sort_by_length = lambda s: sorted(s, key=len)
         self.fully_foundational = fully_foundational
         self.verbose = verbose
-        self.experimental_speedup = False
+        # self.experimental_speedup = experimental_speedup
 
     @cached_property
     def all_directed_structures(self):
         possible_node_pairs = list(itertools.combinations(self.tuple_n, 2))
-        return [DirectedStructure(edge_list, self.n) for r
+        return tuple(DirectedStructure(edge_list, self.n) for r
                 in range(0, len(possible_node_pairs)+1) for edge_list
-                in itertools.combinations(possible_node_pairs, r)]
+                in itertools.combinations(possible_node_pairs, r))
     
     
     @cached_property
@@ -104,6 +104,10 @@ class Observable_unlabelled_mDAGs:
                                      message="Iterating over directed structures."):
             d[ds.as_unlabelled_integer].append(ds)
         return tuple(next(iter(eqclass)) for eqclass in d.values())
+
+    @cached_property
+    def all_noncanonical_directed_structures(self):
+        return set(self.all_directed_structures).difference(self.all_unlabelled_directed_structures)
         # return [ds for ds in excessive_unlabelled_directed_structures
         #        if all(all(any((edge2[0]==edge[0]-i and edge2[1]==edge[1]-i) for edge2 in ds.edge_list) for i in range(1,edge[0])) for edge in ds.edge_list)]
 
@@ -134,20 +138,19 @@ class Observable_unlabelled_mDAGs:
                     not any((ch.issubset(ch_list) or ch_list.issubset(ch)) for ch_list in sc))])
             #At this stage we have all the *compressed* simplicial complices.
         # return sorted((Hypergraph([frozenset({v}) for v in self.set_n.difference(*sc)] + sc, self.n) for sc in list_of_simplicial_complices), key = lambda sc:sc.tally)
-        return sorted((Hypergraph(sc, self.n) for sc in list_of_simplicial_complices), key=lambda sc: sc.tally)
+        return tuple(sorted((Hypergraph(sc, self.n) for sc in list_of_simplicial_complices), key=lambda sc: sc.tally))
 
-    @cached_property
-    def all_labelled_mDAGs(self):
-        if self.experimental_speedup:
-            return self.most_labelled_mDAGs
-        else:
-            return [mDAG(ds, sc) for sc, ds in itertools.product(self.all_simplicial_complices,
-                                                                 self.all_directed_structures)]
+
 
     @cached_property
     def most_labelled_mDAGs(self):
         return [mDAG(ds, sc) for sc, ds in itertools.product(self.all_simplicial_complices,
                                                              self.all_unlabelled_directed_structures)]
+
+    @cached_property
+    def all_labelled_mDAGs(self):
+        return self.most_labelled_mDAGs + [mDAG(ds, sc) for sc, ds in itertools.product(self.all_simplicial_complices,
+                                                                 self.all_noncanonical_directed_structures)]
 
     @cached_property
     def dict_id_to_canonical_id(self):
@@ -159,20 +162,22 @@ class Observable_unlabelled_mDAGs:
                                    message="mDAG ids to unlabelled id")}
 
 
-    def mdag_int_pair_to_single_int(self, sc_int, ds_int):
-        #ELIE: Note that this MUST MATCH the function mdag_to_int in the mDAG class. All is good.
-        return ds_int + sc_int*(2**(self.n**2))
+    @cached_property
+    def ds_bit_size(self):
+        return 2**(self.n**2)
 
-    def mdag_int_pair_to_canonical_int(self, sc_int, ds_int):
+    def mdag_int_pair_to_single_int(self, ds_int, sc_int):
+        #ELIE: Note that this MUST MATCH the function mdag_int_pair_to_single_int in the mDAG class. All is good.
+        return ds_int + sc_int*self.ds_bit_size
+
+    def mdag_int_pair_to_canonical_int(self, ds_int, sc_int):
         #print(ds_int, sc_int, self.mdag_int_pair_to_single_int(ds_int, sc_int))
-        return self.dict_id_to_canonical_id[self.mdag_int_pair_to_single_int(sc_int, ds_int)]
+        return self.dict_id_to_canonical_id[self.mdag_int_pair_to_single_int(ds_int, sc_int)]
 
     @cached_property
     def dict_ind_unlabelled_mDAGs(self):
-        # if self.verbose:
-        #     print("Dictionary creations: ids to mDAGs", flush=True)
         return {mdag.unique_unlabelled_id: mdag for mdag in explore_candidates(
-            self.all_labelled_mDAGs,
+            self.most_labelled_mDAGs,
             verbose=self.verbose,
             message="Mapping unlabelled ids to mDAGs"
         )}
@@ -324,8 +329,6 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def directed_dominances(self):
-        # return [(D1.as_integer, D2.as_integer) for D1, D2 in itertools.permutations(self.all_unlabelled_directed_structures, 2) if
-        #         D1.can_D1_minimally_simulate_D2(D2)]
         return [(D1.as_integer, D2.as_integer) for D1, D2 in
                 itertools.permutations(self.all_directed_structures, 2) if
                 D1.can_D1_minimally_simulate_D2(D2)]
@@ -334,11 +337,11 @@ class Observable_unlabelled_mDAGs:
     def unlabelled_dominances(self):
         for h in map(lambda sc: sc.as_integer, self.all_simplicial_complices):
             for d1, d2 in self.directed_dominances:
-                yield (self.mdag_int_pair_to_canonical_int(h, d1), self.mdag_int_pair_to_canonical_int(h, d2))
+                yield (self.mdag_int_pair_to_canonical_int(d1, h), self.mdag_int_pair_to_canonical_int(d2, h))
         for d in  map(lambda ds: ds.as_integer, self.all_unlabelled_directed_structures):
             for h1, h2 in self.hypergraph_dominances:
             # for h1, h2 in self.hypergraph_strong_dominances:
-                yield (self.mdag_int_pair_to_canonical_int(h1, d), self.mdag_int_pair_to_canonical_int(h2, d))
+                yield (self.mdag_int_pair_to_canonical_int(d, h1), self.mdag_int_pair_to_canonical_int(d, h2))
 
     @property
     def boring_dominances(self):
@@ -346,8 +349,8 @@ class Observable_unlabelled_mDAGs:
                                                                   verbose=self.verbose,
                                                                   message="Finding edge-droppings which preserve CI")):
             for d1, d2 in self.directed_dominances:
-                strong_int = self.mdag_int_pair_to_canonical_int(h, d1)
-                weak_int = self.mdag_int_pair_to_canonical_int(h, d2)
+                strong_int = self.mdag_int_pair_to_canonical_int(d1, h)
+                weak_int = self.mdag_int_pair_to_canonical_int(d2, h)
                 strong_mDAG = self.lookup_mDAG(strong_int)
                 weak_mDAG = self.lookup_mDAG(weak_int)
                 if strong_mDAG.CI_count == weak_mDAG.CI_count:
@@ -357,8 +360,8 @@ class Observable_unlabelled_mDAGs:
                                                                    message="Finding hyperedge poppings which preserve CI")):
             for h1, h2 in self.hypergraph_dominances:
             # for h1, h2 in self.hypergraph_strong_dominances:
-                strong_int = self.mdag_int_pair_to_canonical_int(h1, d)
-                weak_int = self.mdag_int_pair_to_canonical_int(h2, d)
+                strong_int = self.mdag_int_pair_to_canonical_int(d, h1)
+                weak_int = self.mdag_int_pair_to_canonical_int(d, h2)
                 strong_mDAG = self.lookup_mDAG(strong_int)
                 weak_mDAG = self.lookup_mDAG(weak_int)
                 if strong_mDAG.CI_count == weak_mDAG.CI_count:
@@ -375,16 +378,16 @@ class Observable_unlabelled_mDAGs:
     #             mdag1 = mDAG(D1, latent_free)
     #             mdag2 = mDAG(D2, latent_free)
     #             if mdag1.all_CI == mdag2.all_CI:
-    #                 yield (self.mdag_int_pair_to_canonical_int(latent_free_as_int, D2.as_integer),
-    #                        self.mdag_int_pair_to_canonical_int(latent_free_as_int, D1.as_integer))
+    #                 yield (self.mdag_int_pair_to_canonical_int(D2.as_integer, latent_free_as_int),
+    #                        self.mdag_int_pair_to_canonical_int(D1.as_integer, latent_free_as_int))
     #     for ds in self.all_unlabelled_directed_structures:
     #         ds_as_int = ds.as_integer
     #         mdag2 = mDAG(ds, latent_free)
     #         for S_strong in non_latent_free:
     #             mdag1 = mDAG(ds, S_strong)
     #             if mdag1.all_CI == mdag2.all_CI:
-    #                 yield (self.mdag_int_pair_to_canonical_int(latent_free_as_int, ds_as_int),
-    #                        self.mdag_int_pair_to_canonical_int(S_strong.as_integer, ds_as_int))
+    #                 yield (self.mdag_int_pair_to_canonical_int(ds_as_int, latent_free_as_int),
+    #                        self.mdag_int_pair_to_canonical_int(ds_as_int, S_strong.as_integer))
 
     @property
     def HLP_edges(self):

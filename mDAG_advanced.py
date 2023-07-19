@@ -37,14 +37,20 @@ from merge import merge_intersection
 from adjmat_class import AdjMat
 
  
+def mdag_to_int_pair(ds_bitarray: np.ndarray, sc_bitarray: np.ndarray):
+    sc_int = bitarray_to_int(sc_bitarray)
+    ds_int = bitarray_to_int(ds_bitarray)
+    return (ds_int, sc_int)
+
 def mdag_to_int(ds_bitarray: np.ndarray, sc_bitarray: np.ndarray):
     sc_int = bitarray_to_int(sc_bitarray)
     ds_int = bitarray_to_int(ds_bitarray)
     #The directed structure is always a square matrix of size n^2.
     offset = 2**ds_bitarray.size
-    # print(sc_int, ds_int, offset)
     return ds_int + (sc_int * offset)
-    # return bitarray_to_int(np.vstack((sc_bitarray, ds_bitarray)))
+
+
+
 
 
 
@@ -161,9 +167,18 @@ class mDAG:
         return p
 
     @cached_property
+    def ds_bit_size(self):
+        return 2**(self.number_of_visible**2)
+    def mdag_int_pair_to_single_int(self, ds_int, sc_int):
+        #ELIE: Note that this MUST MATCH the function mdag_int_pair_to_single_int in the metagraph class. All is good.
+        return ds_int + sc_int*self.ds_bit_size
+
+
+    @cached_property
     def unique_id(self):
         # Returns a unique identification number.
-        return mdag_to_int(self.directed_structure_instance.as_bit_square_matrix, self.simplicial_complex_instance.as_bit_array)
+        return self.mdag_int_pair_to_single_int(self.directed_structure_instance.as_integer,
+                                                self.simplicial_complex_instance.as_integer)
 
     def __hash__(self):
         return self.unique_id
@@ -173,11 +188,12 @@ class mDAG:
 
     @cached_property
     def unique_unlabelled_id(self):
-        # Returns a unique identification number.
-        return min(mdag_to_int(new_ds, new_sc) for (new_ds, new_sc) in zip(
-            self.directed_structure_instance.bit_square_matrix_permutations,
-            self.simplicial_complex_instance.bit_array_permutations
-        ))
+        # Returns the unique id minimized over relabellings
+        return self.mdag_int_pair_to_single_int(*min(zip(
+            self.directed_structure_instance.as_integer_permutations,
+            self.simplicial_complex_instance.as_integer_permutations
+
+        )))
 
     @cached_property
     def skeleton_instance(self):
@@ -594,7 +610,8 @@ class mDAG:
         if self.droppable_edges and not self.addable_edges:
             new_bit_square_matrix = self.directed_structure_instance.as_bit_square_matrix.copy()
             new_bit_square_matrix[tuple(np.asarray(self.droppable_edges, dtype=int).reshape((-1,2)).T)] = False
-            yield mdag_to_int(new_bit_square_matrix, self.simplicial_complex_instance.as_bit_array)
+            yield self.mdag_int_pair_to_single_int(bitarray_to_int(new_bit_square_matrix),
+                                                   self.simplicial_complex_instance.as_integer)
 
     @property
     def generate_slightly_weaker_mDAGs_HLP(self):
@@ -602,7 +619,8 @@ class mDAG:
             new_bit_square_matrix = self.directed_structure_instance.as_bit_square_matrix.copy()
             new_bit_square_matrix[droppable_edge] = False
             # new_bit_square_matrix[tuple(np.asarray(self.droppable_edges, dtype=int).reshape((-1,2)).T)] = False
-            yield mdag_to_int(new_bit_square_matrix, self.simplicial_complex_instance.as_bit_array)
+            yield self.mdag_int_pair_to_single_int(bitarray_to_int(new_bit_square_matrix),
+                                                   self.simplicial_complex_instance.as_integer)
 
 
     @staticmethod
@@ -798,9 +816,9 @@ class mDAG:
             if not any(D.issubset(facet) for facet in new_simplicial_complex):
                 new_simplicial_complex.add(D)
             # new_simplicial_complex.sort()
-            yield mdag_to_int(
-                self.directed_structure_instance.as_bit_square_matrix,
-                Hypergraph(new_simplicial_complex, self.number_of_visible).as_bit_array)
+            yield self.mdag_int_pair_to_single_int(
+                self.directed_structure_instance.as_integer,
+                Hypergraph(new_simplicial_complex, self.number_of_visible).as_integer)
     
     
     def generate_weaker_mDAGs_FaceSplitting(self, version):
@@ -826,9 +844,9 @@ class mDAG:
             if not any(D.issubset(facet) for facet in new_simplicial_complex):
                 new_simplicial_complex.add(D)
             # new_simplicial_complex.sort()
-            yield mdag_to_int(
-                self.directed_structure_instance.as_bit_square_matrix,
-                Hypergraph(new_simplicial_complex, self.number_of_visible).as_bit_array)
+            yield self.mdag_int_pair_to_single_int(
+                self.directed_structure_instance.as_integer,
+                Hypergraph(new_simplicial_complex, self.number_of_visible).as_integer)
 
     @property  # Agressive conjucture of simultaneous face splitting
     def generate_weaker_mDAGs_FaceSplitting_Simultaneous(self):
@@ -847,9 +865,9 @@ class mDAG:
                 if not any(C.issubset(facet) for facet in new_simplicial_complex):
                     new_simplicial_complex.add(C)
             # new_simplicial_complex.sort()
-            yield mdag_to_int(
-                self.directed_structure_instance.as_bit_square_matrix,
-                Hypergraph(new_simplicial_complex, self.number_of_visible).as_bit_array)
+            yield self.mdag_int_pair_to_single_int(
+                self.directed_structure_instance.as_integer,
+                Hypergraph(new_simplicial_complex, self.number_of_visible).as_integer)
 
     #TODO: slightly speed up this by avoiding Hypergraph creation. That is, directly modify the bit array.
     #Or, if we are really fancy, we can modify the bits of the unique_id itself!!
