@@ -98,12 +98,15 @@ class Observable_unlabelled_mDAGs:
     
     @cached_property
     def all_unlabelled_directed_structures(self):
-        d = defaultdict(list)
-        for ds in explore_candidates(self.all_directed_structures,
+        # d = defaultdict(list)
+        # for ds in explore_candidates(self.all_directed_structures,
+        #                              verbose=False,
+        #                              message="Iterating over directed structures."):
+        #     d[ds.as_unlabelled_integer].append(ds)
+        # return tuple(next(iter(eqclass)) for eqclass in d.values())
+        return tuple({ds.as_unlabelled_integer: ds for ds in explore_candidates(self.all_directed_structures,
                                      verbose=False,
-                                     message="Iterating over directed structures."):
-            d[ds.as_unlabelled_integer].append(ds)
-        return tuple(next(iter(eqclass)) for eqclass in d.values())
+                                     message="Iterating over simplicial complices.")}.values())
 
     @cached_property
     def all_noncanonical_directed_structures(self):
@@ -139,6 +142,18 @@ class Observable_unlabelled_mDAGs:
             #At this stage we have all the *compressed* simplicial complices.
         # return sorted((Hypergraph([frozenset({v}) for v in self.set_n.difference(*sc)] + sc, self.n) for sc in list_of_simplicial_complices), key = lambda sc:sc.tally)
         return tuple(sorted((Hypergraph(sc, self.n) for sc in list_of_simplicial_complices), key=lambda sc: sc.tally))
+
+    @cached_property
+    def all_unlabelled_simplicial_complices(self):
+        # d = defaultdict(list)
+        # for sc in explore_candidates(self.all_simplicial_complices,
+        #                              verbose=False,
+        #                              message="Iterating over simplicial complices."):
+        #     d[sc.as_unlabelled_integer].append(sc)
+        # return tuple(next(iter(eqclass)) for eqclass in d.values())
+        return tuple({sc.as_unlabelled_integer: sc for sc in explore_candidates(self.all_simplicial_complices,
+                                     verbose=False,
+                                     message="Iterating over simplicial complices.")}.values())
 
 
 
@@ -206,12 +221,12 @@ class Observable_unlabelled_mDAGs:
     @cached_property
     def latent_free_DAGs_unlabelled(self):
         empty_sc = Hypergraph([], self.n)
-        return set([mDAG(ds, empty_sc) for ds in self.all_unlabelled_directed_structures])
+        return {mDAG(ds, empty_sc) for ds in self.all_unlabelled_directed_structures}
 
     @cached_property
     def latent_free_DAGs_labelled(self):
         empty_sc = Hypergraph([], self.n)
-        return set([mDAG(ds, empty_sc) for ds in self.all_directed_structures])
+        return {mDAG(ds, empty_sc) for ds in self.all_directed_structures}
 
     # @cached_property
     # def latent_free_DAG_ids(self):
@@ -316,10 +331,20 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def hypergraph_dominances(self):
-        hdominances = [(S1.as_integer, S2.as_integer) for S1, S2 in itertools.permutations(self.all_simplicial_complices, 2) if
-                S1.can_S1_minimally_simulate_S2(S2)]
+        hdominances = tuple((S1.as_integer, S2.as_integer) for S1, S2 in itertools.permutations(self.all_simplicial_complices, 2) if
+                S1.can_S1_minimally_simulate_S2(S2))
         if self.verbose:
             eprint("Number of hypergraph dominance relations: ", len(hdominances))
+        return hdominances
+
+    @cached_property
+    def hypergraph_dominances_up_to_symmetry(self):
+        hdominances = tuple({min(zip(S1.as_integer_permutations,
+                                     S2.as_integer_permutations)): (S1.as_integer,
+                                                                    S2.as_integer)
+               for S1, S2 in
+               itertools.permutations(self.all_simplicial_complices, 2) if
+               S1.can_S1_minimally_simulate_S2(S2)}.values())
         return hdominances
 
     # @property
@@ -328,15 +353,19 @@ class Observable_unlabelled_mDAGs:
     #             S1.are_S1_facets_one_more_than_S2_facets(S2)]
 
     @cached_property
-    def directed_dominances(self):
-        return [(D1.as_integer, D2.as_integer) for D1, D2 in
+    def directed_dominances_up_to_symmetry(self):
+        # return tuple((D1.as_integer, D2.as_integer) for D1, D2 in
+        #         itertools.permutations(self.all_directed_structures, 2) if
+        #         D1.can_D1_minimally_simulate_D2(D2))
+        return tuple({min(zip(D1.as_integer_permutations, D2.as_integer_permutations)): (D1.as_integer, D2.as_integer)
+                for D1, D2 in
                 itertools.permutations(self.all_directed_structures, 2) if
-                D1.can_D1_minimally_simulate_D2(D2)]
+                D1.can_D1_minimally_simulate_D2(D2)}.values())
 
     @property
     def unlabelled_dominances(self):
         for h in map(lambda sc: sc.as_integer, self.all_simplicial_complices):
-            for d1, d2 in self.directed_dominances:
+            for d1, d2 in self.directed_dominances_up_to_symmetry:
                 yield (self.mdag_int_pair_to_canonical_int(d1, h), self.mdag_int_pair_to_canonical_int(d2, h))
         for d in  map(lambda ds: ds.as_integer, self.all_unlabelled_directed_structures):
             for h1, h2 in self.hypergraph_dominances:
@@ -348,7 +377,7 @@ class Observable_unlabelled_mDAGs:
         for h in map(lambda sc: sc.as_integer, explore_candidates(self.all_simplicial_complices,
                                                                   verbose=self.verbose,
                                                                   message="Finding edge-droppings which preserve CI")):
-            for d1, d2 in self.directed_dominances:
+            for d1, d2 in self.directed_dominances_up_to_symmetry:
                 strong_int = self.mdag_int_pair_to_canonical_int(d1, h)
                 weak_int = self.mdag_int_pair_to_canonical_int(d2, h)
                 strong_mDAG = self.lookup_mDAG(strong_int)
@@ -410,12 +439,12 @@ class Observable_unlabelled_mDAGs:
         if self.verbose:
             eprint('Adding dominance relations...', flush=True)
         # g.add_edges_from(self.boring_dominances)
-        g.add_edges_from(self.unlabelled_dominances)
+        g.add_edges_from(set(self.unlabelled_dominances))
         gc.collect(generation=2)
         # edge_count = g.number_of_edges()
         if self.verbose:
             eprint('Adding HLP equivalence relations...', flush=True)
-        g.add_edges_from(self.HLP_edges)
+        g.add_edges_from(set(self.HLP_edges))
         gc.collect(generation=2)
         # new_edge_count =  g.number_of_edges()
         # if self.verbose:
