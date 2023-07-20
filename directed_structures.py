@@ -103,9 +103,9 @@ class DirectedStructure:
     def permute_bit_square_matrix(self, perm):
         return self.as_bit_square_matrix[perm][:, perm]
 
-    @property
+    @cached_property
     def bit_square_matrix_permutations(self):
-        return (self.permute_bit_square_matrix(perm) for perm in map(list,itertools.permutations(self.visible_nodes)))
+        return tuple(self.permute_bit_square_matrix(perm) for perm in map(list,itertools.permutations(self.visible_nodes)))
 
     @cached_property
     def as_integer_permutations(self):
@@ -114,6 +114,17 @@ class DirectedStructure:
     @cached_property
     def as_unlabelled_integer(self):
         return min(self.as_integer_permutations)
+
+    @classmethod
+    def directedStructure_from_bit_square_matrix(cls, bit_square_matrix):
+        return cls(np.vstack(np.nonzero(bit_square_matrix)).T.tolist(), len(bit_square_matrix))
+
+    @cached_property
+    def equivalents_under_symmetry(self):
+        return [self.directedStructure_from_bit_square_matrix(bitmat) for bitmat in
+                np.take(self.bit_square_matrix_permutations,
+                        np.unique(self.as_integer_permutations, return_index=True, axis=0)[-1],
+                        axis=0)]
 
     @cached_property
     def as_string(self):
@@ -145,14 +156,19 @@ class DirectedStructure:
         D1 and D2 are networkx.DiGraph objects.
         We say that D1 can 'simulate' D2 if the edges of D2 are contained within those of D1.
         """
-        return D1.number_of_edges == D2.number_of_edges + 1 and D2.as_set_of_tuples.issubset(D1.as_set_of_tuples)
+        # return D1.number_of_edges == D2.number_of_edges + 1 and D2.as_set_of_tuples.issubset(D1.as_set_of_tuples)
+        if D1.number_of_edges == D2.number_of_edges + 1:
+            return np.logical_or(np.logical_not(D2.as_bit_square_matrix), D1.as_bit_square_matrix).all()
+        return False
+
 
     def is_D1_strictly_above_D2(D1, D2):
         """
         D1 and D2 are networkx.DiGraph objects.
         We say that D1 can 'simulate' D2 if the edges of D2 are contained within those of D1.
         """
-        return D1.number_of_edges > D2.number_of_edges and D2.as_set_of_tuples.issubset(D1.as_set_of_tuples)
+        # return D1.number_of_edges > D2.number_of_edges and D2.as_set_of_tuples.issubset(D1.as_set_of_tuples)
+        return np.logical_or(np.logical_not(D2.as_bit_square_matrix), D1.as_bit_square_matrix).all()
 
 
 

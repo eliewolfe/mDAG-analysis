@@ -7,6 +7,7 @@ from more_itertools import ilen
 import progressbar
 from utilities import partsextractor
 from collections import defaultdict
+from scipy import sparse
 
 from sys import hexversion, stderr
 import gc
@@ -184,7 +185,7 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def ds_bit_size(self):
-        return 2**(self.n**2)
+        return np.asarray(2**(self.n**2), dtype=object)
 
     def mdag_int_pair_to_single_int(self, ds_int, sc_int):
         #ELIE: Note that this MUST MATCH the function mdag_int_pair_to_single_int in the mDAG class. All is good.
@@ -195,15 +196,20 @@ class Observable_unlabelled_mDAGs:
         return self.dict_id_to_canonical_id[self.mdag_int_pair_to_single_int(ds_int, sc_int)]
 
     @cached_property
-    def dict_ind_unlabelled_mDAGs(self):
+    def dict_uniqind_unlabelled_mDAGs(self):
         return {mdag.unique_unlabelled_id: mdag for mdag in explore_candidates(
             self.most_labelled_mDAGs,
             verbose=self.verbose,
             message="Mapping unlabelled ids to mDAGs"
         )}
 
+    @cached_property
+    def dict_ind_unlabelled_mDAGs(self):
+        return {mdag.unique_id: mdag for mdag in self.dict_uniqind_unlabelled_mDAGs.values()}
+
+
     def lookup_mDAG(self, indices):
-        return partsextractor(self.dict_ind_unlabelled_mDAGs, indices)
+        return partsextractor(self.dict_uniqind_unlabelled_mDAGs, indices)
     @cached_property
     def dict_labelled_to_unlabelled_mDAGs(self):
         return {mdag: self.lookup_mDAG(mdag.unique_unlabelled_id) for mdag in self.all_labelled_mDAGs}
@@ -213,7 +219,7 @@ class Observable_unlabelled_mDAGs:
 
     @property
     def all_unlabelled_mDAGs(self):
-        return self.dict_ind_unlabelled_mDAGs.values()
+        return self.dict_uniqind_unlabelled_mDAGs.values()
 
     @cached_property
     def all_unlabelled_mDAGs_faster(self):
@@ -330,9 +336,12 @@ class Observable_unlabelled_mDAGs:
     #     # return tuple(next(iter(eqclass)) for eqclass in d.values())
 
     @cached_property
-    def meta_graph_nodes(self):
-        return tuple(self.dict_ind_unlabelled_mDAGs.keys())
+    def metagraph_nodes(self):
+        return np.array(tuple(self.dict_uniqind_unlabelled_mDAGs.keys()))
 
+    @cached_property
+    def num_metagraph_nodes(self):
+        return len(self.metagraph_nodes)
 
     @cached_property
     def hypergraph_dominances(self):
@@ -374,108 +383,120 @@ class Observable_unlabelled_mDAGs:
                 itertools.permutations(self.truly_all_directed_structures, 2) if
                 D1.can_D1_minimally_simulate_D2(D2))
 
-    @property
-    def _all_hypergraph_dominances(self):
-        for d in  map(lambda ds: ds.as_integer, self.all_unlabelled_directed_structures):
-            for h1, h2 in self.hypergraph_dominances:
-                yield (self.mdag_int_pair_to_canonical_int(d, h1), self.mdag_int_pair_to_canonical_int(d, h2))
-
-    @property
-    def _all_directed_dominances(self):
-        for h in map(lambda sc: sc.as_integer, self.all_simplicial_complices):
-            for d1, d2 in self.directed_dominances_up_to_symmetry:
-                yield (self.mdag_int_pair_to_canonical_int(d1, h), self.mdag_int_pair_to_canonical_int(d2, h))
-
     # @property
-    # def unlabelled_dominances(self):
-    #     for h in map(lambda sc: sc.as_integer, self.all_simplicial_complices):
+    # def raw_all_hypergraph_dominances(self):
+    #     for d in map(lambda ds: ds.as_integer, explore_candidates(self.all_unlabelled_directed_structures,
+    #                                                               verbose=self.verbose,
+    #                                                               message="Enumerating all hypergraph dominances...")):
+    #         for h1, h2 in self.hypergraph_dominances:
+    #             yield (self.mdag_int_pair_to_single_int(d, h1), self.mdag_int_pair_to_single_int(d, h2))
+    # @property
+    # def _all_hypergraph_dominances(self):
+    #     for d in map(lambda ds: ds.as_integer, explore_candidates(self.all_unlabelled_directed_structures,
+    #                                                               verbose=self.verbose,
+    #                                                               message="Enumerating all hypergraph dominances...")):
+    #         for h1, h2 in self.hypergraph_dominances:
+    #             yield (self.mdag_int_pair_to_canonical_int(d, h1), self.mdag_int_pair_to_canonical_int(d, h2))
+    #
+    # @property
+    # def raw_all_directed_dominances(self):
+    #     for h in map(lambda sc: sc.as_integer, explore_candidates(self.all_simplicial_complices,
+    #                                                               verbose=self.verbose,
+    #                                                               message="Enumerating all directed dominances...")):
+    #         for d1, d2 in self.directed_dominances_up_to_symmetry:
+    #             yield (self.mdag_int_pair_to_single_int(d1, h), self.mdag_int_pair_to_single_int(d2, h))
+    #
+    # @property
+    # def _all_directed_dominances(self):
+    #     for h in map(lambda sc: sc.as_integer, explore_candidates(self.all_simplicial_complices,
+    #                                                               verbose=self.verbose,
+    #                                                               message="Enumerating all directed dominances...")):
     #         for d1, d2 in self.directed_dominances_up_to_symmetry:
     #             yield (self.mdag_int_pair_to_canonical_int(d1, h), self.mdag_int_pair_to_canonical_int(d2, h))
-    #     for d in  map(lambda ds: ds.as_integer, self.all_unlabelled_directed_structures):
-    #         for h1, h2 in self.hypergraph_dominances:
-    #         # for h1, h2 in self.hypergraph_strong_dominances:
-    #             yield (self.mdag_int_pair_to_canonical_int(d, h1), self.mdag_int_pair_to_canonical_int(d, h2))
+
 
     @property
-    def boring_dominances(self):
-        for h in map(lambda sc: sc.as_integer, explore_candidates(self.all_simplicial_complices,
-                                                                  verbose=self.verbose,
-                                                                  message="Finding edge-droppings which preserve CI")):
-            for d1, d2 in self.directed_dominances_up_to_symmetry:
-                strong_int = self.mdag_int_pair_to_canonical_int(d1, h)
-                weak_int = self.mdag_int_pair_to_canonical_int(d2, h)
-                strong_mDAG = self.lookup_mDAG(strong_int)
-                weak_mDAG = self.lookup_mDAG(weak_int)
-                if strong_mDAG.CI_count == weak_mDAG.CI_count:
-                    yield (strong_int, weak_int)
-        for d in  map(lambda ds: ds.as_integer, explore_candidates(self.all_unlabelled_directed_structures,
-                                                                   verbose=self.verbose,
-                                                                   message="Finding hyperedge poppings which preserve CI")):
-            for h1, h2 in self.hypergraph_dominances:
-            # for h1, h2 in self.hypergraph_strong_dominances:
-                strong_int = self.mdag_int_pair_to_canonical_int(d, h1)
-                weak_int = self.mdag_int_pair_to_canonical_int(d, h2)
-                strong_mDAG = self.lookup_mDAG(strong_int)
-                weak_mDAG = self.lookup_mDAG(weak_int)
-                if strong_mDAG.CI_count == weak_mDAG.CI_count:
-                    yield (strong_int, weak_int)
+    def raw_HLP_edges(self):
+        for (id, mdag) in explore_candidates(
+                self.dict_ind_unlabelled_mDAGs.items(),
+                verbose=self.verbose,
+                message="Finding HLP Rule #4 type edges"):  # NEW: Over graph patterns only
+            for id2 in mdag.generate_weaker_mDAG_HLP:
+                yield (id2, id)
 
-    # @property
-    # def dominates_latent_free_with_invariant_CI_edges(self):
-    #     print("All simplicial complices:", self.all_simplicial_complices)
-    #     latent_free = self.all_simplicial_complices[0]
-    #     latent_free_as_int = latent_free.as_integer
-    #     non_latent_free = self.all_simplicial_complices[1:]
-    #     for D1, D2 in itertools.permutations(self.all_directed_structures, 2):
-    #         if D1.can_D1_minimally_simulate_D2(D2):
-    #             mdag1 = mDAG(D1, latent_free)
-    #             mdag2 = mDAG(D2, latent_free)
-    #             if mdag1.all_CI == mdag2.all_CI:
-    #                 yield (self.mdag_int_pair_to_canonical_int(D2.as_integer, latent_free_as_int),
-    #                        self.mdag_int_pair_to_canonical_int(D1.as_integer, latent_free_as_int))
-    #     for ds in self.all_unlabelled_directed_structures:
-    #         ds_as_int = ds.as_integer
-    #         mdag2 = mDAG(ds, latent_free)
-    #         for S_strong in non_latent_free:
-    #             mdag1 = mDAG(ds, S_strong)
-    #             if mdag1.all_CI == mdag2.all_CI:
-    #                 yield (self.mdag_int_pair_to_canonical_int(ds_as_int, latent_free_as_int),
-    #                        self.mdag_int_pair_to_canonical_int(ds_as_int, S_strong.as_integer))
+    @property
+    def raw_FaceSplitting_edges(self):
+        for (id, mdag) in explore_candidates(
+                self.dict_ind_unlabelled_mDAGs.items(),
+                verbose=self.verbose,
+                message="Finding metagraph edges due to face splitting"):  # NEW: Over graph patterns only
+            for id2 in mdag.generate_weaker_mDAGs_FaceSplitting('strong'):
+                yield (id2, id)
 
     @property
     def HLP_edges(self):
-        for (id, mdag) in self.dict_ind_unlabelled_mDAGs.items():  # NEW: Over graph patterns only
-            for mDAG2 in mdag.generate_weaker_mDAG_HLP:
-                yield (self.dict_id_to_canonical_id[mDAG2], id)
+        for (id2, id) in self.raw_HLP_edges:
+            yield partsextractor(self.dict_id_to_canonical_id, (id2, id))
 
     @property
     def FaceSplitting_edges(self):
-        for (id, mdag) in self.dict_ind_unlabelled_mDAGs.items():  # NEW: Over graph patterns only
-            for mDAG2 in mdag.generate_weaker_mDAGs_FaceSplitting('strong'):
-                yield (self.dict_id_to_canonical_id[mDAG2], id)
-        
+        for (id2, id) in self.raw_FaceSplitting_edges:
+            yield partsextractor(self.dict_id_to_canonical_id, (id2, id))
+
+    @cached_property
+    def all_HLP_relevant_dominances(self):
+        if self.verbose:
+            eprint('Adding dominance relations...', flush=True)
+        directed_ids = np.array(tuple(ds.as_integer for ds in self.all_unlabelled_directed_structures), dtype=object)[:,np.newaxis,np.newaxis]
+        hypergraph_dominances = np.asarray(self.hypergraph_dominances, dtype=object)
+        dominances_from_hypergraphs = np.reshape(self.mdag_int_pair_to_single_int(directed_ids, hypergraph_dominances),(-1,2))
+        simplicial_ids = np.array(tuple(sc.as_integer for sc in self.all_simplicial_complices), dtype=object)[:,np.newaxis,np.newaxis]
+        directed_dominances = np.asarray(self.directed_dominances_up_to_symmetry, dtype=object)
+        dominances_from_directed_edges = np.reshape(self.mdag_int_pair_to_single_int(directed_dominances, simplicial_ids),(-1,2))
+        HLP_dominances = tuple(self.raw_HLP_edges)
+        all_dominances = np.vstack((dominances_from_hypergraphs, dominances_from_directed_edges, HLP_dominances))
+        # partsextractor(self.dict_id_to_canonical_id, dominances_from_hypergraphs.ravel().tolist())
+        # partsextractor(self.dict_id_to_canonical_id, dominances_from_directed_edges.ravel().tolist())
+        all_dominances = np.array(
+            partsextractor(self.dict_id_to_canonical_id,
+                           all_dominances.ravel().tolist())).reshape((-1, 2))
+        # [row, col] = all_dominances.T.tolist()
+        del directed_ids, hypergraph_dominances, simplicial_ids, directed_dominances, dominances_from_hypergraphs, dominances_from_directed_edges, HLP_dominances
+        return set(map(tuple, all_dominances.tolist()))
+
+    @property
+    def boring_dominances(self):
+        new_doms = []
+        for dom_ids in explore_candidates(self.all_HLP_relevant_dominances,
+                                                         verbose=self.verbose,
+                                                         message="Finding dominances which preserve CI"):
+            (strong_mDAG, weak_mDAG) = self.lookup_mDAG(dom_ids)
+            if strong_mDAG.CI_count == weak_mDAG.CI_count:
+                new_doms.append(dom_ids)
+        return new_doms
 
     @cached_property
     def HLP_meta_graph(self):
         g = nx.DiGraph()
-        g.add_nodes_from(self.meta_graph_nodes)
-        gc.collect(generation=2)
-        if self.verbose:
-            eprint('Adding dominance relations...', flush=True)
-        raw_dir_dom = tuple(self._all_directed_dominances)
-        raw_hyp_dom = tuple(self._all_hypergraph_dominances)
-        dedup_dir_dom = set(raw_dir_dom)
-        dedup_hyp_dom = set(raw_hyp_dom)
-        print(f"Directed dominances before and after deduplication: {len(raw_dir_dom)} vs {len(dedup_dir_dom)}")
-        print(f"Hypergraph dominances before and after deduplication: {len(raw_hyp_dom)} vs {len(dedup_hyp_dom)}")
-        g.add_edges_from(dedup_dir_dom.union(dedup_hyp_dom))
+        g.add_nodes_from(self.metagraph_nodes.flat)
+        # gc.collect(generation=2)
+        # if self.verbose:
+        #     eprint('Adding dominance relations...', flush=True)
+        # # raw_dir_dom = tuple(self._all_directed_dominances)
+        # # raw_hyp_dom = tuple(self._all_hypergraph_dominances)
+        # # dedup_dir_dom = set(raw_dir_dom)
+        # # dedup_hyp_dom = set(raw_hyp_dom)
+        # # eprint(f"Directed dominances before and after deduplication: {len(raw_dir_dom)} vs {len(dedup_dir_dom)}")
+        # # eprint(f"Hypergraph dominances before and after deduplication: {len(raw_hyp_dom)} vs {len(dedup_hyp_dom)}")
+        # # g.add_edges_from(dedup_dir_dom.union(dedup_hyp_dom))
         # g.add_edges_from(set(self.boring_dominances))
-        gc.collect(generation=2)
-        # edge_count = g.number_of_edges()
-        if self.verbose:
-            eprint('Adding HLP equivalence relations...', flush=True)
-        g.add_edges_from(set(self.HLP_edges))
-        gc.collect(generation=2)
+        # gc.collect(generation=2)
+        # # edge_count = g.number_of_edges()
+        # if self.verbose:
+        #     eprint('Adding HLP equivalence relations...', flush=True)
+        # g.add_edges_from(zip(*self.all_HLP_relevant_dominances))
+        g.add_edges_from(self.boring_dominances)
+        # gc.collect(generation=2)
         # new_edge_count =  g.number_of_edges()
         # if self.verbose:
         #     print('Number of HLP equivalence relations added: ', new_edge_count-edge_count)
@@ -484,19 +505,60 @@ class Observable_unlabelled_mDAGs:
         return g
 
     @cached_property
+    def _dict_id_to_idx(self):
+        return {id: i for i, id in enumerate(self.metagraph_nodes.flat)}
+
+
+
+
+    @cached_property
+    def HLP_meta_adjmat(self):
+        (pre_row, pre_col) = self.all_HLP_relevant_dominances
+        all_idxs = tuple(range(self.num_metagraph_nodes))
+        col = partsextractor(self._dict_id_to_idx, pre_row) + all_idxs
+        row = partsextractor(self._dict_id_to_idx, pre_col) + all_idxs
+        return sparse.coo_matrix((np.ones(len(row), dtype=bool), (row, col)),
+                                        shape=(self.num_metagraph_nodes, self.num_metagraph_nodes),
+                                 dtype=bool)
+
+    @cached_property
+    def HLP_meta_adjmat_closure(self):
+        n = self.num_metagraph_nodes
+        closure_mat = self.HLP_meta_adjmat.tocsr()
+        while n > 0:
+            n = np.floor_divide(n, 2)
+            next_closure_mat = closure_mat.multiply(closure_mat)
+            if np.array_equal(closure_mat.indices, next_closure_mat.indices) and np.array_equal(closure_mat.indptr, next_closure_mat.indptr):
+                break
+            else:
+                closure_mat = next_closure_mat
+        return closure_mat
+
+
+    @cached_property
     def boring_by_virtue_of_HLP(self):
+        # proven_boring = set()
+        # for lf_id, lf_CI in explore_candidates(self.latent_free_DAG_ids_and_CI_unlabelled.items(),
+        #                                        verbose=self.verbose,
+        #                                        message="Running HLP in reverse"):
+        #
+        #     idxs_dominated_by_LF = self.HLP_meta_adjmat_closure[self._dict_id_to_idx[lf_id]].tocoo().row
+        #     ids_dominated_by_LF = self.metagraph_nodes[idxs_dominated_by_LF].tolist()
+        #     mdags_dominated_by_LF = partsextractor(self.dict_uniqind_unlabelled_mDAGs, ids_dominated_by_LF)
+        #     mdags_dominated_by_LF = [m for m in mdags_dominated_by_LF if m.all_CI_unlabelled==lf_CI]
+        #     proven_boring.update(mdags_dominated_by_LF)
+        # return proven_boring
+        # HLP_meta_graph = nx.transitive_closure(self.HLP_meta_graph, reflexive=True)
         HLP_meta_graph = self.HLP_meta_graph.copy()
         proven_boring = set()
         for lf_id, lf_CI in explore_candidates(self.latent_free_DAG_ids_and_CI_unlabelled.items(),
                                                verbose=self.verbose,
                                                message="Running HLP in reverse"):
-            # print(f"Processing LF {self.dict_ind_unlabelled_mDAGs[lf_id]}")
-            ids_dominated_by_LF = sorted({lf_id}.union(nx.ancestors(HLP_meta_graph, lf_id)))
-            dominated_by_LF = [self.dict_ind_unlabelled_mDAGs[m] for m in ids_dominated_by_LF]
-            # print(f"Dominated by it: {dominated_by_LF}")
-            dominated_by_LF = [m for m in dominated_by_LF if m.all_CI_unlabelled==lf_CI]
+            ids_dominated_by_LF = {lf_id}.union(nx.ancestors(HLP_meta_graph, lf_id))
+            # ids_dominated_by_LF = tuple(HLP_meta_graph.predecessors(lf_id))
+            dominated_by_LF = partsextractor(self.dict_uniqind_unlabelled_mDAGs, ids_dominated_by_LF)
+            # dominated_by_LF = [m for m in dominated_by_LF if m.all_CI_unlabelled==lf_CI]
             HLP_meta_graph.remove_nodes_from(m.unique_unlabelled_id for m in dominated_by_LF)
-            # print(f"Number of nodes remaining in metagraph: {HLP_meta_graph.number_of_nodes()}")
             proven_boring.update(dominated_by_LF)
         return proven_boring
 
