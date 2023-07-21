@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from metagraph_advanced import Observable_unlabelled_mDAGs
 from quantum_mDAG import as_classical_QmDAG
 import gc
+from supports import explore_candidates
 # from the_7_hard_graphs import the_7_hard_graphs
 # the_7_hard_ids = set(m.unique_unlabelled_id for m in the_7_hard_graphs)
 
@@ -110,21 +111,46 @@ print(f"Number of {n}-vis node unlabelled mDAGs: {len(unlabelled_mDAGs)}")
 potentially_interesting_classes = unlabelled_mDAGs.difference(metagraph.boring_by_virtue_of_HLP)
 potentially_interesting_after_HLP = potentially_interesting_classes.intersection(unlabelled_mDAGs)
 print(f"Number of {n}-vis node unlabelled mDAGs not resolved by HLP: {len(potentially_interesting_after_HLP)}")
-print("Conjecture sanity check: ", metagraph.boring_by_virtue_of_Evans.issubset(metagraph.boring_by_virtue_of_HLP))
-print("Does Evans approach coincide with HLP? ", len(metagraph.boring_by_virtue_of_Evans) == len(metagraph.boring_by_virtue_of_HLP))
+# print("Conjecture sanity check: ", metagraph.boring_by_virtue_of_Evans.issubset(metagraph.boring_by_virtue_of_HLP))
+# print("Does Evans approach coincide with HLP? ", len(metagraph.boring_by_virtue_of_Evans) == len(metagraph.boring_by_virtue_of_HLP))
 unresolved = potentially_interesting_after_HLP.copy()
-unresolved = set([m for m in unresolved if not m.interesting_via_non_maximal])
+unresolved = set([m for m in explore_candidates(unresolved,
+                                                verbose=True,
+                                                message="Applying maximality filter")
+                  if not m.interesting_via_non_maximal])
 print(f"Number unresolved after maximality test:  {len(unresolved)}")
-unresolved = set([m for m in unresolved if not m.interesting_via_generalized_maximality])
+unresolved = set([m for m in explore_candidates(unresolved,
+                                                verbose=True,
+                                                message="Applying generalized maximality filter")
+                  if not m.interesting_via_generalized_maximality])
 print(f"Number unresolved after generalized maximality test:  {len(unresolved)}")
-unresolved_by_subgraph = set([m for m in unresolved if
-    believed_interesting_ids.isdisjoint(as_classical_QmDAG(m).unique_unlabelled_ids_obtainable_by_PD_trick)
-                                    ])
-print(f"Number of {n}-vis node unlabelled mDAGs unresolved by subgraph: {len(unresolved_by_subgraph)}")
-unresolved = set([m for m in unresolved if m.all_CI_unlabelled in metagraph.latent_free_CI_patterns])
+unresolved = set([m for m in explore_candidates(unresolved,
+                                                            verbose=True,
+                                                            message="Applying subgraph filter")
+                              if believed_interesting_ids.isdisjoint(
+        as_classical_QmDAG(m).unique_unlabelled_ids_obtainable_by_PD_trick)
+                              ])
+print(f"Number of {n}-vis node unlabelled mDAGs unresolved by subgraph: {len(unresolved)}")
+unresolved = set([m for m in explore_candidates(unresolved,
+                                                verbose=True,
+                                                message="Applying d-sep patterns filter")
+                  if m.all_CI_unlabelled in metagraph.latent_free_CI_patterns])
 print(f"Number of unresolved by dsep: {len(unresolved)}")
-unresolved = set([m for m in unresolved if m.all_esep_unlabelled in metagraph.latent_free_esep_patterns])
+unresolved = set([m for m in explore_candidates(unresolved,
+                                                verbose=True,
+                                                message="Applying e-sep patterns filter")
+                  if m.all_esep_unlabelled in metagraph.latent_free_esep_patterns])
 print(f"Number of unresolved by esep: {len(unresolved)}")
+unresolved = set([m for m in explore_candidates(unresolved,
+                                               verbose=True,
+                                               message="Applying 3-event-supports filter")
+                 if m.no_infeasible_binary_supports_beyond_dsep(3)])
+print(f"Remaining after testing with supports up to 3: {len(unresolved)}")
+unresolved = set([m for m in explore_candidates(unresolved,
+                                               verbose=True,
+                                               message="Applying 4-event-supports filter")
+                 if m.no_infeasible_binary_supports_beyond_dsep(4)])
+print(f"Remaining after testing with supports up to 4: {len(unresolved)}")
 print("RESTARTING COUNT!")
 print(f"Number of {n}-vis node unlabelled mDAGs not resolved by HLP: {len(potentially_interesting_after_HLP)}")
 unresolved_by_HLP_or_nonmaximality = set([m for m in potentially_interesting_after_HLP if not m.interesting_via_non_maximal])
@@ -135,7 +161,3 @@ unresolved_by_HLP_or_esep = set([m for m in unresolved_by_HLP_or_nonmaximality_o
 print(f"Number of {n}-vis node unlabelled mDAGs unresolved by esep: {len(unresolved_by_HLP_or_esep)}")
 # still_remaining_after_supports_on_two_events = set([m for m in unresolved_by_HLP_or_esep if m.no_infeasible_binary_supports_beyond_dsep_up_to(2)])
 # print(f"Remaining after testing with supports up to 2: {len(still_remaining_after_supports_on_two_events)}")
-# still_remaining_after_supports_on_three_events = set([m for m in still_remaining_after_supports_on_two_events if m.no_infeasible_binary_supports_beyond_dsep_up_to(3)])
-# print(f"Remaining after testing with supports up to 3: {len(still_remaining_after_supports_on_three_events)}")
-# still_remaining_after_supports_on_four_events = set([m for m in still_remaining_after_supports_on_three_events if m.no_infeasible_binary_supports_beyond_dsep_up_to(4)])
-# print(f"Remaining after testing with supports up to 4: {len(still_remaining_after_supports_on_four_events)}")
