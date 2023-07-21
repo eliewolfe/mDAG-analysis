@@ -209,7 +209,14 @@ class mDAG:
 
     @cached_property
     def skeleton_adj_mat(self):
-        return self.skeleton_instance.as_adjacency_matrix
+        # return self.skeleton_instance.as_adjacency_matrix
+        return np.logical_or(self.simplicial_complex_instance.as_bidirected_adjmat,
+                             np.logical_or(self.directed_structure_instance.as_bit_square_matrix,
+                                           self.directed_structure_instance.as_bit_square_matrix.T))
+
+    @cached_property
+    def skeleton_nof_edges(self):
+        return np.count_nonzero(self.skeleton_adj_mat)
 
     @cached_property
     def skeleton_unlabelled(self):

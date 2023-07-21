@@ -453,27 +453,56 @@ class Observable_unlabelled_mDAGs:
         simplicial_ids = np.array(tuple(sc.as_integer for sc in self.all_simplicial_complices), dtype=object)[:,np.newaxis,np.newaxis]
         directed_dominances = np.asarray(self.directed_dominances_up_to_symmetry, dtype=object)
         dominances_from_directed_edges = np.reshape(self.mdag_int_pair_to_single_int(directed_dominances, simplicial_ids),(-1,2))
-        HLP_dominances = tuple(self.raw_HLP_edges)
-        all_dominances = np.vstack((dominances_from_hypergraphs, dominances_from_directed_edges, HLP_dominances))
+        HLP_dominances = np.asarray(tuple(self.raw_HLP_edges), dtype=object)
+        num_equiv_dom = len(HLP_dominances)
+        # all_dominances = np.vstack((dominances_from_hypergraphs, dominances_from_directed_edges, HLP_dominances))
         # partsextractor(self.dict_id_to_canonical_id, dominances_from_hypergraphs.ravel().tolist())
         # partsextractor(self.dict_id_to_canonical_id, dominances_from_directed_edges.ravel().tolist())
-        all_dominances = np.array(
+        if self.verbose:
+            eprint("Converting dominance relations to unique ids...")
+
+        HLP_dominances = set(zip(
             partsextractor(self.dict_id_to_canonical_id,
-                           all_dominances.ravel().tolist())).reshape((-1, 2))
-        # [row, col] = all_dominances.T.tolist()
-        del directed_ids, hypergraph_dominances, simplicial_ids, directed_dominances, dominances_from_hypergraphs, dominances_from_directed_edges, HLP_dominances
-        return set(map(tuple, all_dominances.tolist()))
+                           HLP_dominances[:,0]),
+            partsextractor(self.dict_id_to_canonical_id,
+                           HLP_dominances[:, 1])))
+        dominances_from_hypergraphs = set(zip(
+            partsextractor(self.dict_id_to_canonical_id,
+                           dominances_from_hypergraphs[:, 0]),
+            partsextractor(self.dict_id_to_canonical_id,
+                           dominances_from_hypergraphs[:, 1])))
+        dominances_from_directed_edges = set(zip(
+            partsextractor(self.dict_id_to_canonical_id,
+                           dominances_from_directed_edges[:, 0]),
+            partsextractor(self.dict_id_to_canonical_id,
+                           dominances_from_directed_edges[:, 1])))
+        return (list(dominances_from_hypergraphs) + list(dominances_from_directed_edges),
+                list(HLP_dominances))
+        #
+        #
+        # all_dominances = np.array(
+        #     partsextractor(self.dict_id_to_canonical_id,
+        #                    all_dominances.ravel())).reshape((-1, 2))
+        # equiv_maybe_breaking_doms = all_dominances[:-num_equiv_dom]
+        # equiv_preserving_doms = all_dominances[-num_equiv_dom:]
+        # # [row, col] = all_dominances.T.tolist()
+        # del directed_ids, hypergraph_dominances, simplicial_ids, directed_dominances, dominances_from_hypergraphs, dominances_from_directed_edges, HLP_dominances
+        # if self.verbose:
+        #     eprint("Deleting duplicate dominance relations...")
+        # return (set(map(tuple, equiv_maybe_breaking_doms.tolist())), set(map(tuple, equiv_preserving_doms.tolist())))
+        # # return set(map(tuple, all_dominances.tolist()))
 
     @property
     def boring_dominances(self):
-        new_doms = []
-        for dom_ids in explore_candidates(self.all_HLP_relevant_dominances,
-                                                         verbose=self.verbose,
-                                                         message="Finding dominances which preserve CI"):
+        (equiv_breaking_doms, equiv_maybe_preserving_doms) = self.all_HLP_relevant_dominances
+        for dom_ids in explore_candidates(equiv_breaking_doms,
+                                          verbose=self.verbose,
+                                          message="Finding dominances which preserve CI"):
             (strong_mDAG, weak_mDAG) = self.lookup_mDAG(dom_ids)
-            if strong_mDAG.CI_count == weak_mDAG.CI_count:
-                new_doms.append(dom_ids)
-        return new_doms
+            if strong_mDAG.skeleton_nof_edges == strong_mDAG.skeleton_nof_edges:
+                if strong_mDAG.CI_count == weak_mDAG.CI_count:
+                    equiv_maybe_preserving_doms.append(dom_ids)
+        return equiv_maybe_preserving_doms
 
     @cached_property
     def HLP_meta_graph(self):

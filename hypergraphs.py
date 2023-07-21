@@ -308,17 +308,22 @@ class LabelledHypergraph(Hypergraph):
 class UndirectedGraph:
     def __init__(self, hyperedges, n):
         self.nof_nodes = n
-        if hyperedges:
-            assert max(map(max, hyperedges)) + 1 <= self.nof_nodes, "More nodes referenced than expected."
+        # if hyperedges:
+        #     assert max(map(max, hyperedges)) + 1 <= self.nof_nodes, "More nodes referenced than expected."
         self.as_edges = tuple(set(itertools.chain.from_iterable(
             itertools.combinations(sorted(hyperedge), 2) for hyperedge in hyperedges)))
-        self.as_frozenset_edges = set(map(frozenset, self.as_edges))
+        # self.as_frozenset_edges = set(map(frozenset, self.as_edges))
         self.as_string = stringify_in_list(map(stringify_in_tuple, self.as_edges))
+        self.nof_edges = len(self.as_edges)
 
-    # @property
-    # def as_edges(self):
-    #     return itertools.chain.from_iterable(
-    #         itertools.combinations(hyperedge, 2) for hyperedge in self.extended_simplicial_complex)
+    # @cached_property
+    # def as_string(self):
+    #     return stringify_in_list(map(stringify_in_tuple, self.as_edges))
+
+    @cached_property
+    def as_frozenset_edges(self):
+        return set(map(frozenset, self.as_edges))
+
     def __str__(self):
         return self.as_string
 
