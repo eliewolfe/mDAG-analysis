@@ -603,8 +603,7 @@ class Observable_unlabelled_mDAGs:
         # if self.verbose:
         #     print('Number of FaceSplitting equivalence relations added: ', new_edge_count - edge_count)
         #     print('Full metagraph has been constructed. Total edge count: ', g.number_of_edges(), flush=True)
-        return g
-
+        return g         
 
     @cached_property
     def equivalence_classes_as_ids(self):
@@ -617,6 +616,37 @@ class Observable_unlabelled_mDAGs:
     @cached_property
     def equivalence_classes_as_mDAGs(self):
         return [self.lookup_mDAG(eqclass) for eqclass in self.equivalence_classes_as_ids]
+    
+    def eqclass_of_mDAG(self, mDAG):
+        for eqclass in self.equivalence_classes_as_mDAGs:
+            if mDAG in eqclass:
+                return eqclass
+    
+    def partial_order_of_subset(self, subset):   #subset is a set of mDAGs (i.e. nodes of the metagraph)
+        pairs= list(itertools.combinations(subset, 2))   #list of all pairs of mDAGs of subset
+        dominance_pair_tuples=[]   #list of tuples. Each tuple will be a pair (mDAG1,mDAG2) whenever mDAG1 observationally dominates mDAG2
+        for pair_of_mDAGs in pairs:
+            print("pair=",pair_of_mDAGs)
+            comparable=False
+            if self.eqclass_of_mDAG(pair_of_mDAGs[0])== self.eqclass_of_mDAG(pair_of_mDAGs[1]):   #first check if the two mDAGs are observationally equivalent
+                dominance_pair_tuples.append((pair_of_mDAGs[0],pair_of_mDAGs[1]))
+                dominance_pair_tuples.append((pair_of_mDAGs[1],pair_of_mDAGs[0]))
+                comparable=True
+            else:
+                for G1 in self.eqclass_of_mDAG(pair_of_mDAGs[0]):
+                    for G2 in self.eqclass_of_mDAG(pair_of_mDAGs[1]):
+                        if self.meta_graph.has_edge(G1.unique_unlabelled_id,G2.unique_unlabelled_id):  # If some G1 obs equiv to the first mDAG dominates some G2 obs equiv to the second mDAG
+                            dominance_pair_tuples.append((pair_of_mDAGs[0],pair_of_mDAGs[1]))
+                            comparable=True
+                            break
+                        if self.meta_graph.has_edge(G2.unique_unlabelled_id,G1.unique_unlabelled_id):
+                            dominance_pair_tuples.append((pair_of_mDAGs[1],pair_of_mDAGs[0]))
+                            comparable=True
+                            break
+                    if comparable==True:   #avoid repeating terms
+                        break
+        return dominance_pair_tuples
+                        
 
 
     @cached_property
@@ -891,8 +921,58 @@ if __name__ == '__main__':
     # Observable_mDAGs2 = Observable_mDAGs_Analysis(nof_observed_variables=2, max_nof_events_for_supports=0)
     # Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
     # Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
-    metagraph_class_instance = Observable_unlabelled_mDAGs(3, fully_foundational=False, verbose=False)
-    print(metagraph_class_instance.boring_by_virtue_of_HLP)
+    metagraph_class_instance = Observable_unlabelled_mDAGs(4, fully_foundational=False, verbose=False)
+    #print(metagraph_class_instance.boring_by_virtue_of_HLP)
+    #G_Bell=mDAG(DirectedStructure([(0,3),(1,2)],4),Hypergraph([(2,3)],4))
+    G_Bell1=mDAG(DirectedStructure([(1,2)],4),Hypergraph([(0,3),(2,3)],4))
+    G_Bell_modified=mDAG(DirectedStructure([(1,2)],4),Hypergraph([(0,),(1,),(2,3)],4))
+    #G_Bell_label=metagraph_class_instance.lookup_mDAG(G_Bell.unique_unlabelled_id)
+    G_Bell1_label=metagraph_class_instance.lookup_mDAG(G_Bell1.unique_unlabelled_id)
+    G_Bell_modified_label=metagraph_class_instance.lookup_mDAG(G_Bell_modified.unique_unlabelled_id)
+    #subset=[G_Bell_label,G_Bell1_label,G_Bell_modified_label]
+    
+    #metagraph_class_instance.partial_order_of_subset(subset)
+
+    
+    G_Bell1_label.unique_unlabelled_id in metagraph_class_instance.meta_graph.nodes #True, as expected
+    G_Bell_modified_label.unique_unlabelled_id in metagraph_class_instance.meta_graph.nodes #True, as expected
+    
+    metagraph_class_instance.meta_graph.has_edge(G_Bell1_label.unique_unlabelled_id,G_Bell_modified_label.unique_unlabelled_id)  #False, but I expected this edge to be present
+
+        
+    
+    (G_Bell1_label.simplicial_complex_instance.as_integer,G_Bell_modified_label.simplicial_complex_instance.as_integer) in metagraph_class_instance.hypergraph_dominances  #True, as expected
+    
+    (G_Bell1_label.unique_unlabelled_id,G_Bell_modified_label.unique_unlabelled_id) in metagraph_class_instance.all_HLP_relevant_dominances   #False, but I expected this to be true
+
+    
+    
+    
+    
+    
+    
+# =============================================================================
+#     for mDAG1 in metagraph_class_instance.eqclass_of_mDAG(G_Bell1_label):
+#         for mDAG2 in metagraph_class_instance.eqclass_of_mDAG(G_Bell_modified_label):
+#             if metagraph_class_instance.meta_graph.has_edge(mDAG1.unique_unlabelled_id,mDAG2.unique_unlabelled_id):
+#                 print(mDAG1,mDAG2)    
+#         
+#     metagraph_class_instance.meta_graph.has_edge(115017884, 174917788)
+# 
+#     G1=metagraph_class_instance.lookup_mDAG(115017884)
+#     G2=metagraph_class_instance.lookup_mDAG(174917788)
+#     G3=metagraph_class_instance.lookup_mDAG(181862492)
+#     
+#     metagraph_class_instance.meta_graph.has_edge(G1.unique_unlabelled_id,G2.unique_unlabelled_id)
+# 
+#     metagraph_class_instance.partial_order_of_subset([G1eq,G2,G3])
+#     
+#     metagraph_class_instance.eqclass_of_mDAG(G1)
+#     
+#     G1eq=mDAG(DirectedStructure([(0,1),(1,2),(1,3)],4),Hypergraph([(0,1,3),(0,2,3),(1,2,3)],4))
+#     metagraph_class_instance.meta_graph.has_edge(G1eq.unique_unlabelled_id,G2.unique_unlabelled_id)
+# =============================================================================
+    
 
 
 
