@@ -74,6 +74,7 @@ def multiple_classifications(*args):
 class Observable_unlabelled_mDAGs:
     def __init__(self, n: int,
                  fully_foundational=False,
+                 all_dominances=False,
                  verbose=True):
         """
         Parameters
@@ -88,6 +89,7 @@ class Observable_unlabelled_mDAGs:
         self.fully_foundational = fully_foundational
         self.verbose = verbose
         # self.experimental_speedup = experimental_speedup
+        self.all_dominances = all_dominances
 
     @cached_property
     def all_directed_structures(self):
@@ -495,6 +497,9 @@ class Observable_unlabelled_mDAGs:
     @property
     def boring_dominances(self):
         (equiv_breaking_doms, equiv_maybe_preserving_doms) = self.all_HLP_relevant_dominances
+        if self.all_dominances:
+            equiv_maybe_preserving_doms.extend(equiv_breaking_doms)
+            return equiv_maybe_preserving_doms
         for dom_ids in explore_candidates(equiv_breaking_doms,
                                           verbose=self.verbose,
                                           message="Finding dominances which preserve CI"):
@@ -586,7 +591,8 @@ class Observable_unlabelled_mDAGs:
             ids_dominated_by_LF = {lf_id}.union(nx.ancestors(HLP_meta_graph, lf_id))
             # ids_dominated_by_LF = tuple(HLP_meta_graph.predecessors(lf_id))
             dominated_by_LF = partsextractor(self.dict_uniqind_unlabelled_mDAGs, ids_dominated_by_LF)
-            # dominated_by_LF = [m for m in dominated_by_LF if m.all_CI_unlabelled==lf_CI]
+            if self.all_dominances:
+                dominated_by_LF = [m for m in dominated_by_LF if m.all_CI_unlabelled==lf_CI]
             HLP_meta_graph.remove_nodes_from(m.unique_unlabelled_id for m in dominated_by_LF)
             proven_boring.update(dominated_by_LF)
         return proven_boring
