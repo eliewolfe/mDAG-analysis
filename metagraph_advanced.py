@@ -927,7 +927,7 @@ if __name__ == '__main__':
     # Observable_mDAGs2 = Observable_mDAGs_Analysis(nof_observed_variables=2, max_nof_events_for_supports=0)
     # Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
     # Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
-    metagraph_class_instance = Observable_unlabelled_mDAGs(4, fully_foundational=False, verbose=False)
+    metagraph_class_instance = Observable_unlabelled_mDAGs(4, fully_foundational=False, verbose=False, all_dominances=True)
     #print(metagraph_class_instance.boring_by_virtue_of_HLP)
     #G_Bell=mDAG(DirectedStructure([(0,3),(1,2)],4),Hypergraph([(2,3)],4))
     G_Bell1=mDAG(DirectedStructure([(1,2)],4),Hypergraph([(0,3),(2,3)],4))
@@ -940,16 +940,20 @@ if __name__ == '__main__':
     #metagraph_class_instance.partial_order_of_subset(subset)
 
     
-    G_Bell1_label.unique_unlabelled_id in metagraph_class_instance.meta_graph.nodes #True, as expected
-    G_Bell_modified_label.unique_unlabelled_id in metagraph_class_instance.meta_graph.nodes #True, as expected
+    print(G_Bell1_label.unique_unlabelled_id in metagraph_class_instance.meta_graph.nodes) #True, as expected
+    print(G_Bell_modified_label.unique_unlabelled_id in metagraph_class_instance.meta_graph.nodes) #True, as expected
     
-    metagraph_class_instance.meta_graph.has_edge(G_Bell1_label.unique_unlabelled_id,G_Bell_modified_label.unique_unlabelled_id)  #False, but I expected this edge to be present
+    print(metagraph_class_instance.meta_graph.has_edge(G_Bell1_label.unique_unlabelled_id,
+                                                       G_Bell_modified_label.unique_unlabelled_id))  #False, but I expected this edge to be present
 
         
     
-    (G_Bell1_label.simplicial_complex_instance.as_integer,G_Bell_modified_label.simplicial_complex_instance.as_integer) in metagraph_class_instance.hypergraph_dominances  #True, as expected
-    
-    (G_Bell1_label.unique_unlabelled_id,G_Bell_modified_label.unique_unlabelled_id) in metagraph_class_instance.all_HLP_relevant_dominances   #False, but I expected this to be true
+    print((G_Bell1_label.simplicial_complex_instance.as_integer,G_Bell_modified_label.simplicial_complex_instance.as_integer)
+          in metagraph_class_instance.hypergraph_dominances)  #True, as expected
+
+    from itertools import chain
+    print((G_Bell1_label.unique_unlabelled_id,G_Bell_modified_label.unique_unlabelled_id) in
+          chain.from_iterable(metagraph_class_instance.all_HLP_relevant_dominances))   #False, but I expected this to be true
 
     
     
