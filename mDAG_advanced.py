@@ -646,7 +646,7 @@ class mDAG:
         subsetrange = range(1, length)
         for r in subsetrange:
             for ints_to_mask in map(list, itertools.combinations(integers, r)):
-                mask = np.ones(length, dtype=np.bool)
+                mask = np.ones(length, dtype=bool)
                 mask[ints_to_mask] = False
                 yield (frozenset(itertools.compress(variables_to_partition, mask.tolist())),
                        frozenset(itertools.compress(variables_to_partition, np.logical_not(mask).tolist())))
