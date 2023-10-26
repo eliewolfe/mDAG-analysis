@@ -13,6 +13,7 @@ from radix import bitarray_to_int
 from merge import merge_intersection
 from utilities import stringify_in_tuple, stringify_in_list, partsextractor
 
+
 # from scipy.special import comb
 import networkx as nx
 from functools import lru_cache
@@ -95,6 +96,15 @@ class Hypergraph:
     #     return self.simplicial_complex_as_sets.union(*self.singleton_hyperedges)
 
     @cached_property
+    def faces(self):
+        found_faces = self.simplicial_complex_as_sets.copy()
+        for s in self.simplicial_complex_as_sets:
+            found_faces.update(itertools.chain.from_iterable(map(frozenset, itertools.combinations(s, r)) for r in range(2, len(s))))
+        return found_faces
+
+
+
+    @cached_property
     def tally(self):
         # absent_latent_count = self.max_number_of_latents - self.number_of_latent
         # return tuple(np.pad(np.flip(sorted(map(len, self.simplicial_complex))),(0,absent_latent_count)))
@@ -169,28 +179,10 @@ class Hypergraph:
         """
         S1 and S2 are simplicial complices, in our data structure as lists of tuples.
         """
-        # Modifying to restrict to minimal differences for speed
-        in_S1_but_not_S2 = S1.simplicial_complex_as_sets.difference(S2.simplicial_complex_as_sets)
-        count_of_in_S1_but_not_S2 = len(in_S1_but_not_S2)
-        if count_of_in_S1_but_not_S2 != 1:
-            return False
-        in_S2_but_not_S1 = S2.simplicial_complex_as_sets.difference(
-            S1.simplicial_complex_as_sets)
-        count_of_in_S2_but_not_S1 = len(in_S2_but_not_S1)
-        the_hyperredge_in_S1_but_not_S2 = in_S1_but_not_S2.pop()
-        len_of_the_hyperredge_in_S1_but_not_S2 = len(the_hyperredge_in_S1_but_not_S2)
-        if count_of_in_S2_but_not_S1 == 0:
-            if len_of_the_hyperredge_in_S1_but_not_S2 == 2:
-                return True
-            return min((len(s2.difference(the_hyperredge_in_S1_but_not_S2)) for s2 in S2.simplicial_complex_as_sets), default=0) == 1
-        if count_of_in_S2_but_not_S1 > 1:
-            return False
-        the_hyperredge_in_S2_but_not_S1 = in_S2_but_not_S1.pop()
-        if not the_hyperredge_in_S2_but_not_S1.issubset(the_hyperredge_in_S1_but_not_S2):
-            return False
-        if len_of_the_hyperredge_in_S1_but_not_S2 - len(the_hyperredge_in_S2_but_not_S1) > 1:
-            return False
-        return True
+        if len(S1.faces) == len(S2.faces) + 1:
+            return S1.faces.issuperset(S2.faces)
+        return False
+
 
     def are_S1_facets_one_more_than_S2_facets(S1, S2):
         if S1.simplicial_complex_as_sets.issuperset(S2.simplicial_complex_as_sets):
