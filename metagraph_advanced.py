@@ -851,6 +851,45 @@ class Observable_unlabelled_mDAGs:
             d2[key_tuple[:critical_range]][key_tuple] = tuple(partition)
         return [val for val in d2.values() if len(val) > 1]
 
+class Observable_labelled_mDAGs(Observable_unlabelled_mDAGs):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    @cached_property
+    def all_labelled_mDAGs(self):
+        return [mDAG(ds, sc) for sc, ds in itertools.product(self.all_simplicial_complices,
+                                                                 self.truly_all_directed_structures)]
+    @cached_property
+    def most_labelled_mDAGs(self):
+        return self.all_labelled_mDAGs
+    @cached_property
+    def dict_id_to_canonical_id(self):
+        # if self.verbose:
+        #     print("Dictionary creations: mDAG ids to unlabelled ids...", flush=True)
+        return {mdag.unique_id: mdag.unique_id for mdag in self.all_labelled_mDAGs}
+
+    @cached_property
+    def dict_uniqind_unlabelled_mDAGs(self):
+        return {mdag.unique_id: mdag for mdag in explore_candidates(
+            self.most_labelled_mDAGs,
+            verbose=self.verbose,
+            message="Mapping unlabelled ids to mDAGs"
+        )}
+    @cached_property
+    def directed_dominances_up_to_symmetry(self):
+        return self.directed_dominances
+
+    @cached_property
+    def truly_all_directed_structures(self):
+        truly_all = []
+        for ds in self.all_directed_structures:
+            truly_all.extend(ds.equivalents_under_symmetry)
+        return truly_all
+
+    @cached_property
+    def all_unlabelled_directed_structures(self):
+        return self.truly_all_directed_structures
+
 class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
     def __init__(self, nof_observed_variables=4, max_nof_events_for_supports=3, fully_foundational=False):
         super().__init__(nof_observed_variables, fully_foundational=fully_foundational)
@@ -918,15 +957,21 @@ if __name__ == '__main__':
     # Observable_mDAGs2 = Observable_mDAGs_Analysis(nof_observed_variables=2, max_nof_events_for_supports=0)
     # Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
     # Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
-    metagraph_class_instance = Observable_unlabelled_mDAGs(4, fully_foundational=False, verbose=False, all_dominances=True)
-    #print(metagraph_class_instance.boring_by_virtue_of_HLP)
-    
-    directed_edge_free=[]
-    for mdag in metagraph_class_instance.all_unlabelled_mDAGs:
-        if mdag.n_of_edges==0:
-            directed_edge_free.append(mdag)
+    if __name__ == "__main__":
+        test = Observable_labelled_mDAGs(3, verbose=2)
+        print("Num eqclasses: ", len(test.equivalence_classes_as_mDAGs))
+        for eqclass in test.equivalence_classes_as_mDAGs:
+            print(eqclass)
 
-    directed_edge_free_submetagraph=metagraph_class_instance.partial_order_of_subset(directed_edge_free)
+    # metagraph_class_instance = Observable_unlabelled_mDAGs(4, fully_foundational=False, verbose=False, all_dominances=True)
+    # #print(metagraph_class_instance.boring_by_virtue_of_HLP)
+    #
+    # directed_edge_free=[]
+    # for mdag in metagraph_class_instance.all_unlabelled_mDAGs:
+    #     if mdag.n_of_edges==0:
+    #         directed_edge_free.append(mdag)
+    #
+    # directed_edge_free_submetagraph=metagraph_class_instance.partial_order_of_subset(directed_edge_free)
 
 
 # =============================================================================
