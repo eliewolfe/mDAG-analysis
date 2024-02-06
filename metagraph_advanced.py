@@ -488,7 +488,11 @@ class Observable_unlabelled_mDAGs:
         dominances_from_directed_edges = np.reshape(self.mdag_int_pair_to_single_int(directed_dominances, simplicial_ids),(-1,2))
         HLP_dominances = np.asarray(tuple(self.HLP_edges_truly_all_labelled), dtype=object)
         FaceSplitting_dominances = np.asarray(tuple(self.FaceSplitting_edges_truly_all_labelled), dtype=object)
-        return list(dominances_from_hypergraphs) + list(dominances_from_directed_edges)+list(HLP_dominances)+list(FaceSplitting_dominances)
+        return list(map(tuple,np.vstack((
+            dominances_from_hypergraphs,
+            dominances_from_directed_edges,
+            HLP_dominances,
+            FaceSplitting_dominances))))
         
         
     @cached_property
@@ -587,7 +591,7 @@ class Observable_unlabelled_mDAGs:
     @cached_property
     def truly_all_labelled_metagraph(self):
         g = nx.DiGraph()
-        g.add_nodes_from(self.truly_all_labelled_metagraph_nodes.flat)
+        # g.add_nodes_from(self.truly_all_labelled_metagraph_nodes)
         g.add_edges_from(self.all_truly_labelled_dominances())
         return g
 
@@ -670,7 +674,7 @@ class Observable_unlabelled_mDAGs:
     
     @cached_property
     def truly_all_labelled_equivalence_classes_as_ids(self):
-        return [g.subgraph(c).nodes() for c in nx.strongly_connected_components(self.truly_all_labelled_metagraph))
+        return list(nx.strongly_connected_components(self.truly_all_labelled_metagraph))
     
     def lookup_set_of_labelled_mDAGs(self, indices):
         return tuple((self.dict_ind_truly_all_labelled_mDAGs[index] for index in indices))          
@@ -1004,12 +1008,10 @@ if __name__ == '__main__':
     #Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
     #metagraph_class_instance = Observable_unlabelled_mDAGs(4, fully_foundational=False, verbose=False, all_dominances=True)
     #print(metagraph_class_instance.boring_by_virtue_of_HLP)
-    
+    print(len(Observable_mDAGs3.truly_all_labelled_equivalence_classes_as_ids))
     for eqclass in Observable_mDAGs3.truly_all_labelled_equivalence_classes_as_ids:
        print([Observable_mDAGs3.dict_ind_truly_all_labelled_mDAGs[index] for index in eqclass])
-       
-    for eqclass in Observable_mDAGs3.truly_all_labelled_equivalence_classes_as_ids:
-       print(list((Observable_mDAGs3.dict_ind_truly_all_labelled_mDAGs[index] for index in eqclass)))
+
        
        
        
