@@ -176,6 +176,11 @@ class Observable_unlabelled_mDAGs:
                                                                  self.all_noncanonical_directed_structures)]
 
     @cached_property
+    def truly_all_labelled_mDAGs(self):
+        return [mDAG(ds, sc) for sc, ds in itertools.product(self.all_simplicial_complices,
+                                                             self.truly_all_directed_structures)]
+
+    @cached_property
     def dict_id_to_canonical_id(self):
         # if self.verbose:
         #     print("Dictionary creations: mDAG ids to unlabelled ids...", flush=True)
@@ -208,6 +213,10 @@ class Observable_unlabelled_mDAGs:
     @cached_property
     def dict_ind_unlabelled_mDAGs(self):
         return {mdag.unique_id: mdag for mdag in self.dict_uniqind_unlabelled_mDAGs.values()}
+
+    @cached_property
+    def dict_ind_truly_all_labelled_mDAGs(self):
+        return {mdag.unique_id: mdag for mdag in self.truly_all_labelled_mDAGs}
 
 
     def lookup_mDAG(self, indices):
@@ -340,13 +349,18 @@ class Observable_unlabelled_mDAGs:
     @cached_property
     def metagraph_nodes(self):
         return np.array(tuple(self.dict_uniqind_unlabelled_mDAGs.keys()))
+    
+    @cached_property
+    def truly_all_labelled_metagraph_nodes(self):
+        return np.array(mdag.unique_id for mdag in self.truly_all_labelled_mDAGs)
+
 
     @cached_property
     def num_metagraph_nodes(self):
         return len(self.metagraph_nodes)
 
     @cached_property
-    def hypergraph_dominances(self):
+    def hypergraph_dominances(self):  #ALSO USED FOR LABELLED METAGRAPH
         return tuple((S1.as_integer, S2.as_integer) for S1, S2 in itertools.permutations(self.all_simplicial_complices, 2) if
                 S1.can_S1_minimally_simulate_S2(S2))
         # if self.verbose:
@@ -379,7 +393,7 @@ class Observable_unlabelled_mDAGs:
                 D1.can_D1_minimally_simulate_D2(D2)}.values())
 
     @cached_property
-    def directed_dominances(self):
+    def directed_dominances(self):   #USED FOR LABELLED METAGRAPH
         return tuple((D1.as_integer, D2.as_integer)
                 for D1, D2 in
                 itertools.permutations(self.truly_all_directed_structures, 2) if
@@ -425,11 +439,29 @@ class Observable_unlabelled_mDAGs:
                 message="Finding HLP Rule #4 type edges"):  # NEW: Over graph patterns only
             for id2 in mdag.generate_weaker_mDAG_HLP:
                 yield (id2, id)
+                
+    @property
+    def HLP_edges_truly_all_labelled(self):
+        for (id, mdag) in explore_candidates(
+                self.dict_ind_truly_all_labelled_mDAGs.items(),
+                verbose=self.verbose,
+                message="Finding HLP Rule #4 type edges"):  # NEW: Over graph patterns only
+            for id2 in mdag.generate_weaker_mDAG_HLP:
+                yield (id2, id)
 
     @property
     def raw_FaceSplitting_edges(self):
         for (id, mdag) in explore_candidates(
                 self.dict_ind_unlabelled_mDAGs.items(),
+                verbose=self.verbose,
+                message="Finding metagraph edges due to face splitting"):  # NEW: Over graph patterns only
+            for id2 in mdag.generate_weaker_mDAGs_FaceSplitting('strong'):
+                yield (id2, id)
+                
+    @property
+    def FaceSplitting_edges_truly_all_labelled(self):
+        for (id, mdag) in explore_candidates(
+                self.dict_ind_truly_all_labelled_mDAGs.items(),
                 verbose=self.verbose,
                 message="Finding metagraph edges due to face splitting"):  # NEW: Over graph patterns only
             for id2 in mdag.generate_weaker_mDAGs_FaceSplitting('strong'):
@@ -445,6 +477,20 @@ class Observable_unlabelled_mDAGs:
         for (id2, id) in self.raw_FaceSplitting_edges:
             yield partsextractor(self.dict_id_to_canonical_id, (id2, id))
 
+    def all_truly_labelled_dominances(self):
+        if self.verbose:
+            eprint('Adding dominance relations...', flush=True)
+        directed_ids = np.array(tuple(ds.as_integer for ds in self.truly_all_directed_structures), dtype=object)[:,np.newaxis,np.newaxis]
+        hypergraph_dominances = np.asarray(self.hypergraph_dominances, dtype=object)
+        dominances_from_hypergraphs = np.reshape(self.mdag_int_pair_to_single_int(directed_ids, hypergraph_dominances),(-1,2))
+        simplicial_ids = np.array(tuple(sc.as_integer for sc in self.all_simplicial_complices), dtype=object)[:,np.newaxis,np.newaxis]
+        directed_dominances = np.asarray(self.directed_dominances, dtype=object)
+        dominances_from_directed_edges = np.reshape(self.mdag_int_pair_to_single_int(directed_dominances, simplicial_ids),(-1,2))
+        HLP_dominances = np.asarray(tuple(self.HLP_edges_truly_all_labelled), dtype=object)
+        FaceSplitting_dominances = np.asarray(tuple(self.FaceSplitting_edges_truly_all_labelled), dtype=object)
+        return list(dominances_from_hypergraphs) + list(dominances_from_directed_edges)+list(HLP_dominances)+list(FaceSplitting_dominances)
+        
+        
     @cached_property
     def all_HLP_relevant_dominances(self):
         if self.verbose:
@@ -537,6 +583,13 @@ class Observable_unlabelled_mDAGs:
         # if self.verbose:
         #     print('HLP Metagraph has been constructed. Total edge count: ', g.number_of_edges(), flush=True)
         return g
+    
+    @cached_property
+    def truly_all_labelled_metagraph(self):
+        g = nx.DiGraph()
+        g.add_nodes_from(self.truly_all_labelled_metagraph_nodes.flat)
+        g.add_edges_from(self.all_truly_labelled_dominances())
+        return g
 
     @cached_property
     def _dict_id_to_idx(self):
@@ -614,6 +667,23 @@ class Observable_unlabelled_mDAGs:
     @cached_property
     def equivalence_classes_as_ids(self):
         return list(nx.strongly_connected_components(self.meta_graph))
+    
+    @cached_property
+    def truly_all_labelled_equivalence_classes_as_ids(self):
+        return [g.subgraph(c).nodes() for c in nx.strongly_connected_components(self.truly_all_labelled_metagraph))
+    
+    def lookup_set_of_labelled_mDAGs(self, indices):
+        return tuple((self.dict_ind_truly_all_labelled_mDAGs[index] for index in indices))          
+    
+    @cached_property
+    def truly_all_labelled_equivalence_classes_as_mDAGs(self):
+        return [self.lookup_set_of_labelled_mDAGs(eqclass) for eqclass in self.truly_all_labelled_equivalence_classes_as_ids]
+    
+    def eqclass_of_labelled_mDAG(self, mDAG):
+        for eqclass in self.truly_all_labelled_equivalence_classes_as_mDAGs:
+            if mDAG in eqclass:
+                return eqclass
+        
 
     # @cached_property
     # def safe_equivalence_classes_as_mDAGs(self):
@@ -862,6 +932,8 @@ class Observable_unlabelled_mDAGs:
         for key_tuple, partition in d.items():
             d2[key_tuple[:critical_range]][key_tuple] = tuple(partition)
         return [val for val in d2.values() if len(val) > 1]
+    
+    
 
 class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
     def __init__(self, nof_observed_variables=4, max_nof_events_for_supports=3, fully_foundational=False):
@@ -928,17 +1000,89 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
 
 if __name__ == '__main__':
     # Observable_mDAGs2 = Observable_mDAGs_Analysis(nof_observed_variables=2, max_nof_events_for_supports=0)
-    # Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
-    # Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
-    metagraph_class_instance = Observable_unlabelled_mDAGs(4, fully_foundational=False, verbose=False, all_dominances=True)
+    Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
+    #Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
+    #metagraph_class_instance = Observable_unlabelled_mDAGs(4, fully_foundational=False, verbose=False, all_dominances=True)
     #print(metagraph_class_instance.boring_by_virtue_of_HLP)
     
-    directed_edge_free=[]
-    for mdag in metagraph_class_instance.all_unlabelled_mDAGs:
-        if mdag.n_of_edges==0:
-            directed_edge_free.append(mdag)
-            
-    directed_edge_free_submetagraph=metagraph_class_instance.partial_order_of_subset(directed_edge_free)
+    for eqclass in Observable_mDAGs3.truly_all_labelled_equivalence_classes_as_ids:
+       print([Observable_mDAGs3.dict_ind_truly_all_labelled_mDAGs[index] for index in eqclass])
+       
+    for eqclass in Observable_mDAGs3.truly_all_labelled_equivalence_classes_as_ids:
+       print(list((Observable_mDAGs3.dict_ind_truly_all_labelled_mDAGs[index] for index in eqclass)))
+       
+       
+       
+       
+    
+# =============================================================================
+#     
+#   
+#     type(Observable_mDAGs3.dict_ind_truly_all_labelled_mDAGs[27330])  
+#     
+#     type(Observable_mDAGs3.equivalence_classes_as_mDAGs[0][0])
+#   
+#     ff=[[27270,27330,27170],[104],[1572,1670]]
+#     
+#     tuple((Observable_mDAGs3.dict_ind_truly_all_labelled_mDAGs[index] for index in indices))
+#     
+#      
+#     [tuple((Observable_mDAGs3.dict_ind_truly_all_labelled_mDAGs[index] for index in indices)) for indices in ff]
+#     
+#   
+# =============================================================================
+# =============================================================================
+#     Observable_mDAGs3.Dense_connectedness_classes
+#     
+#     for DC_class in Observable_mDAGs3.esep_classes:
+#         mDAG1=list(esep_class)[0]
+#         for DC_class in Observable_mDAGs3.Dense_connectedness_and_esep:
+#             if mDAG1 in DC_class:
+#                 if set(DC_class) < (set(esep_class)):
+#                     print(DC_class)
+#                     print(esep_class)
+#                     break
+#                 
+#   
+#                 
+#     G1=mDAG(DirectedStructure([(1,2),(2,3)],4),Hypergraph([(0,1),(1,3)],4))
+#     G2=mDAG(DirectedStructure([(1,2),(2,3)],4),Hypergraph([(0,1),(1,3),(2,3)],4))    
+#     
+#     
+#     classify_by_attributes({G1,G2},['all_densely_connected_pairs_unlabelled'])
+#     
+#     
+#     for DC_class in Observable_mDAGs4.Dense_connectedness_classes:
+#         if G1 in DC_class:
+#             print(DC_class)
+#             break
+#         
+#     for esep_class in Observable_mDAGs4.esep_classes:
+#         if G1 in esep_class:
+#             print(esep_class)
+#             break
+#         
+#     
+#                 
+#     G2 in DC_class
+#     
+#     G3=mDAG(DirectedStructure([(1,2)],4),Hypergraph([(0,1)],4))
+#     G4=mDAG(DirectedStructure([],4),Hypergraph([(0,1),(2,1)],4))  
+#     
+#     G5=mDAG(DirectedStructure([],4),Hypergraph([(0,1,2)],4))
+#     G6=mDAG(DirectedStructure([],4),Hypergraph([(0,1),(2,1),(0,2)],4))  
+#     
+#     G6.all_densely_connected_pairs_numeric
+# =============================================================================
+
+# =============================================================================
+#     directed_edge_free=[]
+#     for mdag in metagraph_class_instance.all_unlabelled_mDAGs:
+#         if mdag.n_of_edges==0:
+#             directed_edge_free.append(mdag)
+#             
+#     directed_edge_free_submetagraph=metagraph_class_instance.partial_order_of_subset(directed_edge_free)
+# =============================================================================
     
     
 # =============================================================================
