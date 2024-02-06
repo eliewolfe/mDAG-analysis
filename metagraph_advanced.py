@@ -628,29 +628,22 @@ class Observable_unlabelled_mDAGs:
     
     
     def partial_order_of_subset(self, subset):   #subset is a set of mDAGs (i.e. nodes of the metagraph)
-        pairs= list(itertools.combinations(subset, 2))   #list of all pairs of mDAGs of subset
-        dominance_pair_tuples=[]   #list of tuples. Each tuple will be a pair (mDAG1,mDAG2) whenever mDAG1 observationally dominates mDAG2
-        for pair_of_mDAGs in pairs:
-            comparable=False
-            if self.eqclass_of_mDAG(pair_of_mDAGs[0])== self.eqclass_of_mDAG(pair_of_mDAGs[1]):   #first check if the two mDAGs are observationally equivalent
-                dominance_pair_tuples.append((pair_of_mDAGs[0],pair_of_mDAGs[1]))
-                dominance_pair_tuples.append((pair_of_mDAGs[1],pair_of_mDAGs[0]))
-                comparable=True
-            else:
-                for G1 in self.eqclass_of_mDAG(pair_of_mDAGs[0]):
-                    for G2 in self.eqclass_of_mDAG(pair_of_mDAGs[1]):
-                        if self.meta_graph.has_edge(G1.unique_unlabelled_id,G2.unique_unlabelled_id):  # If some G1 obs equiv to the first mDAG dominates some G2 obs equiv to the second mDAG
-                            dominance_pair_tuples.append((pair_of_mDAGs[0],pair_of_mDAGs[1]))
-                            comparable=True
-                            break
-                        if self.meta_graph.has_edge(G2.unique_unlabelled_id,G1.unique_unlabelled_id):
-                            dominance_pair_tuples.append((pair_of_mDAGs[1],pair_of_mDAGs[0]))
-                            comparable=True
-                            break
-                    if comparable==True:   #avoid repeating terms
-                        break
-        return dominance_pair_tuples   # the arrows of the metagraph are only those between mDAGs that can MINIMALLY simulate the others, meaning that there is only one extra edge/hyperedge
-                        
+        G = nx.DiGraph()
+        for g in subset:
+            G.add_node(g)
+        for child in subset:
+            for potential_ancestor in subset:
+               if potential_ancestor.unique_unlabelled_id in nx.ancestors(self.meta_graph,child.unique_unlabelled_id):
+                    G.add_edge(potential_ancestor,child)
+        G_simplified = nx.DiGraph()                  # If there is a path g1->g2->g3, G_simplified gets rid of the direct arrow g1->g3
+        for n1 in G.nodes():
+            for n2 in G.nodes():
+                number_paths=0
+                for path in nx.all_simple_paths(G,n1,n2):
+                    number_paths=number_paths+1
+                if number_paths==1:
+                    G_simplified.add_edge(n1,n2)
+        return G_simplified
 
 
     @cached_property
@@ -858,9 +851,245 @@ class Observable_unlabelled_mDAGs:
             d2[key_tuple[:critical_range]][key_tuple] = tuple(partition)
         return [val for val in d2.values() if len(val) > 1]
 
-class Observable_labelled_mDAGs(Observable_unlabelled_mDAGs):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
+    def __init__(self, nof_observed_variables=4, max_nof_events_for_supports=3, fully_foundational=False):
+        super().__init__(nof_observed_variables, fully_foundational=fully_foundational)
+        self.max_nof_events = max_nof_events_for_supports
+
+
+        print("Number of unlabelled graph patterns: ", len(self.all_unlabelled_mDAGs), flush=True)
+        fundamental_list = [mdag.fundamental_graphQ for mdag in self.all_unlabelled_mDAGs]
+        if self.fully_foundational:
+            print("Number of fundamental unlabelled graph patterns: ", len(np.flatnonzero(fundamental_list)), flush=True)
+            print(
+                "Upper bound on number of 100% foundational equivalence classes: ",
+                len(self.foundational_eqclasses),
+                flush=True)
+            print("Number of Foundational CI classes: ", len(self.CI_classes))
+        else:
+            print("Number of distinct CI classes: ", len(self.CI_classes))
+            print("Upper bound on number of equivalence classes: ", len(self.equivalence_classes_as_mDAGs), flush=True)
+
+
+
+        self.singletons_dict = dict({1: list(itertools.chain.from_iterable(
+            filter(lambda eqclass: (len(eqclass) == 1 or self.effectively_all_singletons(eqclass)),
+                   self.esep_classes)))})
+        self. non_singletons_dict = dict({1: sorted(
+            filter(lambda eqclass: (len(eqclass) > 1 and not self.effectively_all_singletons(eqclass)),
+                   self.esep_classes), key=len)})
+        print("# of singleton classes from ESEP+Prop 6.8: ", len(self.singletons_dict[1]))
+        print("# of non-singleton classes from ESEP+Prop 6.8: ", self.lowerbound_count_accounting_for_hypergraph_inequivalence(self.non_singletons_dict[1]),
+              ", comprising {} total graph patterns (no repetitions)".format(
+                  ilen(itertools.chain.from_iterable(self.non_singletons_dict[1]))))
+        
+        
+        self.singletons_dict = dict({1: list(itertools.chain.from_iterable(
+            filter(lambda eqclass: (len(eqclass) == 1 or self.effectively_all_singletons(eqclass)),
+                   self.Dense_connectedness_and_esep)))})
+        self.non_singletons_dict = dict({1: sorted(
+            filter(lambda eqclass: (len(eqclass) > 1 and not self.effectively_all_singletons(eqclass)),
+                   self.Dense_connectedness_and_esep), key=len)})
+        print("# of singleton classes from also considering Dense Connectedness: ", len(self.singletons_dict[1]))
+        print("# of non-singleton classes from also considering Dense Connectedness: ", self.lowerbound_count_accounting_for_hypergraph_inequivalence(self.non_singletons_dict[1]),
+              ", comprising {} total graph patterns (no repetitions)".format(
+                  ilen(itertools.chain.from_iterable(self.non_singletons_dict[1]))))
+
+        smart_supports_dict = dict()
+        for k in range(2, self.max_nof_events + 1):
+            print("[Working on nof_events={}]".format(k))
+            # I changed the line below
+            smart_supports_dict[k] = further_classify_by_attributes(self.non_singletons_dict[k - 1],
+                                                            [('infeasible_binary_supports_n_events_beyond_esep_unlabelled',
+                                                              k)], verbose=True)
+            self.singletons_dict[k] = list(itertools.chain.from_iterable(
+                filter(lambda eqclass: (len(eqclass) == 1 or self.effectively_all_singletons(eqclass)),
+                       smart_supports_dict[k]))) + self.singletons_dict[k - 1]
+            self.non_singletons_dict[k] = sorted(
+                filter(lambda eqclass: (len(eqclass) > 1 and not self.effectively_all_singletons(eqclass)),
+                       smart_supports_dict[k]), key=len)
+            print("# of singleton classes from also considering Supports Up To {}: ".format(k), len(self.singletons_dict[k]))
+            print("# of non-singleton classes from also considering Supports Up To {}: ".format(k), self.lowerbound_count_accounting_for_hypergraph_inequivalence(self.non_singletons_dict[k]),
+                  ", comprising {} total graph patterns".format(
+                      ilen(itertools.chain.from_iterable(self.non_singletons_dict[k]))))     
+   
+
+if __name__ == '__main__':
+    # Observable_mDAGs2 = Observable_mDAGs_Analysis(nof_observed_variables=2, max_nof_events_for_supports=0)
+    # Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
+    # Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
+    metagraph_class_instance = Observable_unlabelled_mDAGs(4, fully_foundational=False, verbose=False, all_dominances=True)
+    #print(metagraph_class_instance.boring_by_virtue_of_HLP)
+    
+    directed_edge_free=[]
+    for mdag in metagraph_class_instance.all_unlabelled_mDAGs:
+        if mdag.n_of_edges==0:
+            directed_edge_free.append(mdag)
+
+    directed_edge_free_submetagraph=metagraph_class_instance.partial_order_of_subset(directed_edge_free)
+
+
+# =============================================================================
+#     G19=mDAG(DirectedStructure([],4),Hypergraph([(0,1,2,3)],4))
+#     G18=mDAG(DirectedStructure([],4),Hypergraph([(0,1,2),(0,1,3),(0,2,3),(1,2,3)],4))
+#
+#     print(metagraph_class_instance.meta_graph.has_edge(G19.unique_unlabelled_id,G18.unique_unlabelled_id))
+#     print((G19.simplicial_complex_instance.as_integer,G18.simplicial_complex_instance.as_integer) in metagraph_class_instance.hypergraph_dominances)
+#
+#     # Maybe the problem is when we require a hyperedge to MINIMALLY simulate the other, meaning that there is only one extra hyperedge
+#
+# =============================================================================
+# =============================================================================
+#     only_hypergraphs=[]
+#     for mdag in metagraph_class_instance.all_unlabelled_mDAGs:
+#         if mdag.n_of_edges==0:
+#             only_hypergraphs.append(mdag)
+# 
+#     dominance_structure_edge_free=metagraph_class_instance.partial_order_of_subset(only_hypergraphs)
+#     
+#     translated=[]    
+#     for (G1,G2) in dominance_structure_edge_free:
+#         n=0
+#         while G1!=only_hypergraphs[n] and n<19:
+#             n=n+1
+#             if n==19:
+#                 if G1!=only_hypergraphs[19]:
+#                     n=20
+#         m=0
+#         while G2!=only_hypergraphs[m] and m<19:
+#             m=m+1
+#         if m==19:
+#             if G2!=only_hypergraphs[19]:
+#                 m=20
+#         translated.append((n,m))
+# =============================================================================
+
+    
+    
+# =============================================================================
+#     G_Bell=mDAG(DirectedStructure([(0,3),(1,2)],4),Hypergraph([(2,3)],4))
+#     G_Bell1=mDAG(DirectedStructure([(1,2)],4),Hypergraph([(0,3),(2,3)],4))
+#     G_Bell_modified=mDAG(DirectedStructure([(1,2)],4),Hypergraph([(0,),(1,),(2,3)],4))
+#     G_Bell_label=metagraph_class_instance.lookup_mDAG(G_Bell.unique_unlabelled_id)
+#     G_Bell1_label=metagraph_class_instance.lookup_mDAG(G_Bell1.unique_unlabelled_id)
+#     G_Bell_modified_label=metagraph_class_instance.lookup_mDAG(G_Bell_modified.unique_unlabelled_id)
+#     subset=[G_Bell_label,G_Bell1_label,G_Bell_modified_label]
+#     
+#     metagraph_class_instance.partial_order_of_subset(subset)
+#     metagraph_class_instance.eqclasses_of_subset(subset)
+# 
+#     
+#     print(G_Bell1_label.unique_unlabelled_id in metagraph_class_instance.meta_graph.nodes) #True, as expected
+#     print(G_Bell_modified_label.unique_unlabelled_id in metagraph_class_instance.meta_graph.nodes) #True, as expected
+#     
+#     print(metagraph_class_instance.meta_graph.has_edge(G_Bell1_label.unique_unlabelled_id,
+#                                                        G_Bell_modified_label.unique_unlabelled_id))  #False, but I expected this edge to be present
+# 
+#         
+#     
+#     print((G_Bell1_label.simplicial_complex_instance.as_integer,G_Bell_modified_label.simplicial_complex_instance.as_integer)
+#           in metagraph_class_instance.hypergraph_dominances)  #True, as expected
+# 
+#     from itertools import chain
+#     print((G_Bell1_label.unique_unlabelled_id,G_Bell_modified_label.unique_unlabelled_id) in
+#           chain.from_iterable(metagraph_class_instance.all_HLP_relevant_dominances))   #False, but I expected this to be true
+# =============================================================================
+
+# =============================================================================
+#     dominance_structure_latent_free=metagraph_class_instance.partial_order_of_subset(metagraph_class_instance.latent_free_DAGs_unlabelled)
+#     eqclasses_latent_free=metagraph_class_instance.eqclasses_of_subset(metagraph_class_instance.latent_free_DAGs_unlabelled)
+#     
+#     eqclasses_latent_free[6][1].all_CI
+#     
+#     G9=eqclasses_latent_free[9][0]
+#     G0=eqclasses_latent_free[0][0]
+#     G1=eqclasses_latent_free[1][0]
+#     G1.unique_unlabelled_id in metagraph_class_instance.meta_graph.nodes
+#     
+#     
+#     
+#     print((G1.directed_structure_instance.as_integer,G0.directed_structure_instance.as_integer) in metagraph_class_instance.directed_dominances) 
+#     
+#     
+#     G1.directed_structure_instance.can_D1_minimally_simulate_D2(G0.directed_structure_instance)
+#     
+#     
+#     print(eqclasses_latent_free[5])
+#     
+#     metagraph_class_instance.meta_graph.has_edge(eqclasses_latent_free[17][0].unique_unlabelled_id,eqclasses_latent_free[5][1].unique_unlabelled_id)
+#     
+#     translated=[]    
+#     for (G1,G2) in dominance_structure_latent_free:
+#         n=0
+#         while G1 not in eqclasses_latent_free[n] and n<19:
+#             n=n+1
+#         if n==19:
+#             if G1 not in eqclasses_latent_free[19]:
+#                 n=20
+#         m=0
+#         while G2 not in eqclasses_latent_free[m] and m<19:
+#             m=m+1
+#         if m==19:
+#             if G2 not in eqclasses_latent_free[19]:
+#                 m=20
+#         translated.append((n,m))
+#        
+#     
+#     for n in range(0,19):
+#         nope=False
+#         for m in range(0,19):
+#             if (19, n) in translated and (m,n) in translated:
+#                 nope=True
+#         if not nope:
+#             print(n)
+#     
+#     filtered=[]
+#     for t in translated:
+#         if t not in filtered:
+#             filtered.append(t)
+# 
+#     
+#     
+#     for n in range(20):
+#         if (n,5) in translated:
+#             print(n)
+#             
+#     
+#     l=[(19,18),(19,8),(19,15),(18,16),(18,17),(18,7),(15,16),(11,2),(15,14),(12,2),(15,6),(8,7),(8,17),(8,14),(8,6),(16,13),(16,11),(16,5),(7,5),(17,11),(17,5),(17,12),(14,5),(14,4),(6,11),(6,5),(6,12),(6,4),(6,3),(13,10),(11,10),(5,10),(5,1),(5,2),(12,10),(4,1),(4,2),(3,2),(10,9),(1,9),(2,9),(9,0)]
+# 
+#     diff=set(translated).difference(set(l))   # why does the metagraph include those edges?
+#     
+#     
+#     for latfree_class in eqclasses_latent_free:
+#         print(len(metagraph_class_instance.eqclass_of_mDAG(latfree_class[0])))
+#         if metagraph_class_instance.eqclass_of_mDAG(latfree_class[0])==tuple(latfree_class):
+#             print(latfree_class)
+# =============================================================================
+
+    
+# =============================================================================
+#     for mDAG1 in metagraph_class_instance.eqclass_of_mDAG(G_Bell1_label):
+#         for mDAG2 in metagraph_class_instance.eqclass_of_mDAG(G_Bell_modified_label):
+#             if metagraph_class_instance.meta_graph.has_edge(mDAG1.unique_unlabelled_id,mDAG2.unique_unlabelled_id):
+#                 print(mDAG1,mDAG2)    
+#         
+#     metagraph_class_instance.meta_graph.has_edge(115017884, 174917788)
+# 
+#     G1=metagraph_class_instance.lookup_mDAG(115017884)
+#     G2=metagraph_class_instance.lookup_mDAG(174917788)
+#     G3=metagraph_class_instance.lookup_mDAG(181862492)
+#     
+#     metagraph_class_instance.meta_graph.has_edge(G1.unique_unlabelled_id,G2.unique_unlabelled_id)
+# 
+#     metagraph_class_instance.partial_order_of_subset([G1eq,G2,G3])
+#     
+#     metagraph_class_instance.eqclass_of_mDAG(G1)
+#     
+#     G1eq=mDAG(DirectedStructure([(0,1),(1,2),(1,3)],4),Hypergraph([(0,1,3),(0,2,3),(1,2,3)],4))
+#     metagraph_class_instance.meta_graph.has_edge(G1eq.unique_unlabelled_id,G2.unique_unlabelled_id)
+# =============================================================================
+    
+
 
     @cached_property
     def all_labelled_mDAGs(self):
