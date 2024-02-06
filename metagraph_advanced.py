@@ -101,15 +101,9 @@ class Observable_unlabelled_mDAGs:
     
     @cached_property
     def all_unlabelled_directed_structures(self):
-        # d = defaultdict(list)
-        # for ds in explore_candidates(self.all_directed_structures,
-        #                              verbose=False,
-        #                              message="Iterating over directed structures."):
-        #     d[ds.as_unlabelled_integer].append(ds)
-        # return tuple(next(iter(eqclass)) for eqclass in d.values())
         return tuple({ds.as_unlabelled_integer: ds for ds in explore_candidates(self.all_directed_structures,
                                      verbose=False,
-                                     message="Iterating over simplicial complices.")}.values())
+                                     message="Iterating over directed structures.")}.values())
 
     @cached_property
     def truly_all_directed_structures(self):
@@ -153,12 +147,6 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def all_unlabelled_simplicial_complices(self):
-        # d = defaultdict(list)
-        # for sc in explore_candidates(self.all_simplicial_complices,
-        #                              verbose=False,
-        #                              message="Iterating over simplicial complices."):
-        #     d[sc.as_unlabelled_integer].append(sc)
-        # return tuple(next(iter(eqclass)) for eqclass in d.values())
         return tuple({sc.as_unlabelled_integer: sc for sc in explore_candidates(self.all_simplicial_complices,
                                      verbose=False,
                                      message="Iterating over simplicial complices.")}.values())
@@ -870,556 +858,47 @@ class Observable_unlabelled_mDAGs:
             d2[key_tuple[:critical_range]][key_tuple] = tuple(partition)
         return [val for val in d2.values() if len(val) > 1]
 
-class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
-    def __init__(self, nof_observed_variables=4, max_nof_events_for_supports=3, fully_foundational=False):
-        super().__init__(nof_observed_variables, fully_foundational=fully_foundational)
-        self.max_nof_events = max_nof_events_for_supports
+class Observable_labelled_mDAGs(Observable_unlabelled_mDAGs):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
+    @cached_property
+    def all_labelled_mDAGs(self):
+        return [mDAG(ds, sc) for sc, ds in itertools.product(self.all_simplicial_complices,
+                                                                 self.truly_all_directed_structures)]
+    @cached_property
+    def most_labelled_mDAGs(self):
+        return self.all_labelled_mDAGs
+    @cached_property
+    def dict_id_to_canonical_id(self):
+        # if self.verbose:
+        #     print("Dictionary creations: mDAG ids to unlabelled ids...", flush=True)
+        return {mdag.unique_id: mdag.unique_id for mdag in self.all_labelled_mDAGs}
 
-        print("Number of unlabelled graph patterns: ", len(self.all_unlabelled_mDAGs), flush=True)
-        fundamental_list = [mdag.fundamental_graphQ for mdag in self.all_unlabelled_mDAGs]
-        if self.fully_foundational:
-            print("Number of fundamental unlabelled graph patterns: ", len(np.flatnonzero(fundamental_list)), flush=True)
-            print(
-                "Upper bound on number of 100% foundational equivalence classes: ",
-                len(self.foundational_eqclasses),
-                flush=True)
-            print("Number of Foundational CI classes: ", len(self.CI_classes))
-        else:
-            print("Number of distinct CI classes: ", len(self.CI_classes))
-            print("Upper bound on number of equivalence classes: ", len(self.equivalence_classes_as_mDAGs), flush=True)
+    @cached_property
+    def dict_uniqind_unlabelled_mDAGs(self):
+        return {mdag.unique_id: mdag for mdag in explore_candidates(
+            self.most_labelled_mDAGs,
+            verbose=self.verbose,
+            message="Mapping unlabelled ids to mDAGs"
+        )}
+    @cached_property
+    def directed_dominances_up_to_symmetry(self):
+        return self.directed_dominances
 
+    @cached_property
+    def truly_all_directed_structures(self):
+        truly_all = []
+        for ds in self.all_directed_structures:
+            truly_all.extend(ds.equivalents_under_symmetry)
+        return truly_all
 
+    @cached_property
+    def all_unlabelled_directed_structures(self):
+        return self.truly_all_directed_structures
 
-        self.singletons_dict = dict({1: list(itertools.chain.from_iterable(
-            filter(lambda eqclass: (len(eqclass) == 1 or self.effectively_all_singletons(eqclass)),
-                   self.esep_classes)))})
-        self. non_singletons_dict = dict({1: sorted(
-            filter(lambda eqclass: (len(eqclass) > 1 and not self.effectively_all_singletons(eqclass)),
-                   self.esep_classes), key=len)})
-        print("# of singleton classes from ESEP+Prop 6.8: ", len(self.singletons_dict[1]))
-        print("# of non-singleton classes from ESEP+Prop 6.8: ", self.lowerbound_count_accounting_for_hypergraph_inequivalence(self.non_singletons_dict[1]),
-              ", comprising {} total graph patterns (no repetitions)".format(
-                  ilen(itertools.chain.from_iterable(self.non_singletons_dict[1]))))
-        
-        
-        self.singletons_dict = dict({1: list(itertools.chain.from_iterable(
-            filter(lambda eqclass: (len(eqclass) == 1 or self.effectively_all_singletons(eqclass)),
-                   self.Dense_connectedness_and_esep)))})
-        self.non_singletons_dict = dict({1: sorted(
-            filter(lambda eqclass: (len(eqclass) > 1 and not self.effectively_all_singletons(eqclass)),
-                   self.Dense_connectedness_and_esep), key=len)})
-        print("# of singleton classes from also considering Dense Connectedness: ", len(self.singletons_dict[1]))
-        print("# of non-singleton classes from also considering Dense Connectedness: ", self.lowerbound_count_accounting_for_hypergraph_inequivalence(self.non_singletons_dict[1]),
-              ", comprising {} total graph patterns (no repetitions)".format(
-                  ilen(itertools.chain.from_iterable(self.non_singletons_dict[1]))))
-
-        smart_supports_dict = dict()
-        for k in range(2, self.max_nof_events + 1):
-            print("[Working on nof_events={}]".format(k))
-            # I changed the line below
-            smart_supports_dict[k] = further_classify_by_attributes(self.non_singletons_dict[k - 1],
-                                                            [('infeasible_binary_supports_n_events_beyond_esep_unlabelled',
-                                                              k)], verbose=True)
-            self.singletons_dict[k] = list(itertools.chain.from_iterable(
-                filter(lambda eqclass: (len(eqclass) == 1 or self.effectively_all_singletons(eqclass)),
-                       smart_supports_dict[k]))) + self.singletons_dict[k - 1]
-            self.non_singletons_dict[k] = sorted(
-                filter(lambda eqclass: (len(eqclass) > 1 and not self.effectively_all_singletons(eqclass)),
-                       smart_supports_dict[k]), key=len)
-            print("# of singleton classes from also considering Supports Up To {}: ".format(k), len(self.singletons_dict[k]))
-            print("# of non-singleton classes from also considering Supports Up To {}: ".format(k), self.lowerbound_count_accounting_for_hypergraph_inequivalence(self.non_singletons_dict[k]),
-                  ", comprising {} total graph patterns".format(
-                      ilen(itertools.chain.from_iterable(self.non_singletons_dict[k]))))     
-   
-
-if __name__ == '__main__':
-    # Observable_mDAGs2 = Observable_mDAGs_Analysis(nof_observed_variables=2, max_nof_events_for_supports=0)
-    # Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
-    # Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
-    metagraph_class_instance = Observable_unlabelled_mDAGs(4, fully_foundational=False, verbose=False, all_dominances=True)
-    #print(metagraph_class_instance.boring_by_virtue_of_HLP)
-    
-    G19=mDAG(DirectedStructure([],4),Hypergraph([(0,1,2,3)],4))
-    G18=mDAG(DirectedStructure([],4),Hypergraph([(0,1,2),(0,1,3),(0,2,3),(1,2,3)],4))
-    
-    print(metagraph_class_instance.meta_graph.has_edge(G19.unique_unlabelled_id,G18.unique_unlabelled_id))
-    print((G19.simplicial_complex_instance.as_integer,G18.simplicial_complex_instance.as_integer) in metagraph_class_instance.hypergraph_dominances)
-    
-    # Maybe the problem is when we require a hyperedge to MINIMALLY simulate the other, meaning that there is only one extra hyperedge
-    
-# =============================================================================
-#     only_hypergraphs=[]
-#     for mdag in metagraph_class_instance.all_unlabelled_mDAGs:
-#         if mdag.n_of_edges==0:
-#             only_hypergraphs.append(mdag)
-# 
-#     dominance_structure_edge_free=metagraph_class_instance.partial_order_of_subset(only_hypergraphs)
-#     
-#     translated=[]    
-#     for (G1,G2) in dominance_structure_edge_free:
-#         n=0
-#         while G1!=only_hypergraphs[n] and n<19:
-#             n=n+1
-#             if n==19:
-#                 if G1!=only_hypergraphs[19]:
-#                     n=20
-#         m=0
-#         while G2!=only_hypergraphs[m] and m<19:
-#             m=m+1
-#         if m==19:
-#             if G2!=only_hypergraphs[19]:
-#                 m=20
-#         translated.append((n,m))
-# =============================================================================
-
-    
-    
-# =============================================================================
-#     G_Bell=mDAG(DirectedStructure([(0,3),(1,2)],4),Hypergraph([(2,3)],4))
-#     G_Bell1=mDAG(DirectedStructure([(1,2)],4),Hypergraph([(0,3),(2,3)],4))
-#     G_Bell_modified=mDAG(DirectedStructure([(1,2)],4),Hypergraph([(0,),(1,),(2,3)],4))
-#     G_Bell_label=metagraph_class_instance.lookup_mDAG(G_Bell.unique_unlabelled_id)
-#     G_Bell1_label=metagraph_class_instance.lookup_mDAG(G_Bell1.unique_unlabelled_id)
-#     G_Bell_modified_label=metagraph_class_instance.lookup_mDAG(G_Bell_modified.unique_unlabelled_id)
-#     subset=[G_Bell_label,G_Bell1_label,G_Bell_modified_label]
-#     
-#     metagraph_class_instance.partial_order_of_subset(subset)
-#     metagraph_class_instance.eqclasses_of_subset(subset)
-# 
-#     
-#     print(G_Bell1_label.unique_unlabelled_id in metagraph_class_instance.meta_graph.nodes) #True, as expected
-#     print(G_Bell_modified_label.unique_unlabelled_id in metagraph_class_instance.meta_graph.nodes) #True, as expected
-#     
-#     print(metagraph_class_instance.meta_graph.has_edge(G_Bell1_label.unique_unlabelled_id,
-#                                                        G_Bell_modified_label.unique_unlabelled_id))  #False, but I expected this edge to be present
-# 
-#         
-#     
-#     print((G_Bell1_label.simplicial_complex_instance.as_integer,G_Bell_modified_label.simplicial_complex_instance.as_integer)
-#           in metagraph_class_instance.hypergraph_dominances)  #True, as expected
-# 
-#     from itertools import chain
-#     print((G_Bell1_label.unique_unlabelled_id,G_Bell_modified_label.unique_unlabelled_id) in
-#           chain.from_iterable(metagraph_class_instance.all_HLP_relevant_dominances))   #False, but I expected this to be true
-# =============================================================================
-
-# =============================================================================
-#     dominance_structure_latent_free=metagraph_class_instance.partial_order_of_subset(metagraph_class_instance.latent_free_DAGs_unlabelled)
-#     eqclasses_latent_free=metagraph_class_instance.eqclasses_of_subset(metagraph_class_instance.latent_free_DAGs_unlabelled)
-#     
-#     eqclasses_latent_free[6][1].all_CI
-#     
-#     G9=eqclasses_latent_free[9][0]
-#     G0=eqclasses_latent_free[0][0]
-#     G1=eqclasses_latent_free[1][0]
-#     G1.unique_unlabelled_id in metagraph_class_instance.meta_graph.nodes
-#     
-#     
-#     
-#     print((G1.directed_structure_instance.as_integer,G0.directed_structure_instance.as_integer) in metagraph_class_instance.directed_dominances) 
-#     
-#     
-#     G1.directed_structure_instance.can_D1_minimally_simulate_D2(G0.directed_structure_instance)
-#     
-#     
-#     print(eqclasses_latent_free[5])
-#     
-#     metagraph_class_instance.meta_graph.has_edge(eqclasses_latent_free[17][0].unique_unlabelled_id,eqclasses_latent_free[5][1].unique_unlabelled_id)
-#     
-#     translated=[]    
-#     for (G1,G2) in dominance_structure_latent_free:
-#         n=0
-#         while G1 not in eqclasses_latent_free[n] and n<19:
-#             n=n+1
-#         if n==19:
-#             if G1 not in eqclasses_latent_free[19]:
-#                 n=20
-#         m=0
-#         while G2 not in eqclasses_latent_free[m] and m<19:
-#             m=m+1
-#         if m==19:
-#             if G2 not in eqclasses_latent_free[19]:
-#                 m=20
-#         translated.append((n,m))
-#        
-#     
-#     for n in range(0,19):
-#         nope=False
-#         for m in range(0,19):
-#             if (19, n) in translated and (m,n) in translated:
-#                 nope=True
-#         if not nope:
-#             print(n)
-#     
-#     filtered=[]
-#     for t in translated:
-#         if t not in filtered:
-#             filtered.append(t)
-# 
-#     
-#     
-#     for n in range(20):
-#         if (n,5) in translated:
-#             print(n)
-#             
-#     
-#     l=[(19,18),(19,8),(19,15),(18,16),(18,17),(18,7),(15,16),(11,2),(15,14),(12,2),(15,6),(8,7),(8,17),(8,14),(8,6),(16,13),(16,11),(16,5),(7,5),(17,11),(17,5),(17,12),(14,5),(14,4),(6,11),(6,5),(6,12),(6,4),(6,3),(13,10),(11,10),(5,10),(5,1),(5,2),(12,10),(4,1),(4,2),(3,2),(10,9),(1,9),(2,9),(9,0)]
-# 
-#     diff=set(translated).difference(set(l))   # why does the metagraph include those edges?
-#     
-#     
-#     for latfree_class in eqclasses_latent_free:
-#         print(len(metagraph_class_instance.eqclass_of_mDAG(latfree_class[0])))
-#         if metagraph_class_instance.eqclass_of_mDAG(latfree_class[0])==tuple(latfree_class):
-#             print(latfree_class)
-# =============================================================================
-
-    
-# =============================================================================
-#     for mDAG1 in metagraph_class_instance.eqclass_of_mDAG(G_Bell1_label):
-#         for mDAG2 in metagraph_class_instance.eqclass_of_mDAG(G_Bell_modified_label):
-#             if metagraph_class_instance.meta_graph.has_edge(mDAG1.unique_unlabelled_id,mDAG2.unique_unlabelled_id):
-#                 print(mDAG1,mDAG2)    
-#         
-#     metagraph_class_instance.meta_graph.has_edge(115017884, 174917788)
-# 
-#     G1=metagraph_class_instance.lookup_mDAG(115017884)
-#     G2=metagraph_class_instance.lookup_mDAG(174917788)
-#     G3=metagraph_class_instance.lookup_mDAG(181862492)
-#     
-#     metagraph_class_instance.meta_graph.has_edge(G1.unique_unlabelled_id,G2.unique_unlabelled_id)
-# 
-#     metagraph_class_instance.partial_order_of_subset([G1eq,G2,G3])
-#     
-#     metagraph_class_instance.eqclass_of_mDAG(G1)
-#     
-#     G1eq=mDAG(DirectedStructure([(0,1),(1,2),(1,3)],4),Hypergraph([(0,1,3),(0,2,3),(1,2,3)],4))
-#     metagraph_class_instance.meta_graph.has_edge(G1eq.unique_unlabelled_id,G2.unique_unlabelled_id)
-# =============================================================================
-    
-
-
-
-# for eqclass in Observable_mDAGs4.NOT_latent_free_eqclasses:
-#     eqclass_ids=[mdag.unique_unlabelled_id for mdag in eqclass]
-#     if G_18.unique_unlabelled_id in eqclass_ids:
-#         print(eqclass)
-#         break
-# G_04 in eqclass
-# print(eqclass[0] in Observable_mDAGs4.singletons_dict[4])
-# len(eqclass)
-# for ns in  Observable_mDAGs4.non_singletons_dict[4]  :
-#     if eqclass[0] in ns:
-#         print(ns)
-
-# =============================================================================
-#     for i in range(len(Observable_mDAGs4.foundational_eqclasses)):
-#          print(Observable_mDAGs4.foundational_eqclasses[i][0])
-# 
-#     G_Bell=mDAG(DirectedStructure([(0,3),(1,2)],4),Hypergraph([(0,),(1,),(2,3)],4))
-#     import networkx as nx
-#     G_Bell_nx = nx.DiGraph()
-#     G_Bell_nx.add_nodes_from(G_Bell.visible_nodes)
-#     l=len(G_Bell.visible_nodes)
-#     for facet in G_Bell.simplicial_complex_instance.compressed_simplicial_complex:
-#         G_Bell_nx.add_node(l)
-#         for node in facet:
-#             G_Bell_nx.add_edge(l,node)
-#     nx.draw(G_Bell_nx)
-#         
-#     G_Bell_nx.add_nodes_from(G_Bell.latent_nodes)
-#     G.add_edges_from([(1, 2), (1, 3)])
-# =============================================================================
-    
-
-
-# =============================================================================
-#     two_latents=[]
-#     for i in range(len(Observable_mDAGs4.foundational_eqclasses)):
-#         for mdag in Observable_mDAGs4.equivalence_classes_as_mDAGs[i]:
-#             if len(mdag.latent_nodes)==2 or len(mdag.latent_nodes)==1:
-#                 two_latents.append(mdag)
-#                 break
-#     len(two_latents)
-#     
-# 
-#                 
-#     G_Bell=mDAG(DirectedStructure([(0,3),(1,2)],4),Hypergraph([(0,),(1,),(2,3)],4))
-#     G_HLP=mDAG(DirectedStructure([(0,1),(1,3),(2,3)],4),Hypergraph([(1,2),(2,3)],4))
-# 
-# 
-#     (edge_list,simplicial_complex,variable_names)=G_HLP.marginalize_node(2)
-#     marginalized_G_HLP=mDAG(LabelledDirectedStructure(variable_names,edge_list),LabelledHypergraph(variable_names,simplicial_complex))
-#     
-#     G_Instrumental=mDAG(DirectedStructure( [(0,1),(1,2)],3),Hypergraph([(1,2)],3))
-#     for eqclass in Observable_mDAGs3.foundational_eqclasses:
-#         if G_Instrumental in eqclass:
-#             Instrumental_class=eqclass
-# 
-#     G= mDAG(DirectedStructure([(0,1),(1,2),(1,3)],4),Hypergraph([(0,1),(0,2),(2,3),(1,3)],4))
-#     G.marginalize_node(2)    
-#     
-#     #APPLYING MARGINALIZATION TO REDUCE TO INSTRUMENTAL:    
-#     mDAGs_that_reduce_to_Instrumental=[]
-#     for representative_mDAG in Observable_mDAGs4.representative_mDAGs_list:
-#         for marginalized_node in representative_mDAG.visible_nodes:
-#             (d,s,variable_names)=representative_mDAG.marginalize_node(marginalized_node)
-#             #analyzing if the marginalized mDAG is equivalent to Instrumental
-#             if len(s)==1 and len(d)==2 and set(s).issubset(d) and s[0][0]==list(set(d)-set(s))[0][1]:
-#                 mDAGs_that_reduce_to_Instrumental.append((representative_mDAG,marginalized_node))
-#                 break
-#             #alternatively, looking if it is equivalent to one of the other mDAGs in the instrumental equivalence class
-#             elif len(s)==2 and len(d)==1 and set(d).issubset(s) and d[0][0]==list(set(s)-set(d))[0][1]:
-#                 mDAGs_that_reduce_to_Instrumental.append((representative_mDAG,marginalized_node))
-#                 break
-#             elif len(s)==len(d)==2 and [set(ele) for ele in s]==[set(ele) for ele in d] and any((d[0][1]==d[1][0],d[1][1]==d[0][0])):
-#                 mDAGs_that_reduce_to_Instrumental.append((representative_mDAG,marginalized_node))
-#                 break
-# 
-#     len(mDAGs_that_reduce_to_Instrumental)
-#     
-#     len(Observable_mDAGs4.foundational_eqclasses)
-#   
-#   
-#     quantumly_valid=[]
-#     for (mdag, marginalized_node) in mDAGs_that_reduce_to_Instrumental:
-#         X_contains_latent_parents=False
-#         for facet in mdag.simplicial_complex_instance.simplicial_complex_as_sets:
-#             if marginalized_node in facet:
-#                 X_contains_latent_parents=True
-#                 break
-#         share_facet_with_children=[]
-#         if X_contains_latent_parents:
-#             for c in mdag.children(marginalized_node):
-#                 X_share_facet_with_c=False
-#                 for facet in mdag.simplicial_complex_instance.simplicial_complex_as_sets:
-#                     if marginalized_node in facet and c in facet:
-#                         X_share_facet_with_c=True
-#                 share_facet_with_children.append(X_share_facet_with_c)
-#         if X_contains_latent_parents==False or all(share_facet_with_children):
-#             quantumly_valid.append((mDAG, marginalized_node))
-#                 
-#     len(quantumly_valid)
-#         
-#     not_quantumly_valid=list(set(mDAGs_that_reduce_to_Instrumental)-set(quantumly_valid))
-#     
-#     for (G,node) in not_quantumly_valid:
-#         print("G=",G)
-#         print("node=",node)
-#         print(G.marginalize_node(3))
-#         
-#     no_children=[]
-#     for (G,node) in mDAGs_that_reduce_to_Instrumental:
-#         if len(G.children(node))==0:
-#             no_children.append((G,node))
-#             
-#    with_children=list(set(mDAGs_that_reduce_to_Instrumental)-set(no_children))
-# 
-#     graph_eqgraph_eqnode=[]
-#     for (G,node) in no_children:
-#         for eqclass in Observable_mDAGs4.foundational_eqclasses:
-#             if G in eqclass:
-#                 eq_to_G=[G,node]
-#                 for graph in eqclass:
-#                     found_node=False
-#                     for marginalized_node in graph.visible_nodes:
-#                         if len(graph.children(marginalized_node))!=0:
-#                             (d,s,variable_names)=graph.marginalize_node(marginalized_node)
-#                             #analyzing if the marginalized mDAG is equivalent to Instrumental
-#                             if len(s)==1 and len(d)==2 and set(s).issubset(d) and s[0][0]==list(set(d)-set(s))[0][1]:
-#                                 eq_to_G.append((graph,marginalized_node))
-#                                 break
-#                             #alternatively, looking if it is equivalent to one of the other mDAGs in the instrumental equivalence class
-#                             elif len(s)==2 and len(d)==1 and set(d).issubset(s) and d[0][0]==list(set(s)-set(d))[0][1]:
-#                                 eq_to_G.append((graph,marginalized_node))
-#                                 break
-#                             elif len(s)==len(d)==2 and [set(ele) for ele in s]==[set(ele) for ele in d] and any((d[0][1]==d[1][0],d[1][1]==d[0][0])):
-#                                  eq_to_G.append((graph,marginalized_node))
-#                                  break
-#                 if len(eq_to_G)>0:
-#                     graph_eqgraph_eqnode.append(eq_to_G)
-#                         
-#                             
-#                             len(graph_eqgraph_eqnode)
-#     l=[]
-#     for ele in graph_eqgraph_eqnode:
-#         if len(ele)>2:
-#             l.append(ele)
-# len(l)
-# 
-# l[0]
-# 
-#     
-#     G= mDAG(DirectedStructure([(1,2),(2,3)],4),Hypergraph([(0,2),(1,2),(2,3)],4))    
-#     G.plot_mDAG_indicating_one_node(1)
-#     
-# 
-#     G_HLP=mDAG(DirectedStructure([(0,1),(1,3),(2,3)],4),Hypergraph([(1,2),(2,3)],4))
-#     G_HLP.networkx_plot_mDAG()
-#     G_HLP.latent_nodes 
-# =============================================================================
-    
-    
-# =============================================================================
-#     n=0
-#     for ci_class in Observable_mDAGs4.esep_classes:
-#         if len(ci_class)==1:
-#             n=n+1
-#     print(n)
-# =============================================================================
-
-# =============================================================================
-#     G_Instr=mDAG(DirectedStructure([(1,2)],3),Hypergraph([(0,1),(1,2)],3))
-#     G_UC=mDAG(DirectedStructure([(0,1),(0,2)],3),Hypergraph([(0,1),(0,2)],3))
-#     print("G_Instr=",G_Instr)
-#     print("G_UC=",G_UC)
-#     print("Same esep=",G_Instr.all_esep_unlabelled== G_UC.all_esep_unlabelled)
-#     for k in range(2,9):
-#       print("Same Supports at",k,"events=",G_Instr.infeasible_binary_supports_n_events_unlabelled(k)==G_UC.infeasible_binary_supports_n_events_unlabelled(k))
-#       print("Same Smart Supports at",k,"events=",G_Instr.infeasible_binary_supports_n_events_beyond_esep_unlabelled(k)==G_UC.infeasible_binary_supports_n_events_beyond_esep_unlabelled(k))
-# =============================================================================
-
-
-
-# =============================================================================
-#     G1=mDAG(DirectedStructure([(2,0),(1,3)],4),Hypergraph([(0,1),(1,2),(2,3)],4))
-#     G1.all_densely_connected_pairs_unlabelled
-#     not_all_densely_connected=[]
-#     for G in Observable_mDAGs4.representative_mDAGs_not_necessarily_foundational:
-#         if G.all_densely_connected_pairs_unlabelled != G1.all_densely_connected_pairs_unlabelled:
-#             not_all_densely_connected.append(G)
-#             print(G.all_densely_connected_pairs_unlabelled)
-#           
-#     print("Number of mDAGs that have at least one pair of nodes that are not densely connected=",len(not_all_densely_connected))
-# =============================================================================
-  
-  
-# =============================================================================
-#     i=0
-#     for ob_class in Observable_mDAGs4.foundational_eqclasses:
-#         p1=ob_class[0].all_densely_connected_pairs_unlabelled
-#         for mdag in ob_class:
-#             if mdag.all_densely_connected_pairs_unlabelled!=p1:
-#                 print(i)
-#         i=i+1
-# No problem here: all classes are consistent in terms of Dense Connectedness
-# =============================================================================
-
- 
-        
-# =============================================================================
-#     Skeleton_classes4=Observable_mDAGs4.Skeleton_classes
-#     print("Number of Skeleton classes=",len(Skeleton_classes4))
-#     CI_classes4=Observable_mDAGs4.CI_classes
-#     print("Number of CI classes=",len(CI_classes4))
-#     esep_classes4=Observable_mDAGs4.esep_classes
-#     print("Number of esep classes=",len(esep_classes4))
-#     Dense_con_classes=Observable_mDAGs4.Dense_connectedness_classes
-#     print("Number of Dense Conectedness Classes=",len(Dense_con_classes))
-#     
-#     print("Skeleton+CI=",len(Observable_mDAGs4.Skeleton_and_CI))
-#     print("Skeleton+esep=",len(Observable_mDAGs4.Skeleton_and_esep))
-#     print("Dense Conectedness+Skeleton=",len(Observable_mDAGs4.Dense_connectedness_and_Skeleton))
-#     print("Dense Conectedness+CI=",len(Observable_mDAGs4.Dense_connectedness_and_CI))
-#     print("Dense Conectedness+esep=",len(Observable_mDAGs4.Dense_connectedness_and_esep))
-# 
-#     G_Pgraph=mDAG(DirectedStructure([(0,1),(1,2),(2,3)],5),Hypergraph([(0,),(1,3,4),(2,4)],5))
-#     G_Pgraph.are_densely_connected(0,3)    
-#     G_Pgraph.all_esep
-#     G_Pgraph.fundamental_graphQ
-#     G_modified_Pgraph=mDAG(DirectedStructure([(0,1),(1,2),(2,3),(1,3)],5),Hypergraph([(0,),(1,3,4),(2,4)],5))
-#     G_Pgraph.all_esep==G_modified_Pgraph.all_esep
-#     G_Pgraph4=mDAG(DirectedStructure([(0,1),(1,2),(2,3)],4),Hypergraph([(0,),(1,3),(2,)],4))
-#     G_Pgraph4.all_esep
-# =============================================================================
-    
-# ==================================
-
-# for k in tuple(Observable_mDAGs.singletons_dict.keys())[1:]:
-    #     print("mDAGs freshly recognized as singleton-classes from supports over ",k," events:")
-    #     for i in Observable_mDAGs.singletons_dict[k]:
-    #         if i not in Observable_mDAGs.singletons_dict[k-1]:
-    #             print(i)
-
-    # metagraph_adjmat = nx.to_numpy_array(Observable_mDAGs.meta_graph, nodelist=list(
-    #     itertools.chain.from_iterable(Observable_mDAGs.equivalence_classes_as_ids)), dtype=bool)
-    # for_codewords = np.add.accumulate(list(map(len,Observable_mDAGs.equivalence_classes_as_ids)))
-    # codewords = itertools.starmap(np.arange,zip(np.hstack((0,for_codewords)), for_codewords))
-    # #codewords = [np.arange(i1,i2) for i1,i2 in zip(np.hstack((0, for_codewords)), for_codewords)]
-    # codewords = [codeword for codeword,foundational_Q in zip(codewords,Observable_mDAGs.foundational_eqclasses_picklist) if foundational_Q]
-    # eqclass_adjmat = np.empty(np.broadcast_to(len(Observable_mDAGs.foundational_eqclasses),2), dtype=bool)
-    # for i,c1 in enumerate(codewords):
-    #     for j,c2 in enumerate(codewords):
-    #         # eqclass_adjmat[i,j] = metagraph_adjmat[(c1,c2)].any()
-    #         eqclass_adjmat[i,j] = metagraph_adjmat[c1].any(axis=0)[c2].any()
-    # print(eqclass_adjmat.astype(int))
-
-
-    
-# =============================================================================
-#     no_inf_sups_beyond_esep4=[]
-#     i=0
-#     for mDAG in Observable_mDAGs4.representative_mDAGs_list:
-#      print(i,"of",len(Observable_mDAGs4.representative_mDAGs_list))
-#      i=i+1
-#      if mdag.no_infeasible_binary_supports_beyond_esep_up_to(5):
-#          no_inf_sups_beyond_esep4.append(mdag)
-#     
-#     len(no_inf_sups_beyond_esep4)
-#     
-# 
-#     no_inf_sups_beyond_esep3=[]
-#     i=0
-#     for mdag in Observable_mDAGs3.representative_mDAGs_list:
-#      print(i,"of",len(Observable_mDAGs3.representative_mDAGs_list))
-#      i=i+1
-#      if mdag.no_infeasible_binary_supports_beyond_esep_up_to(5):
-#          no_inf_sups_beyond_esep3.append(mdag)
-#     
-#     len(no_inf_sups_beyond_esep3)
-# =============================================================================
-               
-    
-  
-# =============================================================================
-#     for k in tuple(Observable_mDAGs.singletons_dict.keys())[1:]:
-#         print("mDAGs freshly recognized as singleton-classes from supports over ",k," events:")
-#         for i in Observable_mDAGs.singletons_dict[k]:
-#             if i not in Observable_mDAGs.singletons_dict[k-1]:
-#                 print(i)
-# =============================================================================
-
-
-# =============================================================================
-#     for i in Observable_mDAGs4.CI_classes:
-#         if len(i)==1:
-#              print("class of", i)
-#              for c in Observable_mDAGs.foundational_eqclasses:
-#                  for i0 in i:
-#                      if i0 in c:
-#                          print(c)
-# =============================================================================
-         
-
-# =============================================================================
-#     metagraph_adjmat = nx.to_numpy_array(Observable_mDAGs.meta_graph, nodelist=list(
-#         itertools.chain.from_iterable(Observable_mDAGs.equivalence_classes_as_ids)), dtype=bool)
-#     for_codewords = np.add.accumulate(list(map(len,Observable_mDAGs.equivalence_classes_as_ids)))
-#     codewords = itertools.starmap(np.arange,zip(np.hstack((0,for_codewords)), for_codewords))
-#     #codewords = [np.arange(i1,i2) for i1,i2 in zip(np.hstack((0, for_codewords)), for_codewords)]
-#     codewords = [codeword for codeword,foundational_Q in zip(codewords,Observable_mDAGs.foundational_eqclasses_picklist) if foundational_Q]
-#     eqclass_adjmat = np.empty(np.broadcast_to(len(Observable_mDAGs.foundational_eqclasses),2), dtype=bool)
-#     for i,c1 in enumerate(codewords):
-#         for j,c2 in enumerate(codewords):
-#             # eqclass_adjmat[i,j] = metagraph_adjmat[(c1,c2)].any()
-#             eqclass_adjmat[i,j] = metagraph_adjmat[c1].any(axis=0)[c2].any()
-#     print(eqclass_adjmat.astype(int))
-# 
-#     [mdag for mdag in Observable_mDAGs.singletons_dict[3] if mdag.no_infeasible_binary_supports_up_to(4)]
-# 
-#    [non_singleton_set for non_singleton_set in Observable_mDAGs.non_singletons_dict[3] if next(iter(non_singleton_set)).support_testing_instance_binary(5).no_infeasible_supports()]
-# 
-#     next(iter([non_singleton_set for non_singleton_set in Observable_mDAGs.non_singletons_dict[3] if next(iter(non_singleton_set)).no_infeasible_binary_supports_up_to(3)]))
-# 
-# =============================================================================
+if __name__ == "__main__":
+    test= Observable_labelled_mDAGs(3, verbose=2)
+    print("Num eqclasses: ", len(test.equivalence_classes_as_mDAGs))
+    for eqclass in test.equivalence_classes_as_mDAGs:
+        print(eqclass)
