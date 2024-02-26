@@ -9,9 +9,10 @@ elif hexversion >= 0x3060000:
 else:
     cached_property = property
 
-from radix import bitarray_to_int
+# from radix import bitarray_to_int
 import networkx as nx
 from utilities import stringify_in_set, stringify_in_list, partsextractor
+from utilities import bitarray_to_lex_int as bitarray_to_int
 from more_itertools import chunked
 
 from functools import lru_cache

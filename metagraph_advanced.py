@@ -191,12 +191,16 @@ class Observable_unlabelled_mDAGs:
 
 
     @cached_property
-    def ds_bit_size(self):
+    def sc_bit_size(self):
         return np.asarray(2**(self.n**2), dtype=object)
+    @cached_property
+    def ds_bit_size(self):
+        "Maximum number of edges in a DAG in n(n-1)/2"
+        return np.asarray(2**((self.n**2)*(self.n-1)//2), dtype=object)
 
     def mdag_int_pair_to_single_int(self, ds_int, sc_int):
         #ELIE: Note that this MUST MATCH the function mdag_int_pair_to_single_int in the mDAG class. All is good.
-        return ds_int + sc_int*self.ds_bit_size
+        return ds_int*self.ds_bit_size + sc_int
 
     def mdag_int_pair_to_canonical_int(self, ds_int, sc_int):
         #print(ds_int, sc_int, self.mdag_int_pair_to_single_int(ds_int, sc_int))

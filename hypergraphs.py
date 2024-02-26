@@ -9,7 +9,8 @@ elif hexversion >= 0x3060000:
 else:
     cached_property = property
 
-from radix import bitarray_to_int
+# from radix import bitarray_to_int
+from utilities import bitarray_to_lex_int as bitarray_to_int
 from merge import merge_intersection
 from utilities import stringify_in_tuple, stringify_in_list, partsextractor
 

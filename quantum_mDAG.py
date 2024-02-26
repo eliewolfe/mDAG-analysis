@@ -1,10 +1,9 @@
 from __future__ import absolute_import
 import numpy as np
 import itertools
-# import networkx as nx
 from hypergraphs import Hypergraph, LabelledHypergraph, hypergraph_full_cleanup, hypergraph_canonicalize_with_deduplication
 from directed_structures import DirectedStructure, LabelledDirectedStructure
-from radix import to_bits #TODO: Make qmdaq from representation
+# from utilities import bitarray_to_lex_int as bitarray_to_int  #TODO: Make qmdaq from representation
 from mDAG_advanced import mDAG
 from merge import merge_intersection
 from sys import hexversion

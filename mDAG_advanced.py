@@ -10,7 +10,8 @@ elif hexversion >= 0x3060000:
 else:
     cached_property = property
 
-from radix import bitarray_to_int
+# from radix import bitarray_to_int
+from utilities import bitarray_to_lex_int as bitarray_to_int
 try:
     import matplotlib.pyplot as plt
 except ImportError:
@@ -37,17 +38,17 @@ from merge import merge_intersection
 from adjmat_class import AdjMat
 
  
-def mdag_to_int_pair(ds_bitarray: np.ndarray, sc_bitarray: np.ndarray):
-    sc_int = bitarray_to_int(sc_bitarray)
-    ds_int = bitarray_to_int(ds_bitarray)
-    return (ds_int, sc_int)
+# def mdag_to_int(ds_bitarray: np.ndarray, sc_bitarray: np.ndarray):
+#     sc_int = bitarray_to_int(sc_bitarray)
+#     ds_int = bitarray_to_int(ds_bitarray)
+#     return (ds_int, sc_int)
 
-def mdag_to_int(ds_bitarray: np.ndarray, sc_bitarray: np.ndarray):
-    sc_int = bitarray_to_int(sc_bitarray)
-    ds_int = bitarray_to_int(ds_bitarray)
-    #The directed structure is always a square matrix of size n^2.
-    offset = 2**ds_bitarray.size
-    return ds_int + (sc_int * offset)
+# def mdag_to_int(ds_bitarray: np.ndarray, sc_bitarray: np.ndarray):
+#     sc_int = bitarray_to_int(sc_bitarray)
+#     ds_int = bitarray_to_int(ds_bitarray)
+#     #The directed structure is always a square matrix of size n^2.
+#     offset = 2**ds_bitarray.size
+#     return ds_int + (sc_int * offset)
 
 
 
@@ -167,11 +168,16 @@ class mDAG:
         return p
 
     @cached_property
+    def sc_bit_size(self):
+        return np.array(2**(self.number_of_visible**2), dtype=object)
+    @cached_property
     def ds_bit_size(self):
-        return 2**(self.number_of_visible**2)
+        "Maximum number of edges in a DAG in n(n-1)/2"
+        return np.array(2**((self.number_of_visible**2)*(self.number_of_visible-1)//2), dtype=object)
+
     def mdag_int_pair_to_single_int(self, ds_int, sc_int):
         #ELIE: Note that this MUST MATCH the function mdag_int_pair_to_single_int in the metagraph class. All is good.
-        return ds_int + sc_int*self.ds_bit_size
+        return ds_int*self.ds_bit_size + sc_int
 
 
     @cached_property
