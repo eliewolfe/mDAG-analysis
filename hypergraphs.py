@@ -32,7 +32,7 @@ def drop_singletons(hypergraph):
 def permute_bit_array(bitarray, perm):
     almost_new_sc = bitarray[:, list(perm)]
     return almost_new_sc[np.lexsort(almost_new_sc.T)]
-def bit_array_permutations(bitarray):
+def f_bit_array_permutations(bitarray):
     assert len(bitarray.shape)==2, 'Not a bitarray!'
     n = bitarray.shape[-1]
     return (permute_bit_array(bitarray, perm) for perm in map(list,itertools.permutations(range(n))))
@@ -159,20 +159,13 @@ class Hypergraph:
     def as_integer(self):
         return bitarray_to_int(self.as_bit_array)
 
-    @property
-    def _bit_array_permutations(self):
-        return (permute_bit_array(self.as_bit_array, perm)
-                for perm in map(list, itertools.permutations(range(self.number_of_visible))))
-
     @cached_property
     def bit_array_permutations(self):
-        return tuple(permute_bit_array(self.as_bit_array, perm)
-                for perm in map(list, itertools.permutations(
-            range(self.number_of_visible))))
+        return tuple(f_bit_array_permutations(self.as_bit_array))
 
     @cached_property
     def as_integer_permutations(self):
-        return tuple(bitarray_to_int(ba) for ba in self._bit_array_permutations)
+        return tuple(bitarray_to_int(ba) for ba in f_bit_array_permutations(self.as_bit_array))
 
     @cached_property
     def as_unlabelled_integer(self):
@@ -415,4 +408,13 @@ class LabelledUndirectedGraph(UndirectedGraph):
                                                  self.edges_with_variable_names]
         super().__init__(self.numerical_edges, self.number_of_variables)
         self.as_string = stringify_in_list(map(stringify_in_tuple, self.edges_with_variable_names))
+
+
+if __name__ == '__main__':
+    test = Hypergraph([{1,2}, {0, 1}], 3)
+    print(test.as_bit_array)
+    print(test.as_integer)
+    for bitmat in test.bit_array_permutations:
+        print(bitmat.astype(int))
+    print(test.as_integer_permutations)
 
