@@ -29,9 +29,12 @@ def has_length_greater_than_one(stuff):
     return len(stuff)>1
 def drop_singletons(hypergraph):
     return filter(has_length_greater_than_one, hypergraph)
-def permute_bit_array(bitarray, perm):
+
+def sort_rows_by_columns(bitarray: np.ndarray) -> np.ndarray:
+    return bitarray[np.lexsort(bitarray.T)]
+def permute_bit_array(bitarray: np.ndarray, perm: tuple) -> np.ndarray:
     almost_new_sc = bitarray[:, list(perm)]
-    return almost_new_sc[np.lexsort(almost_new_sc.T)]
+    return sort_rows_by_columns(almost_new_sc)
 def f_bit_array_permutations(bitarray):
     assert len(bitarray.shape)==2, 'Not a bitarray!'
     n = bitarray.shape[-1]
@@ -133,7 +136,7 @@ class Hypergraph:
         r = np.zeros((self.number_of_nonsingleton_latent, self.number_of_visible), dtype=bool)
         for i, lp in enumerate(self.compressed_simplicial_complex):
             r[i, tuple(lp)] = True
-        return r[np.lexsort(r.T)]
+        return sort_rows_by_columns(r)
 
     @cached_property
     def latent_parents_list(self):
@@ -145,7 +148,7 @@ class Hypergraph:
         r = np.zeros((self.number_of_latent, self.number_of_visible), dtype=bool)
         for i, lp in enumerate(self.extended_simplicial_complex_as_sets):
             r[i, tuple(lp)] = True
-        return r[np.lexsort(r.T)]
+        return sort_rows_by_columns(r)
 
     @cached_property
     def nonsingleton_districts(self):
@@ -359,7 +362,7 @@ class UndirectedGraph:
 
     @cached_property
     def as_edges_unlabelled_integer(self):
-        return min(self.edges_bit_array_to_integer(ba) for ba in bit_array_permutations(self.as_edges_bit_array))
+        return min(self.edges_bit_array_to_integer(ba) for ba in f_bit_array_permutations(self.as_edges_bit_array))
 
     @cached_property
     def as_networkx_graph(self):
@@ -411,10 +414,11 @@ class LabelledUndirectedGraph(UndirectedGraph):
 
 
 if __name__ == '__main__':
-    test = Hypergraph([{1,2}, {0, 1}], 3)
-    print(test.as_bit_array)
-    print(test.as_integer)
-    for bitmat in test.bit_array_permutations:
-        print(bitmat.astype(int))
-    print(test.as_integer_permutations)
+    test = Hypergraph([{1,2,3}, {0, 1}], 4)
+    print(test.as_bit_array.astype(int))
+    print(min(test.bit_array_permutations, key=bitarray_to_int).astype(int))
+    # print(test.as_integer)
+    # for bitmat in test.bit_array_permutations:
+    #     print(bitmat.astype(int))
+    # print(test.as_integer_permutations)
 

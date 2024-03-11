@@ -5,7 +5,7 @@ from operator import itemgetter
 from radix import bitarray_to_int
 
 def bitarray_to_lex_int(bitarray: np.ndarray) -> int:
-    for_viewing = np.packbits(bitarray.ravel(), axis=-1, bitorder='little')
+    for_viewing = np.packbits(np.flipud(bitarray).ravel(), axis=-1, bitorder='little')
     return int.from_bytes(for_viewing.tolist(), byteorder='little', signed=False)
 
 
