@@ -109,15 +109,19 @@ class DirectedStructure:
 
     @cached_property
     def as_integer(self):
-        return bitarray_to_int(self.as_incidence_array)
+        return bitarray_to_int(self.as_bit_square_matrix)
 
-    # def permute_bit_square_matrix(self, perm):
-    #     return self.as_bit_square_matrix[perm][:, perm]
-    #
-    # @property
-    # def _bit_square_matrix_permutations(self):
-    #     return (self.permute_bit_square_matrix(perm) for perm in
-    #                  map(list, itertools.permutations(self.visible_nodes)))
+    def permute_bit_square_matrix(self, perm):
+        return self.as_bit_square_matrix[perm][:, perm]
+
+    @property
+    def _bit_square_matrix_permutations(self):
+        return (self.permute_bit_square_matrix(perm) for perm in
+                     map(list, itertools.permutations(self.visible_nodes)))
+
+    @cached_property
+    def bit_square_matrix_permutations(self):
+        return tuple(self._bit_square_matrix_permutations)
 
     @cached_property
     def incidence_array_permutations(self):
@@ -125,7 +129,8 @@ class DirectedStructure:
 
     @cached_property
     def as_integer_permutations(self):
-        return tuple(bitarray_to_int(ba) for ba in f_bit_array_permutations(self.as_incidence_array))
+        # return tuple(bitarray_to_int(ba) for ba in f_bit_array_permutations(self.as_incidence_array))
+        return tuple(bitarray_to_int(ba) for ba in self._bit_square_matrix_permutations)
 
     @cached_property
     def as_unlabelled_integer(self):
@@ -240,10 +245,10 @@ class LabelledDirectedStructure(DirectedStructure):
         return self.as_string
 
 if __name__ == '__main__':
-    test = DirectedStructure([(0,1),(1,2)], 3)
+    test = DirectedStructure([(1,2)], 3)
     print(test.as_bit_square_matrix.astype(int))
-    print(test.as_incidence_array.astype(int))
+    # print(test.as_incidence_array.astype(int))
     print(test.as_integer)
-    for bitmat in test.incidence_array_permutations:
+    for bitmat in test.bit_square_matrix_permutations:
         print(bitmat.astype(int))
     print(test.as_integer_permutations)

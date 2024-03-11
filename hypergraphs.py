@@ -160,7 +160,7 @@ class Hypergraph:
 
     @cached_property
     def as_integer(self):
-        return bitarray_to_int(self.as_bit_array)
+        return bitarray_to_int(np.flipud(self.as_bit_array))
 
     @cached_property
     def bit_array_permutations(self):
@@ -168,7 +168,7 @@ class Hypergraph:
 
     @cached_property
     def as_integer_permutations(self):
-        return tuple(bitarray_to_int(ba) for ba in f_bit_array_permutations(self.as_bit_array))
+        return tuple(bitarray_to_int(np.flipud(ba)) for ba in f_bit_array_permutations(self.as_bit_array))
 
     @cached_property
     def as_unlabelled_integer(self):
@@ -415,8 +415,11 @@ class LabelledUndirectedGraph(UndirectedGraph):
 
 if __name__ == '__main__':
     test = Hypergraph([{1,2,3}, {0, 1}], 4)
+    print(test.as_tuples)
     print(test.as_bit_array.astype(int))
-    print(min(test.bit_array_permutations, key=bitarray_to_int).astype(int))
+    print(min(test.bit_array_permutations, key=lambda mat: bitarray_to_int(np.flipud(mat))).astype(int))
+    test = Hypergraph([{1, 0, 3}, {1, 2}], 4)
+    print(test.as_tuples)
     # print(test.as_integer)
     # for bitmat in test.bit_array_permutations:
     #     print(bitmat.astype(int))
