@@ -104,13 +104,18 @@ class DirectedStructure:
     def permute_bit_square_matrix(self, perm):
         return self.as_bit_square_matrix[perm][:, perm]
 
+    @property
+    def _bit_square_matrix_permutations(self):
+        return (self.permute_bit_square_matrix(perm) for perm in
+                     map(list, itertools.permutations(self.visible_nodes)))
+
     @cached_property
     def bit_square_matrix_permutations(self):
-        return tuple(self.permute_bit_square_matrix(perm) for perm in map(list,itertools.permutations(self.visible_nodes)))
+        return tuple(self._bit_square_matrix_permutations)
 
     @cached_property
     def as_integer_permutations(self):
-        return tuple(bitarray_to_int(ba) for ba in self.bit_square_matrix_permutations)
+        return tuple(bitarray_to_int(ba) for ba in self._bit_square_matrix_permutations)
 
     @cached_property
     def as_unlabelled_integer(self):
