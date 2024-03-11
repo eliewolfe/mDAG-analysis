@@ -5,9 +5,8 @@ from operator import itemgetter
 from radix import bitarray_to_int
 
 def bitarray_to_lex_int(bitarray: np.ndarray) -> int:
-    return bitarray_to_int(np.fliplr(bitarray))
-
-
+    for_viewing = np.packbits(bitarray.ravel(), axis=-1, bitorder='little')
+    return int.from_bytes(for_viewing.tolist(), byteorder='little', signed=False)
 
 
 def partsextractor(thing_to_take_parts_of, indices):
