@@ -8,6 +8,7 @@ import progressbar
 from utilities import partsextractor
 from collections import defaultdict
 from scipy import sparse
+from itertools import groupby
 
 from sys import hexversion, stderr
 import gc
@@ -185,7 +186,7 @@ class Observable_unlabelled_mDAGs:
         # if self.verbose:
         #     print("Dictionary creations: mDAG ids to unlabelled ids...", flush=True)
         return {mdag.unique_id: mdag.unique_unlabelled_id for mdag in
-                explore_candidates(self.all_labelled_mDAGs,
+                explore_candidates(self.truly_all_labelled_mDAGs,
                                    verbose=False,
                                    message="mDAG ids to unlabelled id")}
 
@@ -356,7 +357,7 @@ class Observable_unlabelled_mDAGs:
     
     @cached_property
     def truly_all_labelled_metagraph_nodes(self):
-        return np.array(mdag.unique_id for mdag in self.truly_all_labelled_mDAGs)
+        return np.array(tuple(mdag.unique_id for mdag in self.truly_all_labelled_mDAGs))
 
 
     @cached_property
@@ -380,6 +381,16 @@ class Observable_unlabelled_mDAGs:
                itertools.permutations(self.all_simplicial_complices, 2) if
                S1.can_S1_minimally_simulate_S2(S2)}.values())
         return hdominances
+    
+    #@cached_property    
+    def orbit_of_dominance(self, dom_as_ids):
+        (id_mDAG1,id_mDAG2)=dom_as_ids
+        return tuple(zip(self.dict_ind_truly_all_labelled_mDAGs[id_mDAG1].orbit_of_mDAG,self.dict_ind_truly_all_labelled_mDAGs[id_mDAG2].orbit_of_mDAG))
+
+    #@cached_property
+    def relabelling_minimal_dominance(self,dom):
+        return min(self.orbit_of_dominance(dom))
+
 
     # @property
     # def hypergraph_strong_dominances(self):
@@ -595,7 +606,7 @@ class Observable_unlabelled_mDAGs:
     @cached_property
     def truly_all_labelled_metagraph(self):
         g = nx.DiGraph()
-        # g.add_nodes_from(self.truly_all_labelled_metagraph_nodes)
+        g.add_nodes_from(self.truly_all_labelled_metagraph_nodes.flat)
         g.add_edges_from(self.all_truly_labelled_dominances())
         return g
 
@@ -674,11 +685,27 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def equivalence_classes_as_ids(self):
-        return list(nx.strongly_connected_components(self.meta_graph))
+        return list(nx.strongly_connected_components(self.meta_graph))     
+        
+    @cached_property
+    def equivalence_classes_as_mDAGs(self):
+        return [self.lookup_mDAG(eqclass) for eqclass in self.equivalence_classes_as_ids]
+    
+    def eqclass_of_mDAG(self, mDAG):
+        for eqclass in self.equivalence_classes_as_mDAGs:
+            if mDAG in eqclass:
+                return eqclass
+    
     
     @cached_property
     def truly_all_labelled_equivalence_classes_as_ids(self):
         return list(nx.strongly_connected_components(self.truly_all_labelled_metagraph))
+    
+    def min_mDAG_of_each_truly_all_labelled_eqclass(self):
+        m=[]
+        for eqclass in self.truly_all_labelled_equivalence_classes_as_ids:
+            m.append(min(eqclass))
+        return m         
     
     def lookup_set_of_labelled_mDAGs(self, indices):
         return tuple((self.dict_ind_truly_all_labelled_mDAGs[index] for index in indices))          
@@ -691,20 +718,67 @@ class Observable_unlabelled_mDAGs:
         for eqclass in self.truly_all_labelled_equivalence_classes_as_mDAGs:
             if mDAG in eqclass:
                 return eqclass
+            
+    def eqclass_of_labelled_mDAG_id(self, mDAG_id):
+        for eqclass in self.truly_all_labelled_equivalence_classes_as_ids:
+            if mDAG_id in eqclass:
+                return eqclass
+            
+    @cached_property
+    def extended_truly_all_labelled_metagraph(self): # Constructed such that if D1->D2 in the metagraph, then add D1'->D2' if D1' is equivalent to D1 and is minimal in the class, for all D2' equivalent to D2
+        g=self.truly_all_labelled_metagraph.copy()
+        if self.verbose:
+            eprint("Total number of minimal sources=",len(self.min_mDAG_of_each_truly_all_labelled_eqclass()), flush=True)
+        i=1
+        for G1 in self.min_mDAG_of_each_truly_all_labelled_eqclass():
+            if self.verbose:
+                eprint("Minimal source Nº",i, ", with",len(self.eqclass_of_labelled_mDAG_id(G1)),"mDAGs in its equivalence class", flush=True)
+            i=i+1
+            j=1
+            for G1eq in self.eqclass_of_labelled_mDAG_id(G1):
+                G1eq_dominates=[pair[1] for pair in self.truly_all_labelled_metagraph.edges() if pair[0] == G1eq]
+                G1eq_dominates_minimal=set(G1eq_dominates).intersection(set(self.min_mDAG_of_each_truly_all_labelled_eqclass()))
+                if self.verbose:
+                    eprint("Equivalent mDAG Nº",j,", flush=True)
+                j=j+1
+                for G2 in G1eq_dominates_minimal:
+                    if G1!=G2 and (G1,G2) not in g.edges():
+                            g.add_edge(G1,G2)
+        return g    
+    
+    @cached_property
+    def extended_metagraph_with_ony_minimal_mDAGs(self):
+        return self.extended_truly_all_labelled_metagraph.subgraph(self.min_mDAG_of_each_truly_all_labelled_eqclass())
+
+    @cached_property
+    def minimal_dominances_with_minimal_target(self):
+        # Resolving first ambiguity: choosing one dominance from each orbit of dominances
+        all_minimal_dominances=[self.relabelling_minimal_dominance(dom) for dom in self.extended_metagraph_with_ony_minimal_mDAGs.edges]
+        all_minimal_dominances.sort(key=lambda x: x[0])
+        minimal_dominances_grouped_by_source = [list(group) for key, group in groupby(all_minimal_dominances, lambda x: x[0])]
+        # Resolving second ambiguity: dominances that are not in the same orbit, but have the same source and have targets that are equivalent under relabelling
+        all_minimal_dominances_with_minimal_target=[]
+        for source_group in minimal_dominances_grouped_by_source:
+            source_group.sort(key=lambda x: Observable_mDAGs3.dict_id_to_canonical_id[x[1]])
+            source_target_groupings=[list(group) for key, group in groupby(source_group, lambda x: self.dict_id_to_canonical_id[x[1]])]
+            for source_target_group in source_target_groupings:
+                all_minimal_dominances_with_minimal_target.append(min(source_target_group))
+        return all_minimal_dominances_with_minimal_target
+                
+# Open question: after doing this procedure, are there arrows pointing into mDAGs that are not lexicographically minimal?
+    def finding_problem_in_compression(self):
+        problem=[]
+        for dom in self.minimal_dominances_with_minimal_target:
+            if self.dict_id_to_canonical_id[dom[1]]!=dom[1]:
+                problem.append(dom)
+        return problem
         
 
     # @cached_property
     # def safe_equivalence_classes_as_mDAGs(self):
     #     return [self.lookup_mDAG(eqclass) for eqclass in self.safe_equivalence_classes]
 
-    @cached_property
-    def equivalence_classes_as_mDAGs(self):
-        return [self.lookup_mDAG(eqclass) for eqclass in self.equivalence_classes_as_ids]
-    
-    def eqclass_of_mDAG(self, mDAG):
-        for eqclass in self.equivalence_classes_as_mDAGs:
-            if mDAG in eqclass:
-                return eqclass
+
             
     def eqclasses_of_subset(self, subset):       #subset is a set of mDAGs (i.e. nodes of the metagraph)
         partition_into_eqclasses=[]
@@ -1009,17 +1083,54 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
 if __name__ == '__main__':
     # Observable_mDAGs2 = Observable_mDAGs_Analysis(nof_observed_variables=2, max_nof_events_for_supports=0)
     Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
-    #Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
+    Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
     #metagraph_class_instance = Observable_unlabelled_mDAGs(4, fully_foundational=False, verbose=False, all_dominances=True)
     #print(metagraph_class_instance.boring_by_virtue_of_HLP)
-    print(len(Observable_mDAGs3.truly_all_labelled_equivalence_classes_as_ids))
-    for eqclass in Observable_mDAGs3.truly_all_labelled_equivalence_classes_as_ids:
-       print([Observable_mDAGs3.dict_ind_truly_all_labelled_mDAGs[index] for index in eqclass])
+    
 
-       
-       
-       
-       
+    
+    Observable_mDAGs3.finding_problem_in_compression()  # No problem found, as expected
+    
+    # For 4 nodes: 
+    len(Observable_mDAGs4.truly_all_labelled_metagraph.edges)  # Metagraph successfully constructed, there are 61902 nodes and 440097 edges.
+    
+    extended4=Observable_mDAGs4.extended_truly_all_labelled_metagraph()   
+    
+# =============================================================================
+#     import pickle
+#     with open('extended_metagraph4.pkl','wb') as arquivo:
+#        pickle.dump(extended4, arquivo, pickle.HIGHEST_PROTOCOL)
+# =============================================================================
+
+    extended4_only_minimal=extended4.subgraph(Observable_mDAGs4.min_mDAG_of_each_truly_all_labelled_eqclass())  # Takes very long but eventually gets constructed
+
+# Code from the functions minimal_dominances_with_minimal_target and finding_problem_in_compression:
+
+    # Resolving first ambiguity: choosing one dominance from each orbit of dominances
+    all_minimal_dominances=[Observable_mDAGs4.relabelling_minimal_dominance(dom) for dom in extended4_only_minimal.edges]
+    all_minimal_dominances.sort(key=lambda x: x[0])
+    minimal_dominances_grouped_by_source = [list(group) for key, group in groupby(all_minimal_dominances, lambda x: x[0])]
+    # Resolving second ambiguity: dominances that are not in the same orbit, but have the same source and have targets that are equivalent under relabelling
+    all_minimal_dominances_with_minimal_target=[]
+    for source_group in minimal_dominances_grouped_by_source:
+        source_group.sort(key=lambda x: Observable_mDAGs4.dict_id_to_canonical_id[x[1]])
+        source_target_groupings=[list(group) for key, group in groupby(source_group, lambda x: Observable_mDAGs4.dict_id_to_canonical_id[x[1]])]
+        for source_target_group in source_target_groupings:
+            all_minimal_dominances_with_minimal_target.append(min(source_target_group))
+    problem=[]
+    for dom in all_minimal_dominances_with_minimal_target:
+        if Observable_mDAGs4.dict_id_to_canonical_id[dom[1]]!=dom[1]:
+            problem.append(dom)
+            
+    len(problem)   # 933 problematic dominances are found!!!
+    
+    
+# =============================================================================
+#     import pickle
+#     with open('problematic_dominances_relabelling.pkl','wb') as arquivo:
+#         pickle.dump(problem, arquivo, pickle.HIGHEST_PROTOCOL)
+# =============================================================================
+
     
 # =============================================================================
 #     

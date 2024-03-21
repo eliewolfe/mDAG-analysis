@@ -192,14 +192,17 @@ class mDAG:
     def __eq__(self, other):
         return self.unique_id == other.unique_id
 
-    @cached_property
-    def unique_unlabelled_id(self):
-        # Returns the unique id minimized over relabellings
-        return self.mdag_int_pair_to_single_int(*min(zip(
-            self.directed_structure_instance.as_integer_permutations,
-            self.simplicial_complex_instance.as_integer_permutations
 
-        )))
+    @cached_property
+    def orbit_of_mDAG(self):
+        orbit_as_pairs=tuple(zip(self.directed_structure_instance.as_integer_permutations,
+            self.simplicial_complex_instance.as_integer_permutations))
+        return tuple(self.mdag_int_pair_to_single_int(ds, sc) for ds,sc in orbit_as_pairs)
+
+    @cached_property
+    def unique_unlabelled_id(self):      # MMA: I made the following change: now it's minimizing over unique_id, not minimizing over the id of the directed structure
+        # Returns the unique id minimized over relabellings
+        return min(self.orbit_of_mDAG)
 
     @cached_property
     def skeleton_instance(self):
