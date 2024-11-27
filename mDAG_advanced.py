@@ -51,9 +51,6 @@ def mdag_to_int(ds_bitarray: np.ndarray, sc_bitarray: np.ndarray):
 
 
 
-
-
-
 class mDAG:
     def __init__(self, directed_structure_instance, simplicial_complex_instance, pp_restrictions=tuple()):
         self.restricted_perfect_predictions_numeric = pp_restrictions
@@ -96,10 +93,6 @@ class mDAG:
     @cached_property
     def as_string(self):
         return self.directed_structure_instance.as_string + '|' + self.simplicial_complex_instance.as_string
-
-    # def extended_simplicial_complex(self):
-    #  # Returns the simplicial complex extended to include singleton sets.
-    #  return self.simplicial_complex + [(singleton,) for singleton in set(self.visible_nodes).difference(*self.simplicial_complex)]
 
     def __str__(self):
         return self.as_string
@@ -213,7 +206,6 @@ class mDAG:
 
     @cached_property
     def skeleton_adj_mat(self):
-        # return self.skeleton_instance.as_adjacency_matrix
         return np.logical_or(self.simplicial_complex_instance.as_bidirected_adjmat,
                              np.logical_or(self.directed_structure_instance.as_bit_square_matrix,
                                            self.directed_structure_instance.as_bit_square_matrix.T))
@@ -226,29 +218,6 @@ class mDAG:
     def skeleton_unlabelled(self):
         return self.skeleton_instance.as_edges_unlabelled_integer
 
-    # @cached_property
-    # def cliques_with_common_ancestor_aside_from_external_visible(self):
-    #     perfect_correlation_sets = set()
-    #     for clique in self.skeleton_instance.cliques:
-    #         if len(clique) > 2:
-    #             common_ancestors = set(self.latent_nodes)
-    #             for v in clique:
-    #                 common_ancestors.intersection_update(nx.ancestors(self.as_graph_with_singleton_latents, v))
-    #             for a in common_ancestors:
-    #                 if len(set(self.as_graph_with_singleton_latents.successors(a)).intersection(clique))>0:
-    #                     perfect_correlation_sets.add((self.fake_frozenset(clique),))
-    #                     break
-    #     return perfect_correlation_sets
-    #
-    # @cached_property
-    # def cliques_with_common_ancestor_aside_from_external_visible_unlabelled(self):
-    #     return min(self._all_CI_like_unlabelled_generator('cliques_with_common_ancestor_aside_from_external_visible'))
-    #
-    # @cached_property
-    # def all_esep_plus_unlabelled(self):
-    #     return self.all_esep_unlabelled + self.cliques_with_common_ancestor_aside_from_external_visible_unlabelled
-
-
     def perfectly_correlated_subgraph(self, subnodes):
         new_hypergraph = hypergraph_full_cleanup([
             facet.intersection(subnodes) for facet in
@@ -260,10 +229,6 @@ class mDAG:
         subadjmat_closure = AdjMat(subadjmat).transitive_closure_plus
         for subfacet in new_hypergraph:
             subfact_as_list = list(subfacet)
-            # print(f"Assessing mDAG: {self}")
-            # print(f"Checking nodes for perfect correlation: {subnodes}")
-            # print(f"Via facet: {subfact_as_list}")
-            # print(f"leading to AdjMat: {subadjmat_closure}")
             common_ancestor_check = np.any(subadjmat_closure[subfact_as_list], axis=0)[subnodes_as_list].all()
             if common_ancestor_check:
                 return True
@@ -296,28 +261,8 @@ class mDAG:
     def is_connected(self):
         return (len(merge_intersection(self.common_cause_connected_sets)) == 1)
 
-    # @cached_property
-    # def minimal_perfect_correlation_sets(self):
-    #     admit_perfect_correlation_sets = set()
-    #     for facet in self.simplicial_complex_instance.extended_simplicial_complex_as_sets:
-    #         admit_perfect_correlation_sets.add(
-    #             (self.fake_frozenset(
-    #                 self.directed_structure_instance.adjMat.descendantsplus_of(list(facet))
-    #             ),))
-    #     return self.fake_frozenset(admit_perfect_correlation_sets)
-    #
-    # @cached_property
-    # def minimal_perfect_correlation_sets_unlabelled(self):
-    #     return min(self._all_CI_like_unlabelled_generator('minimal_perfect_correlation_sets'))
-    #
-    # @cached_property
-    # def common_ancestors_sets_unlabelled_as_int(self):
-    #     return self.fake_frozenset(self.common_cause_connected_sets)
-
-
-
     @staticmethod
-    def _all_2_vs_any_partitions(variables_to_partition):
+    def _all_2_vs_any_partitions(variables_to_partition: list):
         # expect input in the form of a list
         length = len(variables_to_partition)
         subsetrange = range(length - 1)
@@ -441,15 +386,6 @@ class mDAG:
     def all_esep_unlabelled(self):
         return min(self._all_CI_like_unlabelled_generator('all_esep_numeric'))
 
-    # @property
-    # def _e_separable_pairs(self):
-    #     for to_delete in itertools.combinations(self.visible_nodes, self.number_of_visible-2):
-    #         graph_copy = self.as_graph.copy()  # Don't forget to copy!
-    #         graph_copy.remove_nodes_from(to_delete)
-    #         remaining = set(self.visible_nodes).difference(to_delete)
-    #         for x, y, Z in self._all_2_vs_any_partitions(tuple(remaining)):
-    #             if nx.d_separated(graph_copy, {x}, {y}, set(Z)):
-    #                 yield self.fake_frozenset([x, y])
     @cached_property
     def e_separable_pairs(self):
         return set(itertools.combinations(self.visible_nodes, 2)).difference(self.skeleton_instance.as_edges)
@@ -457,32 +393,6 @@ class mDAG:
     @cached_property
     def interesting_via_non_maximal(self):
         return not self.d_unseparable_pairs.issubset(self.skeleton_instance.as_edges)
-
-    # @methodtools.lru_cache(maxsize=None, typed=False)
-    # def support_testing_instance(self, n):
-    #     return SupportTesting(self.parents_of_for_supports_analysis,
-    #                           np.broadcast_to(2, self.number_of_visible),
-    #                           n)
-
-    #Let's use smart support testing for both smart and not.
-    #@methodtools.lru_cache(maxsize=None, typed=False)
-    
-    # def smart_support_testing_instance_card_3(self, n):
-    #     return SmartSupportTesting(self.parents_of_for_supports_analysis,
-    #                                (3,2,2),
-    #                                n, self.all_esep
-    #                                )
-    # def smart_infeasible_supports_n_events_card_3(self, n, **kwargs):
-    #       return self.fake_frozenset(self.smart_support_testing_instance_card_3(n).unique_infeasible_supports_beyond_esep_as_integers(**kwargs, name='mgh', use_timer=False))
-    #
-    # def smart_support_testing_instance_card_4(self, n):
-    #     return SmartSupportTesting(self.parents_of_for_supports_analysis,
-    #                                (4,2,2),
-    #                                n, self.all_esep
-    #                                )
-    # def smart_infeasible_supports_n_events_card_4(self, n, **kwargs):
-    #       return self.fake_frozenset(self.smart_support_testing_instance_card_4(n).unique_infeasible_supports_beyond_esep_as_integers(**kwargs, name='mgh', use_timer=False))
-    #
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def support_testing_instance_binary(self, n):
@@ -587,11 +497,6 @@ class mDAG:
     def no_infeasible_binary_supports_up_to(self, max_n, **kwargs):
         return all(self.no_infeasible_binary_supports_n_events(n, **kwargs) for n in range(2, max_n + 1))
 
-    # def no_infeasible_binary_supports_up_to(self, max_n, **kwargs):
-    #     return all(len(self.infeasible_binary_supports_n_events(n, **kwargs))==0 for n in range(2,max_n+1))
-
-
-
 
     @cached_property
     def droppable_edges(self):
@@ -618,9 +523,6 @@ class mDAG:
                     self.number_of_visible),
                      self.simplicial_complex_instance))
         return equivalent_mdags
-
-
-
 
 
     @property
@@ -655,11 +557,7 @@ class mDAG:
                 yield (frozenset(itertools.compress(variables_to_partition, mask.tolist())),
                        frozenset(itertools.compress(variables_to_partition, np.logical_not(mask).tolist())))
 
-    # def setpredecessorsplus(self, X):
-    #     result = set(X)
-    #     for x in X:
-    #         result.update(self.as_graph.predecessors(x))
-    #     return result
+
     @cached_property
     def all_parentsplus_list(self):
         return [frozenset({}).union(v_par, l_par) for v_par,l_par in zip(
@@ -735,18 +633,6 @@ class mDAG:
     def singleton_district(self, x):
         return frozenset(itertools.chain.from_iterable((district for district in self.districts if x in district)))
 
-
-
-    #
-    #
-    # @cached_property
-    # def districts_arbitrary_names(self):
-    #     if hasattr(self.simplicial_complex_instance, 'variable_names'):
-    #         return self.simplicial_complex_instance.translated_districts
-    #     else:
-    #         return self.simplicial_complex_instance.districts
-
-
         
     def networkx_plot_mDAG(self):
         G=nx.DiGraph()
@@ -798,28 +684,6 @@ class mDAG:
                       all(c not in itertools.chain.from_iterable(set(simp_complex)-{tuple(set(C)|set(D))}) for c in C)]
         # print(candidates)
         return candidates
-    
-# =============================================================================
-#     G_ev_prop=mDAG(DirectedStructure([(0,3),(0,1),(2,1),(2,3),(4,0),(4,3),(4,1),(5,2),(5,3),(5,1)],6),Hypergraph([(0,1,2,3),(4,),(5,)],6))
-#     for mDAG in G_ev_prop.generate_weaker_mDAGs_FaceSplitting('weak'):
-#         print (mDAG)
-#     candidates = itertools.chain.from_iterable(map(G_ev_prop._all_bipartitions, G_ev_prop.simplicial_complex_instance.compressed_simplicial_complex))
-#     [(C, D) for C, D in candidates if all(G_ev_prop.set_visible_predecessors(C).issubset(G_ev_prop.singleton_visible_predecessors(d)) for d in D) and all(c not in itertools.chain.from_iterable(set(G_ev_prop.simplicial_complex_instance.compressed_simplicial_complex)-{tuple(set(C)|set(D))}) for c in C)]  
-#     [(C, D) for C, D in candidates]
-#     C=frozenset({0,2})
-#     D=frozenset({1,3})
-#     all(c not in itertools.chain.from_iterable(set(G_ev_prop.simplicial_complex_instance.compressed_simplicial_complex)-{tuple(set(C)|set(D))}) for c in C)
-#     
-#     G_ev_prop3=mDAG(DirectedStructure([(0,1),(0,2),(1,2)],3),Hypergraph([(0,1),(1,2)],3))
-#     for mDAG in G_ev_prop3.generate_weaker_mDAGs_FaceSplitting('weak'):
-#         print(mDAG)
-#     
-# =============================================================================
-# =============================================================================
-#     G_ev_prop2=mDAG(DirectedStructure([(0,3),(0,2),(2,3),(3,1)],4),Hypergraph([(0,),(1,),(2,3)],4))
-#     for mDAG in G_ev_prop2.generate_weaker_mDAGs_FaceSplitting('weak'):
-#         print(mDAG)
-# =============================================================================
 
     
     @property  
@@ -891,84 +755,12 @@ class mDAG:
     #Or, if we are really fancy, we can modify the bits of the unique_id itself!!
 
 
-
-    
-    # @property
-    # def districts_arbitrary_names(self):
-    #     districts_translated=[]
-    #     for d in self.districts:
-    #         d_translated=set()
-    #         for node in d:
-    #             node_translated=list(self.simplicial_complex_instance.translation_dict.keys())[list(self.simplicial_complex_instance.translation_dict.values()).index(node)]
-    #             d_translated.add(node_translated)
-    #         districts_translated.append(d_translated)
-    #     return districts_translated
-
-
-    
-    # def subgraph(self, list_of_nodes):
-    #     new_edges=[]
-    #     for edge in self.directed_structure_instance.edge_list:
-    #         if edge[0] in list_of_nodes and edge[1] in list_of_nodes:
-    #             new_edges.append(edge)
-    #     new_hypergraph=[]
-    #     for hyperedge in self.simplicial_complex_instance.simplicial_complex:
-    #         new_hyperedge=hyperedge
-    #         for node in hyperedge:
-    #             if node not in list_of_nodes:
-    #                 new_hyperedge_list=list(new_hyperedge)
-    #                 new_hyperedge_list.remove(node)
-    #                 new_hyperedge=tuple(new_hyperedge_list)
-    #         subset_of_already_hyp=False
-    #         for already_hyp in new_hypergraph:
-    #             if set(new_hyperedge).issubset(set(already_hyp)) and new_hyperedge!=already_hyp:
-    #                 subset_of_already_hyp=True
-    #             if set(already_hyp).issubset(set(new_hyperedge)):
-    #                 new_hypergraph.remove(already_hyp)
-    #         if not subset_of_already_hyp:
-    #             new_hypergraph.append(new_hyperedge)
-    #     return mDAG(LabelledDirectedStructure(list_of_nodes,new_edges), LabelledHypergraph(list_of_nodes,new_hypergraph))
-
     #Elie: I have integrated subgraph into both labelled directed structure and labelled hypergraph.
     def subgraph(self, list_of_nodes):
         return mDAG(
             LabelledDirectedStructure(list_of_nodes, self.directed_structure_instance.edge_list),
             LabelledHypergraph(list_of_nodes, self.simplicial_complex_instance.simplicial_complex_as_sets)
         )
-
-  
-
-    # def closure_Marina(self, B):
-    #     list_B=[set(self.visible_nodes)]
-    #     graph=self.subgraph(list_B[0])
-    #     next_B=set()
-    #     for element in B:
-    #         for dist in graph.districts_arbitrary_names:
-    #             if element in dist:
-    #                 next_B=set(next_B).union(dist)
-    #     list_B.append(next_B)
-    #     graph=self.subgraph(list_B[1])
-    #     next_B=set()
-    #     for element in B:
-    #         next_B=set(list(next_B)+list(nx.ancestors(graph.directed_structure_instance.as_networkx_graph_arbitrary_names,element))+[element])
-    #     list_B.append(next_B)
-    #     i=2
-    #     while any([list_B[i]!=list_B[i-1],list_B[i]!=list_B[i-2]]):
-    #         graph=self.subgraph(list_B[-1])
-    #         next_B=set()
-    #         for element in B:
-    #             for dist in graph.districts_arbitrary_names:
-    #                 if element in dist:
-    #                     next_B=set(next_B).union(dist)
-    #         list_B.append(next_B)
-    #         i=i+1
-    #         graph=self.subgraph(list_B[-1])
-    #         next_B=set()
-    #         for element in B:
-    #             next_B=set(list(next_B)+list(nx.ancestors(graph.directed_structure_instance.as_networkx_graph_arbitrary_names,element))+[element])
-    #         list_B.append(next_B)
-    #         i=i+1
-    #     return list_B[-1]
 
     def set_closure(self, X_int_or_list, return_bidirectedQ=False):
         return numeric_closure(core_B=X_int_or_list,
@@ -977,83 +769,20 @@ class mDAG:
                                sc_adjmat= self.simplicial_complex_instance.as_bidirected_adjmat,
                                return_bidirectedQ= return_bidirectedQ)
 
-    # @cached_property
-    # def singeleton_closures_Marina(self):
-    #     return [frozenset(self.closure_Marina([i])) for i in range(self.number_of_visible)]
-
     @cached_property
     def singeleton_closures(self):
-        # list_of_closures = []
-        # for i in range(self.number_of_visible):
-        #     closure_Wolfe = frozenset(self.set_closure([i]))
-        #     closure_Marina = self.singeleton_closures_Marina[i]
-        #     if not closure_Wolfe == closure_Marina:
-        #         print("Possible bug found in closure calculations!")
-        #         print("mDAG: ", self.__repr__())
-        #         print("node: ", i)
-        #         print("closure_Marina: ", closure_Marina)
-        #         print("closure_Wolfe: ", closure_Wolfe)
-        #     list_of_closures.append(closure_Wolfe)
-        # return list_of_closures
         return [frozenset(self.set_closure([i])) for i in range(self.number_of_visible)]
-
-
-
-    # def are_densely_connected_Marina(self, node1, node2):
-    #     if node1 in self.set_visible_predecessors(self.singeleton_closures[node2]):
-    #         return True
-    #     if node2 in self.set_visible_predecessors(self.singeleton_closures[node1]):
-    #         return True
-    #     double_closure = frozenset(self.set_closure([node1, node2]))
-    #     for district in self.subgraph(double_closure).districts_arbitrary_names:
-    #         if double_closure.issubset(district):
-    #             return True
-    #     return False
-
-    # def are_densely_connected_Marina(self, node1, node2):
-    #     if node1 in self.set_visible_predecessors(self.singeleton_closures_Marina[node2]):
-    #         return True
-    #     if node2 in self.set_visible_predecessors(self.singeleton_closures_Marina[node1]):
-    #         return True
-    #     combined_closure = list(set(itertools.chain.from_iterable([
-    #         self.singeleton_closures_Marina[node1],
-    #         self.singeleton_closures_Marina[node2]
-    #     ])))
-    #     # if self.set_closure([node1, node2], return_bidirectedQ=True)[-1]:
-    #     if is_this_subadjmat_densely_connected(self.simplicial_complex_instance.as_bidirected_adjmat, combined_closure):
-    #         return True
-    #     else:
-    #         return False
 
     def are_densely_connected(self, node1, node2):
         if node1 in self.set_visible_predecessors(self.singeleton_closures[node2]):
             return True
         if node2 in self.set_visible_predecessors(self.singeleton_closures[node1]):
             return True
-        # combined_closure = list(set(itertools.chain.from_iterable([
-        #     self.singeleton_closures[node1],
-        #     self.singeleton_closures[node2]
-        # ])))
         if self.set_closure([node1, node2], return_bidirectedQ=True)[-1]:
         # if is_this_subadjmat_densely_connected(self.simplicial_complex_instance.as_bidirected_adjmat, combined_closure):
             return True
         else:
             return False
-
-    # #BUGFINDING!!
-    # def are_densely_connected(self, node1, node2):
-    #     result_Marina = self.are_densely_connected_Marina(node1, node2)
-    #     result_Wolfe = self.are_densely_connected_Wolfe(node1, node2)
-    #     if result_Marina != result_Wolfe:
-    #         print("Possible bug found in densely connected test!")
-    #         print("mDAG: ", self.__repr__())
-    #         print("node pair: ", (node1, node2))
-    #         print("Marina says: ", result_Marina)
-    #         print("Elie says: ", result_Wolfe)
-    #     return result_Wolfe
-
-
-
 
 
 # Evans 2021: It is possible to have a distribution with 2 variables identical to one another and independent of all others iff they are densely connected
@@ -1082,12 +811,8 @@ class mDAG:
     def fundamental_graphQ(self):
         # Implement three conditions
         common_cause_districts = self.simplicial_complex_instance.nonsingleton_districts
-        # district_lengths = np.fromiter(map(len, self.districts), np.int_)
-        # # district_lengths = np.asarray(list(map(len, self.districts)))
-        # common_cause_district_positions = np.flatnonzero(district_lengths > 1)
         if len(common_cause_districts) != 1:
             return False
-        # district_vertices = set(self.districts[common_cause_district_positions[0]])
         district_vertices = set(common_cause_districts[0])
         non_district_vertices = set(range(self.number_of_visible)).difference(district_vertices)
         for v in non_district_vertices:
