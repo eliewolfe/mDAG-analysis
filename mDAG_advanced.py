@@ -145,6 +145,10 @@ class mDAG:
     @cached_property
     def n_of_edges(self):
         return self.directed_structure_instance.number_of_edges
+    
+    @cached_property
+    def n_of_latents(self):
+        return self.simplicial_complex_instance.number_of_nonsingleton_latent
 
     @cached_property
     def relative_complexity_for_sat_solver(self):  # choose eqclass representative which minimizes this
@@ -407,7 +411,7 @@ class mDAG:
 
     @cached_property
     def all_CI(self):
-        return self.convert_to_named_set_of_tuples_of_tuples('all_CI_numeric')
+        return tuple(self.convert_to_named_set_of_tuples_of_tuples('all_CI_numeric'))
 
     @cached_property
     def all_CI_unlabelled(self):
@@ -431,7 +435,7 @@ class mDAG:
     @cached_property
     def all_esep(self):
         # return set(self._all_e_sep_generator_numeric)
-        return self.convert_to_named_set_of_tuples_of_tuples('all_esep_numeric')
+        return tuple(self.convert_to_named_set_of_tuples_of_tuples('all_esep_numeric'))
 
     @cached_property
     def all_esep_unlabelled(self):
@@ -1057,14 +1061,14 @@ class mDAG:
 
     @cached_property
     def all_densely_connected_pairs_numeric(self):
-        return np.array([nodepair for nodepair in itertools.combinations(self.visible_nodes, 2) if self.are_densely_connected(*nodepair)], dtype=int)
+        return tuple([nodepair for nodepair in itertools.combinations(self.visible_nodes, 2) if self.are_densely_connected(*nodepair)])
     @cached_property
     def all_densely_connected_pairs(self):
         if hasattr(self, 'variable_names'):
             [partsextractor(self.variable_names, nodepair) for nodepair in self.all_densely_connected_pairs_numeric]
-            return set(map(self.fake_frozenset, np.take(self.variable_names, self.all_densely_connected_pairs_numeric)))
+            return tuple(map(self.fake_frozenset, np.take(self.variable_names, self.all_densely_connected_pairs_numeric)))
         else:
-            return set(map(self.fake_frozenset, self.numerical_districts))
+            return tuple(map(self.fake_frozenset, self.numerical_districts))
 
     def _all_densely_connected_pairs_unlabelled_generator(self):
         for perm in itertools.permutations(self.visible_nodes):
