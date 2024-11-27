@@ -1065,10 +1065,9 @@ class mDAG:
     @cached_property
     def all_densely_connected_pairs(self):
         if hasattr(self, 'variable_names'):
-            [partsextractor(self.variable_names, nodepair) for nodepair in self.all_densely_connected_pairs_numeric]
             return tuple(map(self.fake_frozenset, np.take(self.variable_names, self.all_densely_connected_pairs_numeric)))
         else:
-            return tuple(map(self.fake_frozenset, self.numerical_districts))
+            return self.all_densely_connected_pairs_numeric
 
     def _all_densely_connected_pairs_unlabelled_generator(self):
         for perm in itertools.permutations(self.visible_nodes):
