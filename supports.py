@@ -102,11 +102,21 @@ class SupportTester(object):
         self.binary_variables = set(np.flatnonzero(np.asarray(self.observed_cardinalities, dtype=np.intp) == 2))
         self.nonbinary_variables = set(range(self.nof_observed)).difference(self.binary_variables)
         self.vpool = IDPool(start_from=1)
-        self.var = lambda idx, val, par: -self.vpool.id(
-            'v[{0}]_{2}==0'.format(idx, val, par)) if idx in self.binary_variables and val == 1 else self.vpool.id(
-            'v[{0}]_{2}=={1}'.format(idx, val, par))
-        # self.cached_properties_computed_yet = False
 
+        # self.cached_properties_computed_yet = False
+    def var(self, idx, val, par):
+        new_par = tuple(int(v) for v in par)
+        new_val = int(val)
+        if idx in self.binary_variables:
+            assert val in {0,1}, "Critical error: value not in expected range for binary variable!"
+            var_string = f"v[{idx}]_{new_par}==0"
+            if val == 0:
+                return self.vpool.id(var_string)
+            else:
+                return -self.vpool.id(var_string)
+        else:
+            var_string = f"v[{idx}]_{new_par}=={new_val}"
+            return self.vpool.id(var_string)
 
     def reverse_var(self, id):
         str = self.vpool.obj(abs(id))
