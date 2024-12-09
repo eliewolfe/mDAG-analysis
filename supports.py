@@ -266,21 +266,22 @@ class SupportTester(object):
                 min(max_definite, len(occurring_events)) + 1):
             subSupportTester = self.subSupportTester(n)
             max_to_check = comb(flex_count, n - fixed_count, exact=True)
-            with pb.ProgressBar(max_value=max_to_check) as bar:
-                for i, extra_occurring_events in enumerate(itertools.combinations(others_to_potentially_include, n-fixed_count)):
-                    definitely_occurring_events = np.array(
-                        sanitized_always_include + extra_occurring_events,
-                        dtype=self.matrix_dtype)
-                    passes_inflation_test = subSupportTester.potentially_feasibleQ_from_matrix_pair(
-                        definitely_occurring_events_matrix=definitely_occurring_events,
-                        potentially_occurring_events_matrix=occurring_events,
-                        **kwargs)
-                    bar.update(i)
-                    if not passes_inflation_test:
-                        print("Got one! Rejected a support of ", self.nof_events, " events using level ", n, " inflation.")
-                        print("Rejected the support by requiring the following events to occur in diagonal worlds:")
-                        print(definitely_occurring_events)
-                        return passes_inflation_test
+            for i, extra_occurring_events in pb.shortcuts.progressbar(enumerate(itertools.combinations(others_to_potentially_include, n-fixed_count)),
+                                                                      max_value=max_to_check):
+                definitely_occurring_events = np.array(
+                    sanitized_always_include + extra_occurring_events,
+                    dtype=self.matrix_dtype)
+                passes_inflation_test = subSupportTester.potentially_feasibleQ_from_matrix_pair(
+                    definitely_occurring_events_matrix=definitely_occurring_events,
+                    potentially_occurring_events_matrix=occurring_events,
+                    **kwargs)
+                # bar.update(i)
+                if not passes_inflation_test:
+                    print("Got one! Rejected a support of ", self.nof_events, " events using level ", n, " inflation.")
+                    print("Rejected the support by requiring the following events to occur in diagonal worlds:")
+                    print(definitely_occurring_events)
+                    return False
+        return True
 
     def _sat_solver_clauses_bonus(self,
                                   definitely_occurring_events: np.ndarray,
