@@ -79,6 +79,13 @@ class SmartSupportTesting(SupportTesting):
             # return (False, 0) #Timing of zero.
             return False
 
+    @methodtools.lru_cache(maxsize=None, typed=False)
+    def subSupportTester(self, n: int):
+        if n != self.nof_events:
+            return self.__class__(self.parents_of, self.observed_cardinalities, n, self.esep_relations)
+        else:
+            return self
+
     @cached_property
     def _infeasible_compressed_supports_due_to_esep_picklist(self) -> np.ndarray:
         to_filter = self.from_list_to_matrix(self.unique_candidate_supports_as_compressed_lists)
