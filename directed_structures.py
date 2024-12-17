@@ -14,7 +14,7 @@ import networkx as nx
 from utilities import stringify_in_set, stringify_in_list, partsextractor
 from more_itertools import chunked
 
-from functools import lru_cache
+from functools import lru_cache, total_ordering
 from adjmat_class import AdjMat
 
 @lru_cache(maxsize=5)
@@ -45,7 +45,7 @@ def empty_digraph(n):
 
 
 
-
+@total_ordering
 class DirectedStructure:
     """
     This class is NOT meant to encode mDAGs. As such, we do not get into an implementation of predecessors or successors here.
@@ -139,6 +139,19 @@ class DirectedStructure:
 
     def __repr__(self):
         return self.as_string
+
+    def __hash__(self):
+        return int(self.as_integer)
+
+    def __eq__(self, other):
+        """Whether the Monomial is equal to the ``other`` Monomial."""
+        return self.__hash__() == other.__hash__()
+
+    def __lt__(self, other):
+        """Whether the Monomial is lexicographically smaller than the ``other``
+        Monomial.
+        """
+        return self.__hash__() < other.__hash__()
 
     # @cached_property
     # def parents_of_for_supports_analysis(self):
