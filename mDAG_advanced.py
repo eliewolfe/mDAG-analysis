@@ -884,3 +884,24 @@ if __name__ == '__main__':
     G_triangle = mDAG(DirectedStructure([], 3),
                    Hypergraph([(0, 1), (0, 2), (1, 2)], 3))
     print(G_triangle)
+    
+    
+    G1= mDAG(DirectedStructure([(1,2), (2,3)], 4), Hypergraph([(0, 1),(1, 3)], 4))
+    G2= mDAG(DirectedStructure([(1,2), (2,3)], 4), Hypergraph([(0, 1),(1, 3), (2,3)], 4))
+    S=[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0], [1, 0, 0, 1], [1, 0, 1, 1], [1, 1, 0, 1], [1, 1, 1, 1]]
+    
+    G1_supp=G1.support_testing_instance((2,2,2,2), 8).unique_infeasible_supports_as_expanded_matrices()
+    G2_supp=G2.support_testing_instance((2,2,2,2), 8).unique_infeasible_supports_as_expanded_matrices()
+    G1_supp_list=[[element.tolist() for element in s] for s in G1_supp]
+    G2_supp_list=[[element.tolist() for element in s] for s in G2_supp]
+
+            
+    S in G1_supp_list
+    
+    G2.all_CI
+
+    
+
+
+
+
