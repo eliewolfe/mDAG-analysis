@@ -232,23 +232,14 @@ class Metagraph_temporally_ordered_mDAGs:
             return temporal_eq_classes
 
     @cached_property
-    def truly_all_equivalence_classes_as_mDAGs(self):
-        return [self.lookup_mDAG(eqclass) for eqclass in self.equivalence_classes_as_ids]
-
-    @cached_property
     def equivalence_classes_as_mDAGs(self):    
         return [self.lookup_mDAG(eqclass) for eqclass in self.equivalence_classes_as_ids]
-    
-    def eqclass_of_mDAG(self, mDAG_instance: mDAG):
-        discovered_class = set([])
-        for eqclass in self.truly_all_equivalence_classes_as_mDAGs:
-            if mDAG_instance in eqclass:
-                discovered_class = eqclass
-                break
-        if not self.temporally_ordered:
-            return discovered_class
-        else:
-            return discovered_class.intersection(self.all_temporally_ordered_mDAGs)
+
+    def id_to_idclass(self, mdag_id: int) -> set:
+        for idclass in self.equivalence_classes_as_ids:
+            if mdag_id in idclass:
+                return idclass
+
 
     
 class Proven_Inequivalence_Partition_Analysis(Metagraph_temporally_ordered_mDAGs):
@@ -283,13 +274,41 @@ class Proven_Inequivalence_Partition_Analysis(Metagraph_temporally_ordered_mDAGs
     def Dense_connectedness_and_esep_partition(self):
         return classify_by_attributes(self.representative_mDAGs_list,
                                            ['all_densely_connected_pairs_numeric', 'all_esep'])
-    
+
     @cached_property
-    def representatives_equivalent_to_confounder_free(self):  # Dictionary that says which representatives are equivalent to a confounder free mDAG.
-        representatives_with_smaller_number_of_latents=self.smart_representatives(self.equivalence_classes_as_mDAGs,'n_of_latents')
-        return {mDAG_by_complexity: mDAG_by_n_latents.n_of_latents==0 for
-                mDAG_by_n_latents, mDAG_by_complexity in
-                zip(representatives_with_smaller_number_of_latents, self.representative_mDAGs_list)}
+    def id_classes_certainly_algebraic(self):
+        # proven_classes = []
+        # for id_class in self.equivalence_classes_as_ids:
+        #     corresponding_mdags = self.lookup_mDAG(id_class)
+        #     if any(mdag.n_of_latents==0 for mdag in corresponding_mdags):
+        #         proven_classes.append(id_class)
+        proven_classes = [eqclass_ids for (eqclass_ids, eqclass_mDAGs) in
+                zip(self.equivalence_classes_as_ids,
+                    self.equivalence_classes_as_mDAGs)
+                if any(mdag.n_of_latents==0 for mdag in eqclass_mDAGs)]
+        if self.verbose:
+            print("# of classes immediately established as algebraic", len(proven_classes))
+        return proven_classes
+
+    @cached_property
+    def ids_certainly_algebraic(self):
+        proven_ids = set(itertools.chain.from_iterable(self.id_classes_certainly_algebraic))
+        if self.verbose:
+            print("# of ids immediately established as algebraic", len(proven_ids))
+        return proven_ids
+
+    @cached_property
+    def representative_ids_certainly_algebraic(self):
+        return self.ids_certainly_algebraic.intersection((mdag.unique_id for mdag in self.representative_mDAGs_list))
+
+    # @cached_property
+    # def representatives_certainly_algebraic(self):
+    #     representatives_with_smaller_number_of_edges = self.smart_representatives(self.equivalence_classes_as_mDAGs,
+    #                                                                               'n_of_latents')
+    #     return set(rep_complexity for
+    #                 (rep_complexity, rep_n_latent) in zip(self.representative_mDAGs_list,
+    #                                                       representatives_with_smaller_number_of_edges)
+    #                 if rep_complexity.n_of_latents==0)
 
     @cached_property
     def representatives_equivalent_to_directed_edge_free(self):  # Dictionary that says which representatives are equivalent to a directed edge free mDAG.
@@ -336,28 +355,27 @@ class Proven_Inequivalence_Partition_Analysis(Metagraph_temporally_ordered_mDAGs
     
     def supports_solved_classes_dict(self,max_nof_events):  # Returns a dictionary where the keys are the number of events of the supports tested, and each value is the set of completely solved classes
         (proven_inequivalence_partition_dict, solved_dict) = self.supports_analysis(self.Dense_connectedness_and_esep_partition,max_nof_events)  # This includes dense connectedness, e-separation and directed-edge-only rules
-        return solved_dict    
-    
-    @cached_property
-    def certainly_algebraic_representatives(self):    #  If an mDAG is known to be observationally equivalent to a confounder-free mDAG, then it is certainly algebraic.
-        return set([representative for representative in self.representative_mDAGs_list if self.representatives_equivalent_to_confounder_free[representative]])
+        return solved_dict
 
     def _is_block_nonalgebraic(self, block_of_mDAGs) -> bool:
         assert not self.temporally_ordered, "This function relies on representatives NOT filtered according to temporal ordering."
-        return self.certainly_algebraic_representatives.isdisjoint(block_of_mDAGs)
+        block_of_ids = (mdag.unique_id for mdag in block_of_mDAGs)
+        return self.representative_ids_certainly_algebraic.isdisjoint(block_of_ids)
+        # return self.representatives_certainly_algebraic.isdisjoint(block_of_mDAGs)
 
     # FINDING NON-ALGEBRAICNESS BY LOOKING AT THE PROVEN-INEQUIVALENCE PARTITION OF ALL mDAGs (not only temporally ordered)
     def certainly_non_algebraic_proven_inequivalence_blocks(self, proven_inequivalence_partition):   # If a certain proven-inequivalence block only contains representatives that are NOT equivalent to any confounder-free DAG, then all of its elements are certainly non-algebraic (i.e., have inequality constraints)
         assert not self.temporally_ordered, "This function for Non-Algebraicness should be checked based on the complete proven-inequivalence partition, not just the one of temporally ordered mDAGs."
-        return [block for block in proven_inequivalence_partition if self._is_block_nonalgebraic(block)]
+        return list(filter(self._is_block_nonalgebraic, proven_inequivalence_partition))
     
     def certainly_non_algebraic_representatives(self, proven_inequivalence_partition):   # Gives list of representatives that are shown to be non-algebraic by the analysis above
         return list(itertools.chain.from_iterable(
             self.certainly_non_algebraic_proven_inequivalence_blocks(proven_inequivalence_partition)))
 
     def _equivalent_to_something_temporally_ordered(self, mDAG_instance: mDAG) -> bool:
-        eqclass_of_mDAG_as_set = set(self.eqclass_of_mDAG(mDAG_instance))
-        return not eqclass_of_mDAG_as_set.isdisjoint(self.all_temporally_ordered_mDAGs)
+        mdag_id = mDAG_instance.unique_id
+        idclass = self.id_to_idclass(mdag_id)
+        return not idclass.isdisjoint(self.all_temporally_ordered_ids)
 
     def filter_equivalent_to_temporally_ordered(self, set_of_mDAGs: set) -> set:  # Given a set of mDAGs, this function says which ones are equivalent to temporally ordered mDAGs. Useful for analyzing nonalgebraicness.
         return set(filter(self._equivalent_to_something_temporally_ordered, set_of_mDAGs))
@@ -366,20 +384,18 @@ class Proven_Inequivalence_Partition_Analysis(Metagraph_temporally_ordered_mDAGs
         filtered_partition = map(self.filter_equivalent_to_temporally_ordered, proven_inequivalence_partition)
         return [block for block in filtered_partition if len(block)>0]
             
-    # ANOTHER WAY OF FINDING NON-ALGEBRAICNESS (this is the way described in the paper, which leverages symmetries instead of using the partial order of non-temporally-ordered mDAGs)     
-             
-    @cached_property
-    def all_mDAGs_classified_by_symmetry(self):
-        return classify_by_attributes(self.truly_all_mDAGs, ['unique_unlabelled_id'])
+    # ANOTHER WAY OF FINDING NON-ALGEBRAICNESS (this is the way described in the paper, which leverages symmetries instead of using the partial order of non-temporally-ordered mDAGs)
 
-    def equivalent_mDAGs_under_symmetry(self, mDAG_instance: mDAG):
-        for block in self.all_mDAGs_classified_by_symmetry:
-            if mDAG_instance in block:
-                return block
+    @cached_property
+    def temporally_ordered_id_to_permuted_temporally_ordered_ids(self):
+        return {mdag.unique_id: self.all_temporally_ordered_ids.intersection(mdag.ids_under_relabelling)
+                for mdag in self.all_temporally_ordered_mDAGs}
 
     def _is_block_nonalgebraic_via_symmetry(self, block_of_mDAGs) -> bool:
         assert self.temporally_ordered, "This function use symmetry to help assess algebraicness, as is suitable for working with a temporal ordering."
-        return all(self.certainly_algebraic_representatives.isdisjoint(self.equivalent_mDAGs_under_symmetry(mDAG_instance)) for mDAG_instance in block_of_mDAGs)
+        block_of_ids = [mdag.unique_id for mdag in block_of_mDAGs]
+        ids_expanded_under_symmetry = set(itertools.chain.from_iterable(partsextractor(self.temporally_ordered_id_to_permuted_temporally_ordered_ids, block_of_ids)))
+        return self.ids_certainly_algebraic.isdisjoint(ids_expanded_under_symmetry)
             
     def non_algebraic_proven_ineq_blocks_from_symmetries(self, proven_inequivalence_partition):   
         assert self.temporally_ordered, "This function for Non-Algebraicness should be checked based on the proven-inequivalence partition of temporally ordered mDAGs, since it leverages permutation symmetries."

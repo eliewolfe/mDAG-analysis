@@ -184,13 +184,16 @@ class mDAG:
         return self.unique_id == other.unique_id
 
     @cached_property
-    def unique_unlabelled_id(self):
-        # Returns the unique id minimized over relabellings
-        return self.mdag_int_pair_to_single_int(*min(zip(
-            self.directed_structure_instance.as_integer_permutations,
-            self.simplicial_complex_instance.as_integer_permutations
+    def ids_under_relabelling(self):
+        return {self.mdag_int_pair_to_single_int(ds_int, sc_int) for (ds_int, sc_int) in
+         zip(self.directed_structure_instance.as_integer_permutations,
+             self.simplicial_complex_instance.as_integer_permutations)}
 
-        )))
+
+    @cached_property
+    def unique_unlabelled_id(self) -> int:
+        # Returns the unique id minimized over relabellings
+        return min(self.ids_under_relabelling)
 
     @cached_property
     def skeleton_instance(self):
