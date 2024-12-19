@@ -218,6 +218,16 @@ class Metagraph_temporally_ordered_mDAGs:
     @cached_property
     def truly_all_equivalence_classes_as_ids(self):
         return list(nx.strongly_connected_components(self.metagraph))
+    
+    @cached_property
+    def truly_all_equivalence_classes_as_mDAGs(self):    
+        return [self.lookup_mDAG(eqclass) for eqclass in self.truly_all_equivalence_classes_as_ids]
+    
+    @cached_property
+    def latent_free_truly_all_eqclasses(self):
+        latent_free_picklist= [any(mdag.latent_free_graphQ for mdag in eqclass) for eqclass in self.truly_all_equivalence_classes_as_mDAGs]
+        return [eqclass for eqclass,latent_free_Q in
+                zip(self.truly_all_equivalence_classes_as_mDAGs, latent_free_picklist) if latent_free_Q]
 
     @cached_property
     def equivalence_classes_as_ids(self):     # Here, each "equivalence class" is actually a block of the proven-equivalence partition of mDAGs according to all of the known observational equivalence rules
@@ -277,11 +287,6 @@ class Proven_Inequivalence_Partition_Analysis(Metagraph_temporally_ordered_mDAGs
 
     @cached_property
     def id_classes_certainly_algebraic(self):
-        # proven_classes = []
-        # for id_class in self.equivalence_classes_as_ids:
-        #     corresponding_mdags = self.lookup_mDAG(id_class)
-        #     if any(mdag.n_of_latents==0 for mdag in corresponding_mdags):
-        #         proven_classes.append(id_class)
         proven_classes = [eqclass_ids for (eqclass_ids, eqclass_mDAGs) in
                 zip(self.equivalence_classes_as_ids,
                     self.equivalence_classes_as_mDAGs)
@@ -300,15 +305,6 @@ class Proven_Inequivalence_Partition_Analysis(Metagraph_temporally_ordered_mDAGs
     @cached_property
     def representative_ids_certainly_algebraic(self):
         return self.ids_certainly_algebraic.intersection((mdag.unique_id for mdag in self.representative_mDAGs_list))
-
-    # @cached_property
-    # def representatives_certainly_algebraic(self):
-    #     representatives_with_smaller_number_of_edges = self.smart_representatives(self.equivalence_classes_as_mDAGs,
-    #                                                                               'n_of_latents')
-    #     return set(rep_complexity for
-    #                 (rep_complexity, rep_n_latent) in zip(self.representative_mDAGs_list,
-    #                                                       representatives_with_smaller_number_of_edges)
-    #                 if rep_complexity.n_of_latents==0)
 
     @cached_property
     def representatives_equivalent_to_directed_edge_free(self):  # Dictionary that says which representatives are equivalent to a directed edge free mDAG.
@@ -349,21 +345,13 @@ class Proven_Inequivalence_Partition_Analysis(Metagraph_temporally_ordered_mDAGs
             not_solved_dict[k] = self.not_completely_solved_with_directededgefree_rule(partition_blocks_previously_not_solved)
         return (proven_inequivalence_partition_dict, solved_dict)
 
-    def supports_proven_inequivalence_partition_dict(self,max_nof_events):  # Returns a dictionary where the keys are the number of events of the supports tested, and each value is the proven-inequivalence partition obtained from support test up to that number of events
-        (proven_inequivalence_partition_dict, solved_dict) = self.supports_analysis(self.Dense_connectedness_and_esep_partition,max_nof_events)   # This includes dense connectedness, e-separation and directed-edge-only rules
-        return proven_inequivalence_partition_dict
-    
-    def supports_solved_classes_dict(self,max_nof_events):  # Returns a dictionary where the keys are the number of events of the supports tested, and each value is the set of completely solved classes
-        (proven_inequivalence_partition_dict, solved_dict) = self.supports_analysis(self.Dense_connectedness_and_esep_partition,max_nof_events)  # This includes dense connectedness, e-separation and directed-edge-only rules
-        return solved_dict
+    # FINDING NON-ALGEBRAICNESS BY LOOKING AT THE PROVEN-INEQUIVALENCE PARTITION OF ALL mDAGs (not only temporally ordered)
 
     def _is_block_nonalgebraic(self, block_of_mDAGs) -> bool:
         assert not self.temporally_ordered, "This function relies on representatives NOT filtered according to temporal ordering."
         block_of_ids = (mdag.unique_id for mdag in block_of_mDAGs)
         return self.representative_ids_certainly_algebraic.isdisjoint(block_of_ids)
-        # return self.representatives_certainly_algebraic.isdisjoint(block_of_mDAGs)
 
-    # FINDING NON-ALGEBRAICNESS BY LOOKING AT THE PROVEN-INEQUIVALENCE PARTITION OF ALL mDAGs (not only temporally ordered)
     def certainly_non_algebraic_proven_inequivalence_blocks(self, proven_inequivalence_partition):   # If a certain proven-inequivalence block only contains representatives that are NOT equivalent to any confounder-free DAG, then all of its elements are certainly non-algebraic (i.e., have inequality constraints)
         assert not self.temporally_ordered, "This function for Non-Algebraicness should be checked based on the complete proven-inequivalence partition, not just the one of temporally ordered mDAGs."
         return list(filter(self._is_block_nonalgebraic, proven_inequivalence_partition))
@@ -404,89 +392,40 @@ class Proven_Inequivalence_Partition_Analysis(Metagraph_temporally_ordered_mDAGs
        
 if __name__ == "__main__":
     
-# =============================================================================
-#     # TEMPORALLY ORDERED ANALYSIS OF PROVEN-EQUIVALENCE AND PROVEN-INEQUIVALENCE PARTITIONS:
-#     mDAG_analysis= Proven_Inequivalence_Partition_Analysis(nof_observed_variables=4, temporally_ordered=True, verbose=2)
-#     print("Number of Temporally ordered mDAGs:", len(mDAG_analysis.all_temporally_ordered_mDAGs))
-#     print("Number of proven-equivalence blocks:", len(mDAG_analysis.equivalence_classes_as_ids))
-#     print("Number of proven-inequivalence blocks by skeletons:", len(mDAG_analysis.Skeleton_partition))
-#     print("Number of proven-inequivalence blocks by dsep:", len(mDAG_analysis.CI_partition))
-#     print("Number of proven-inequivalence blocks by skeletons and dsep:", len(mDAG_analysis.Skeleton_and_CI_partition))
-#     print("Number of proven-inequivalence blocks by esep:", len(mDAG_analysis.esep_partition))
-#     print("Number of proven-inequivalence blocks by Dense Connectedness+esep:", len(mDAG_analysis.Dense_connectedness_and_esep_partition)) 
-# 
-#     for DC_block in mDAG_analysis.Dense_connectedness_and_esep_partition: 
-#         if DC_block not in mDAG_analysis.esep_partition: 
-#             for esep_block in mDAG_analysis.esep_partition: 
-#                 G1=list(DC_block)[0]
-#                 if G1 in esep_block:
-#                     for G in set(esep_block).difference({G1}):
-#                         G1_supp=G1.support_testing_instance((2,2,2,2), 8).unique_infeasible_supports_as_expanded_matrices()
-#                         G2_supp=G.support_testing_instance((2,2,2,2), 8).unique_infeasible_supports_as_expanded_matrices()
-#                         G1_supp_list=[[element.tolist() for element in s] for s in G1_supp]
-#                         G2_supp_list=[[element.tolist() for element in s] for s in G2_supp]
-#                         if G1_supp_list==G2_supp_list:
-#                             print(G1)
-#                             print(G)
-# 
-#         
-#     G1=mDAG(DirectedStructure([(0,2), (2,3)], 4), Hypergraph([(0, 1),(0, 3)], 4))
-#     G2=mDAG(DirectedStructure([(0,2), (2,3)], 4), Hypergraph([(0, 1),(0, 3),(2,3)], 4))
-#     
-#     G1_supp=G1.support_testing_instance((2,2,2,2), 8).unique_infeasible_supports_as_expanded_matrices()
-#     G2_supp=G2.support_testing_instance((2,2,2,2), 8).unique_infeasible_supports_as_expanded_matrices()
-#     G1_supp_list=[[element.tolist() for element in s] for s in G1_supp]
-#     G2_supp_list=[[element.tolist() for element in s] for s in G2_supp]
-# 
-# =============================================================================
+    # TEMPORALLY ORDERED ANALYSIS OF PROVEN-EQUIVALENCE AND PROVEN-INEQUIVALENCE PARTITIONS:
+    mDAG_analysis= Proven_Inequivalence_Partition_Analysis(3, temporally_ordered=True, verbose=2)
+    print("Number of Temporally ordered mDAGs:", len(mDAG_analysis.all_temporally_ordered_mDAGs))
+    print("Number of proven-equivalence blocks:", len(mDAG_analysis.equivalence_classes_as_ids))
+    print("Number of proven-inequivalence blocks by skeletons:", len(mDAG_analysis.Skeleton_partition))
+    print("Number of proven-inequivalence blocks by dsep:", len(mDAG_analysis.CI_partition))
+    print("Number of proven-inequivalence blocks by skeletons and dsep:", len(mDAG_analysis.Skeleton_and_CI_partition))
+    print("Number of proven-inequivalence blocks by esep:", len(mDAG_analysis.esep_partition))
+    print("Number of proven-inequivalence blocks by Dense Connectedness+esep:", len(mDAG_analysis.Dense_connectedness_and_esep_partition)) 
+    k=4
+    (proven_inequivalence_partition_dict, solved_dict)=mDAG_analysis.supports_analysis(mDAG_analysis.Dense_connectedness_and_esep_partition,k)
+    for n in range(1,k+1):
+        print("Number of proven-inequivalence blocks by graphical methods + supports up to", n, "events:",len(proven_inequivalence_partition_dict[n]))
+    print("Number of completely solved classes by skeletons:", len(mDAG_analysis.completely_solved(mDAG_analysis.Skeleton_partition)))
+    print("Number of completely solved classes by dsep:", len(mDAG_analysis.completely_solved(mDAG_analysis.CI_partition)))
+    print("Number of completely solved classes by skeletons and dsep:", len(mDAG_analysis.completely_solved(mDAG_analysis.Skeleton_and_CI_partition)))
+    print("Number of completely solved classes by esep:", len(mDAG_analysis.completely_solved(mDAG_analysis.esep_partition)))
+    print("Number of completely solved classes by Dense Connectedness+esep:", len(mDAG_analysis.completely_solved(mDAG_analysis.Dense_connectedness_and_esep_partition)))
+    for n in range(1,k+1):
+        print("Number of completely solved classes by graphical methods + supports up to", n, "events:",len(solved_dict[n]))
     
+    # FINDING MINIMUM FRACTION OF NONALGEBRAIC TEMPORALLY-ORDERED CLASSES 
 
-
-
-# =============================================================================
-#     k=2
-#     supps_dict=mDAG_analysis.supports_proven_inequivalence_partition_dict(k)
-#     for n in range(1,k+1):
-#         print("Number of proven-inequivalence blocks by graphical methods + supports up to", n, "events:",len(supps_dict[n]))
-#     print("Number of completely solved classes by skeletons:", len(mDAG_analysis.completely_solved(mDAG_analysis.Skeleton_partition)))
-#     print("Number of completely solved classes by dsep:", len(mDAG_analysis.completely_solved(mDAG_analysis.CI_partition)))
-#     print("Number of completely solved classes by skeletons and dsep:", len(mDAG_analysis.completely_solved(mDAG_analysis.Skeleton_and_CI_partition)))
-#     print("Number of completely solved classes by esep:", len(mDAG_analysis.completely_solved(mDAG_analysis.esep_partition)))
-#     print("Number of completely solved classes by Dense Connectedness+esep:", len(mDAG_analysis.completely_solved(mDAG_analysis.Dense_connectedness_and_esep_partition)))
-#     supps_solved_dict=mDAG_analysis.supports_solved_classes_dict(k)
-#     for n in range(1,k+1):
-#         print("Number of completely solved classes by graphical methods + supports up to", n, "events:",len(supps_solved_dict[n]))
-#     
-#     
-# =============================================================================
-    
-    # FINDING MINIMUM FRACTION OF NONALGEBRAIC TEMPORALLY-ORDERED CLASSES (must analyse all mDAGs, not only temporally ordered)
-    nonalgebraicness_analysis= Proven_Inequivalence_Partition_Analysis(4,
-                                                                       temporally_ordered=False,
-                                                                       verbose=2)
     # Every algebraic class must contain at least one confounder-free mDAG. Therefore:
-    #print("Maximum number of algebraic temporally ordered classes:", len(nonalgebraicness_analysis.filter_equivalent_to_temporally_ordered(nonalgebraicness_analysis.certainly_algebraic_representatives())))       
-    # Obtaining the certainly nonalgebraic mDAGs from the proven-inequivalence partition of all mDAGs, and then restricting to temporally ordered mDAGs:
-    #k=1
-    #nonalgebraic_all=nonalgebraicness_analysis.certainly_non_algebraic_proven_inequivalence_blocks(nonalgebraicness_analysis.supports_proven_inequivalence_partition_dict(k)[k])
-    
-    nonalgebraic_all=nonalgebraicness_analysis.certainly_non_algebraic_proven_inequivalence_blocks(nonalgebraicness_analysis.esep_partition)
-    print("Minimum number of non-algebraic classes:", len(nonalgebraic_all))
-    partitions_after_filter = nonalgebraicness_analysis.filter_temporally_ordered_proven_inequivalence_blocks(nonalgebraic_all)
-    print("Minimum number of non-algebraic temporally ordered classes:", len(partitions_after_filter))
-    print("Minimum number of non-algebraic temporally ordered mDAGs:", sum(len(block) for block in partitions_after_filter))
-
-    mDAG_analysis= Proven_Inequivalence_Partition_Analysis(4, temporally_ordered=True, verbose=2)
-    nonalgebraic_from_temporally_ordered = mDAG_analysis.non_algebraic_proven_ineq_blocks_from_symmetries(mDAG_analysis.esep_partition)
+    print("Maximum number of algebraic temporally ordered classes:", len(mDAG_analysis.latent_free_truly_all_eqclasses))       
+    # Obtaining the certainly nonalgebraic mDAGs from the symmetry argument:
+    nonalgebraic_from_temporally_ordered = mDAG_analysis.non_algebraic_proven_ineq_blocks_from_symmetries(proven_inequivalence_partition_dict[k])
     print("Minimum number of non-algebraic temporally ordered classes by symmetry:", len(nonalgebraic_from_temporally_ordered))
     print("Minimum number of non-algebraic temporally ordered mDAGs:", sum(len(block) for block in nonalgebraic_from_temporally_ordered))
 
 
-# =============================================================================
-#     for block in mDAG_analysis.non_algebraic_proven_ineq_blocks_from_symmetries(mDAG_analysis.supports_proven_inequivalence_partition_dict(k)[k]):
-#         if block not in nonalgebraicness_analysis.filter_temporally_ordered_proven_inequivalence_blocks(nonalgebraic_all):
-#             print(block)
-# =============================================================================
+
+
+
 
 # =============================================================================
 #     # ANALYSIS OF mDAGs THAT CAN REALIZE EVERY BINARY SUPPORT
