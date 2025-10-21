@@ -228,7 +228,7 @@ class mDAG:
     @property
     def _all_CI_generator(self):
         for x, y, Z in self._all_2_vs_any_partitions(self.visible_nodes):
-            if nx.d_separated(self.as_graph, {x}, {y}, set(Z)):
+            if nx.is_d_separator(self.as_graph, {x}, {y}, set(Z)):
                 yield frozenset([x, y]), frozenset(Z)
 
     @cached_property
@@ -258,7 +258,7 @@ class mDAG:
                 graph_copy.remove_nodes_from(to_delete)
                 remaining = set(self.visible_nodes).difference(to_delete)
                 for x, y, Z in self._all_2_vs_any_partitions(tuple(remaining)):
-                    if nx.d_separated(graph_copy, {x}, {y}, set(Z)):
+                    if nx.is_d_separator(graph_copy, {x}, {y}, set(Z)):
                         yield frozenset([x, y]), frozenset(Z), frozenset(to_delete)
 
     @cached_property  # Behaving weird, get consumed unless wrapped in tuple

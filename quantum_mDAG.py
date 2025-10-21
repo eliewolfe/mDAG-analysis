@@ -602,7 +602,7 @@ class QmDAG:
                 #                            for Yi in candidates_Yi}
                 ### Marina and TC's version which hold classically
                 singleton_edge_removals = {Yi: frozenset([v for v in effective_target_parents.difference({Yi}) if
-                                                          nx.d_separated(effective_nx_DAG, {Yi}, {v},
+                                                          nx.is_d_separator(effective_nx_DAG, {Yi}, {v},
                                                                          effective_target_parents.difference({Yi,v}))])
                                            for Yi in candidates_Yi}
 
