@@ -2,14 +2,18 @@ from __future__ import absolute_import
 import numpy as np
 import itertools
 # import networkx as nx
-from hypergraphs import Hypergraph, LabelledHypergraph, hypergraph_full_cleanup, hypergraph_canonicalize_with_deduplication
+from hypergraphs import Hypergraph, LabelledHypergraph, hypergraph_full_cleanup
 from directed_structures import DirectedStructure, LabelledDirectedStructure
-from radix import to_bits #TODO: Make qmdaq from representation
+# from radix import to_bits  # TODO: Make qmdaq from representation
 from mDAG_advanced import mDAG
 from merge import merge_intersection
 from sys import hexversion
 from utilities import partsextractor, minimal_sets_within, maximal_sets_within, stringify_in_set, stringify_in_tuple
 from functools import total_ordering
+try:
+    import networkx as nx
+except ImportError:
+    print("Functions which depend on networkx are not available.")
 
 if hexversion >= 0x3080000:
     from functools import cached_property
@@ -197,9 +201,10 @@ class QmDAG:
             ), self.number_of_visible),
             pp_restrictions=self.restricted_perfect_predictions_numeric
         )
-        # if hasattr(self, 'restricted_perfect_predictions_numeric'):
-        #     preliminary_mDAG.restricted_perfect_predictions_numeric = self.restricted_perfect_predictions_numeric
-        # return preliminary_mDAG
+
+    @cached_property
+    def as_graph(self):
+        return self.as_mDAG.as_graph
 
     def latent_sibling_sets_of(self, node):
         return set(facet.difference({node}) for facet in self.as_mDAG.simplicial_complex_instance.simplicial_complex_as_sets if
@@ -570,6 +575,7 @@ class QmDAG:
                                   - self.number_of_visible
             assert all(isinstance(v, int) for v in set(itertools.chain.from_iterable(expanded_edge_set))), 'Somehow we have a non integer node!'
             effective_DAG = DirectedStructure(expanded_edge_set, num_effective_nodes)
+            effective_nx_DAG = effective_DAG.as_networkx_graph
             # expanded_edge_set_of_tuples_of_strings = set([(str(i), str(j)) for (i,j) in expanded_edge_set])
             #We will make as subvariables as classical-common-cause connected only, so all quantum facets must be duplicated.
             #One for original vars, one for subvars.
@@ -587,14 +593,20 @@ class QmDAG:
                 effective_target_parents = effective_DAG.adjMat.parents_of(target)
                 kept_parents_dict[target] = effective_target_parents
             for target in self.visible_nodes:
-                effective_target_parents = kept_parents_dict[target]
+                effective_target_parents = set(kept_parents_dict[target].tolist())
                 target_children = self.directed_structure_instance.adjMat.children_of(target)
                 candidates_Yi = self.latent_siblings_of(target).union(self.directed_structure_instance.adjMat.parents_of(target))
-                singleton_edge_removals = {Yi: frozenset([v for v in effective_target_parents if not
-                                        any({v, Yi}.issubset(common_cause_connected_set) for common_cause_connected_set in common_cause_connected_sets)])
+                ### OLD CODE
+                # singleton_edge_removals = {Yi: frozenset([v for v in effective_target_parents if not
+                #                         any({v, Yi}.issubset(common_cause_connected_set) for common_cause_connected_set in common_cause_connected_sets)])
+                #                            for Yi in candidates_Yi}
+                ### Marina and TC's version which hold classically
+                singleton_edge_removals = {Yi: frozenset([v for v in effective_target_parents.difference({Yi}) if
+                                                          nx.d_separated(effective_nx_DAG, {Yi}, {v},
+                                                                         effective_target_parents.difference({Yi,v}))])
                                            for Yi in candidates_Yi}
+
                 collective_predicting_set_edge_removals = dict()
-                # collective_predicting_sets = set()
                 for r in range(1, len(candidates_Yi) + 1):
                     for collective_predicting in map(frozenset, itertools.combinations(candidates_Yi, r)):
                         individual_edge_set_removals = [singleton_edge_removals[Yi] for Yi in
@@ -628,7 +640,7 @@ class QmDAG:
                     allnode_name_variants[target].add(subtarget)
                     pprestrictions_if_present[subtarget] = list(zip(itertools.repeat(subtarget), map(tuple, minimal_pp_set)))
                     nodes_relevant_for_pp[subtarget] = tuple(set(itertools.chain.from_iterable(minimal_pp_set)))
-                    kept_parents = set(effective_target_parents).difference(removed_parents)
+                    kept_parents = effective_target_parents.difference(removed_parents)
                     kept_parents_dict[subtarget] = kept_parents
                     for p in kept_parents:
                         if p in self.visible_nodes:
