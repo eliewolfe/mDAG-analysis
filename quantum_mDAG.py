@@ -611,7 +611,7 @@ class QmDAG:
                     for collective_predicting in map(frozenset, itertools.combinations(candidates_Yi, r)):
                         individual_edge_set_removals = [singleton_edge_removals[Yi] for Yi in
                                             collective_predicting]
-                        collective_edge_removals = frozenset.intersection(*individual_edge_set_removals)
+                        collective_edge_removals = frozenset.union(*individual_edge_set_removals)
                         if len(collective_edge_removals)>=1:
                             collective_predicting_set_edge_removals[collective_predicting] = collective_edge_removals
                 for (removed_edges, perfectly_predicting_sets) in invert_dict(collective_predicting_set_edge_removals).items():
