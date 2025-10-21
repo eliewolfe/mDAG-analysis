@@ -10,7 +10,10 @@ else:
     cached_property = property
 
 from radix import bitarray_to_int
-import networkx as nx
+try:
+    import networkx as nx
+except ImportError:
+    print("Functions which depend on networkx are not available.")
 from utilities import stringify_in_set, stringify_in_list, partsextractor
 from more_itertools import chunked
 
