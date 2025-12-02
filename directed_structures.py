@@ -2,14 +2,11 @@ from __future__ import absolute_import
 import numpy as np
 import numpy.typing as npt
 import itertools
-from sys import hexversion
+from sys import version_info
+assert version_info >= (3, 8), "Python 3.8+ is required for cached_property support."
 from typing import Any, FrozenSet, List, Tuple, Union
-if hexversion >= 0x3080000:
-    from functools import cached_property
-elif hexversion >= 0x3060000:
-    from backports.cached_property import cached_property
-else:
-    cached_property = property
+
+from functools import cached_property
 
 BoolMatrix = npt.NDArray[np.bool_]
 IntMatrix = npt.NDArray[np.int_]

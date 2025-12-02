@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
 import itertools
-from sys import hexversion
+from sys import version_info
+assert version_info >= (3, 8), "Python 3.8+ is required for cached_property support."
 
 import methodtools
 import numpy as np
@@ -13,16 +14,7 @@ from pysat.solvers import Solver
 from radix import from_digits, to_digits
 from utilities import partsextractor
 
-if hexversion >= 0x3080000:
-    from functools import cached_property
-elif hexversion >= 0x3060000:
-    # with io.capture_output() as captured:
-    #     !pip
-    #     install
-    #     backports.cached - property
-    from backports.cached_property import cached_property
-else:
-    cached_property = property
+from functools import cached_property
 from typing import Any, Iterable, List, Sequence, Tuple, Union
 
 IntArray = npt.NDArray[np.int_]

@@ -2,13 +2,10 @@ from __future__ import absolute_import
 import numpy as np
 from typing import List, Tuple, Union
 from numpy.typing import NDArray
-from sys import hexversion
-if hexversion >= 0x3080000:
-    pass
-elif hexversion >= 0x3060000:
-    pass
-else:
-    cached_property = property
+from sys import version_info
+assert version_info >= (3, 8), "Python 3.8+ is required for cached_property support."
+
+from functools import cached_property
 
 from adjmat_class import AdjMat
 from scipy.sparse.csgraph import connected_components

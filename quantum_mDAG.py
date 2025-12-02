@@ -8,7 +8,8 @@ from directed_structures import DirectedStructure, LabelledDirectedStructure
 # from radix import to_bits  # TODO: Make qmdaq from representation
 from mDAG_advanced import mDAG
 from merge import merge_intersection
-from sys import hexversion
+from sys import version_info
+assert version_info >= (3, 8), "Python 3.8+ is required for cached_property support."
 from utilities import partsextractor, minimal_sets_within, maximal_sets_within, stringify_in_set, stringify_in_tuple
 from functools import total_ordering
 from typing import Any, DefaultDict, Dict, Iterable, List, Set, Tuple
@@ -17,12 +18,7 @@ try:
 except ImportError:
     print("Functions which depend on networkx are not available.")
 
-if hexversion >= 0x3080000:
-    from functools import cached_property
-elif hexversion >= 0x3060000:
-    from backports.cached_property import cached_property
-else:
-    cached_property = property
+from functools import cached_property
 
 from collections import defaultdict
 

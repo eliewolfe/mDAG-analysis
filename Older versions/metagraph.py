@@ -6,18 +6,10 @@ from mDAG import mDAG
 # from radix import bitarray_to_int
 from utilities import partsextractor, nx_to_int, hypergraph_to_int, representatives
 
-from sys import hexversion
+from sys import version_info
+assert version_info >= (3, 8), "Python 3.8+ is required for cached_property support."
 
-if hexversion >= 0x3080000:
-    from functools import cached_property
-elif hexversion >= 0x3060000:
-    # with io.capture_output() as captured:
-    #     !pip
-    #     install
-    #     backports.cached - property
-    from backports.cached_property import cached_property
-else:
-    cached_property = property
+from functools import cached_property
 
 class Observable_mDAGs:
     def __init__(self, n):

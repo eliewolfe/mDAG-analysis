@@ -8,15 +8,11 @@ from utilities import partsextractor
 from collections import defaultdict
 from scipy import sparse
 
-from sys import hexversion, stderr
+from sys import stderr, version_info
+assert version_info >= (3, 8), "Python 3.8+ is required for cached_property support."
 import gc
 
-if hexversion >= 0x3080000:
-    from functools import cached_property
-elif hexversion >= 0x3060000:
-    from backports.cached_property import cached_property
-else:
-    cached_property = property
+from functools import cached_property
 
 from hypergraphs import Hypergraph
 from directed_structures import DirectedStructure
