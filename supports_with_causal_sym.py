@@ -1,10 +1,15 @@
 from supports import SupportTester
 import numpy as np
+import numpy.typing as npt
 import methodtools
+from typing import List, Tuple
+from numpy.typing import NDArray
+
+IntMatrix = npt.NDArray[np.int_]
 
 
 class SupportTester_PartyCausalSymmetry(SupportTester):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.latent_cardinality = self.nof_observed * self.nof_events
         self.observed_cardinality = self.observed_cardinalities[0]
@@ -12,11 +17,11 @@ class SupportTester_PartyCausalSymmetry(SupportTester):
         self.latent_outcomes = list(range(self.latent_cardinality))
         del self.var
 
-    def var(self, i, j, val):
+    def var(self, i: int, j: int, val: int) -> int:
         return self.vpool.id(f"A_[{i:02},{j:02}]=={val}")
 
     @property
-    def at_least_one_outcome(self):
+    def at_least_one_outcome(self) -> List[List[int]]:
         clauses = []
         for (i, j) in itertools.permutations(self.latent_outcomes, 2):
             clauses.append([self.var(i, j, val) for val in self.visible_outcomes])
@@ -26,7 +31,7 @@ class SupportTester_PartyCausalSymmetry(SupportTester):
 
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def forbidden_event_clauses(self, event: int):
+    def forbidden_event_clauses(self, event: int) -> List[List[int]]:
         """Get the clauses associated with a particular event not occurring anywhere in the off-diagonal worlds."""
         forbidden_event_as_row = self.from_list_to_matrix(event)
         [val1, val2, val3] = forbidden_event_as_row
@@ -42,7 +47,7 @@ class SupportTester_PartyCausalSymmetry(SupportTester):
     @methodtools.lru_cache(maxsize=None, typed=False)
     def positive_outcome_clause(self,
                                  world: int,
-                                 outcomes: tuple):
+                                 outcomes: Tuple[int, ...]) -> List[List[int]]:
         i = world * self.nof_observed
         clauses = []
         for p, val in enumerate(outcomes):
@@ -69,7 +74,7 @@ class SupportTester_PartyCausalSymmetry(SupportTester):
 
 
 class SupportTester_FullCausalSymmetry(SupportTester_PartyCausalSymmetry):
-    def var(self, i, j, val):
+    def var(self, i: int, j: int, val: int) -> int:
         [new_i, new_j] = sorted([i, j])
         return self.vpool.id(f"A_[{new_i},{new_j}]=={val}")
 

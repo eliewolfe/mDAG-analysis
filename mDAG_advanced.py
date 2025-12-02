@@ -1,14 +1,19 @@
 from __future__ import absolute_import
 import numpy as np
+import numpy.typing as npt
 import itertools
 # import networkx as nx
 from sys import hexversion
+from typing import Tuple, List, Set, FrozenSet, Iterable, Any, Union, Optional
 if hexversion >= 0x3080000:
     from functools import cached_property
 elif hexversion >= 0x3060000:
     from backports.cached_property import cached_property
 else:
     cached_property = property
+
+BoolMatrix = npt.NDArray[np.bool_]
+IntArray = npt.NDArray[np.int_]
 
 from radix import bitarray_to_int
 try:
@@ -37,12 +42,12 @@ from merge import merge_intersection
 from adjmat_class import AdjMat
 
  
-def mdag_to_int_pair(ds_bitarray: np.ndarray, sc_bitarray: np.ndarray):
+def mdag_to_int_pair(ds_bitarray: BoolMatrix, sc_bitarray: BoolMatrix) -> Tuple[int, int]:
     sc_int = bitarray_to_int(sc_bitarray)
     ds_int = bitarray_to_int(ds_bitarray)
     return (ds_int, sc_int)
 
-def mdag_to_int(ds_bitarray: np.ndarray, sc_bitarray: np.ndarray):
+def mdag_to_int(ds_bitarray: BoolMatrix, sc_bitarray: BoolMatrix) -> int:
     sc_int = bitarray_to_int(sc_bitarray)
     ds_int = bitarray_to_int(ds_bitarray)
     #The directed structure is always a square matrix of size n^2.
@@ -52,7 +57,7 @@ def mdag_to_int(ds_bitarray: np.ndarray, sc_bitarray: np.ndarray):
 
 
 class mDAG:
-    def __init__(self, directed_structure_instance, simplicial_complex_instance, pp_restrictions=tuple()):
+    def __init__(self, directed_structure_instance: DirectedStructure, simplicial_complex_instance: Hypergraph, pp_restrictions: Tuple[int, ...] = tuple()) -> None:
         self.restricted_perfect_predictions_numeric = pp_restrictions
         self.directed_structure_instance = directed_structure_instance
         self.simplicial_complex_instance = simplicial_complex_instance
@@ -91,13 +96,13 @@ class mDAG:
         return False
 
     @cached_property
-    def as_string(self):
+    def as_string(self) -> str:
         return self.directed_structure_instance.as_string + '|' + self.simplicial_complex_instance.as_string
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.as_string
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.as_string
 
     @cached_property
@@ -110,7 +115,7 @@ class mDAG:
         return g
 
     @cached_property
-    def as_graph_with_singleton_latents(self):  # let DirectedStructure be a DAG initially without latents
+    def as_graph_with_singleton_latents(self):
         g = self.directed_structure_instance.as_networkx_graph.copy()
         g.add_nodes_from(self.latent_nodes)
         g.add_edges_from(itertools.chain.from_iterable(
@@ -119,7 +124,7 @@ class mDAG:
         return g
 
     @cached_property
-    def visible_automorphisms(self):
+    def visible_automorphisms(self) -> Tuple[Tuple[int, ...], ...]:
         discovered_automorphisms = set()
         for mapping in DiGraphMatcher(self.as_graph_with_singleton_latents,
                                       self.as_graph_with_singleton_latents).isomorphisms_iter():
@@ -127,33 +132,33 @@ class mDAG:
         return tuple(discovered_automorphisms)
 
     @cached_property
-    def automorphic_order(self):
+    def automorphic_order(self) -> int:
         return len(self.visible_automorphisms)
 
     @cached_property
-    def as_extended_bit_array(self):
+    def as_extended_bit_array(self) -> BoolMatrix:
         #NOTE THAT THIS IS REVERSED RELATIVE TO UNIQUE ID!
         return np.vstack((self.directed_structure_instance.as_bit_square_matrix, self.simplicial_complex_instance.as_extended_bit_array))
 
     @cached_property
-    def n_of_edges(self):
+    def n_of_edges(self) -> int:
         return self.directed_structure_instance.number_of_edges
     
     @cached_property
-    def n_of_latents(self):
+    def n_of_latents(self) -> int:
         return self.simplicial_complex_instance.number_of_nonsingleton_latent
 
     @cached_property
-    def relative_complexity_for_sat_solver(self):  # choose eqclass representative which minimizes this
+    def relative_complexity_for_sat_solver(self) -> Tuple[int, int, int, Tuple[int, ...], int]:  # choose eqclass representative which minimizes this
         return (self.number_of_root_nodes, self.as_extended_bit_array.sum(), self.n_of_edges, self.simplicial_complex_instance.tally, -self.automorphic_order)
                 
     @cached_property
-    def parents_of_for_supports_analysis(self):
+    def parents_of_for_supports_analysis(self) -> List[IntArray]:
         return list(map(np.flatnonzero, self.as_extended_bit_array.T))
 
     @cached_property
-    def parents_of(self):
-        p = [[]] * self.number_of_visible
+    def parents_of(self) -> List[List[int]]:
+        p: List[List[int]] = [[] for _ in range(self.number_of_visible)]
         for edge in self.directed_structure_instance.edge_list:
             p[edge[1]].append(edge[0])
         latent_node=len(self.visible_nodes)
@@ -164,27 +169,29 @@ class mDAG:
         return p
 
     @cached_property
-    def ds_bit_size(self):
+    def ds_bit_size(self) -> int:
         return 2**(self.number_of_visible**2)
-    def mdag_int_pair_to_single_int(self, ds_int, sc_int):
+    def mdag_int_pair_to_single_int(self, ds_int: int, sc_int: int) -> int:
         #ELIE: Note that this MUST MATCH the function mdag_int_pair_to_single_int in the metagraph class. All is good.
         return ds_int + sc_int*self.ds_bit_size
 
 
     @cached_property
-    def unique_id(self):
+    def unique_id(self) -> int:
         # Returns a unique identification number.
         return self.mdag_int_pair_to_single_int(self.directed_structure_instance.as_integer,
                                                 self.simplicial_complex_instance.as_integer)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return self.unique_id
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, mDAG):
+            return False
         return self.unique_id == other.unique_id
 
     @cached_property
-    def ids_under_relabelling(self):
+    def ids_under_relabelling(self) -> Set[int]:
         return {self.mdag_int_pair_to_single_int(ds_int, sc_int) for (ds_int, sc_int) in
          zip(self.directed_structure_instance.as_integer_permutations,
              self.simplicial_complex_instance.as_integer_permutations)}
@@ -196,7 +203,7 @@ class mDAG:
         return min(self.ids_under_relabelling)
 
     @cached_property
-    def skeleton_instance(self):
+    def skeleton_instance(self) -> Union[LabelledUndirectedGraph, UndirectedGraph]:
         if hasattr(self, 'variable_names'):
             return LabelledUndirectedGraph(self.variable_names, self.directed_structure_instance.edge_list_with_variable_names + self.simplicial_complex_instance.simplicial_complex_with_variable_names)
         else:
@@ -204,24 +211,24 @@ class mDAG:
                                self.number_of_visible)
 
     @cached_property
-    def skeleton(self):
+    def skeleton(self) -> int:
         return self.skeleton_instance.as_edges_integer
 
     @cached_property
-    def skeleton_adj_mat(self):
+    def skeleton_adj_mat(self) -> BoolMatrix:
         return np.logical_or(self.simplicial_complex_instance.as_bidirected_adjmat,
                              np.logical_or(self.directed_structure_instance.as_bit_square_matrix,
                                            self.directed_structure_instance.as_bit_square_matrix.T))
 
     @cached_property
-    def skeleton_nof_edges(self):
+    def skeleton_nof_edges(self) -> int:
         return np.count_nonzero(self.skeleton_adj_mat)
 
     @cached_property
-    def skeleton_unlabelled(self):
+    def skeleton_unlabelled(self) -> int:
         return self.skeleton_instance.as_edges_unlabelled_integer
 
-    def perfectly_correlated_subgraph(self, subnodes):
+    def perfectly_correlated_subgraph(self, subnodes: Iterable[int]) -> bool:
         new_hypergraph = hypergraph_full_cleanup([
             facet.intersection(subnodes) for facet in
             self.simplicial_complex_instance.extended_simplicial_complex_as_sets])
@@ -238,7 +245,7 @@ class mDAG:
         return False
 
     @cached_property
-    def perfectly_correlatable_sets_in_subgraph(self):
+    def perfectly_correlatable_sets_in_subgraph(self) -> Set[frozenset]:
         perfectly_correlatable_sets = []
         for r in range(2, self.number_of_visible+1):
             for subnodes in itertools.combinations(self.visible_nodes, r):
@@ -248,24 +255,24 @@ class mDAG:
 
 
     @cached_property
-    def common_cause_connected_sets(self):
+    def common_cause_connected_sets(self) -> Set[FrozenSet[int]]:
         return hypergraph_full_cleanup([self.directed_structure_instance.adjMat.descendantsplus_of(list(facet))
                                        for facet in self.simplicial_complex_instance.extended_simplicial_complex_as_sets])
 
     @cached_property
-    def all_visible_share_one_root_ancestor(self):
+    def all_visible_share_one_root_ancestor(self) -> bool:
         return len(self.common_cause_connected_sets) == 1
 
     @cached_property
-    def interesting_via_no_dsep_but_no_common_ancestor(self):
+    def interesting_via_no_dsep_but_no_common_ancestor(self) -> bool:
         return (self.no_dsep_relations and (not self.all_visible_share_one_root_ancestor))
 
     @cached_property
-    def is_connected(self):
+    def is_connected(self) -> bool:
         return (len(merge_intersection(self.common_cause_connected_sets)) == 1)
 
     @staticmethod
-    def _all_2_vs_any_partitions(variables_to_partition: list):
+    def _all_2_vs_any_partitions(variables_to_partition: List[int]):
         # expect input in the form of a list
         length = len(variables_to_partition)
         subsetrange = range(length - 1)
@@ -278,23 +285,23 @@ class mDAG:
                         yield variables_to_partition[x], variables_to_partition[y], complimentary_subset
 
     @staticmethod
-    def fake_frozenset(stuff):
+    def fake_frozenset(stuff: Iterable[Any]) -> Tuple[Any, ...]:
         return tuple(sorted(stuff))
 
     # We do not cache iterators, only their output, as iterators are consumed!
     @property
-    def _all_CI_generator_numeric(self):
+    def _all_CI_generator_numeric(self) -> Iterable[Tuple[Tuple[int, ...], Tuple[int, ...]]]:
         for x, y, Z in self._all_2_vs_any_partitions(self.visible_nodes):
             if not self.skeleton_adj_mat[x, y]:
                 if nx.is_d_separator(self.as_graph, {x}, {y}, set(Z)):
                     yield (self.fake_frozenset([x, y]), self.fake_frozenset(Z))
 
     @cached_property
-    def all_CI_numeric(self):
+    def all_CI_numeric(self) -> Set[Tuple[Tuple[int, ...], Tuple[int, ...]]]:
         return set(self._all_CI_generator_numeric)
 
     @cached_property
-    def d_separable_pairs(self):
+    def d_separable_pairs(self) -> Set[Tuple[int, ...]]:
         discovered_pairs = set()
         for x, y, Z in self._all_2_vs_any_partitions(self.visible_nodes):
             if not self.skeleton_adj_mat[x, y]:
@@ -303,11 +310,11 @@ class mDAG:
         return discovered_pairs
 
     @cached_property
-    def d_unseparable_pairs(self):
+    def d_unseparable_pairs(self) -> Set[Tuple[int, ...]]:
         return set(itertools.combinations(self.visible_nodes, 2)).difference(self.d_separable_pairs)
 
     @cached_property
-    def d_unrestricted_sets(self):
+    def d_unrestricted_sets(self) -> List[Tuple[int, ...]]:
         d_unrestricted_sets = []
         visible_nodes_as_set = set(self.visible_nodes)
         for r in range(2, self.number_of_visible+1):
@@ -332,14 +339,14 @@ class mDAG:
         return False
 
     @cached_property
-    def no_dsep_relations(self):
+    def no_dsep_relations(self) -> bool:
         return len(self.all_CI_numeric) == 0
 
     @cached_property
-    def CI_count(self):
+    def CI_count(self) -> int:
         return len(self.all_CI_numeric)
 
-    def _all_CI_like_unlabelled_generator(self, attribute):
+    def _all_CI_like_unlabelled_generator(self, attribute: str) -> Iterable[Tuple[Tuple[Tuple[int, ...], ...], ...]]:
         for perm in itertools.permutations(self.visible_nodes):
             yield self.fake_frozenset(
                 tuple(
@@ -347,7 +354,7 @@ class mDAG:
                     for variable_set in relation)
                 for relation in self.__getattribute__(attribute))
 
-    def convert_to_named_set_of_tuples_of_tuples(self, attribute):
+    def convert_to_named_set_of_tuples_of_tuples(self, attribute: str) -> Set[Tuple[Tuple[Any, ...], ...]]:
         if hasattr(self, 'variable_names'):
             return set(
                 tuple(
@@ -358,15 +365,15 @@ class mDAG:
             return self.__getattribute__(attribute)
 
     @cached_property
-    def all_CI(self):
+    def all_CI(self) -> Tuple[Tuple[Tuple[Any, ...], ...], ...]:
         return tuple(self.convert_to_named_set_of_tuples_of_tuples('all_CI_numeric'))
 
     @cached_property
-    def all_CI_unlabelled(self):
+    def all_CI_unlabelled(self) -> Tuple[Tuple[Tuple[int, ...], ...], ...]:
         return min(self._all_CI_like_unlabelled_generator('all_CI_numeric'))
 
     @property
-    def _all_e_sep_generator_numeric(self):
+    def _all_e_sep_generator_numeric(self) -> Iterable[Tuple[Tuple[int, ...], Tuple[int, ...], Tuple[int, ...]]]:
         for r in range(self.number_of_visible - 1):
             for to_delete in itertools.combinations(self.visible_nodes, r):
                 graph_copy = self.as_graph.copy()  # Don't forget to copy!
@@ -377,28 +384,28 @@ class mDAG:
                         if nx.is_d_separator(graph_copy, {x}, {y}, set(Z)):
                             yield (self.fake_frozenset([x, y]), self.fake_frozenset(Z), self.fake_frozenset(to_delete))
     @cached_property
-    def all_esep_numeric(self):
+    def all_esep_numeric(self) -> Set[Tuple[Tuple[int, ...], Tuple[int, ...], Tuple[int, ...]]]:
         return set(self._all_e_sep_generator_numeric)
 
     @cached_property
-    def all_esep(self):
+    def all_esep(self) -> Tuple[Tuple[Tuple[Any, ...], ...], ...]:
         # return set(self._all_e_sep_generator_numeric)
         return tuple(self.convert_to_named_set_of_tuples_of_tuples('all_esep_numeric'))
 
     @cached_property
-    def all_esep_unlabelled(self):
+    def all_esep_unlabelled(self) -> Tuple[Tuple[Tuple[int, ...], ...], ...]:
         return min(self._all_CI_like_unlabelled_generator('all_esep_numeric'))
 
     @cached_property
-    def e_separable_pairs(self):
+    def e_separable_pairs(self) -> Set[Tuple[int, int]]:
         return set(itertools.combinations(self.visible_nodes, 2)).difference(self.skeleton_instance.as_edges)
 
     @cached_property
-    def interesting_via_non_maximal(self):
+    def interesting_via_non_maximal(self) -> bool:
         return not self.d_unseparable_pairs.issubset(self.skeleton_instance.as_edges)
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def support_testing_instance_binary(self, n):
+    def support_testing_instance_binary(self, n: int):
         if not hasattr(self, 'restricted_perfect_predictions_numeric'):
             self.restricted_perfect_predictions_numeric = tuple()
         return SmartSupportTesting(parents_of=self.parents_of_for_supports_analysis,
@@ -410,7 +417,7 @@ class mDAG:
                                    )
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def support_testing_instance(self, observed_cardinalities, n):
+    def support_testing_instance(self, observed_cardinalities: Iterable[int], n: int):
         if not hasattr(self, 'restricted_perfect_predictions_numeric'):
             self.restricted_perfect_predictions_numeric = tuple()
         return SmartSupportTesting(parents_of=self.parents_of_for_supports_analysis,
@@ -420,89 +427,89 @@ class mDAG:
                                    pp_relations=self.restricted_perfect_predictions_numeric,
                                    visible_automorphisms=self.visible_automorphisms
                                    )
-    def infeasible_4222_supports_n_events(self,n,**kwargs):
+    def infeasible_4222_supports_n_events(self,n: int,**kwargs):
         return tuple(self.support_testing_instance((4, 2, 2, 2),n).unique_infeasible_supports_as_expanded_integers(**kwargs, name='mgh', use_timer=False))
-    def infeasible_binary_supports_n_events(self, n, **kwargs):
+    def infeasible_binary_supports_n_events(self, n: int, **kwargs):
         return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_as_expanded_integers(**kwargs, name='mgh', use_timer=False))
-    def infeasible_binary_supports_n_events_beyond_esep(self, n, **kwargs):
+    def infeasible_binary_supports_n_events_beyond_esep(self, n: int, **kwargs):
         return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_expanded_integers(**kwargs, name='mgh', use_timer=False))
-    def infeasible_binary_supports_n_events_beyond_dsep(self, n, **kwargs):
+    def infeasible_binary_supports_n_events_beyond_dsep(self, n: int, **kwargs):
         return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_dsep_as_expanded_integers(**kwargs, name='mgh', use_timer=False))
 
-    def infeasible_binary_supports_n_events_as_matrices(self, n, **kwargs):
+    def infeasible_binary_supports_n_events_as_matrices(self, n: int, **kwargs):
         return self.support_testing_instance_binary(n).unique_infeasible_supports_as_expanded_matrices(**kwargs, name='mgh', use_timer=False)
-    def infeasible_binary_supports_n_events_beyond_esep_as_matrices(self, n, **kwargs):
+    def infeasible_binary_supports_n_events_beyond_esep_as_matrices(self, n: int, **kwargs):
         return self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_expanded_matrices(**kwargs, name='mgh', use_timer=False)
-    def infeasible_binary_supports_n_events_beyond_dsep_as_matrices(self, n, **kwargs):
+    def infeasible_binary_supports_n_events_beyond_dsep_as_matrices(self, n: int, **kwargs):
         return self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_dsep_as_expanded_matrices(**kwargs, name='mgh', use_timer=False)
-    def representative_infeasible_binary_supports_n_events_as_matrices(self, n, **kwargs):
+    def representative_infeasible_binary_supports_n_events_as_matrices(self, n: int, **kwargs):
         return self.support_testing_instance_binary(n).unique_infeasible_supports_as_compressed_matrices(**kwargs, name='mgh', use_timer=False)
-    def representative_infeasible_binary_supports_n_events_beyond_esep_as_matrices(self, n, **kwargs):
+    def representative_infeasible_binary_supports_n_events_beyond_esep_as_matrices(self, n: int, **kwargs):
         return self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_compressed_matrices(**kwargs, name='mgh', use_timer=False)
-    def representative_infeasible_binary_supports_n_events_beyond_dsep_as_matrices(self, n, **kwargs):
+    def representative_infeasible_binary_supports_n_events_beyond_dsep_as_matrices(self, n: int, **kwargs):
         return self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_dsep_as_compressed_matrices(**kwargs, name='mgh', use_timer=False)
 
-    def infeasible_binary_supports_n_events_unlabelled(self, n, **kwargs):
+    def infeasible_binary_supports_n_events_unlabelled(self, n: int, **kwargs):
         return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_as_integers_unlabelled(**kwargs, name='mgh', use_timer=False))
-    def infeasible_binary_supports_n_events_beyond_esep_unlabelled(self, n, **kwargs):
+    def infeasible_binary_supports_n_events_beyond_esep_unlabelled(self, n: int, **kwargs):
         return tuple(self.support_testing_instance_binary(n).unique_infeasible_supports_beyond_esep_as_integers_unlabelled(**kwargs, name='mgh', use_timer=False))
 
 
-    def no_infeasible_binary_supports_beyond_esep(self, n, **kwargs):
+    def no_infeasible_binary_supports_beyond_esep(self, n: int, **kwargs):
         return self.support_testing_instance_binary(n).no_infeasible_supports_beyond_esep(**kwargs, name='mgh', use_timer=False)
-    def no_infeasible_binary_supports_beyond_esep_up_to(self, max_n, **kwargs):
+    def no_infeasible_binary_supports_beyond_esep_up_to(self, max_n: int, **kwargs):
         return all(self.no_infeasible_binary_supports_beyond_esep(n, **kwargs) for n in range(2, max_n + 1))
-    def no_infeasible_binary_supports_beyond_dsep(self, n, **kwargs):
+    def no_infeasible_binary_supports_beyond_dsep(self, n: int, **kwargs):
         return self.support_testing_instance_binary(n).no_infeasible_supports_beyond_dsep(**kwargs, name='mgh', use_timer=False)
-    def no_infeasible_binary_supports_beyond_dsep_up_to(self, max_n, **kwargs):
+    def no_infeasible_binary_supports_beyond_dsep_up_to(self, max_n: int, **kwargs):
         return all(self.no_infeasible_binary_supports_beyond_dsep(n, **kwargs) for n in range(2, max_n + 1))
     
-    def no_infeasible_4222_supports_beyond_dsep(self,n,**kwargs):
+    def no_infeasible_4222_supports_beyond_dsep(self,n: int,**kwargs):
         return self.support_testing_instance((4, 2, 2, 2),n).no_infeasible_supports_beyond_dsep(**kwargs, name='mgh', use_timer=False)
-    def no_infeasible_4222_supports_beyond_dsep_up_to(self, max_n, **kwargs):
+    def no_infeasible_4222_supports_beyond_dsep_up_to(self, max_n: int, **kwargs):
         return all(self.no_infeasible_4222_supports_beyond_dsep(n, **kwargs) for n in range(2, max_n + 1))
     
-    def no_infeasible_8222_supports_beyond_dsep(self,n,**kwargs):
+    def no_infeasible_8222_supports_beyond_dsep(self,n: int,**kwargs):
         return self.support_testing_instance((8, 2, 2, 2),n).no_infeasible_supports_beyond_dsep(**kwargs, name='mgh', use_timer=False)
-    def no_infeasible_8222_supports_beyond_dsep_up_to(self, max_n, **kwargs):
+    def no_infeasible_8222_supports_beyond_dsep_up_to(self, max_n: int, **kwargs):
         return all(self.no_infeasible_8222_supports_beyond_dsep(n, **kwargs) for n in range(2, max_n + 1))
     
-    def no_infeasible_6222_supports_beyond_dsep(self,n,**kwargs):
+    def no_infeasible_6222_supports_beyond_dsep(self,n: int,**kwargs):
         return self.support_testing_instance((6, 2, 2, 2),n).no_infeasible_supports_beyond_dsep(**kwargs, name='mgh', use_timer=False)
-    def no_infeasible_6222_supports_beyond_dsep_up_to(self, max_n, **kwargs):
+    def no_infeasible_6222_supports_beyond_dsep_up_to(self, max_n: int, **kwargs):
         return all(self.no_infeasible_6222_supports_beyond_dsep(n, **kwargs) for n in range(2, max_n + 1))
     
     
-    def no_esep_beyond_dsep(self, n):
+    def no_esep_beyond_dsep(self, n: int) -> bool:
         return not self.support_testing_instance_binary(n).interesting_due_to_esep
-    def no_esep_beyond_dsep_up_to(self, max_n):
+    def no_esep_beyond_dsep_up_to(self, max_n: int) -> bool:
         return all(self.no_esep_beyond_dsep(n) for n in range(2, max_n + 1))
 
 
-    def infeasible_binary_supports_beyond_esep_up_to(self, max_n, **kwargs):
+    def infeasible_binary_supports_beyond_esep_up_to(self, max_n: int, **kwargs):
         return np.fromiter(itertools.chain.from_iterable(
             (self.infeasible_binary_supports_n_events_beyond_esep(n, **kwargs) for n in range(2, max_n + 1))),
             dtype=int)
-    def infeasible_binary_supports_up_to(self, max_n, **kwargs):
+    def infeasible_binary_supports_up_to(self, max_n: int, **kwargs):
         return np.fromiter(itertools.chain.from_iterable(
             (self.infeasible_binary_supports_n_events(n, **kwargs) for n in range(2, max_n + 1))),
             dtype=int)
 
-    def infeasible_binary_supports_beyond_esep_as_matrices_up_to(self, max_n, **kwargs):
+    def infeasible_binary_supports_beyond_esep_as_matrices_up_to(self, max_n: int, **kwargs):
         return list(itertools.chain.from_iterable((self.infeasible_binary_supports_n_events_beyond_esep_as_matrices(n, **kwargs).astype(int) for n in range(2, max_n + 1))))
-    def infeasible_binary_supports_beyond_dsep_as_matrices_up_to(self, max_n, **kwargs):
+    def infeasible_binary_supports_beyond_dsep_as_matrices_up_to(self, max_n: int, **kwargs):
         return list(itertools.chain.from_iterable((self.infeasible_binary_supports_n_events_beyond_dsep_as_matrices(n, **kwargs).astype(int) for n in range(2, max_n + 1))))
-    def infeasible_binary_supports_as_matrices_up_to(self, max_n, **kwargs):
+    def infeasible_binary_supports_as_matrices_up_to(self, max_n: int, **kwargs):
         return list(itertools.chain.from_iterable((self.infeasible_binary_supports_n_events(n, **kwargs).astype(int) for n in range(2, max_n + 1))))
 
-    def no_infeasible_binary_supports_n_events(self, n, **kwargs):
+    def no_infeasible_binary_supports_n_events(self, n: int, **kwargs):
         return self.support_testing_instance_binary(n).no_infeasible_supports(**kwargs, name='mgh', use_timer=False)
-    def no_infeasible_binary_supports_up_to(self, max_n, **kwargs):
+    def no_infeasible_binary_supports_up_to(self, max_n: int, **kwargs):
         return all(self.no_infeasible_binary_supports_n_events(n, **kwargs) for n in range(2, max_n + 1))
 
 
     @cached_property
-    def droppable_edges(self):
+    def droppable_edges(self) -> List[Tuple[int, int]]:
         candidates = [tuple(pair) for pair in self.directed_structure_instance.edge_list if
                       any(set(pair).issubset(hyperedge) for hyperedge in self.simplicial_complex_instance.compressed_simplicial_complex)]
         candidates = [pair for pair in candidates if set(self.as_graph.predecessors(pair[0])).issubset(
@@ -510,14 +517,14 @@ class mDAG:
         return candidates
 
     @cached_property
-    def addable_edges(self):
+    def addable_edges(self) -> List[Tuple[int, int]]:
         candidates = set(self.skeleton_instance.as_edges).difference(self.directed_structure_instance.edge_list)
         candidates = [pair for pair in candidates if set(self.as_graph.predecessors(pair[0])).issubset(
             self.as_graph.predecessors(pair[1]))]  # as_graph includes both visible at latent parents
         return candidates
 
     @cached_property
-    def equivalent_under_edge_dropping(self):
+    def equivalent_under_edge_dropping(self) -> List["mDAG"]:
         equivalent_mdags = []
         for edges_to_drop in powerset(self.droppable_edges):
             if len(edges_to_drop):
@@ -547,7 +554,7 @@ class mDAG:
 
 
     @staticmethod
-    def _all_bipartitions(variables_to_partition):
+    def _all_bipartitions(variables_to_partition: Iterable[int]):
         #Yields tuples of frozensets
         # expect input in the form of a list
         length = len(variables_to_partition)
@@ -562,39 +569,39 @@ class mDAG:
 
 
     @cached_property
-    def all_parentsplus_list(self):
+    def all_parentsplus_list(self) -> List[FrozenSet[int]]:
         return [frozenset({}).union(v_par, l_par) for v_par,l_par in zip(
                 self.directed_structure_instance.observable_parentsplus_list,
                 self.simplicial_complex_instance.latent_parents_list)]
 
-    def set_predecessors(self, X):
+    def set_predecessors(self, X: Iterable[int]) -> FrozenSet[int]:
         # return frozenset().union(*partsextractor(self.directed_structure_instance.observable_parentsplus_list, X))
         return frozenset(itertools.chain.from_iterable(partsextractor(self.all_parentsplus_list, X)))
-    def singleton_predecessors(self, x):
+    def singleton_predecessors(self, x: int) -> FrozenSet[int]:
         return partsextractor(self.all_parentsplus_list, x)
     
-    def singleton_visible_predecessors(self, x):
+    def singleton_visible_predecessors(self, x: int) -> FrozenSet[int]:
         return partsextractor(self.directed_structure_instance.observable_parentsplus_list, x)
 
-    def children(self, node):
+    def children(self, node: int) -> List[int]:
         c = []
         for v in self.visible_nodes:
             if node in self.singleton_visible_predecessors(v) and node != v:
                 c.append(v)
         return c
         
-    def descendants(self, node):
+    def descendants(self, node: int) -> Set[int]:
         return nx.descendants(self.as_graph, node)
 
     @cached_property
-    def splittable_faces(self):
+    def splittable_faces(self) -> List[Tuple[FrozenSet[int], FrozenSet[int]]]:
         candidates = itertools.chain.from_iterable(map(self._all_bipartitions, self.simplicial_complex_instance.compressed_simplicial_complex))
         candidates = [(C, D) for C, D in candidates if
                       all(self.set_predecessors(C).issubset(self.singleton_predecessors(d)) for d in D)]
         return candidates
 
     @cached_property
-    def eventually_splittable_faces(self):
+    def eventually_splittable_faces(self) -> List[Tuple[FrozenSet[int], FrozenSet[int]]]:
         candidates = itertools.chain.from_iterable(map(self._all_bipartitions, self.simplicial_complex_instance.compressed_simplicial_complex))
         result = []
         for C, D in candidates:
@@ -604,26 +611,26 @@ class mDAG:
         return result
 
     @cached_property
-    def has_no_eventually_splittable_face(self):
+    def has_no_eventually_splittable_face(self) -> bool:
         return len(self.eventually_splittable_faces) == 0
     
-    def set_visible_predecessors(self,X):
+    def set_visible_predecessors(self,X: Iterable[int]) -> FrozenSet[int]:
         return frozenset(itertools.chain.from_iterable(partsextractor(self.directed_structure_instance.observable_parentsplus_list, X)))
-    def singleton_visible_predecessors(self, x):
+    def singleton_visible_predecessors(self, x: int) -> FrozenSet[int]:
         return partsextractor(self.directed_structure_instance.observable_parentsplus_list, x)
 
-    def two_layer_circuit(self):
+    def two_layer_circuit(self) -> bool:
         for node in self.visible_nodes:
             if len(self.children(node))>0 and len(self.singleton_predecessors(node))>1:
                 return False
         return True
 
     @cached_property
-    def numerical_districts(self):
+    def numerical_districts(self) -> List[Set[int]]:
         return self.simplicial_complex_instance.districts
 
     @cached_property
-    def districts(self):
+    def districts(self) -> List[Set[Any]]:
         #Districts are returned as a list of sets
         if hasattr(self, 'variable_names'):
             return [partsextractor(self.variable_names, district) for district in self.numerical_districts]
@@ -631,13 +638,13 @@ class mDAG:
             return self.numerical_districts
 
         
-    def set_district(self, X):
+    def set_district(self, X: Iterable[int]) -> FrozenSet[int]:
         return frozenset(itertools.chain.from_iterable((district for district in self.districts if not district.isdisjoint(X))))
-    def singleton_district(self, x):
+    def singleton_district(self, x: int) -> FrozenSet[int]:
         return frozenset(itertools.chain.from_iterable((district for district in self.districts if x in district)))
 
         
-    def networkx_plot_mDAG(self):
+    def networkx_plot_mDAG(self) -> None:
         G=nx.DiGraph()
         G.add_nodes_from(self.visible_nodes)
         G.add_nodes_from(self.nonsingleton_latent_nodes)
@@ -655,7 +662,7 @@ class mDAG:
         nx.draw_networkx_edges(G,pos,edgelist=latent_edges)
         plt.show()
         
-    def plot_mDAG_indicating_one_node(self,node):
+    def plot_mDAG_indicating_one_node(self,node: int) -> None:
         G=nx.DiGraph()
         G.add_nodes_from(self.visible_nodes)
         G.add_nodes_from(self.nonsingleton_latent_nodes)
@@ -676,7 +683,7 @@ class mDAG:
         plt.show()
     
     @cached_property
-    def weak_splittable_faces(self):
+    def weak_splittable_faces(self) -> List[Tuple[FrozenSet[int], FrozenSet[int]]]:
         candidates = itertools.chain.from_iterable(map(self._all_bipartitions, self.simplicial_complex_instance.compressed_simplicial_complex))
         # candidates = [(C,D) for C,D in candidates if all(set(self.as_graph.predecessors(c).issubset(self.as_graph.predecessors(d)) for c in C for d in D)]
         simp_complex=[]
@@ -704,9 +711,9 @@ class mDAG:
             yield self.mdag_int_pair_to_single_int(
                 self.directed_structure_instance.as_integer,
                 Hypergraph(new_simplicial_complex, self.number_of_visible).as_integer)
-    
-    
-    def generate_weaker_mDAGs_FaceSplitting(self, version):
+
+
+    def generate_weaker_mDAGs_FaceSplitting(self, version: str):
         if version=='strong':
             return self.generate_weaker_mDAGs_FaceSplitting_Simultaneous
         if version=='moderate':
@@ -759,13 +766,13 @@ class mDAG:
 
 
     #Elie: I have integrated subgraph into both labelled directed structure and labelled hypergraph.
-    def subgraph(self, list_of_nodes):
+    def subgraph(self, list_of_nodes: Tuple[int, ...]):
         return mDAG(
             LabelledDirectedStructure(list_of_nodes, self.directed_structure_instance.edge_list),
             LabelledHypergraph(list_of_nodes, self.simplicial_complex_instance.simplicial_complex_as_sets)
         )
 
-    def set_closure(self, X_int_or_list, return_bidirectedQ=False):
+    def set_closure(self, X_int_or_list: Iterable[int], return_bidirectedQ: bool = False):
         return numeric_closure(core_B=X_int_or_list,
                                n=self.number_of_visible,
                                ds_adjmat= self.directed_structure_instance.as_bit_square_matrix_plus_eye,
@@ -776,7 +783,7 @@ class mDAG:
     def singeleton_closures(self):
         return [frozenset(self.set_closure([i])) for i in range(self.number_of_visible)]
 
-    def are_densely_connected(self, node1, node2):
+    def are_densely_connected(self, node1: int, node2: int):
         if node1 in self.set_visible_predecessors(self.singeleton_closures[node2]):
             return True
         if node2 in self.set_visible_predecessors(self.singeleton_closures[node1]):
@@ -792,26 +799,26 @@ class mDAG:
 # So, if node1 and node2 are densely connected in G1 but not in G2, we know that G1 is NOT equivalent to G2.
 
     @cached_property
-    def all_densely_connected_pairs_numeric(self):
+    def all_densely_connected_pairs_numeric(self) -> Tuple[Tuple[int, int], ...]:
         return tuple([nodepair for nodepair in itertools.combinations(self.visible_nodes, 2) if self.are_densely_connected(*nodepair)])
     @cached_property
-    def all_densely_connected_pairs(self):
+    def all_densely_connected_pairs(self) -> Tuple[Tuple[int, ...], ...]:
         if hasattr(self, 'variable_names'):
             return tuple(map(self.fake_frozenset, np.take(self.variable_names, self.all_densely_connected_pairs_numeric)))
         else:
             return self.all_densely_connected_pairs_numeric
 
-    def _all_densely_connected_pairs_unlabelled_generator(self):
+    def _all_densely_connected_pairs_unlabelled_generator(self) -> Iterable[Tuple[Tuple[int, ...], ...]]:
         for perm in itertools.permutations(self.visible_nodes):
             yield self.fake_frozenset(map(self.fake_frozenset, np.take(perm, self.all_densely_connected_pairs_numeric)))
             
     @cached_property
-    def all_densely_connected_pairs_unlabelled(self):
+    def all_densely_connected_pairs_unlabelled(self) -> Tuple[Tuple[int, ...], ...]:
         return min(self._all_densely_connected_pairs_unlabelled_generator())
 
 
     @cached_property
-    def fundamental_graphQ(self):
+    def fundamental_graphQ(self) -> bool:
         # Implement three conditions
         common_cause_districts = self.simplicial_complex_instance.nonsingleton_districts
         if len(common_cause_districts) != 1:
@@ -828,12 +835,12 @@ class mDAG:
         return True
     
     @cached_property
-    def latent_free_graphQ(self):
+    def latent_free_graphQ(self) -> bool:
         if self.simplicial_complex_instance.number_of_nonsingleton_latent==0:
             return True
         return False
 
-    def marginalize_node(self,marginalized_node):
+    def marginalize_node(self, marginalized_node: int):
         variable_names=[node for node in self.visible_nodes if node!=marginalized_node]
         new_edge_list=[edge for edge in self.directed_structure_instance.edge_list if edge[0]!=marginalized_node and edge[1]!=marginalized_node]
         for parent_node in self.singleton_visible_predecessors(marginalized_node):
@@ -864,17 +871,19 @@ class mDAG:
             new_simplicial_complex.append(tuple(self.children(marginalized_node)))
         return new_edge_list, new_simplicial_complex, variable_names
     
-    def fix_to_point_distribution(self, node):  #returns a smaller mDAG
+    def fix_to_point_distribution(self, node: int):  #returns a smaller mDAG
         return self.subgraph(self.visible_nodes[:node]+self.visible_nodes[(node+1):])
 
 
 
 class Unlabelled_mDAG(mDAG):
-    def __init__(self, directed_structure_instance, simplicial_complex_instance):
+    def __init__(self, directed_structure_instance: DirectedStructure, simplicial_complex_instance: Hypergraph):
         super().__init__(directed_structure_instance, simplicial_complex_instance)
     def __hash__(self):
         return self.unique_unlabelled_id
-    def __eq__(self, other):
+    def __eq__(self, other: object):
+        if not isinstance(other, Unlabelled_mDAG):
+            return False
         return self.unique_id == other.unique_unlabelled_id
 
 # class labelled_mDAG(mDAG):
@@ -887,6 +896,35 @@ if __name__ == '__main__':
     G_triangle = mDAG(DirectedStructure([], 3),
                    Hypergraph([(0, 1), (0, 2), (1, 2)], 3))
     print(G_triangle)
+
+    G58a = mDAG(DirectedStructure([(1, 2), (2, 3)], 4),
+                Hypergraph([(0, 1), (1, 3)], 4))
+    G58b = mDAG(DirectedStructure([(1, 2), (2, 3)], 4),
+                Hypergraph([(0, 1), (1, 3), (2, 3)], 4))
+    # print(G58a.all_esep_numeric)
+    # print(G58b.all_esep_numeric)
+    # print(G58a.all_densely_connected_pairs_numeric)
+    # print(G58b.all_densely_connected_pairs_numeric)
+    # print("G 5.8(a)")
+    # print(G58a.infeasible_binary_supports_beyond_esep_as_matrices_up_to(15))
+    # print("G 5.8(b)")
+    # print(G58b.infeasible_binary_supports_beyond_esep_as_matrices_up_to(15))
+    questionable_support = np.array([
+        [0, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 1, 0],
+        [0, 1, 1, 0],
+        [1, 0, 0, 1],
+        [1, 1, 0, 1],
+        [1, 0, 1, 1],
+        [1, 1, 1, 1]
+    ])
+    # support_tester = G58a.support_testing_instance_binary(8)
+    print(G58a.support_testing_instance_binary(8).feasibleQ_from_matrix(questionable_support, return_model=False))
+    print(G58b.support_testing_instance_binary(8).feasibleQ_from_matrix(questionable_support, return_model=False))
+
+    # rejected = G58a.support_testing_instance_binary(8).unique_infeasible_supports_as_expanded_matrices()
+    # print(any(np.array_equiv(supp[:,0], supp[:,3]) for supp in rejected))
     
     
     G1= mDAG(DirectedStructure([(1,2), (2,3)], 4), Hypergraph([(0, 1),(1, 3)], 4))

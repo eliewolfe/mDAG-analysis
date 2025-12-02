@@ -1,21 +1,27 @@
 from __future__ import absolute_import
 import numpy as np
+import numpy.typing as npt
 import itertools
 # import operator
 from functools import lru_cache
+from typing import Any, Iterable, List, Tuple, Union
+
+IntArray = npt.NDArray[np.int_]
+UIntArray = npt.NDArray[np.uint64]
+BoolArray = npt.NDArray[np.bool_]
 
 
 @lru_cache(maxsize=16)
-def _reversed_base(base):
+def _reversed_base(base: Tuple[Any, ...]) -> IntArray:
     if len(base)>1:
         return np.hstack((1, np.flipud(np.asarray(base)[1:])))
     else:
         return np.ones(len(base), dtype=int)
-def reversed_base(base):
+def reversed_base(base: Union[Tuple[Any, ...], IntArray]) -> IntArray:
     return _reversed_base(tuple(base))
 
 @lru_cache(maxsize=16)
-def _radix_converter(base):
+def _radix_converter(base: Tuple[Any, ...]) -> UIntArray:
     as_object_array = np.flipud(np.multiply.accumulate(
         reversed_base(base).astype(dtype=object)
     ))
@@ -26,26 +32,30 @@ def _radix_converter(base):
     else:
         return as_object_array
 
-def radix_converter(base):
+def radix_converter(base: Union[Tuple[Any, ...], IntArray]) -> UIntArray:
     return _radix_converter(tuple(base))
 
 @lru_cache(maxsize=16)
-def _uniform_base_test(base):
+def _uniform_base_test(base: Tuple[Any, ...]) -> bool:
     return np.array_equiv(base[0], base)
-def uniform_base_test(base):
+def uniform_base_test(base: Union[Tuple[Any, ...], IntArray]) -> bool:
     return _uniform_base_test(tuple(base))
 
 @lru_cache(maxsize=16)
-def _binary_base_test(base):
+def _binary_base_test(base: Tuple[Any, ...]) -> bool:
     return np.array_equiv(2, base)
-def binary_base_test(base):
+def binary_base_test(base: Union[Tuple[Any, ...], IntArray]) -> bool:
     return _binary_base_test(tuple(base))
 
 
-def flip_array_last_axis(m: np.ndarray):
+def flip_array_last_axis(m: npt.NDArray[Any]) -> npt.NDArray[Any]:
     return m[..., ::-1]
 
-def to_bits(integers, mantissa, sanity_check=False):
+def to_bits(integers: Union[int, IntArray], mantissa: int, sanity_check: bool = False) -> BoolArray:
+    """
+    Shape: (...,) -> (..., mantissa).
+    Threads over leading axes and expands each scalar into a trailing axis of bits of length `mantissa`.
+    """
     if sanity_check:
         min_mantissa = int.bit_length(np.amax(integers))
         if min_mantissa>mantissa:
@@ -82,14 +92,18 @@ def to_bits(integers, mantissa, sanity_check=False):
 # def from_bits(smooshed_bit_array):
 #     return pack_a_bit.reduce(smooshed_bit_array, axis=-1)
 
-def from_littleordered_bytes(byte_array: np.ndarray):
+def from_littleordered_bytes(byte_array: npt.NDArray[np.uint8]) -> UIntArray:
     #Assumes numpy array
     if byte_array.ndim == 1:
         return np.asarray(int.from_bytes(byte_array.tolist(), byteorder='little', signed=False))
     else:
         return np.vstack(list(map(from_littleordered_bytes, byte_array)))
 
-def from_bits(smooshed_bit_array: np.ndarray):
+def from_bits(smooshed_bit_array: BoolArray) -> IntArray:
+    """
+    Shape: (..., mantissa) -> (...,).
+    Threads over leading axes and collapses the trailing bit axis back into integers.
+    """
     mantissa = smooshed_bit_array.shape[-1]
     if mantissa > 0:
         ready_for_viewing = np.packbits(flip_array_last_axis(smooshed_bit_array), axis=-1, bitorder='little')
@@ -124,10 +138,14 @@ def from_bits(smooshed_bit_array: np.ndarray):
     else:
         return np.zeros(smooshed_bit_array.shape[:-2], dtype=int)
 
-def _from_digits(digits_array, base):
+def _from_digits(digits_array: IntArray, base: Union[Tuple[Any, ...], IntArray]) -> IntArray:
     return np.matmul(digits_array, radix_converter(base))
 
-def from_digits(digits_array, base):
+def from_digits(digits_array: Union[List[Any], IntArray], base: Union[Tuple[Any, ...], IntArray]) -> IntArray:
+    """
+    Shape: (..., k) -> (...,).
+    Threads over leading axes and collapses the trailing digit axis using the provided base.
+    """
     digits_array_as_array = np.asarray(digits_array)
     if min(digits_array_as_array.shape) > 0:
         if binary_base_test(base):
@@ -140,23 +158,23 @@ def from_digits(digits_array, base):
 
 
 
-def array_from_string(string_array):
+def array_from_string(string_array: Union[str, List[str], IntArray]) -> IntArray:
     as_string_array = np.asarray(string_array, dtype=str)
     return np.fromiter(itertools.chain.from_iterable(as_string_array.ravel()), np.uint).reshape(
         as_string_array.shape + (-1,))
 
 
-def from_string_digits(string_digits_array, base):
+def from_string_digits(string_digits_array: Union[str, List[str], IntArray], base: Union[Tuple[Any, ...], IntArray]) -> IntArray:
     return from_digits(array_from_string(string_digits_array), base)
 
 
-def _to_digits(integer, base):
+def _to_digits(integer: Union[int, IntArray], base: Union[Tuple[Any, ...], IntArray]) -> IntArray:
     if len(base)<=32:
         return np.stack(np.unravel_index(np.asarray(integer, dtype=np.intp), base), axis=-1)
     else:
         return _to_digits_numba(integer, base)
 
-def _to_digits_numba(integer, base):
+def _to_digits_numba(integer: Union[int, IntArray], base: Union[Tuple[Any, ...], IntArray]) -> IntArray:
     arrays = []
     x = np.array(integer, copy=True)
     #print(reversed_base(base))
@@ -165,7 +183,11 @@ def _to_digits_numba(integer, base):
         arrays.append(remainder)
     return flip_array_last_axis(np.stack(arrays, axis=-1))
 
-def to_digits(integer, base, sanity_check=False):
+def to_digits(integer: Union[int, IntArray], base: Union[Tuple[Any, ...], IntArray], sanity_check: bool = False) -> IntArray:
+    """
+    Shape: (...,) -> (..., k).
+    Threads over leading axes and expands scalars into digit vectors of length len(base).
+    """
     if sanity_check:
         does_it_fit = np.amax(integer) < np.multiply.reduce(np.flipud(base).astype(dtype=np.ulonglong))
         assert does_it_fit, "Base is too small to accommodate such large integers."
@@ -175,7 +197,7 @@ def to_digits(integer, base, sanity_check=False):
         return _to_digits(integer, base)
 
 
-def array_to_string(digits_array):
+def array_to_string(digits_array: IntArray) -> Union[str, List[str]]:
     before_string_joining = np.asarray(digits_array, dtype=str)
     raw_shape = before_string_joining.shape
     return np.array(list(
@@ -183,7 +205,7 @@ def array_to_string(digits_array):
     )).reshape(raw_shape[:-1]).tolist()
 
 
-def to_string_digits(integer, base):
+def to_string_digits(integer: Union[int, IntArray], base: Union[Tuple[Any, ...], IntArray]) -> Union[str, List[str]]:
     return array_to_string(to_digits(integer, base))
 
 # def bitarrays_to_ints(bit_array):
@@ -196,7 +218,7 @@ def to_string_digits(integer, base):
 #     return from_bits(bit_array_as_array.reshape(shape[:-2]+(numrows * numcolumns,)))
 
 @lru_cache(maxsize=None)
-def _bitarray_to_int(bit_array):
+def _bitarray_to_int(bit_array: Tuple[Tuple[bool, ...], ...]) -> int:
     if len(bit_array):
         bit_array_as_array = np.asarray(bit_array, dtype=bool)
         (numrows, numcolumns) = bit_array_as_array.shape
@@ -207,7 +229,7 @@ def _bitarray_to_int(bit_array):
         return 0
     # return from_bits(bit_array.ravel()).tolist()
 
-def bitarray_to_int(bit_array):
+def bitarray_to_int(bit_array: BoolArray) -> int:
     return _bitarray_to_int(tuple(map(tuple, bit_array)))
 
 # def ints_to_bitarrays(integer, numcolumns):
@@ -215,69 +237,87 @@ def bitarray_to_int(bit_array):
 #     # return np.reshape(to_bits(integer, numrows * numcolumns), np.asarray(integer).shape + (numrows, numcolumns))
 #     return to_bits(integer, numcolumns)
 
+
+try:
+    from numba import guvectorize  # type: ignore
+    NUMBA_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    NUMBA_AVAILABLE = False
+
+if NUMBA_AVAILABLE:
+    _NUMBA_TO_BITS_CACHE: dict[int, Any] = {}
+
+    def get_numba_to_bits(mantissa: int):
+        """Return a guvectorized to_bits for the given mantissa, cached by mantissa length."""
+        if mantissa not in _NUMBA_TO_BITS_CACHE:
+            @guvectorize(['void(uint64[:], uint64[:], uint64[:])'], '(),(m)->(m)', nopython=True)
+            def _numba_to_bits(integer, dummy, out):
+                val = integer[0]
+                for j in range(out.shape[0] - 1, -1, -1):
+                    out[j] = val & 1
+                    val >>= 1
+            _NUMBA_TO_BITS_CACHE[mantissa] = _numba_to_bits
+        return _NUMBA_TO_BITS_CACHE[mantissa]
+
+    @guvectorize(['void(uint64[:], uint64[:])'], '(m)->()', nopython=True)
+    def numba_from_bits(bits, out):
+        val = 0
+        for j in range(bits.shape[0]):
+            val = (val << 1) | bits[j]
+        out[0] = val
+
+    @guvectorize(['void(int64[:], int64[:], int64[:])'], '(n),(n)->()', nopython=True)
+    def numba_from_digits(digits, base, out):
+        val = 0
+        for j in range(digits.shape[0]):
+            val = val * base[j] + digits[j]
+        out[0] = val
+
+    @guvectorize(['void(int64[:], int64[:], int64[:])'], '(),(n)->(n)', nopython=True)
+    def numba_to_digits(integer, base, out):
+        val = integer[0]
+        for j in range(base.shape[0] - 1, -1, -1):
+            b = base[j]
+            out[j] = val % b
+            val //= b
+
 if __name__ == '__main__':
-    print(to_digits([3,5,12,100], base=np.hstack((np.repeat(1,32),(3,4,5)))))
-    print(to_digits([3, 5, 12, 100], base=np.hstack((np.repeat(1, 32), (3, 4, 5)))).shape)
+    rng = np.random.default_rng(0)
+    print("Testing to_digits/from_digits, to_bits/from_bits shapes...")
+    base = (2, 3, 2, 3, 4)
+    data = rng.integers(0, 4, size=(2, 3), dtype=np.int64)
+    digits = to_digits(data, base)
+    back = from_digits(digits, base)
+    print("Digits shape", digits.shape, "roundtrip ok:", np.array_equal(data, back))
 
-    integers = [[234, 1237, 543, 23], [53, 234, 732, 123]]
-    base = (2, 3, 2, 3, 4, 2, 2, 3, 2)
-    # digits_array = to_digits(integers, base)
-    # print(to_digits(integers, base))
-    # print(to_string_digits(integers, base))
-    # print(np.array_equiv(integers, from_digits(to_digits(integers, base), base)))
-    print(np.array_equiv(integers, from_string_digits(to_string_digits(integers, base), base)))
-    integers = np.ravel(integers)
-    print(np.array_equiv(integers, from_string_digits(to_string_digits(integers, base), base)))
-    # integers = 1237
-    # print(to_digits(integers,base))
-    # print(from_digits(to_digits(integers,base),base))
-    #
-    # integers = [[234, 1237, 543, 23], [53, 234, 732, 123]]
-    # base =np.broadcast_to(2,11)
-    # digits_array = to_digits(integers, base)
-    # print(to_digits(integers, base))
-    # print(to_string_digits(integers, base))
-    # print(np.array_equiv(integers, from_digits(to_digits(integers, base), base)))
-    # print(np.array_equiv(integers, from_string_digits(to_string_digits(integers, base), base)))
-    # integers = 1237
-    # print(to_digits(integers,base))
-    # print(from_digits(to_digits(integers,base),base))
-    #
-    # print(from_digits([],base))
-    # print(to_digits([], base))
-    #print(int_to_bitarray(integers, 11))
-    # as_bits = to_bits(integers, 11)
-    # print("Effect of encoding to bits: ", as_bits, as_bits.shape)
-    # print("Effect of bit encoding and decoding: ", from_bits(as_bits))
-    print("Testing bit arithmetic for n-dimensional arrays...")
-    print(np.array_equiv(integers, from_bits(to_bits(integers, 11))))
+    bits = to_bits(data, 11)
+    back_bits = from_bits(bits)
+    print("Bits shape", bits.shape, "roundtrip ok:", np.array_equal(data, back_bits))
 
-    print("Testing for arithmetic overflow.")
-    integers = [5,40,12312312,2**63,2**64,2**65]
-    print("Integers to encode: ", integers)
-    print("Testing sanity_check option:")
-    encoded_integers = to_bits(integers, 65, sanity_check=True)
-    encoded_integers = to_bits(integers, 66)
-    print("Encoded integers: ", encoded_integers)
-    recoded_integers = from_bits(encoded_integers)
-    print("Decoded integers: ", recoded_integers)
-    print(np.array_equiv(integers, recoded_integers))
+    if NUMBA_AVAILABLE:
+        base_arr = np.asarray(base, dtype=np.int64)
+        numba_dig = numba_to_digits(data, base_arr)
+        numba_back = numba_from_digits(numba_dig, base_arr)
+        print("Numba digits roundtrip ok:", np.array_equal(data, numba_back))
 
+        bits_shape = bits.shape[-1]
+        numba_to_bits_fn = get_numba_to_bits(bits_shape)
+        numba_bits = numba_to_bits_fn(np.asarray(data, dtype=np.uint64), np.empty(bits_shape, dtype=np.uint64))
+        numba_back_bits = numba_from_bits(numba_bits, np.empty(1, dtype=np.uint64))
+        print("Numba bits roundtrip ok:", np.array_equal(data, numba_back_bits))
 
-
-
-
-    # def to_bytes_backwards(integers):
-    #     before = np.asarray(integers)
-    #     after = before.view(np.uint8)
-    #     return after.reshape(before.shape+(-1,))
-    #
-    # def to_bits_backwards(integers):
-    #     return np.unpackbits(to_bytes_backwards(integers), axis=-1, bitorder='big')
-    #
-    # def from_bits_backwards(bit_array, dtype):
-    #     # np.packbits(np.flip(bit_array,axis=-1), axis=-1, bitorder='little')
-    #     return np.squeeze(np.packbits(bit_array, axis=-1, bitorder='big').view(dtype),axis=-1)
+    # Simple timing comparison
+    big_data = rng.integers(0, 1 << 16, size=(1000,), dtype=np.int64)
+    base_small = (2, 3, 2, 3)
+    import time
+    t0 = time.time()
+    _ = to_digits(big_data, base_small)
+    t1 = time.time()
+    print("Python to_digits 1k elapsed:", t1 - t0)
+    if NUMBA_AVAILABLE:
+        _ = numba_to_digits(big_data, np.asarray(base_small, dtype=np.int64))
+        t2 = time.time()
+        print("Numba to_digits 1k elapsed:", t2 - t1)
 
 
 

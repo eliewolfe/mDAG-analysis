@@ -1,6 +1,7 @@
 from __future__ import absolute_import
-import numpy as np
 import itertools
+import numpy as np
+import numpy.typing as npt
 # import networkx as nx
 from hypergraphs import Hypergraph, LabelledHypergraph, hypergraph_full_cleanup
 from directed_structures import DirectedStructure, LabelledDirectedStructure
@@ -10,6 +11,7 @@ from merge import merge_intersection
 from sys import hexversion
 from utilities import partsextractor, minimal_sets_within, maximal_sets_within, stringify_in_set, stringify_in_tuple
 from functools import total_ordering
+from typing import Any, DefaultDict, Dict, Iterable, List, Set, Tuple
 try:
     import networkx as nx
 except ImportError:
@@ -23,14 +25,19 @@ else:
     cached_property = property
 
 from collections import defaultdict
-def invert_dict(d):
-    d_inv = defaultdict(list)
+
+BoolMatrix = npt.NDArray[np.bool_]
+IntArray = npt.NDArray[np.int_]
+
+
+def invert_dict(d: Dict[Any, Any]) -> DefaultDict[Any, List[Any]]:
+    d_inv: DefaultDict[Any, List[Any]] = defaultdict(list)
     for k, v in d.items():
         d_inv[v].append(k)
     return d_inv
 
 
-def C_facets_not_dominated_by_Q(c_facets, q_facets):
+def C_facets_not_dominated_by_Q(c_facets: Set[frozenset], q_facets: Set[frozenset]) -> Set[frozenset]:
     c_facets_copy = c_facets.copy()
     for Q_facet in q_facets:
         dominated_by_quantum = set(filter(Q_facet.issuperset, c_facets_copy))
@@ -38,13 +45,13 @@ def C_facets_not_dominated_by_Q(c_facets, q_facets):
     return c_facets_copy
 
 
-def upgrade_to_QmDAG(mdag: mDAG):
+def upgrade_to_QmDAG(mdag: mDAG) -> "QmDAG":
     return QmDAG(
         mdag.directed_structure_instance,
         Hypergraph([], mdag.number_of_visible),
         mdag.simplicial_complex_instance)
 
-def as_classical_QmDAG(mdag: mDAG):
+def as_classical_QmDAG(mdag: mDAG) -> "QmDAG":
     return QmDAG(
         mdag.directed_structure_instance,
         mdag.simplicial_complex_instance,
@@ -54,8 +61,8 @@ def as_classical_QmDAG(mdag: mDAG):
 # This class does NOT represent every possible quantum causal structure. It only represents the causal structures where every quantum latent is exogenized. This is the case, for example, of the known QC Gaps.
 @total_ordering
 class QmDAG:
-    def __init__(self, directed_structure_instance, C_simplicial_complex_instance, Q_simplicial_complex_instance,
-                 pp_restrictions=tuple()):
+    def __init__(self, directed_structure_instance: DirectedStructure, C_simplicial_complex_instance: Hypergraph, Q_simplicial_complex_instance: Hypergraph,
+                 pp_restrictions: Tuple[int, ...] = tuple()) -> None:
         self.restricted_perfect_predictions_numeric = pp_restrictions
         self.directed_structure_instance = directed_structure_instance
         self.number_of_visible = self.directed_structure_instance.number_of_visible
@@ -104,20 +111,20 @@ class QmDAG:
         self.Fritz_trick_has_been_applied_already = False
 
     @cached_property
-    def as_string(self):
+    def as_string(self) -> str:
         return 'Children'.ljust(10) + ': ' + self.directed_structure_instance.as_string \
                + '\nClassical'.ljust(11) + ': ' + self.C_simplicial_complex_instance.as_string \
                + '\nQuantum'.ljust(11) + ': ' + self.Q_simplicial_complex_instance.as_string + '\n'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.as_string
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.as_string
 
     #@cached_property
     @property
-    def unique_id(self):
+    def unique_id(self) -> Tuple[int, int, int, int, Tuple[int, ...]]:
         # Returns a unique identification tuple.
         return (
             self.number_of_visible,
@@ -125,17 +132,19 @@ class QmDAG:
             self.C_simplicial_complex_instance.as_integer,
             self.Q_simplicial_complex_instance.as_integer,
             tuple(self.restricted_perfect_predictions_numeric,))
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.unique_id)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, QmDAG):
+            return False
         return self.unique_id == other.unique_id
 
-    def __lt__(self, other):
+    def __lt__(self, other: "QmDAG") -> bool:
         return self.unique_id < other.unique_id
 
     @cached_property
-    def unique_unlabelled_id(self):
+    def unique_unlabelled_id(self) -> Tuple[int, int, int, int]:
         # Returns a unique identification tuple up to relabelling.
         return (self.number_of_visible,) + min(zip(
             self.directed_structure_instance.as_integer_permutations,
@@ -152,45 +161,45 @@ class QmDAG:
 
     #ON THE POINT DISTRIBUTION TRICK
 
-    def subgraph(self, list_of_nodes):
+    def subgraph(self, list_of_nodes: Tuple[int, ...]) -> "QmDAG":
         return QmDAG(
             LabelledDirectedStructure(list_of_nodes, self.directed_structure_instance.edge_list),
             LabelledHypergraph(list_of_nodes, self.C_simplicial_complex_instance.simplicial_complex_as_sets),
             LabelledHypergraph(list_of_nodes, self.Q_simplicial_complex_instance.simplicial_complex_as_sets),
         )
 
-    def fix_to_point_distribution_QmDAG(self, node):  # returns a smaller QmDAG
+    def fix_to_point_distribution_QmDAG(self, node: int) -> "QmDAG":  # returns a smaller QmDAG
         return self.subgraph(self.visible_nodes[:node] + self.visible_nodes[(node + 1):])
 
-    def _subgraphs_generator(self):
+    def _subgraphs_generator(self) -> Iterable["QmDAG"]:
         for r in range(3, self.number_of_visible):
             for to_keep in itertools.combinations(self.visible_nodes, r):
                 yield self.subgraph(to_keep)
 
     @cached_property
-    def subgraphs(self):
+    def subgraphs(self) -> Set["QmDAG"]:
         return {self.subgraph(to_keep) for to_keep in itertools.combinations(self.visible_nodes, self.number_of_visible-1)}
         # return set(self._subgraphs_generator())
 
     @cached_property
-    def unique_unlabelled_ids_obtainable_by_PD_trick(self):
+    def unique_unlabelled_ids_obtainable_by_PD_trick(self) -> Set[Tuple[int, int, int, int]]:
         return set(subQmDAG.unique_unlabelled_id for subQmDAG in self.subgraphs)
 
     # ON THE MARGINALIZATION TRICK
 
-    def classical_sibling_sets_of(self, node):
+    def classical_sibling_sets_of(self, node: int) -> Set[frozenset]:
         return set(facet.difference({node}) for facet in self.C_simplicial_complex_instance.simplicial_complex_as_sets if
                 node in facet)
 
-    def quantum_sibling_sets_of(self, node):
+    def quantum_sibling_sets_of(self, node: int) -> Set[frozenset]:
         return set(facet.difference({node}) for facet in self.Q_simplicial_complex_instance.simplicial_complex_as_sets if
                 node in facet)
 
-    def quantum_siblings_of(self, node):
+    def quantum_siblings_of(self, node: int) -> Set[Any]:
         return set(itertools.chain.from_iterable(self.quantum_sibling_sets_of(node)))
 
     @cached_property
-    def as_mDAG(self):
+    def as_mDAG(self) -> mDAG:
         return mDAG(
             self.directed_structure_instance,
             Hypergraph(C_facets_not_dominated_by_Q(
@@ -206,14 +215,14 @@ class QmDAG:
     def as_graph(self):
         return self.as_mDAG.as_graph
 
-    def latent_sibling_sets_of(self, node):
+    def latent_sibling_sets_of(self, node: int) -> Set[frozenset]:
         return set(facet.difference({node}) for facet in self.as_mDAG.simplicial_complex_instance.simplicial_complex_as_sets if
                 node in facet)
 
-    def latent_siblings_of(self, node):
+    def latent_siblings_of(self, node: int) -> Set[Any]:
         return set(itertools.chain.from_iterable(self.latent_sibling_sets_of(node)))
     
-    def has_grandparents_that_are_not_parents(self, node):
+    def has_grandparents_that_are_not_parents(self, node: int) -> bool:
         # visible_parents_bit_vec = self.directed_structure_instance.as_bit_square_matrix[:, node]
         # visible_grandparents_bit_vec = np.bitwise_or.reduce(
         #     self.directed_structure_instance.as_bit_square_matrix[:, visible_parents_bit_vec],
@@ -229,7 +238,7 @@ class QmDAG:
             #         return True
         return False
     
-    def condition(self, node):
+    def condition(self, node: int) -> "QmDAG":
         #assume we already checked that it doesn't have grandparents that are not parents
         remaining_nodes = self.visible_nodes[:node] + self.visible_nodes[(node + 1):]
         # new_directed_edges = set(self.directed_structure_instance.edge_list)
@@ -244,7 +253,7 @@ class QmDAG:
                 LabelledHypergraph(remaining_nodes, new_Q_facets),
                 )
 
-    def _subconditionals(self):
+    def _subconditionals(self) -> Iterable["QmDAG"]:
         if self.number_of_visible > 3:
             for node in self.visible_nodes:
                 if not self.has_grandparents_that_are_not_parents(node):
@@ -254,14 +263,14 @@ class QmDAG:
                         yield new_QmDAG
 
     @cached_property
-    def subconditionals(self):
+    def subconditionals(self) -> Set["QmDAG"]:
         return set(self._subconditionals())
     
     @cached_property
-    def unique_unlabelled_ids_obtainable_by_conditioning(self):
+    def unique_unlabelled_ids_obtainable_by_conditioning(self) -> Set[Tuple[int, int, int, int]]:
         return set(new_QmDAG.unique_unlabelled_id for new_QmDAG in self.subconditionals)
 
-    def marginalize(self, node, districts_check=False, apply_teleportation=True):  # returns a smaller QmDAG
+    def marginalize(self, node: int, districts_check: bool = False, apply_teleportation: bool = True) -> "QmDAG":  # returns a smaller QmDAG
         remaining_nodes = self.visible_nodes[:node] + self.visible_nodes[(node + 1):]
         fake_qmDAG = QmDAG(
                 DirectedStructure([], 1),
@@ -339,12 +348,12 @@ class QmDAG:
 
 
     def labelled_multi_marginalize(self,
-                                   nodes_to_marginalize,
-                                   all_nodes,
-                                   directed_structure_list,
-                                   C_simplicial_complex_instance_as_sets,
-                                   Q_simplicial_complex_instance_as_sets,
-                                   districts_check=False):  # returns a smaller QmDAG
+                                   nodes_to_marginalize: Iterable[Any],
+                                   all_nodes: Iterable[Any],
+                                   directed_structure_list: List[Tuple[Any, Any]],
+                                   C_simplicial_complex_instance_as_sets: Iterable[frozenset],
+                                   Q_simplicial_complex_instance_as_sets: Iterable[frozenset],
+                                   districts_check: bool = False) -> "QmDAG":  # returns a smaller QmDAG
         new_directed_structure_set = set(directed_structure_list).copy()
         new_C_simplicial_complex_instance_as_sets = set(C_simplicial_complex_instance_as_sets).copy()
         new_Q_simplicial_complex_instance_as_sets = set(Q_simplicial_complex_instance_as_sets).copy()

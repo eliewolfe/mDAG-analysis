@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 import numpy as np
+import numpy.typing as npt
 import itertools
 from radix import to_digits
 from supports import SupportTesting
 import methodtools
+from typing import Tuple
 
 from sys import hexversion
 
@@ -16,7 +18,11 @@ elif hexversion >= 0x3060000:
     #     backports.cached - property
     from backports.cached_property import cached_property
 else:
-    cached_property = property
+cached_property = property
+
+IntMatrix = npt.NDArray[np.int_]
+IntArray = npt.NDArray[np.int_]
+BoolMatrix = npt.NDArray[np.bool_]
 
 """
 Suppose that we see a d-sep relation of the form (a,b,C).
@@ -27,7 +33,7 @@ Suppose that we see an e-sep relation of the form (a,b,C,D)
 """
 
 
-def product_support_test(two_column_mat:np. ndarray) -> bool:
+def product_support_test(two_column_mat: IntMatrix) -> bool:
     # exploits the fact that np.unique also sorts
     return np.array_equiv(
         list(itertools.product(*map(np.unique, two_column_mat.T))),
@@ -36,7 +42,7 @@ def product_support_test(two_column_mat:np. ndarray) -> bool:
     )
 
 
-def does_this_dsep_rule_out_this_support(ab: np.ndarray, C: np.ndarray, s: np.ndarray) -> bool:
+def does_this_dsep_rule_out_this_support(ab: IntArray, C: IntArray, s: IntMatrix) -> bool:
     if len(C):
         s_resorted = s[np.lexsort(np.asarray(s)[:, list(C)].T)]
         partitioned = [np.vstack(tuple(g)) for k, g in itertools.groupby(s_resorted, lambda e: tuple(e.take(C)))]
@@ -48,7 +54,7 @@ def does_this_dsep_rule_out_this_support(ab: np.ndarray, C: np.ndarray, s: np.nd
         return not product_support_test(np.asarray(s)[:, list(ab)])
 
 
-def does_this_esep_rule_out_this_support(ab: np.ndarray, C: np.ndarray, D: np.ndarray, s: np.ndarray) -> bool:
+def does_this_esep_rule_out_this_support(ab: IntArray, C: IntArray, D: IntArray, s: IntMatrix) -> bool:
     if len(D) == 0:
         return does_this_dsep_rule_out_this_support(ab, C, s)
     else:
@@ -60,19 +66,19 @@ def does_this_esep_rule_out_this_support(ab: np.ndarray, C: np.ndarray, D: np.nd
 
 
 class SmartSupportTesting(SupportTesting):
-    def __init__(self, parents_of, observed_cardinalities, nof_events, esep_relations, **kwargs):
+    def __init__(self, parents_of: Tuple, observed_cardinalities: IntArray, nof_events: int, esep_relations: Tuple, **kwargs) -> None:
         super().__init__(parents_of, observed_cardinalities, nof_events, **kwargs)
         self.esep_relations = tuple(esep_relations)
         self.dsep_relations = tuple(((ab, C) for (ab, C, D) in self.esep_relations if len(D)==0))
 
-    def infeasible_support_Q_due_to_esep_from_matrix(self, candidate_s: np.ndarray) -> bool:
+    def infeasible_support_Q_due_to_esep_from_matrix(self, candidate_s: IntMatrix) -> bool:
         return any(does_this_esep_rule_out_this_support(*map(list, e_sep), candidate_s) for e_sep in self.esep_relations)
 
-    def infeasible_support_Q_due_to_dsep_from_matrix(self, candidate_s: np.ndarray)-> bool:
+    def infeasible_support_Q_due_to_dsep_from_matrix(self, candidate_s: IntMatrix)-> bool:
         return any(does_this_dsep_rule_out_this_support(*map(list,d_sep), candidate_s) for d_sep in self.dsep_relations)
 
     #REDEFINITION!
-    def feasibleQ_from_matrix(self, occurring_events: np.ndarray, **kwargs) -> bool:
+    def feasibleQ_from_matrix(self, occurring_events: IntMatrix, **kwargs) -> bool:
         if not self.infeasible_support_Q_due_to_esep_from_matrix(occurring_events):
             return super().feasibleQ_from_matrix(occurring_events, **kwargs)
         else:

@@ -1,13 +1,19 @@
 from __future__ import absolute_import
 import numpy as np
+import numpy.typing as npt
 import itertools
 from sys import hexversion
+from typing import Any, FrozenSet, List, Tuple, Union
 if hexversion >= 0x3080000:
     from functools import cached_property
 elif hexversion >= 0x3060000:
     from backports.cached_property import cached_property
 else:
     cached_property = property
+
+BoolMatrix = npt.NDArray[np.bool_]
+IntMatrix = npt.NDArray[np.int_]
+IntVector = npt.NDArray[np.int_]
 
 from radix import bitarray_to_int
 try:
@@ -21,7 +27,7 @@ from functools import lru_cache, total_ordering
 from adjmat_class import AdjMat
 
 @lru_cache(maxsize=5)
-def empty_digraph(n):
+def empty_digraph(n: int) -> 'nx.DiGraph':
     baseg = nx.DiGraph()
     baseg.add_nodes_from(range(n))
     return baseg
@@ -53,7 +59,7 @@ class DirectedStructure:
     """
     This class is NOT meant to encode mDAGs. As such, we do not get into an implementation of predecessors or successors here.
     """
-    def __init__(self, numeric_edge_list, n):
+    def __init__(self, numeric_edge_list: List[Tuple[int, int]], n: int) -> None:
         # assert all(isinstance(v, int) for v in
         #            set(itertools.chain.from_iterable(numeric_edge_list))), 'Somehow we have a non integer node!'+stringify_in_set(
         #     map(stringify_in_list, numeric_edge_list))
@@ -68,89 +74,89 @@ class DirectedStructure:
 
 
     @property
-    def as_edges_array(self):
+    def as_edges_array(self) -> IntMatrix:
         return np.asarray(self.edge_list, dtype=int).reshape((-1,2)) #No sorting or deduplication.
 
     @cached_property
-    def as_bit_square_matrix(self):
+    def as_bit_square_matrix(self) -> BoolMatrix:
         r = np.zeros((self.number_of_visible, self.number_of_visible), dtype=bool)
         r[tuple(self.as_edges_array.T)] = True
         return r
 
     @cached_property
-    def nodes_with_no_parents(self):
+    def nodes_with_no_parents(self) -> IntVector:
         return np.flatnonzero(np.logical_not(self.as_bit_square_matrix.any(axis=0)))
 
     @cached_property
-    def nodes_with_no_children(self):
+    def nodes_with_no_children(self) -> IntVector:
         return np.flatnonzero(np.logical_not(self.as_bit_square_matrix.any(axis=1)))
 
     @cached_property
-    def as_bit_square_matrix_plus_eye(self):
+    def as_bit_square_matrix_plus_eye(self) -> BoolMatrix:
         #Used for computing parents_plus
         return np.bitwise_or(self.as_bit_square_matrix, np.identity(self.number_of_visible, dtype=bool))
 
 
     @cached_property
-    def observable_parentsplus_list(self):
+    def observable_parentsplus_list(self) -> List[FrozenSet[int]]:
         return list(map(frozenset, map(np.flatnonzero, self.as_bit_square_matrix_plus_eye.T)))
 
     @cached_property
-    def adjMat(self):
+    def adjMat(self) -> AdjMat:
         return AdjMat(self.as_bit_square_matrix)
 
     @cached_property
-    def as_integer(self):
+    def as_integer(self) -> int:
         return bitarray_to_int(self.as_bit_square_matrix)
 
-    def permute_bit_square_matrix(self, perm):
+    def permute_bit_square_matrix(self, perm: List[int]) -> BoolMatrix:
         return self.as_bit_square_matrix[perm][:, perm]
 
     @cached_property
-    def bit_square_matrix_permutations(self):
+    def bit_square_matrix_permutations(self) -> Tuple[BoolMatrix, ...]:
         return tuple(self.permute_bit_square_matrix(perm) for perm in map(list,itertools.permutations(self.visible_nodes)))
 
     @cached_property
-    def as_integer_permutations(self):
+    def as_integer_permutations(self) -> Tuple[int, ...]:
         return tuple(bitarray_to_int(ba) for ba in self.bit_square_matrix_permutations)
 
     @cached_property
-    def as_unlabelled_integer(self):
+    def as_unlabelled_integer(self) -> int:
         return min(self.as_integer_permutations)
 
     @classmethod
-    def directedStructure_from_bit_square_matrix(cls, bit_square_matrix):
+    def directedStructure_from_bit_square_matrix(cls, bit_square_matrix: BoolMatrix) -> 'DirectedStructure':
         return cls(np.vstack(np.nonzero(bit_square_matrix)).T.tolist(), len(bit_square_matrix))
 
     @cached_property
-    def equivalents_under_symmetry(self):
+    def equivalents_under_symmetry(self) -> List['DirectedStructure']:
         return [self.directedStructure_from_bit_square_matrix(bitmat) for bitmat in
                 np.take(self.bit_square_matrix_permutations,
                         np.unique(self.as_integer_permutations, return_index=True, axis=0)[-1],
                         axis=0)]
 
     @cached_property
-    def as_string(self):
+    def as_string(self) -> str:
         return stringify_in_set(
             str(partsextractor(self.visible_nodes, i)) + ':' + stringify_in_list(partsextractor(self.visible_nodes, v))
                 # for i, v in nx.to_dict_of_lists(self.DirectedStructure).items()
                 for i, v in enumerate(map(np.flatnonzero, self.as_bit_square_matrix))
                 )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.as_string
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.as_string
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return int(self.as_integer)
 
-    def __eq__(self, other):
+    def __eq__(self, other: 'DirectedStructure') -> bool:
         """Whether the Monomial is equal to the ``other`` Monomial."""
         return self.__hash__() == other.__hash__()
 
-    def __lt__(self, other):
+    def __lt__(self, other: 'DirectedStructure') -> bool:
         """Whether the Monomial is lexicographically smaller than the ``other``
         Monomial.
         """
@@ -162,12 +168,12 @@ class DirectedStructure:
 
     #I'm hoping to eventually transition away from networkx entirely.
     @cached_property
-    def as_networkx_graph(self):
+    def as_networkx_graph(self) -> 'nx.DiGraph':
         g = empty_digraph(self.number_of_visible).copy()
         g.add_edges_from(self.edge_list)
         return g
 
-    def can_D1_minimally_simulate_D2(D1, D2):
+    def can_D1_minimally_simulate_D2(D1: 'DirectedStructure', D2: 'DirectedStructure') -> bool:
         """
         D1 and D2 are networkx.DiGraph objects.
         We say that D1 can 'simulate' D2 if the edges of D2 are contained within those of D1.
@@ -178,7 +184,7 @@ class DirectedStructure:
         return False
 
 
-    def is_D1_strictly_above_D2(D1, D2):
+    def is_D1_strictly_above_D2(D1: 'DirectedStructure', D2: 'DirectedStructure') -> bool:
         """
         D1 and D2 are networkx.DiGraph objects.
         We say that D1 can 'simulate' D2 if the edges of D2 are contained within those of D1.
@@ -192,7 +198,7 @@ class LabelledDirectedStructure(DirectedStructure):
     """
     This class is NOT meant to encode mDAGs. As such, we do not get into an implementation of predecessors or successors here.
     """
-    def __init__(self, variable_names, edge_list):
+    def __init__(self, variable_names: Tuple[Any, ...], edge_list: List[Tuple[Any, Any]]) -> None:
         self.variable_names = tuple(variable_names)
         self.variable_names_as_frozenset = frozenset(self.variable_names)
         self.number_of_variables = len(variable_names)
@@ -219,7 +225,7 @@ class LabelledDirectedStructure(DirectedStructure):
         super().__init__(self.edge_list, self.number_of_variables)
 
     @cached_property
-    def as_string(self):
+    def as_string(self) -> str:
         return stringify_in_set(
             str(partsextractor(self.variable_names, i)) + ':' + stringify_in_list(partsextractor(self.variable_names, v))
                 # for i, v in nx.to_dict_of_lists(self.DirectedStructure).items()
@@ -227,16 +233,16 @@ class LabelledDirectedStructure(DirectedStructure):
                 )
 
     @cached_property
-    def as_networkx_graph_arbitrary_names(self):
+    def as_networkx_graph_arbitrary_names(self) -> 'nx.DiGraph':
         g=nx.DiGraph()
         g.add_nodes_from(self.variable_names)
         g.add_edges_from(self.edge_list_with_variable_names)
         return g
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.as_string
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.as_string
   
   

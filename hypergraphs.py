@@ -1,13 +1,19 @@
 from __future__ import absolute_import
 import numpy as np
+import numpy.typing as npt
 import itertools
 from sys import hexversion
+from typing import Any, FrozenSet, Iterable, List, Set, Tuple, Union
 if hexversion >= 0x3080000:
     from functools import cached_property
 elif hexversion >= 0x3060000:
     from backports.cached_property import cached_property
 else:
     cached_property = property
+
+BoolMatrix = npt.NDArray[np.bool_]
+Hyperedge = Iterable[Any]
+HypergraphLike = Iterable[Hyperedge]
 
 from radix import bitarray_to_int
 from merge import merge_intersection
@@ -19,30 +25,30 @@ import networkx as nx
 from functools import lru_cache
 
 @lru_cache(maxsize=5)
-def empty_graph(n):
+def empty_graph(n: int) -> nx.Graph:
     baseg = nx.Graph()
     baseg.add_nodes_from(range(n))
     return baseg
 
-def has_length_greater_than_one(stuff):
+def has_length_greater_than_one(stuff: Any) -> bool:
     return len(stuff)>1
-def drop_singletons(hypergraph):
+def drop_singletons(hypergraph: HypergraphLike) -> Iterable[Hyperedge]:
     return filter(has_length_greater_than_one, hypergraph)
-def permute_bit_array(bitarray, perm):
+def permute_bit_array(bitarray: BoolMatrix, perm: List[int]) -> BoolMatrix:
     almost_new_sc = bitarray[:, list(perm)]
     return almost_new_sc[np.lexsort(almost_new_sc.T)]
-def bit_array_permutations(bitarray):
+def bit_array_permutations(bitarray: BoolMatrix) -> Iterable[BoolMatrix]:
     assert len(bitarray.shape)==2, 'Not a bitarray!'
     n = bitarray.shape[-1]
     return (permute_bit_array(bitarray, perm) for perm in map(list,itertools.permutations(range(n))))
 
 
-def hypergraph_canonicalize_with_deduplication(hypergraph):
+def hypergraph_canonicalize_with_deduplication(hypergraph: HypergraphLike) -> Set[FrozenSet[Any]]:
     # hypergraph_copy = set(map(frozenset, drop_singletons(hypergraph)))
     return set(map(frozenset, drop_singletons(hypergraph)))
-def hypergraph_to_list_of_tuples(hypergraph):
+def hypergraph_to_list_of_tuples(hypergraph: HypergraphLike) -> List[Tuple[Any, ...]]:
     return sorted(map(lambda s: tuple(sorted(s)), hypergraph_canonicalize_with_deduplication(hypergraph)))
-def hypergraph_full_cleanup(hypergraph):
+def hypergraph_full_cleanup(hypergraph: HypergraphLike) -> Set[FrozenSet[Any]]:
     hypergraph_copy = set(map(frozenset, hypergraph))
     cleaned_hypergraph_copy = hypergraph_copy.copy()
     for dominating_hyperedge in hypergraph_copy:
@@ -64,7 +70,7 @@ def hypergraph_full_cleanup(hypergraph):
 
 
 class Hypergraph:
-    def __init__(self, any_simplicial_complex, n):
+    def __init__(self, any_simplicial_complex: HypergraphLike, n: int) -> None:
         self.number_of_visible = n
 
         self.simplicial_complex_as_sets = hypergraph_canonicalize_with_deduplication(any_simplicial_complex)
@@ -96,7 +102,7 @@ class Hypergraph:
     #     return self.simplicial_complex_as_sets.union(*self.singleton_hyperedges)
 
     @cached_property
-    def faces(self):
+    def faces(self) -> Set[FrozenSet[Any]]:
         found_faces = self.simplicial_complex_as_sets.copy()
         for s in self.simplicial_complex_as_sets:
             found_faces.update(itertools.chain.from_iterable(map(frozenset, itertools.combinations(s, r)) for r in range(2, len(s))))
@@ -105,7 +111,7 @@ class Hypergraph:
 
 
     @cached_property
-    def tally(self):
+    def tally(self) -> Tuple[int, ...]:
         # absent_latent_count = self.max_number_of_latents - self.number_of_latent
         # return tuple(np.pad(np.flip(sorted(map(len, self.simplicial_complex))),(0,absent_latent_count)))
         return tuple(np.flip(sorted(map(len, self.compressed_simplicial_complex))))
@@ -124,58 +130,58 @@ class Hypergraph:
 
 
     @cached_property
-    def as_tuples(self):
+    def as_tuples(self) -> Tuple[Tuple[Any, ...], ...]:
         return tuple(self.compressed_simplicial_complex)
 
     @cached_property
-    def as_bit_array(self):
+    def as_bit_array(self) -> BoolMatrix:
         r = np.zeros((self.number_of_nonsingleton_latent, self.number_of_visible), dtype=bool)
         for i, lp in enumerate(self.compressed_simplicial_complex):
             r[i, tuple(lp)] = True
         return r[np.lexsort(r.T)]
 
     @cached_property
-    def latent_parents_list(self):
+    def latent_parents_list(self) -> List[FrozenSet[int]]:
         # return list(map(frozenset, map(np.flatnonzero, self.as_bit_array.T)))
         return [frozenset(np.flatnonzero(column)+self.number_of_visible) for column in self.as_bit_array.T]
 
     @cached_property
-    def as_extended_bit_array(self):
+    def as_extended_bit_array(self) -> BoolMatrix:
         r = np.zeros((self.number_of_latent, self.number_of_visible), dtype=bool)
         for i, lp in enumerate(self.extended_simplicial_complex_as_sets):
             r[i, tuple(lp)] = True
         return r[np.lexsort(r.T)]
 
     @cached_property
-    def nonsingleton_districts(self):
+    def nonsingleton_districts(self) -> List[Set[int]]:
         return merge_intersection(self.compressed_simplicial_complex)
 
     @cached_property
-    def districts(self):
+    def districts(self) -> List[Set[int]]:
         return self.nonsingleton_districts + list(map(set, self.singleton_hyperedges))
 
     @cached_property
-    def as_integer(self):
+    def as_integer(self) -> int:
         return bitarray_to_int(self.as_bit_array)
 
     @property
-    def bit_array_permutations(self):
+    def bit_array_permutations(self) -> Iterable[BoolMatrix]:
         return (permute_bit_array(self.as_bit_array, perm)
                 for perm in map(list, itertools.permutations(range(self.number_of_visible))))
 
     @cached_property
-    def as_integer_permutations(self):
+    def as_integer_permutations(self) -> Tuple[int, ...]:
         return tuple(bitarray_to_int(ba) for ba in self.bit_array_permutations)
 
     @cached_property
-    def as_unlabelled_integer(self):
+    def as_unlabelled_integer(self) -> int:
         return min(self.as_integer_permutations)
 
     @cached_property
-    def as_string(self):
+    def as_string(self) -> str:
         return stringify_in_list(map(stringify_in_tuple, self.as_tuples))
 
-    def can_S1_minimally_simulate_S2(S1, S2):
+    def can_S1_minimally_simulate_S2(S1: 'Hypergraph', S2: 'Hypergraph') -> bool:
         """
         S1 and S2 are simplicial complices, in our data structure as lists of tuples.
         """
@@ -184,13 +190,13 @@ class Hypergraph:
         return False
 
 
-    def are_S1_facets_one_more_than_S2_facets(S1, S2):
+    def are_S1_facets_one_more_than_S2_facets(S1: 'Hypergraph', S2: 'Hypergraph') -> bool:
         if S1.simplicial_complex_as_sets.issuperset(S2.simplicial_complex_as_sets):
             if S1.number_of_nonsingleton_latent == S2.number_of_nonsingleton_latent + 1:
                 return True
         return False
 
-    def is_S1_strictly_above_S2(S1, S2):
+    def is_S1_strictly_above_S2(S1: 'Hypergraph', S2: 'Hypergraph') -> bool:
         """
         S1 and S2 are simplicial complices, in our data structure as lists of tuples.
         DO NOT USE FOR HLP METAGRAPH GENERATION
@@ -205,14 +211,14 @@ class Hypergraph:
                 return False
         return True
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.as_string
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.as_string
 
     @cached_property
-    def as_bidirected_adjmat(self):
+    def as_bidirected_adjmat(self) -> BoolMatrix:
         adjmat = np.zeros((self.number_of_visible, self.number_of_visible), dtype=bool)
         for hyperedge in map(list, self.compressed_simplicial_complex):
             subindices = np.ix_(hyperedge, hyperedge)
@@ -226,7 +232,7 @@ class LabelledHypergraph(Hypergraph):
     This class is NOT meant to encode mDAGs. As such, we do not get into an implementation of predecessors or successors here.
     NEW: We can automatically extract SUBHYPERGRAPHS
     """
-    def __init__(self, variable_names, simplicial_complex):
+    def __init__(self, variable_names: Tuple[Any, ...], simplicial_complex: HypergraphLike) -> None:
         """
         There may be MORE variable names than are referenced in the simplicial complex. These are considered unreferenced singletons.
         There may be FEWER variable names than are referenced in the simplicial complex. In that case we take a subhypergraph.
@@ -273,32 +279,32 @@ class LabelledHypergraph(Hypergraph):
         return stringify_in_list(map(stringify_in_tuple, self.simplicial_complex_with_variable_names))
 
     @cached_property
-    def translated_nonsingleton_districts(self):
+    def translated_nonsingleton_districts(self) -> List[Set[Any]]:
         return [partsextractor(self.variable_names, district) for district in self.nonsingleton_districts]
 
     @cached_property
-    def translated_districts(self):
+    def translated_districts(self) -> List[Set[Any]]:
         return [set(partsextractor(self.variable_names, district)) for district in self.districts]
 
     @cached_property
-    def translated_extended_simplicial_complex(self):
+    def translated_extended_simplicial_complex(self) -> Set[FrozenSet[Any]]:
         return set(frozenset(partsextractor(self.variable_names, hyperedge)) for hyperedge in self.extended_simplicial_complex_as_sets)
 
     @cached_property
-    def translated_simplicial_complex(self):
+    def translated_simplicial_complex(self) -> Set[FrozenSet[Any]]:
         return set(frozenset(partsextractor(self.variable_names, hyperedge)) for hyperedge in self.simplicial_complex_as_sets)
         
-    def __str__(self):
+    def __str__(self) -> str:
         return self.as_string
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.as_string
 
 
 
 
 class UndirectedGraph:
-    def __init__(self, hyperedges, n):
+    def __init__(self, hyperedges: HypergraphLike, n: int) -> None:
         self.nof_nodes = n
         # if hyperedges:
         #     assert max(map(max, hyperedges)) + 1 <= self.nof_nodes, "More nodes referenced than expected."
@@ -313,36 +319,36 @@ class UndirectedGraph:
     #     return stringify_in_list(map(stringify_in_tuple, self.as_edges))
 
     @cached_property
-    def as_frozenset_edges(self):
+    def as_frozenset_edges(self) -> Set[FrozenSet[int]]:
         return set(map(frozenset, self.as_edges))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.as_string
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.as_string
 
 
 
     @property
-    def as_edges_array(self):
+    def as_edges_array(self) -> npt.NDArray[np.int_]:
         # return np.fromiter(self.as_edges, int).reshape((-1,2))
         return np.asarray(self.as_edges, dtype=int).reshape((-1,2))
 
     @property
-    def as_adjacency_matrix(self):
+    def as_adjacency_matrix(self) -> BoolMatrix:
         adjmat = np.zeros((self.nof_nodes, self.nof_nodes), dtype=bool)
         adjmat[tuple(self.as_edges_array.T)] = True
         return np.bitwise_or(adjmat, adjmat.T)
 
     @cached_property
-    def as_edges_bit_array(self):
+    def as_edges_bit_array(self) -> BoolMatrix:
         r = np.zeros((len(self.as_edges_array), self.nof_nodes), dtype=bool)
         np.put_along_axis(r, self.as_edges_array, True, axis=1)
         return r[np.lexsort(r.T)]
 
     @staticmethod
-    def edges_bit_array_to_integer(bitarray):
+    def edges_bit_array_to_integer(bitarray: BoolMatrix) -> int:
         """
         Quick base conversion algorithm.
         """
@@ -354,25 +360,25 @@ class UndirectedGraph:
             return 0
 
     @cached_property
-    def as_edges_integer(self):
+    def as_edges_integer(self) -> int:
         return self.edges_bit_array_to_integer(self.as_edges_bit_array)
 
     @cached_property
-    def as_edges_unlabelled_integer(self):
+    def as_edges_unlabelled_integer(self) -> int:
         return min(self.edges_bit_array_to_integer(ba) for ba in bit_array_permutations(self.as_edges_bit_array))
 
     @cached_property
-    def as_networkx_graph(self):
+    def as_networkx_graph(self) -> nx.Graph:
         g = empty_graph(self.nof_nodes).copy()
         g.add_edges_from(self.as_edges)
         return g
 
     @cached_property
-    def cliques(self):
+    def cliques(self) -> List[List[int]]:
         return list(nx.enumerate_all_cliques(self.as_networkx_graph))
 
 class LabelledUndirectedGraph(UndirectedGraph):
-     def __init__(self, variable_names, hyperedges):
+     def __init__(self, variable_names: Tuple[Any, ...], hyperedges: HypergraphLike) -> None:
         """
         There may be MORE variable names than are referenced in the simplicial complex. These are considered unreferenced singletons.
         There may be FEWER variable names than are referenced in the simplicial complex. In that case we take a subhypergraph.

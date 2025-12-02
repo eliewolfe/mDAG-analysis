@@ -1,4 +1,7 @@
-def merge_intersection(lsts):
+from typing import List, Set, Any
+
+
+def merge_intersection(lsts: List[List[Any]]) -> List[Set[Any]]:
     sets = [set(lst) for lst in lsts if lst]
     merged = 1
     while merged:
