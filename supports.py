@@ -7,6 +7,8 @@ assert version_info >= (3, 8), "Python 3.8+ is required for cached_property supp
 import methodtools
 import numpy as np
 import numpy.typing as npt
+import re
+from collections import defaultdict
 import progressbar as pb
 from pysat.formula import IDPool  # I wonder if we can't get away without this, but it is SO convenient
 from pysat.solvers import Solver
@@ -20,6 +22,7 @@ from typing import Any, Iterable, List, Sequence, Tuple, Union
 IntArray = npt.NDArray[np.int_]
 BoolArray = npt.NDArray[np.bool_]
 IntMatrix = npt.NDArray[np.int_]
+SolverOutput = Union[bool, Tuple[bool, List[str]]]
 
 try:
     import networkx as nx
@@ -57,16 +60,6 @@ class SupportTester(object):
                  parents_of: Tuple[Sequence[int], ...],
                  observed_cardinalities: Union[Sequence[int], IntArray],
                  nof_events: int, **kwargs: Any) -> None:
-        # For Victor Gitton:
-        # if depth(parents_of) == 2:
-        #     self.parents_of = parents_of
-        #     self.causal_symmetries_to_enforce = [self.parents_of]
-        # elif depth(parents_of) == 3:
-        #     self.parents_of = parents_of[0]
-        #     self.causal_symmetries_to_enforce = parents_of
-        # else:
-        #     assert False, "Ill formatted input!"
-
         self.parents_of = parents_of
         assert all(len(parents) > 0 for parents in self.parents_of), "Each observed variable must have at least one parent."
         self.nof_events = nof_events
@@ -101,7 +94,7 @@ class SupportTester(object):
         self.nonbinary_variables = set(range(self.nof_observed)).difference(self.binary_variables)
         self.vpool = IDPool(start_from=1)
 
-        # self.cached_properties_computed_yet = False
+
     def var(self, idx: int, val: int, par: Iterable[int]) -> int:
         new_par = tuple(int(v) for v in par)
         new_val = int(val)
@@ -117,18 +110,44 @@ class SupportTester(object):
             return self.vpool.id(var_string)
 
     def reverse_var(self, id: int) -> str:
-        str = self.vpool.obj(abs(id))
+        name = self.vpool.obj(abs(id))
         if id < 0:
-            # return f"not {str}"
-            return str.replace("==", "!=")
+            n = int(name.split('[', 1)[1].split(']', 1)[0])
+            if n in self.binary_variables:
+                name = name[:-1] + str(1 - int(name[-1]))
+            else:
+                name = name.replace("==", "!=")
+            return name
         else:
-            return str
+            return name
 
     def reverse_vars(self, stuff: Union[Iterable[int], int]) -> Union[List[str], str]:
         if hasattr(stuff, '__iter__'):
             return [self.reverse_vars(substuff) for substuff in stuff]
         else:
             return self.reverse_var(stuff)
+
+    def make_P_from_negatives(self, forbidden_clause_OR: List[int]) -> str:
+        forbidden_clause_AND = -np.asarray(forbidden_clause_OR)
+        forbidden_clause_AND_interpreted = self.reverse_vars(forbidden_clause_AND)
+        # next, drop copy indices:
+        forbidden_clause_AND_interpreted = [re.sub(r".\([^)]*\)", "", s) for s in forbidden_clause_AND_interpreted]
+        return f"P({', '.join(forbidden_clause_AND_interpreted)})=0"
+
+    def make_P_from_positives(self, positive_events_AND: List[int]) -> str:
+        pattern = re.compile(r'\(([^)]*)\)')  # grab contents between first parentheses
+        groups = defaultdict(list)
+        names = self.reverse_vars(positive_events_AND)
+        for s in names:
+            m = pattern.search(s)
+            if not m:
+                continue  # or raise, if every string should have parentheses
+            key = m.group(1).strip()  # e.g. "0, 0" or "1, 1"
+            groups[key].append(s)
+        collected = []
+        for names in groups.values():
+            collected.append(f"P({', '.join([re.sub(r".\([^)]*\)", "", s) for s in names])})")
+        return f"{''.join(collected)})>0"
 
     @cached_property
     def at_least_one_outcome(self) -> List[List[int]]:
@@ -197,7 +216,7 @@ class SupportTester(object):
             np.asarray(supports_as_integers, dtype=self.int_dtype).shape + (self.nof_events, self.nof_observed))
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def forbidden_event_clauses(self, event: int) -> List[Tuple[int, ...]]:
+    def forbidden_event_clauses(self, event: int) -> List[List[int]]:
         """Get the clauses associated with a particular event not occurring anywhere in the off-diagonal worlds."""
         forbidden_event_as_row = self.from_list_to_matrix(event)
         forbidden_event_clauses = []
@@ -207,22 +226,22 @@ class SupportTester(object):
                 repeat=self.nof_latent):
             iterator = observed_iterator_as_list.copy()
             iterator.extend(latent_iterator)
-            no_go_clause = tuple(sorted(-self.var(
+            no_go_clause = [-self.var(
                 i, val, partsextractor(iterator, self.parents_of[i]))
                                         for i, val in enumerate(
-                forbidden_event_as_row.flat)))
+                forbidden_event_as_row.flat)]
             forbidden_event_clauses.append(no_go_clause)
         return forbidden_event_clauses
-    def forbidden_events_clauses(self, occurring_events: IntMatrix) -> List[Tuple[int, ...]]:
+    def forbidden_events_clauses(self, occurring_events: IntMatrix) -> List[List[int]]:
         """Get the clauses associated with all nonoccurring event as not occurring anywhere in the off-diagonal worlds."""
         occurring_events_as_list = self.from_matrix_to_list(occurring_events)
         forbidden_events_as_list = np.setdiff1d(
             self.conceivable_events_range,
             occurring_events_as_list,
             assume_unique=True)
-        return list(itertools.chain.from_iterable([
+        return list(itertools.chain.from_iterable(
             self.forbidden_event_clauses(event) for event in forbidden_events_as_list.flat
-        ]))
+        ))
 
     @methodtools.lru_cache(maxsize=None, typed=False)
     def positive_outcome_clause(self,
@@ -251,33 +270,43 @@ class SupportTester(object):
     def array_of_positive_outcomes(self, occurring_events: IntMatrix) -> List[List[int]]:
         return [clause for world, outcomes in enumerate(occurring_events)
                 for clause in self.positive_outcome_clause(world, tuple(outcomes))]
-        # for world, outcomes in enumerate(occurring_events):
-        #     for clause in self.positive_outcome_clause(world, tuple(outcomes)):
-        #         yield clause
 
-    def _sat_solver_clauses(self, occurring_events: IntMatrix) -> List[List[int]]:
+
+    def feasibleQ_from_matrix(self, occurring_events: IntMatrix, return_model: bool = False, **kwargs: Any) -> SolverOutput:
         assert self.nof_events == len(occurring_events), 'The number of events does not match the expected number.'
-        return self.array_of_positive_outcomes(occurring_events) + \
-               self.at_least_one_outcome + \
-               self.forbidden_events_clauses(occurring_events)
-
-    def feasibleQ_from_matrix(self, occurring_events: IntMatrix, return_model: bool = False, **kwargs: Any) -> Union[bool, List[int]]:
-        with Solver(bootstrap_with=self._sat_solver_clauses(occurring_events), **kwargs) as s:
-            # if not self.cached_properties_computed_yet:
-            #     # print("Initialization of problem complete.")
-            #     self.cached_properties_computed_yet = True
-            sol = s.solve()
-            if (not return_model) or (not sol):
+        forbidden_event_clauses = self.forbidden_events_clauses(occurring_events)
+        core_literals = list(itertools.chain.from_iterable(self.array_of_positive_outcomes(occurring_events)))
+        if return_model:
+            clause_ids = [self.vpool.id(str(clause)) for clause in forbidden_event_clauses]
+            clause_dict = dict(zip(clause_ids, forbidden_event_clauses))
+            new_forbidden_clauses = [clause + [-id] for clause, id in zip(forbidden_event_clauses, clause_ids)]
+            bootstrap_clauses = self.at_least_one_outcome + new_forbidden_clauses
+            literals = core_literals + clause_ids
+        else:
+            bootstrap_clauses = self.at_least_one_outcome + forbidden_event_clauses
+            literals = core_literals
+        with (Solver(bootstrap_with=bootstrap_clauses, **kwargs) as s):
+            sol = s.solve(assumptions=literals)
+            if not return_model:
                 return sol
+            if sol:
+                return True, [self.reverse_var(var) for var in s.get_model() if var not in clause_ids]
             else:
-                return s.get_model()
+                core = set(s.get_core())
+                forbidden_core = core.intersection(clause_ids)
+                positives = core.intersection(core_literals)
+                # print(f"Number of problematic clauses {len(forbidden_core)} out of {len(clause_ids)}")
+                # print("Returning forbidden events as ANDs")
+                problematic_clauses = partsextractor(clause_dict, forbidden_core)
+                return False, [self.make_P_from_positives(positives)] + sorted(set(map(self.make_P_from_negatives, problematic_clauses)))
+
 
     # @methodtools.lru_cache(maxsize=None, typed=False) # Not worth caching.
-    def feasibleQ_from_tuple(self, occurring_events_as_tuple: IntArray, **kwargs: Any) -> bool:
+    def feasibleQ_from_tuple(self, occurring_events_as_tuple: IntArray, **kwargs: Any) -> SolverOutput:
         return self.feasibleQ_from_matrix(self.from_list_to_matrix(occurring_events_as_tuple), **kwargs)
 
     @methodtools.lru_cache(maxsize=None, typed=False)
-    def feasibleQ_from_integer(self, occurring_events_as_integer: Union[int, IntArray], **kwargs: Any) -> bool:
+    def feasibleQ_from_integer(self, occurring_events_as_integer: Union[int, IntArray], **kwargs: Any) -> SolverOutput:
         return self.feasibleQ_from_matrix(self.from_integer_to_matrix(occurring_events_as_integer), **kwargs)
 
     @methodtools.lru_cache(maxsize=None, typed=False)
@@ -292,7 +321,7 @@ class SupportTester(object):
                                            min_definite: int = 2,
                                            max_definite: float = np.inf,
                                            always_include: Tuple[Tuple[int, ...], ...] = tuple(),
-                                           **kwargs: Any) -> bool:
+                                           **kwargs: Any) -> SolverOutput:
         sanitized_always_include = tuple(map(tuple, always_include))
         others_to_potentially_include = tuple(set(map(tuple, occurring_events)).difference(
             sanitized_always_include))
@@ -320,38 +349,40 @@ class SupportTester(object):
                     return False
         return True
 
-    def _sat_solver_clauses_bonus(self,
-                                  definitely_occurring_events: IntMatrix,
-                                  potentially_occurring_events: IntMatrix) -> List[List[int]]:
-        """
-        Intended to analyze many events with few-event hot_start. Infeasible test, but cannot guarantee feasible.
-        (We could write another version that requires the missing events to show up somewhere in the off diagonal
-         worlds, but that seems complicated.)
-        """
-        assert self.nof_events == len(
-            definitely_occurring_events), 'The number of events does not match the expected number.'
-        return list(self.array_of_positive_outcomes(definitely_occurring_events)) + \
-               self.at_least_one_outcome + \
-               self.forbidden_events_clauses(potentially_occurring_events)
 
     def potentially_feasibleQ_from_matrix_pair(self,
                                                definitely_occurring_events_matrix: IntMatrix,
                                                potentially_occurring_events_matrix: IntMatrix,
                                                return_model: bool = False,
-                                               **kwargs: Any) -> Union[bool, List[int]]:
+                                               **kwargs: Any) -> SolverOutput:
+        assert self.nof_events == len(
+            definitely_occurring_events_matrix), 'The number of events does not match the expected number.'
         new_support_as_tuples = set(map(tuple, potentially_occurring_events_matrix))
         definite_events_as_tuples = set(map(tuple, definitely_occurring_events_matrix))
         assert definite_events_as_tuples.issubset(new_support_as_tuples), "Input is not of format where definite events are a subset of the potential events."
-        with Solver(bootstrap_with=self._sat_solver_clauses_bonus(definitely_occurring_events_matrix,
-                                                                  potentially_occurring_events_matrix), **kwargs) as s:
-            # if not self.cached_properties_computed_yet:
-            #     # print(f"Initialization of problem complete. ({self.nof_events} events)")
-            #     self.cached_properties_computed_yet = True
-            sol = s.solve()
-            if (not return_model) or (not sol):
+        forbidden_event_clauses = self.forbidden_events_clauses(potentially_occurring_events_matrix)
+        core_literals = list(itertools.chain.from_iterable(self.array_of_positive_outcomes(definitely_occurring_events_matrix)))
+        if return_model:
+            clause_ids = [self.vpool.id(str(clause)) for clause in forbidden_event_clauses]
+            clause_dict = dict(zip(clause_ids, forbidden_event_clauses))
+            new_forbidden_clauses = [clause + [-id] for clause, id in zip(forbidden_event_clauses, clause_ids)]
+            bootstrap_clauses = self.at_least_one_outcome + new_forbidden_clauses
+            literals = core_literals + clause_ids
+        else:
+            bootstrap_clauses = self.at_least_one_outcome + forbidden_event_clauses
+            literals = core_literals
+        with (Solver(bootstrap_with=bootstrap_clauses, **kwargs) as s):
+            sol = s.solve(assumptions=literals)
+            if not return_model:
                 return sol
+            if sol:
+                return True, [self.reverse_var(var) for var in s.get_model() if var not in clause_ids]
             else:
-                return s.get_model()
+                core = set(s.get_core())
+                forbidden_core = core.intersection(clause_ids)
+                positives = core.intersection(core_literals)
+                problematic_clauses = partsextractor(clause_dict, forbidden_core)
+                return False, [self.make_P_from_positives(positives)] + sorted(set(map(self.make_P_from_negatives, problematic_clauses)))
 
 
     @staticmethod
@@ -680,7 +711,7 @@ class SupportTesting(SupportTester):
 def one_off(parents_of: Tuple[Sequence[int], ...], support_as_matrix: IntMatrix,
             definite_events=tuple(),
             stclass=SupportTester,
-            **kwargs) -> bool:
+            **kwargs) -> SolverOutput:
     support_as_array = np.asarray(support_as_matrix)
     (nrows, ncols) = support_as_array.shape
     new_support = np.empty((nrows, ncols), dtype=int)
@@ -780,179 +811,185 @@ class CumulativeSupportTesting:
 
 if __name__ == '__main__':
     parents_of = ([3, 4], [4, 5], [3, 5])
-    print("One off: ", one_off(parents_of, [(1, 0, 0), (0, 1, 0), (0, 0, 1)]))
-    print("One off: ", one_off(parents_of, [(1, 0, 0), (0, 1, 0), (0, 0, 1)],
-                               definite_events=[(1, 0, 0), (0, 1, 0)]))
-    print("One off: ", one_off(parents_of, [(0, 0, 0), (0, 1, 0), (0, 0, 1)]))
-
-    # print("One off MARINA RELEVANT: ", one_off(parents_of=[[4, 6], [0, 5],
-    #                                                        [1, 4], [1, 2, 6]],
-    #                                            support_as_matrix=[[0, 0, 0, 0],
-    #                                                               [0, 0, 1, 0],
-    #                                                               [0, 1, 0, 0],
-    #                                                               [1, 0, 0, 0],
-    #                                                               [1, 1, 0, 1],
-    #                                                               [2, 0, 0, 1],
-    #                                                               [2, 1, 1, 0]]))
-    # print("Checking for bad automorphism detection:", infer_automorphisms([[4, 6], [0, 5],
-    #                                                        [1, 4], [1, 2, 6]]))
-    # nof_events = 3
-    # st = SupportTesting(parents_of, observed_cardinalities, nof_events)
+    print("Known infeasible analysis:")
+    sol = one_off(parents_of, [(1, 0, 0), (0, 1, 0), (0, 0, 1)], return_model=True)
+    print(f"Feasible evaluation? {sol[0]}")
+    print("Problematic clauses:")
+    for fact in sol[1]:
+        print(fact)
+    print("\n****\n")
+    print("Known feasible analysis:")
+    sol = one_off(parents_of, [(1, 0, 0), (0, 1, 0), (0, 0, 1)],
+                               definite_events=[(1, 0, 0), (0, 1, 0)], return_model=True)
+    print(f"Feasible evaluation? {sol[0]}")
+    print("Model parameters:")
+    for fact in sol[1]:
+        print(fact)
+    # print("One off: ", one_off(parents_of, [(0, 0, 0), (0, 1, 0), (0, 0, 1)]))
     #
-    # occurring_events_temp = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
-    # print(st.feasibleQ_from_matrix(occurring_events_temp, name='mgh', use_timer=True))
-    # occurring_events_temp = [(0, 0, 0), (0, 1, 0), (0, 0, 1)]
-    # print(st.feasibleQ_from_matrix(occurring_events_temp, name='mgh', use_timer=True))
-
-    parents_of = ([1, 3], [3, 4], [1, 4])
-    visible_automorphisms = infer_automorphisms(parents_of)
-    observed_cardinalities = (3, 3, 3)
-    st = SupportTesting(parents_of, observed_cardinalities, 3, visible_automorphisms=visible_automorphisms)
-    cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 4, visible_automorphisms=visible_automorphisms)
-    inf = st.unique_infeasible_supports_as_integers_unlabelled(name='mgh', use_timer=False)
-    print("UC automorphisms:", st.visible_automorphisms)
-    print("UC nonautomorphisms:", st.visible_nonautomorphisms)
-    print(st.from_integer_to_matrix(inf))
-    print(cst.all_infeasible_supports)
-    print(cst.all_infeasible_supports_unlabelled)
-    print(cst.all_infeasible_supports_compressed)
-    
-    # parents_of = ([3, 4], [4, 5], [5, 3])
+    # # print("One off MARINA RELEVANT: ", one_off(parents_of=[[4, 6], [0, 5],
+    # #                                                        [1, 4], [1, 2, 6]],
+    # #                                            support_as_matrix=[[0, 0, 0, 0],
+    # #                                                               [0, 0, 1, 0],
+    # #                                                               [0, 1, 0, 0],
+    # #                                                               [1, 0, 0, 0],
+    # #                                                               [1, 1, 0, 1],
+    # #                                                               [2, 0, 0, 1],
+    # #                                                               [2, 1, 1, 0]]))
+    # # print("Checking for bad automorphism detection:", infer_automorphisms([[4, 6], [0, 5],
+    # #                                                        [1, 4], [1, 2, 6]]))
+    # # nof_events = 3
+    # # st = SupportTesting(parents_of, observed_cardinalities, nof_events)
+    # #
+    # # occurring_events_temp = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+    # # print(st.feasibleQ_from_matrix(occurring_events_temp, name='mgh', use_timer=True))
+    # # occurring_events_temp = [(0, 0, 0), (0, 1, 0), (0, 0, 1)]
+    # # print(st.feasibleQ_from_matrix(occurring_events_temp, name='mgh', use_timer=True))
+    #
+    # parents_of = ([1, 3], [3, 4], [1, 4])
     # visible_automorphisms = infer_automorphisms(parents_of)
+    # observed_cardinalities = (3, 3, 3)
+    # st = SupportTesting(parents_of, observed_cardinalities, 3, visible_automorphisms=visible_automorphisms)
     # cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 4, visible_automorphisms=visible_automorphisms)
+    # inf = st.unique_infeasible_supports_as_integers_unlabelled(name='mgh', use_timer=False)
+    # print("UC automorphisms:", st.visible_automorphisms)
+    # print("UC nonautomorphisms:", st.visible_nonautomorphisms)
+    # print(st.from_integer_to_matrix(inf))
     # print(cst.all_infeasible_supports)
     # print(cst.all_infeasible_supports_unlabelled)
     # print(cst.all_infeasible_supports_compressed)
-
-    # sample2 = st.unique_candidate_supports
-    # print(st.unique_candidate_supports)
-    # print(st.visualize_supports(st.unique_candidate_supports))
-    # inf2 = st.unique_infeasible_supports_as_integers(name='mgh', use_timer=False)
-    # print(inf2)
-    # print(st.devisualize_supports(inf2))
-    # print(st.extreme_devisualize_supports(inf2))
-    # st = SupportTesting(parents_of, observed_cardinalities, 3)
-    # # sample3 = st.unique_candidate_supports
-    # inf3 = st.unique_infeasible_supports_as_integers(name='mgh', use_timer=False)
-    # print(inf3)
-    # print(st.devisualize_supports(inf3))
-    # print(st.extreme_devisualize_supports(inf3))
-    # st = SupportTesting(parents_of, observed_cardinalities, 4)
-    # st = SupportTesting(parents_of, [2, 3, 3], 2)
-    # print(st.outcome_relabelling_group.shape)
-    # st = SupportTesting(parents_of, [2, 3, 4], 2)
-    # print(st.outcome_relabelling_group.shape)
-    # print(st._array_of_potentially_forbidden_events)
-    # cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 6)
-    # print(cst.all_infeasible_supports)
-    # print(cst.all_infeasible_supports_matrix)
     #
-    # #Everything appears to work as desired.
-    # #So let's pick a really hard problem, the square!
+    # # parents_of = ([3, 4], [4, 5], [5, 3])
+    # # visible_automorphisms = infer_automorphisms(parents_of)
+    # # cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 4, visible_automorphisms=visible_automorphisms)
+    # # print(cst.all_infeasible_supports)
+    # # print(cst.all_infeasible_supports_unlabelled)
+    # # print(cst.all_infeasible_supports_compressed)
     #
-    # parents_of = ([4, 5, 6], [4, 7, 8], [5, 7, 9], [6, 8, 9])
-    # observed_cardinalities = (2, 2, 2, 2)
-    # cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 4)
-    # print(cst.all_infeasible_supports)
-    # print(cst.all_infeasible_supports_unlabelled)
-    # print(cst.all_infeasible_supports_independent_unlabelled)
-    # discovered = cst.from_integer_to_matrix(cst.all_infeasible_supports_unlabelled)
-    # # print(discovered)
+    # # sample2 = st.unique_candidate_supports
+    # # print(st.unique_candidate_supports)
+    # # print(st.visualize_supports(st.unique_candidate_supports))
+    # # inf2 = st.unique_infeasible_supports_as_integers(name='mgh', use_timer=False)
+    # # print(inf2)
+    # # print(st.devisualize_supports(inf2))
+    # # print(st.extreme_devisualize_supports(inf2))
+    # # st = SupportTesting(parents_of, observed_cardinalities, 3)
+    # # # sample3 = st.unique_candidate_supports
+    # # inf3 = st.unique_infeasible_supports_as_integers(name='mgh', use_timer=False)
+    # # print(inf3)
+    # # print(st.devisualize_supports(inf3))
+    # # print(st.extreme_devisualize_supports(inf3))
+    # # st = SupportTesting(parents_of, observed_cardinalities, 4)
+    # # st = SupportTesting(parents_of, [2, 3, 3], 2)
+    # # print(st.outcome_relabelling_group.shape)
+    # # st = SupportTesting(parents_of, [2, 3, 4], 2)
+    # # print(st.outcome_relabelling_group.shape)
+    # # print(st._array_of_potentially_forbidden_events)
+    # # cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 6)
+    # # print(cst.all_infeasible_supports)
     # # print(cst.all_infeasible_supports_matrix)
-    # # discovered = to_digits(cst.all_infeasible_supports_matrix, observed_cardinalities)
-    # # print(discovered)
-    # trulyvariable = discovered.compress(discovered.any(axis=-2).all(axis=-1),
-    #                                     axis=0)  # makes every variable actually variable
-    # print(trulyvariable)
-
-
-    # # Special problem for Victor Gitton
-    # parents_of = np.array(([3, 4], [4, 5], [5, 3]))
-    # # parents_of_subtracted = parents_of - 3
-    # # party_and_source_sym = np.array([np.take(perm, parents_of_subtracted)+3 for perm in itertools.permutations(range(3))])
-    # party_and_source_sym = np.array([np.take(parents_of, perm, axis=0) for perm in
-    #                       itertools.permutations(range(3))])
-    # party_sym = np.array([np.roll(parents_of, i, axis=0) for i in range(3)])
-    # print(party_sym)
-    # party_and_source_sym = np.vstack((party_sym, party_sym[:, :, [1, 0]]))
-    # party_and_source_sym = [parents_of[list(p_perm)][:, s_perm]
-    #                         for p_perm in itertools.permutations(range(3))
-    #                         for s_perm in itertools.permutations(range(2))
-    #                         ]
-    # print(party_and_source_sym)
-    # observed_cardinalities = (3, 3, 3)
-    # occurring_events_temp = np.array([(0, 0, 0), (1, 1, 1), (2, 2, 2)]
-    #                                  + list(itertools.permutations(range(3))))
+    # #
+    # # #Everything appears to work as desired.
+    # # #So let's pick a really hard problem, the square!
+    # #
+    # # parents_of = ([4, 5, 6], [4, 7, 8], [5, 7, 9], [6, 8, 9])
+    # # observed_cardinalities = (2, 2, 2, 2)
+    # # cst = CumulativeSupportTesting(parents_of, observed_cardinalities, 4)
+    # # print(cst.all_infeasible_supports)
+    # # print(cst.all_infeasible_supports_unlabelled)
+    # # print(cst.all_infeasible_supports_independent_unlabelled)
+    # # discovered = cst.from_integer_to_matrix(cst.all_infeasible_supports_unlabelled)
+    # # # print(discovered)
+    # # # print(cst.all_infeasible_supports_matrix)
+    # # # discovered = to_digits(cst.all_infeasible_supports_matrix, observed_cardinalities)
+    # # # print(discovered)
+    # # trulyvariable = discovered.compress(discovered.any(axis=-2).all(axis=-1),
+    # #                                     axis=0)  # makes every variable actually variable
+    # # print(trulyvariable)
     #
     #
-    # st = SupportTester(parents_of=parents_of,
-    #               observed_cardinalities=observed_cardinalities,
-    #               nof_events=(3+6))
-    # print("3 outcome with no symmetry: ", st.feasibleQ_from_matrix(occurring_events_temp, name='mgh'))
+    # # # Special problem for Victor Gitton
+    # # parents_of = np.array(([3, 4], [4, 5], [5, 3]))
+    # # # parents_of_subtracted = parents_of - 3
+    # # # party_and_source_sym = np.array([np.take(perm, parents_of_subtracted)+3 for perm in itertools.permutations(range(3))])
+    # # party_and_source_sym = np.array([np.take(parents_of, perm, axis=0) for perm in
+    # #                       itertools.permutations(range(3))])
+    # # party_sym = np.array([np.roll(parents_of, i, axis=0) for i in range(3)])
+    # # print(party_sym)
+    # # party_and_source_sym = np.vstack((party_sym, party_sym[:, :, [1, 0]]))
+    # # party_and_source_sym = [parents_of[list(p_perm)][:, s_perm]
+    # #                         for p_perm in itertools.permutations(range(3))
+    # #                         for s_perm in itertools.permutations(range(2))
+    # #                         ]
+    # # print(party_and_source_sym)
+    # # observed_cardinalities = (3, 3, 3)
+    # # occurring_events_temp = np.array([(0, 0, 0), (1, 1, 1), (2, 2, 2)]
+    # #                                  + list(itertools.permutations(range(3))))
+    # #
+    # #
+    # # st = SupportTester(parents_of=parents_of,
+    # #               observed_cardinalities=observed_cardinalities,
+    # #               nof_events=(3+6))
+    # # print("3 outcome with no symmetry: ", st.feasibleQ_from_matrix(occurring_events_temp, name='mgh'))
+    # #
+    # # st = SupportTester(parents_of=party_sym,
+    # #               observed_cardinalities=observed_cardinalities,
+    # #               nof_events=(3+6))
+    # # print("3 outcome with only party symmetry: ", st.feasibleQ_from_matrix(occurring_events_temp, name='mgh'))
+    # #
+    # # st = SupportTester(parents_of=party_and_source_sym,
+    # #               observed_cardinalities=observed_cardinalities,
+    # #               nof_events=(3+6))
+    # # print("3 outcome w/ transposition symmetry: ", st.feasibleQ_from_matrix_CONSERVATIVE(occurring_events_temp, name='mgh'))
+    # #
+    # #
+    # #
+    # # occurring_events_card_4 = np.array([(0, 0, 0), (1, 1, 1), (2, 2, 2), (3, 3, 3)]
+    # #                                  + list(itertools.permutations(range(4), 3)))
+    # #
+    # # max_n = len(occurring_events_card_4)
+    # # rejected_yet = False
+    # # for n in range(7, max_n+1):
+    # #     if rejected_yet:
+    # #         break
+    # #     print(f"Working on cardinality 4 with {n} definite events...")
+    # #     st = SupportTester(parents_of=party_sym,
+    # #                        observed_cardinalities=(4, 4, 4),
+    # #                        nof_events=n)
+    # #     # for definitely_occurring_events in itertools.combinations(occurring_events_card_4, n):
+    # #     definitely_occurring_events = occurring_events_card_4[:n]
+    # #     rejected_yet = not st.potentially_feasibleQ_from_matrix_pair(
+    # #         definitely_occurring_events_matrix=definitely_occurring_events,
+    # #         potentially_occurring_events_matrix=occurring_events_card_4
+    # #     )
+    # #     if rejected_yet:
+    # #         print(f"search completed at {n} events")
+    # #         print(definitely_occurring_events)
+    # #         break
+    # # print("In the end, were we able to prove infeasibility? ", rejected_yet)
     #
-    # st = SupportTester(parents_of=party_sym,
-    #               observed_cardinalities=observed_cardinalities,
-    #               nof_events=(3+6))
-    # print("3 outcome with only party symmetry: ", st.feasibleQ_from_matrix(occurring_events_temp, name='mgh'))
+    # # print("Now testing PP relations per Marina bug report.")
+    # # parents_of = ([3], [0, 3], [1])
+    # # observed_cardinalities = (2, 2, 2)
+    # # st_raw = SupportTesting(parents_of, observed_cardinalities, 4, pp_relations=tuple())
+    # # all_candidate_matrices = st_raw.unique_candidate_supports_as_compressed_matrices
+    # # must_perfectpredict = [(1, [0])]
+    # # st_restricted = SupportTesting(parents_of,
+    # #                                observed_cardinalities,
+    # #                                3, pp_relations=must_perfectpredict)
+    # # print("Method 1\n", st_raw.extract_support_matrices_satisfying_pprestrictions(
+    # #     all_candidate_matrices,
+    # #     must_perfectpredict)[:3])
+    # # print("Method 2\n",
+    # #       st_restricted.unique_candidate_supports_as_compressed_matrices[:3])
+    # # print("Method 3\n",
+    # #       list(SupportTesting.generate_supports_satisfying_pp_restriction(1, [0],
+    # #                                                                  all_candidate_matrices))[:3])
     #
-    # st = SupportTester(parents_of=party_and_source_sym,
-    #               observed_cardinalities=observed_cardinalities,
-    #               nof_events=(3+6))
-    # print("3 outcome w/ transposition symmetry: ", st.feasibleQ_from_matrix_CONSERVATIVE(occurring_events_temp, name='mgh'))
-    #
-    #
-    #
-    # occurring_events_card_4 = np.array([(0, 0, 0), (1, 1, 1), (2, 2, 2), (3, 3, 3)]
-    #                                  + list(itertools.permutations(range(4), 3)))
-    #
-    # max_n = len(occurring_events_card_4)
-    # rejected_yet = False
-    # for n in range(7, max_n+1):
-    #     if rejected_yet:
-    #         break
-    #     print(f"Working on cardinality 4 with {n} definite events...")
-    #     st = SupportTester(parents_of=party_sym,
-    #                        observed_cardinalities=(4, 4, 4),
-    #                        nof_events=n)
-    #     # for definitely_occurring_events in itertools.combinations(occurring_events_card_4, n):
-    #     definitely_occurring_events = occurring_events_card_4[:n]
-    #     rejected_yet = not st.potentially_feasibleQ_from_matrix_pair(
-    #         definitely_occurring_events_matrix=definitely_occurring_events,
-    #         potentially_occurring_events_matrix=occurring_events_card_4
-    #     )
-    #     if rejected_yet:
-    #         print(f"search completed at {n} events")
-    #         print(definitely_occurring_events)
-    #         break
-    # print("In the end, were we able to prove infeasibility? ", rejected_yet)
-
-    # print("Now testing PP relations per Marina bug report.")
-    # parents_of = ([3], [0, 3], [1])
-    # observed_cardinalities = (2, 2, 2)
-    # st_raw = SupportTesting(parents_of, observed_cardinalities, 4, pp_relations=tuple())
-    # all_candidate_matrices = st_raw.unique_candidate_supports_as_compressed_matrices
-    # must_perfectpredict = [(1, [0])]
-    # st_restricted = SupportTesting(parents_of,
-    #                                observed_cardinalities,
-    #                                3, pp_relations=must_perfectpredict)
-    # print("Method 1\n", st_raw.extract_support_matrices_satisfying_pprestrictions(
-    #     all_candidate_matrices,
-    #     must_perfectpredict)[:3])
-    # print("Method 2\n",
-    #       st_restricted.unique_candidate_supports_as_compressed_matrices[:3])
-    # print("Method 3\n",
-    #       list(SupportTesting.generate_supports_satisfying_pp_restriction(1, [0],
-    #                                                                  all_candidate_matrices))[:3])
-
-    parents_of_graph_a = ([4, 5], [0, 6], [1, 4, 6], [1, 2, 5])
-    parents_of_graph_c = ([4, 5], [0, 6], [1, 4], [1, 2, 5, 6])
-    observed_cardinalities = (3, 2, 2, 2)
-    st_raw = SupportTesting(parents_of_graph_c, observed_cardinalities, 7)
-    result = st_raw.attempt_to_find_one_infeasible_support(verbose=True)
-    print(result)
-
-
-
-
-
+    # parents_of_graph_a = ([4, 5], [0, 6], [1, 4, 6], [1, 2, 5])
+    # parents_of_graph_c = ([4, 5], [0, 6], [1, 4], [1, 2, 5, 6])
+    # observed_cardinalities = (3, 2, 2, 2)
+    # st_raw = SupportTesting(parents_of_graph_c, observed_cardinalities, 7)
+    # result = st_raw.attempt_to_find_one_infeasible_support(verbose=True)
+    # print(result)
 
