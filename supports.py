@@ -24,6 +24,29 @@ BoolArray = npt.NDArray[np.bool_]
 IntMatrix = npt.NDArray[np.int_]
 SolverOutput = Union[bool, Tuple[bool, List[str]]]
 
+def shrink_core(cnf_clauses: List[List[int]], core_assumps: List[int]) -> List[int]:
+    """
+    cnf_clauses: list of clauses you already gave to the solver
+    core_assumps: an UNSAT core (list of assumption literals) from get_core()
+    returns: a minimal core (MUS) over these assumptions
+    """
+    with Solver(bootstrap_with=cnf_clauses) as s:
+        core = list(core_assumps)  # make a copy
+        i = 0
+        while i < len(core):
+            # Try removing core[i]
+            test = core[:i] + core[i+1:]
+            if s.solve(assumptions=test):
+                # Without core[i], it becomes SAT -> core[i] is necessary
+                i += 1
+            else:
+                # Still UNSAT -> core[i] was not necessary; shrink core
+                core = s.get_core()  # or just core = test if you prefer
+                # NOTE: core may be an even smaller subset than `test`,
+                # so we reset i to 0 to start over safely.
+                i = 0
+        return core
+
 try:
     import networkx as nx
     from networkx.algorithms.isomorphism import DiGraphMatcher
@@ -292,7 +315,8 @@ class SupportTester(object):
             if sol:
                 return True, [self.reverse_var(var) for var in s.get_model() if var not in clause_ids]
             else:
-                core = set(s.get_core())
+                core = set(s.get_core()) # ANY unsat core
+                core = set(shrink_core(bootstrap_clauses, sorted(core))) # MINIMAL unsat core, comment out if too expensive
                 forbidden_core = core.intersection(clause_ids)
                 positives = core.intersection(core_literals)
                 # print(f"Number of problematic clauses {len(forbidden_core)} out of {len(clause_ids)}")
@@ -378,7 +402,8 @@ class SupportTester(object):
             if sol:
                 return True, [self.reverse_var(var) for var in s.get_model() if var not in clause_ids]
             else:
-                core = set(s.get_core())
+                core = set(s.get_core())  # ANY unsat core
+                core = set(shrink_core(bootstrap_clauses, sorted(core)))  # MINIMAL unsat core, comment out if too expensive
                 forbidden_core = core.intersection(clause_ids)
                 positives = core.intersection(core_literals)
                 problematic_clauses = partsextractor(clause_dict, forbidden_core)
