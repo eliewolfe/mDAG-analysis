@@ -218,12 +218,30 @@ class Metagraph_temporally_ordered_mDAGs:
     @cached_property
     def truly_all_equivalence_classes_as_mDAGs(self):    
         return [self.lookup_mDAG(eqclass) for eqclass in self.truly_all_equivalence_classes_as_ids]
-    
+
     @cached_property
-    def latent_free_truly_all_eqclasses(self):
-        latent_free_picklist= [any(mdag.latent_free_graphQ for mdag in eqclass) for eqclass in self.truly_all_equivalence_classes_as_mDAGs]
+    def latent_free_picklist(self):
+        return  [any(mdag.latent_free_graphQ for mdag in eqclass) for eqclass in self.truly_all_equivalence_classes_as_mDAGs]
+
+    @cached_property
+    def latent_free_truly_all_eqclasses_as_mDAGs(self):
         return [eqclass for eqclass,latent_free_Q in
-                zip(self.truly_all_equivalence_classes_as_mDAGs, latent_free_picklist) if latent_free_Q]
+                zip(self.truly_all_equivalence_classes_as_mDAGs, self.latent_free_picklist) if latent_free_Q]
+
+    @cached_property
+    def NOT_latent_free_truly_all_eqclasses_as_mDAGs(self):
+        return [eqclass for eqclass,latent_free_Q in
+                zip(self.truly_all_equivalence_classes_as_mDAGs, self.latent_free_picklist) if not latent_free_Q]
+
+    @cached_property
+    def latent_free_truly_all_eqclasses_as_ids(self):
+        return [eqclass for eqclass,latent_free_Q in
+                zip(self.truly_all_equivalence_classes_as_ids, self.latent_free_picklist) if latent_free_Q]
+
+    @cached_property
+    def NOT_latent_free_truly_all_eqclasses_as_ids(self):
+        return [eqclass for eqclass,latent_free_Q in
+                zip(self.truly_all_equivalence_classes_as_ids, self.latent_free_picklist) if not latent_free_Q]
 
     @cached_property
     def equivalence_classes_as_ids(self):     # Here, each "equivalence class" is actually a block of the proven-equivalence partition of mDAGs according to all of the known observational equivalence rules
@@ -245,6 +263,23 @@ class Metagraph_temporally_ordered_mDAGs:
         for idclass in self.equivalence_classes_as_ids:
             if mdag_id in idclass:
                 return idclass
+
+    @cached_property
+    def NOT_latent_free_equivalence_classes_as_ids(
+            self):  # Here, each "equivalence class" is actually a block of the proven-equivalence partition of mDAGs according to all of the known observational equivalence rules
+        if not self.temporally_ordered:
+            return self.NOT_latent_free_truly_all_eqclasses_as_ids
+        else:
+            temporal_eq_classes = []
+            for eq_class_ids in self.NOT_latent_free_truly_all_eqclasses_as_ids:
+                eq_class_temporally_ordered_ids = self.all_temporally_ordered_ids.intersection(eq_class_ids)
+                if eq_class_temporally_ordered_ids:
+                    temporal_eq_classes.append(eq_class_temporally_ordered_ids)
+            return temporal_eq_classes
+
+    @cached_property
+    def NOT_latent_free_equivalence_classes_as_mDAGs(self):
+        return [self.lookup_mDAG(eqclass) for eqclass in self.NOT_latent_free_equivalence_classes_as_ids]
 
 
     
@@ -412,7 +447,7 @@ if __name__ == "__main__":
     # FINDING MINIMUM FRACTION OF NONALGEBRAIC TEMPORALLY-ORDERED CLASSES 
 
     # Every algebraic class must contain at least one confounder-free mDAG. Therefore:
-    print("Maximum number of algebraic temporally ordered classes:", len(mDAG_analysis.latent_free_truly_all_eqclasses))       
+    print("Maximum number of algebraic temporally ordered classes:", len(mDAG_analysis.latent_free_truly_all_eqclasses_as_mDAGs))
     # Obtaining the certainly nonalgebraic mDAGs from the symmetry argument:
     nonalgebraic_from_temporally_ordered = mDAG_analysis.non_algebraic_proven_ineq_blocks_from_symmetries(proven_inequivalence_partition_dict[k])
     print("Minimum number of non-algebraic temporally ordered classes by symmetry:", len(nonalgebraic_from_temporally_ordered))

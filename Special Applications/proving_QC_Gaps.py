@@ -3,13 +3,25 @@ from hypergraphs import Hypergraph
 from directed_structures import DirectedStructure
 from mDAG_advanced import mDAG
 from quantum_mDAG import QmDAG, upgrade_to_QmDAG
-from metagraph_advanced import Observable_mDAGs_Analysis
+from metagraph_temporally_ordered import Metagraph_temporally_ordered_mDAGs
+from itertools import chain
 
 # if __name__ == '__main__':
-Observable_mDAGs4 = Observable_mDAGs_Analysis(nof_observed_variables=4, max_nof_events_for_supports=0)
-#Observable_mDAGs3 = Observable_mDAGs_Analysis(nof_observed_variables=3, max_nof_events_for_supports=0)
-mDAGs4_representatives = Observable_mDAGs4.NOT_latent_free_representative_mDAGs_list
+Metagraph4 = Metagraph_temporally_ordered_mDAGs(n=4, temporally_ordered=True)
+temporally_ordered_not_latent_free_equivalent_classes_as_mDAGs = Metagraph4.NOT_latent_free_equivalence_classes_as_mDAGs
+print("Number of temporally-order not-provably-algebraic equivalence classes:", len(temporally_ordered_not_latent_free_equivalent_classes_as_mDAGs))
+mDAGs4_representatives = list(chain.from_iterable(temporally_ordered_not_latent_free_equivalent_classes_as_mDAGs))
 QmDAGs4_representatives = list(map(upgrade_to_QmDAG, mDAGs4_representatives))
+
+print("Number of temporally-order not-provably-algebraic mDAGs:", len(QmDAGs4_representatives))
+
+# things_that_can_be_obtained = []
+# for i, each_qmDAG in enumerate(QmDAGs4_representatives):
+#     unlabelled_ids_by_some_piggyback = each_qmDAG.unique_unlabelled_ids_obtainable_by_reduction(districts_check=False, apply_teleportation=True)
+#     things_that_can_be_obtained.append(unlabelled_ids_by_some_piggyback)
+#     print(f"For qmDAG #{i}, piggybacks yields {len(unlabelled_ids_by_some_piggyback)} derivations.")
+
+
 
 
 # =============================================================================
@@ -39,6 +51,7 @@ G_Instrumental3 = mDAG(DirectedStructure([(1, 2)], 3), Hypergraph([(0, 1), (1, 2
 
 known_interesting_mDAGs = [G_Instrumental1, G_Instrumental2, G_Instrumental3, G_Evans, G_Triangle]
 known_interesting_ids = set(special_mDAG.unique_unlabelled_id for special_mDAG in known_interesting_mDAGs)
+
 #
 # # For the trick of fixing to point distribution, we can simply compare mDAGs. The QmDAG structure is going to be useful only in the marginalization case (where classical and quantum latents appear)
 def reduces_to_knownQCGap_by_intervention(mDAG):
