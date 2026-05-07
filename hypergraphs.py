@@ -32,6 +32,8 @@ def has_length_greater_than_one(stuff: Any) -> bool:
 def drop_singletons(hypergraph: HypergraphLike) -> Iterable[Hyperedge]:
     return filter(has_length_greater_than_one, hypergraph)
 def permute_bit_array(bitarray: BoolMatrix, perm: List[int]) -> BoolMatrix:
+    if not len(bitarray):
+        return bitarray
     almost_new_sc = bitarray[:, list(perm)]
     return almost_new_sc[np.lexsort(almost_new_sc.T)]
 def bit_array_permutations(bitarray: BoolMatrix) -> Iterable[BoolMatrix]:
@@ -133,9 +135,12 @@ class Hypergraph:
     @cached_property
     def as_bit_array(self) -> BoolMatrix:
         r = np.zeros((self.number_of_nonsingleton_latent, self.number_of_visible), dtype=bool)
+        if not self.number_of_nonsingleton_latent:
+            return r
         for i, lp in enumerate(self.compressed_simplicial_complex):
             r[i, tuple(lp)] = True
-        return r[np.lexsort(r.T)]
+            return r[np.lexsort(r.T)]
+
 
     @cached_property
     def latent_parents_list(self) -> List[FrozenSet[int]]:
