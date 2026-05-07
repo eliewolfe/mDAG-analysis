@@ -106,6 +106,10 @@ class QmDAG:
                                                 - self.number_of_visible))
         self.Fritz_trick_has_been_applied_already = False
 
+        self.vis_nodes_with_no_children = set(self.directed_structure_instance.nodes_with_no_children)
+        self.vis_nodes_with_no_parents = set(self.directed_structure_instance.nodes_with_no_parents).intersection(
+            set(self.as_mDAG.simplicial_complex_instance.vis_nodes_with_singleton_latent_parents))
+
     @cached_property
     def as_string(self) -> str:
         return 'Children'.ljust(10) + ': ' + self.directed_structure_instance.as_string \
@@ -265,6 +269,41 @@ class QmDAG:
     @cached_property
     def unique_unlabelled_ids_obtainable_by_conditioning(self) -> Set[Tuple[int, int, int, int]]:
         return set(new_QmDAG.unique_unlabelled_id for new_QmDAG in self.subconditionals)
+
+
+    def interruption_creation(self, node_with_no_children: int, node_with_no_parents: int) -> "QmDAG":
+        """We make the children of the node with no parents into the children of the node that previously had no children, and then we remove the node with no parents."""
+        remaining_nodes = self.visible_nodes[:node_with_no_parents] + self.visible_nodes[(node_with_no_parents + 1):]
+        new_directed_edges = set(self.directed_structure_instance.edge_list)
+        for edge in self.directed_structure_instance.edge_list:
+            if edge[0] == node_with_no_parents:
+                new_directed_edges.add((node_with_no_children, edge[1]))
+                new_directed_edges.remove(edge)
+        return QmDAG(
+                LabelledDirectedStructure(remaining_nodes, list(new_directed_edges)),
+                LabelledHypergraph(remaining_nodes, self.C_simplicial_complex_instance.simplicial_complex_as_sets),
+                LabelledHypergraph(remaining_nodes, self.Q_simplicial_complex_instance.simplicial_complex_as_sets),
+                )
+
+
+    def _subinterruptions(self) -> Set["QmDAG"]:
+        for node_with_no_children in self.vis_nodes_with_no_children:
+            for node_with_no_parents in self.vis_nodes_with_no_parents:
+                if node_with_no_children in self.directed_structure_instance.adjMat.descendantsplus_of(node_with_no_parents):
+                    continue  # we don't want to create a cycle
+                # print("The node with no parents: ", node_with_no_parents, " and the node with no children: ", node_with_no_children, " are being used for an interruption.")
+                yield self.interruption_creation(node_with_no_children, node_with_no_parents)
+    
+    @cached_property
+    def subinterruptions(self) -> Set["QmDAG"]:
+        return set(self._subinterruptions())
+
+    @cached_property
+    def unique_unlabelled_ids_obtainable_by_interruption(self) -> Set[Tuple[int, int, int, int]]:
+        return set(new_QmDAG.unique_unlabelled_id for new_QmDAG in self.subinterruptions)
+
+
+
 
     def marginalize(self, node: int, districts_check: bool = False, apply_teleportation: bool = True) -> "QmDAG":  # returns a smaller QmDAG
         remaining_nodes = self.visible_nodes[:node] + self.visible_nodes[(node + 1):]
@@ -443,6 +482,7 @@ class QmDAG:
         subgraph_unlabelled_ids = set(self.unique_unlabelled_ids_obtainable_by_PD_trick)
         subgraph_unlabelled_ids.update(self.unique_unlabelled_ids_obtainable_by_conditioning)
         subgraph_unlabelled_ids.update(self.unique_unlabelled_ids_obtainable_by_marginalization(**kwargs))
+        subgraph_unlabelled_ids.update(self.unique_unlabelled_ids_obtainable_by_interruption)
         return subgraph_unlabelled_ids
 
     # def assess_Fritz_Wolfe_style(self, target, set_of_visible_parents_to_delete, set_of_C_facets_to_delete, set_of_Q_facets_to_delete):
@@ -913,7 +953,15 @@ class Unlabelled_QmDAG(QmDAG):
         return self.unique_id == other.unique_unlabelled_id
 
 if __name__ == '__main__':
-    Q1=QmDAG(DirectedStructure([(0,1),(1,2),(2,3)], 4), Hypergraph([(0,1),(0,2),(0,3),(1,2,3)], 4), Hypergraph([], 4))
+    ghost =   QmDAG(DirectedStructure([(1,2),(1,3)], 4), Hypergraph([], 4), Hypergraph([(0,2),(0,3)], 4))
+    print("All graphs obtainable from the Ghost by Interruption (should be Evans)")
+    print(ghost.subinterruptions)
+    print("\n\n")
+
+
+
+    print("Now assessing Fritz trick...")
+    Q1=QmDAG(DirectedStructure([(0,1),(1,2),(2,3)], 4), Hypergraph([], 4), Hypergraph([(0,1),(0,2),(0,3),(1,2,3)], 4))
     post_Fritz_set = list(
         Q1.apply_Fritz_trick(node_decomposition=False, districts_check=True, safe_for_inference=True))
     print(post_Fritz_set)

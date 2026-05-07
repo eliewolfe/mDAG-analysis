@@ -157,6 +157,12 @@ QC_gap_by_PD_trick = list(filter(reduces_to_knownQCGap_by_PD_trick, QC_remaining
 print("# of ADDITIONAL QC gaps seen via PD trick: ", len(QC_gap_by_PD_trick))
 QC_remaining_representatives.difference_update(QC_gap_by_PD_trick)
 
+def reduces_to_knownQCGap_by_interruption(qmDAG):
+    return not known_QC_Gaps_QmDAGs_small_ids.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_interruption)
+QC_gap_by_interruption = list(filter(reduces_to_knownQCGap_by_interruption, QC_remaining_representatives))
+print("# of ADDITIONAL QC gaps seen via interruption: ", len(QC_gap_by_interruption))
+QC_remaining_representatives.difference_update(QC_gap_by_interruption)
+
 def reduces_to_knownQCGap_by_naive_marginalization(qmDAG):
     return not known_QC_Gaps_QmDAGs_small_ids.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_naive_marginalization(districts_check=False))
 QC_gap_by_naive_marginalization = list(filter(reduces_to_knownQCGap_by_naive_marginalization, QC_remaining_representatives))
@@ -214,7 +220,7 @@ def reduces_to_knownQCGap_by_Fritz_with_node_splitting(qmDAG):
     return not updated_known_QC_Gaps_QmDAGs_ids.isdisjoint(qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_for_QC(node_decomposition=True))
 
 
-print("# of QC Gaps discovered so far: ", len(QC_gap_by_PD_trick+QC_gap_by_naive_marginalization+QC_gap_by_marginalization+QC_gap_by_conditioning))
+print("# of QC Gaps discovered so far: ", len(QC_gap_by_PD_trick+QC_gap_by_interruption+QC_gap_by_naive_marginalization+QC_gap_by_marginalization+QC_gap_by_conditioning))
 # QC_remaining_representatives = set(QmDAGs4_representatives).difference(updated_known_QC_Gaps_QmDAGs)
 print("# of QC Gaps still to be assessed: ", len(QC_remaining_representatives))
 
