@@ -281,6 +281,23 @@ class Metagraph_temporally_ordered_mDAGs:
     def NOT_latent_free_equivalence_classes_as_mDAGs(self):
         return [self.lookup_mDAG(eqclass) for eqclass in self.NOT_latent_free_equivalence_classes_as_ids]
 
+    @cached_property
+    def latent_free_equivalence_classes_as_ids(
+            self):  # Here, each "equivalence class" is actually a block of the proven-equivalence partition of mDAGs according to all of the known observational equivalence rules
+        if not self.temporally_ordered:
+            return self.latent_free_truly_all_eqclasses_as_ids
+        else:
+            temporal_eq_classes = []
+            for eq_class_ids in self.latent_free_truly_all_eqclasses_as_ids:
+                eq_class_temporally_ordered_ids = self.all_temporally_ordered_ids.intersection(eq_class_ids)
+                if eq_class_temporally_ordered_ids:
+                    temporal_eq_classes.append(eq_class_temporally_ordered_ids)
+            return temporal_eq_classes
+
+    @cached_property
+    def latent_free_equivalence_classes_as_mDAGs(self):
+        return [self.lookup_mDAG(eqclass) for eqclass in self.latent_free_equivalence_classes_as_ids]
+
 
     
 class Proven_Inequivalence_Partition_Analysis(Metagraph_temporally_ordered_mDAGs):

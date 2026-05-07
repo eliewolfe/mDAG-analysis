@@ -19,8 +19,8 @@ except ImportError:
     print("Functions which depend on networkx are not available.")
 
 from functools import cached_property
-
 from collections import defaultdict
+from methodtools import lru_cache
 
 BoolMatrix = npt.NDArray[np.bool_]
 IntArray = npt.NDArray[np.int_]
@@ -427,11 +427,13 @@ class QmDAG:
     def _unique_unlabelled_ids_obtainable_by_marginalization(self, **kwargs):
         return set(new_QmDAG.unique_unlabelled_id for new_QmDAG in self.submarginals(**kwargs))
 
+    @lru_cache(maxsize=None)
     def unique_unlabelled_ids_obtainable_by_naive_marginalization(self, **kwargs):
         new_kwargs = kwargs.copy()
         new_kwargs['apply_teleportation'] = False
         return set(self._unique_unlabelled_ids_obtainable_by_marginalization(**new_kwargs))
 
+    @lru_cache(maxsize=None)
     def unique_unlabelled_ids_obtainable_by_marginalization(self, **kwargs):
         new_kwargs = kwargs.copy()
         new_kwargs['apply_teleportation'] = True
@@ -561,6 +563,7 @@ class QmDAG:
                 return coreQmDAG
 
 
+    @lru_cache(maxsize=None)
     def apply_Fritz_trick(self, node_decomposition=True, safe_for_inference=True, districts_check=False, Sofia_extra=True):
         if not self.Fritz_trick_has_been_applied_already:
             # print(self.as_string)
@@ -879,7 +882,8 @@ class QmDAG:
             # for unlabelled_id in new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction(districts_check=False, apply_teleportation=True):
             for unlabelled_id in new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction(districts_check=False, apply_teleportation=True):
                 yield unlabelled_id
-                    
+    
+    @lru_cache(maxsize=None)
     def unique_unlabelled_ids_obtainable_by_Fritz_for_QC(self, **kwargs):
         return set(self._unique_unlabelled_ids_obtainable_by_Fritz_for_QC(**kwargs))
 
