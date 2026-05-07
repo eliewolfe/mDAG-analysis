@@ -139,7 +139,7 @@ class Hypergraph:
             return r
         for i, lp in enumerate(self.compressed_simplicial_complex):
             r[i, tuple(lp)] = True
-            return r[np.lexsort(r.T)]
+        return r[np.lexsort(r.T)]
 
 
     @cached_property
