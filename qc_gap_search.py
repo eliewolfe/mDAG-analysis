@@ -52,12 +52,17 @@ def interruption(g: QmDAG) -> Iterable[Tuple[Tuple, QmDAG]]:
                    g.interruption_creation(node_with_no_children, node_with_no_parents))
 
 
-def conditioning(g: QmDAG) -> Iterable[Tuple[Tuple, QmDAG]]:
-    if g.number_of_visible <= 3:
-        return
-    for node in g.visible_nodes:
-        if not g.has_grandparents_that_are_not_parents(node):
-            yield (('condition', node),), g.condition(node)
+def _conditioning(strict_latents: bool) -> Callable[[QmDAG], Iterable[Tuple[Tuple, QmDAG]]]:
+    def conditioning(g: QmDAG) -> Iterable[Tuple[Tuple, QmDAG]]:
+        if g.number_of_visible <= 3:
+            return
+        for node in g.visible_nodes:
+            if g.conditioning_is_justified(node, strict_latents=strict_latents):
+                yield (('condition', node),), g.condition(node)
+    return conditioning
+
+
+conditioning = _conditioning(strict_latents=True)
 
 
 def _marginalization(apply_teleportation: bool, districts_check: bool) -> Callable[[QmDAG], Iterable[Tuple[Tuple, QmDAG]]]:
@@ -88,11 +93,12 @@ def _fritz(max_visible: int, keep_quantum_facets: bool, allow_childful_predictor
 
 
 def default_tricks(max_visible: int = 5, keep_quantum_facets: bool = True, allow_childful_predictors: bool = True,
-                   max_predictors: int = 2, districts_check: bool = False) -> Dict[str, Callable]:
+                   max_predictors: int = 2, districts_check: bool = False,
+                   strict_conditioning: bool = True) -> Dict[str, Callable]:
     return {
         'PD': pd_trick,
         'interruption': interruption,
-        'conditioning': conditioning,
+        'conditioning': _conditioning(strict_latents=strict_conditioning),
         'naive_marginalization': _marginalization(apply_teleportation=False, districts_check=districts_check),
         'teleportation_marginalization': _marginalization(apply_teleportation=True, districts_check=districts_check),
         'Fritz': _fritz(max_visible, keep_quantum_facets, allow_childful_predictors, max_predictors,

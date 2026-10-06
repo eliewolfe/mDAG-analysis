@@ -226,8 +226,28 @@ class QmDAG:
                 return True
         return False
     
+    def parents_have_external_latents(self, node: int) -> bool:
+        """True if some visible parent of `node` lies in a latent facet (classical or quantum) that neither contains
+        `node` nor lies inside the set of visible parents of `node`. Conditioning on `node` then correlates that
+        facet's outside children in a way the output structure cannot express, so the conditioning piggyback is
+        not justified. (A facet contained in the parent block only redistributes the block and is harmless.)"""
+        visible_parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, node]))
+        for facet in self.as_mDAG.simplicial_complex_instance.simplicial_complex_as_sets:
+            if node not in facet and not facet.isdisjoint(visible_parents) and not facet.issubset(visible_parents):
+                return True
+        return False
+
+    def conditioning_is_justified(self, node: int, strict_latents: bool = True) -> bool:
+        """Every visible grandparent of `node` is a parent of `node`, and (strict_latents) every latent facet of a
+        visible parent of `node` contains `node` or lies inside the parents of `node`: then the block of parents is
+        closed under all its inputs and post-selecting on `node` can be absorbed into one common cause of parents
+        and latent siblings."""
+        if self.has_grandparents_that_are_not_parents(node):
+            return False
+        return not (strict_latents and self.parents_have_external_latents(node))
+
     def condition(self, node: int) -> "QmDAG":
-        #assume we already checked that it doesn't have grandparents that are not parents
+        #assume we already checked that conditioning is justified (conditioning_is_justified)
         remaining_nodes = self.visible_nodes[:node] + self.visible_nodes[(node + 1):]
         # new_directed_edges = set(self.directed_structure_instance.edge_list)
         visible_parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, node]))
@@ -244,7 +264,7 @@ class QmDAG:
     def _subconditionals(self) -> Iterable["QmDAG"]:
         if self.number_of_visible > 3:
             for node in self.visible_nodes:
-                if not self.has_grandparents_that_are_not_parents(node):
+                if self.conditioning_is_justified(node):
                     conditional_QM = self.condition(node)
                     yield conditional_QM
                     for new_QmDAG in conditional_QM.subconditionals:
@@ -610,13 +630,13 @@ class QmDAG:
     def piggyback_children(self, max_visible: int, min_visible: int = 3, districts_check: bool = False,
                            apply_teleportation: bool = True, include_Fritz: bool = True,
                            keep_quantum_facets: bool = True, allow_childful_predictors: bool = True,
-                           max_predictors: int = 2) -> Iterable["QmDAG"]:
+                           max_predictors: int = 2, strict_conditioning: bool = True) -> Iterable["QmDAG"]:
         """One application of every piggyback (PD, conditioning, marginalization, interruption, Fritz)."""
         n = self.number_of_visible
         if n > min_visible:
             yield from self.subgraphs
             for node in self.visible_nodes:
-                if not self.has_grandparents_that_are_not_parents(node):
+                if self.conditioning_is_justified(node, strict_latents=strict_conditioning):
                     yield self.condition(node)
                 marginalized = self.marginalize(node, districts_check=districts_check,
                                                 apply_teleportation=apply_teleportation)

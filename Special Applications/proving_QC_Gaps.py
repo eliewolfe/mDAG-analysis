@@ -20,7 +20,7 @@ from itertools import chain
 from quantum_mDAG import upgrade_to_QmDAG
 from metagraph_temporally_ordered import Metagraph_temporally_ordered_mDAGs
 from known_QC_gaps import SEEDS, SEEDS_4_NODES
-from qc_gap_search import prove_gaps, GapReport, MARGINALIZATION_TRICKS
+from qc_gap_search import prove_gaps, default_tricks, GapReport, MARGINALIZATION_TRICKS
 
 
 def four_node_representatives():
@@ -37,14 +37,15 @@ def four_node_representatives():
     return QmDAGs4_representatives
 
 
-def run_search(QmDAGs4_representatives=None, max_visible=5, verbose=True) -> GapReport:
+def run_search(QmDAGs4_representatives=None, max_visible=5, verbose=True, strict_conditioning=True) -> GapReport:
     if QmDAGs4_representatives is None:
         QmDAGs4_representatives = four_node_representatives()
     seed_ids = set(g.unique_unlabelled_id for g in SEEDS_4_NODES.values())
     inputs = [g for g in QmDAGs4_representatives if g.unique_unlabelled_id not in seed_ids]
     print("Total number of qmDAGs to analyze: ", len(inputs))
     print("Number of representatives that are known QC Gaps: ", len(QmDAGs4_representatives) - len(inputs))
-    return prove_gaps(inputs, SEEDS, max_visible=max_visible, verbose=verbose)
+    return prove_gaps(inputs, SEEDS, tricks=default_tricks(max_visible=max_visible, strict_conditioning=strict_conditioning),
+                      max_visible=max_visible, verbose=verbose)
 
 
 def proven_through_fritz(report: GapReport):
