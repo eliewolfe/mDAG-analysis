@@ -1,37 +1,41 @@
-"""Pins the 4-node QC-gap search results. Takes several minutes; run with `pytest -m slow`."""
+"""Pins the 4-node QC-gap census (base closure plus the entropic rescue). Takes about 20 minutes; run with
+`pytest -m slow`. All counts are up to relabelling."""
 import pytest
 
-# History of the hand-ordered pipeline this search replaced (inputs 2759): PD 2376, interruption 4, naive
-# marginalization 32, teleportation marginalization 57, conditioning 65, Fritz 1 + 4 (original code; the same five
-# with the corrected trick), 220 remaining. With the loose conditioning rule (visible grandparents only) the closure
-# search proved 2539 (920 distinct); requiring latent grandparents to be parents as well (tests/test_conditioning.py)
-# removes 8 of them (2 distinct up to relabelling).
+pytest.importorskip("mosek")
+
+# Inputs: the 2759 labelled 4-node mDAGs that respect the order 0 < 1 < 2 < 3 and are not provably algebraic, with
+# every latent quantum and the Bell seeds removed; 990 distinct up to relabelling.
+# History: the hand-ordered pipeline this search replaced proved 2534 + 5 labelled structures (220 remaining).
+# The closure search with the loose conditioning rule (visible grandparents only) proved 920 distinct inputs;
+# requiring latent grandparents to be parents as well (tests/test_conditioning.py) leaves 918; the entropic rescue
+# (Fritz_entropic on the 72 remaining inputs) proves 54 more.
 EXPECTED = {
-    'inputs': 2759,
-    'proven': 2531,
-    'remaining': 228,
-    'proven_unique_ids': 918,
-    'with PD': 2376,
-    'with interruption': 36,
-    'with conditioning': 973,
-    'with naive_marginalization': 1630,
-    'with teleportation_marginalization': 1687,
-    'with Fritz (+ marginalization)': 1804,
-    'only via PD': 394,
+    'inputs': 990,
+    'proven': 972,
+    'remaining': 18,
+    'labelled_inputs': 2759,
+    'with PD': 860,
+    'with interruption': 7,
+    'with conditioning': 292,
+    'with naive_marginalization': 515,
+    'with teleportation_marginalization': 540,
+    'with Fritz (+ marginalization)': 575,
+    'with Fritz_entropic (+ Fritz, marginalization)': 615,
+    'only via PD': 221,
     'only via interruption': 0,
-    'only via conditioning': 54,
+    'only via conditioning': 23,
     'only via naive_marginalization': 0,
     'only via teleportation_marginalization': 0,
-    'only via Fritz (+ marginalization)': 5,
+    'only via Fritz (+ marginalization)': 4,
+    'only via Fritz_entropic (+ Fritz, marginalization)': 54,
 }
 
 
 @pytest.mark.slow
 def test_search_counts(proving_QC_Gaps):
-    report = proving_QC_Gaps.run_search(verbose=False)
+    report = proving_QC_Gaps.run_search(verbose=False, with_rescue=True)
     assert report.counts == EXPECTED
     # Every proven input has a certificate ending at a named seed.
-    for g in report.inputs:
-        if g.unique_unlabelled_id in report.proven:
-            assert report.seed_hit[g.unique_unlabelled_id] in report.seeds
-    assert len(proving_QC_Gaps.proven_through_fritz(report)) == 5
+    for gid in report.proven:
+        assert report.seed_hit[gid] in report.seeds
