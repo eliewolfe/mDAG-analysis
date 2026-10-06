@@ -20,3 +20,11 @@ matplotlib = "^3.5.3"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: full 4-node pipeline run (several minutes)"]
+addopts = "-m 'not slow'"

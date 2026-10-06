@@ -248,8 +248,8 @@ class LabelledHypergraph(Hypergraph):
         if implicit_variable_names.issubset(self.variable_names_as_frozenset):
             self.simplicial_complex_with_variable_names = hypergraph_canonicalize_with_deduplication(simplicial_complex)
         else:
-            self.simplicial_complex_with_variable_names = hypergraph_full_cleanup(
-                [self.variable_names_as_frozenset.intersection(hyperedge) for hyperedge in simplicial_complex])
+            self.simplicial_complex_with_variable_names = set(drop_singletons(hypergraph_full_cleanup(
+                [self.variable_names_as_frozenset.intersection(hyperedge) for hyperedge in simplicial_complex])))
         # self.simplicial_complex_with_variable_names_as_set = set(map(frozenset, simplicial_complex)) #To remove duplicates & partially canonicalize.
         # if self.number_of_variables<len(implicit_variable_names):
         #     #step 1: remove other variables from every hyperredge
