@@ -1,36 +1,25 @@
 from __future__ import absolute_import
 import itertools
+import warnings
 import numpy as np
 import numpy.typing as npt
-# import networkx as nx
 from hypergraphs import Hypergraph, LabelledHypergraph, hypergraph_full_cleanup
 from directed_structures import DirectedStructure, LabelledDirectedStructure
-# from radix import to_bits  # TODO: Make qmdaq from representation
 from mDAG_advanced import mDAG
-from merge import merge_intersection
 from sys import version_info
 assert version_info >= (3, 8), "Python 3.8+ is required for cached_property support."
-from utilities import partsextractor, minimal_sets_within, maximal_sets_within, stringify_in_set, stringify_in_tuple
 from functools import total_ordering
-from typing import Any, DefaultDict, Dict, Iterable, List, Set, Tuple
+from typing import Any, Dict, Iterable, List, Set, Tuple
 try:
     import networkx as nx
 except ImportError:
     print("Functions which depend on networkx are not available.")
 
 from functools import cached_property
-from collections import defaultdict
 from methodtools import lru_cache
 
 BoolMatrix = npt.NDArray[np.bool_]
 IntArray = npt.NDArray[np.int_]
-
-
-def invert_dict(d: Dict[Any, Any]) -> DefaultDict[Any, List[Any]]:
-    d_inv: DefaultDict[Any, List[Any]] = defaultdict(list)
-    for k, v in d.items():
-        d_inv[v].append(k)
-    return d_inv
 
 
 def C_facets_not_dominated_by_Q(c_facets: Set[frozenset], q_facets: Set[frozenset]) -> Set[frozenset]:
@@ -105,7 +94,6 @@ class QmDAG:
                                                 self.Q_simplicial_complex_instance.number_of_visible_plus_nonsingleton_latent
                                                 + self.C_simplicial_complex_instance.number_of_visible_plus_latent
                                                 - self.number_of_visible))
-        self.Fritz_trick_has_been_applied_already = False
         self.vis_nodes_with_no_children = set(self.directed_structure_instance.nodes_with_no_children)
 
     @cached_property
@@ -350,76 +338,6 @@ class QmDAG:
                     )
 
 
-    def labelled_multi_marginalize(self,
-                                   nodes_to_marginalize: Iterable[Any],
-                                   all_nodes: Iterable[Any],
-                                   directed_structure_list: List[Tuple[Any, Any]],
-                                   C_simplicial_complex_instance_as_sets: Iterable[frozenset],
-                                   Q_simplicial_complex_instance_as_sets: Iterable[frozenset],
-                                   districts_check: bool = False) -> "QmDAG":  # returns a smaller QmDAG
-        new_directed_structure_set = set(directed_structure_list).copy()
-        new_C_simplicial_complex_instance_as_sets = set(C_simplicial_complex_instance_as_sets).copy()
-        new_Q_simplicial_complex_instance_as_sets = set(Q_simplicial_complex_instance_as_sets).copy()
-        remaining_nodes = set(all_nodes)
-
-        for node in set(nodes_to_marginalize):
-            remaining_nodes.discard(node)
-            visible_children = set()
-            visible_parents = set()
-            for i in remaining_nodes:
-                if (node, i) in new_directed_structure_set:
-                    visible_children.add(i)
-                    new_directed_structure_set.remove( (node, i) )
-                if (i, node) in new_directed_structure_set:
-                    visible_parents.add(i)
-                    new_directed_structure_set.remove( (i, node))
-            for parent in visible_parents:
-                for child in visible_children:
-                    new_directed_structure_set.add((parent, child))
-
-            new_C_simplicial_complex_instance_as_sets.add(frozenset(visible_children))
-            facets_to_kill = set()
-            facets_to_add = set()
-            for facet in new_C_simplicial_complex_instance_as_sets:
-                if node in facet:
-                    marginalized_facet = facet.difference({node}).union(visible_children)
-                    facets_to_kill.add(facet)
-                    facets_to_add.add(marginalized_facet)
-            new_C_simplicial_complex_instance_as_sets.update(facets_to_add)
-            new_C_simplicial_complex_instance_as_sets.difference_update(facets_to_kill)
-            teleportable_children = set()
-            facets_to_expand_by_teleportation = set()
-            facets_to_kill = set()
-            for facet in new_Q_simplicial_complex_instance_as_sets:
-                if node in facet:
-                    sub_qfacet = frozenset(facet).difference({node})
-                    facets_to_expand_by_teleportation.add(sub_qfacet)
-                    classical_marginalized_facet = sub_qfacet.union(visible_children)
-                    teleportable_children.update(sub_qfacet.intersection(visible_children))
-                    facets_to_kill.add(facet)
-                    new_C_simplicial_complex_instance_as_sets.add(classical_marginalized_facet)
-            new_Q_simplicial_complex_instance_as_sets.difference_update(facets_to_kill)
-            for facet in facets_to_expand_by_teleportation:
-                new_Q_simplicial_complex_instance_as_sets.add(facet.union(teleportable_children))
-        remaining_nodes = tuple(remaining_nodes)
-        new_C_simplicial_complex_instance_as_sets = hypergraph_full_cleanup(new_C_simplicial_complex_instance_as_sets)
-        new_Q_simplicial_complex_instance_as_sets = hypergraph_full_cleanup(new_Q_simplicial_complex_instance_as_sets)
-        if not districts_check:
-            ok_to_proceed = True
-        else:
-            old_districts = merge_intersection(C_simplicial_complex_instance_as_sets.union(Q_simplicial_complex_instance_as_sets))
-            new_districts = merge_intersection(new_C_simplicial_complex_instance_as_sets.union(new_Q_simplicial_complex_instance_as_sets))
-            old_districts = [district.difference(nodes_to_marginalize) for district in old_districts]
-            ok_to_proceed = frozenset(map(frozenset, new_districts)) == frozenset(map(frozenset, old_districts))
-        if ok_to_proceed:
-            return QmDAG(
-                LabelledDirectedStructure(remaining_nodes, list(new_directed_structure_set)),
-                LabelledHypergraph(remaining_nodes, new_C_simplicial_complex_instance_as_sets),
-                LabelledHypergraph(remaining_nodes, new_Q_simplicial_complex_instance_as_sets)
-            )
-        else:
-            return None  # the marginalization trick does not apply when districts are not preserved
-
     def _submarginals(self, **kwargs):
         if self.number_of_visible > 3:
             for node in self.visible_nodes:
@@ -455,209 +373,260 @@ class QmDAG:
         subgraph_unlabelled_ids.update(self.unique_unlabelled_ids_obtainable_by_interruption)
         return subgraph_unlabelled_ids
 
-    def _yield_from_Fritz_trick(self, choice_of_nodes,
-                                new_directed_structure, new_C_simplicial_complex, new_Q_simplicial_complex,
-                                nodes_relevant_for_pp, pprestrictions_if_present,
-                                safe_for_inference=True, districts_check=False):
-        nodes_to_marginalize_away = set(
-            itertools.chain.from_iterable((nodes_relevant_for_pp[i] for i in choice_of_nodes)))
-        if nodes_to_marginalize_away.issubset(choice_of_nodes):
-            if safe_for_inference:
-                coreQmDAG = self.labelled_multi_marginalize(
-                    nodes_to_marginalize_away,
-                    choice_of_nodes,
-                    new_directed_structure,
-                    new_C_simplicial_complex,
-                    new_Q_simplicial_complex,
-                    districts_check=districts_check)
-                if coreQmDAG is None:
-                    return None
-                coreQmDAG.Fritz_trick_has_been_applied_already = True
-                return coreQmDAG
-            else:
-                new_ds = LabelledDirectedStructure(choice_of_nodes, new_directed_structure)
-                to_nums = new_ds.translation_dict
-                pp_flat = list(itertools.chain.from_iterable((pprestrictions_if_present[i] for i in choice_of_nodes)))
-                pp_flat_numeric = tuple(((to_nums[i], tuple(partsextractor(to_nums, j))) for i, j in pp_flat))
-                coreQmDAG = QmDAG(
-                    new_ds,
-                    LabelledHypergraph(choice_of_nodes, new_C_simplicial_complex),
-                    LabelledHypergraph(choice_of_nodes, new_Q_simplicial_complex),
-                    pp_restrictions=pp_flat_numeric)
-                coreQmDAG.restricted_perfect_predictions = pp_flat
-                coreQmDAG.Fritz_trick_has_been_applied_already = True
-                return coreQmDAG
+    # ------------------------------------------------------------------
+    # THE FRITZ PIGGYBACK
+    #
+    # Let X1 be a set of childless visible nodes (the predictors) and s a visible node sharing a latent with some
+    # member of X1 (a candidate predicted node). In the effective DAG (visible nodes, one node per latent facet, one
+    # private-noise node per visible node) split the parents of s into common(s), those also seen by X1 (parents of
+    # some predictor, or predictors themselves), and others(s). If X1 is d-separated from others(s) given common(s),
+    # then:
+    #   * classically, any model in which X1 perfectly predicts s can be rewritten so that s depends on common(s) only;
+    #   * quantumly, any strategy for the reduced structure in which s is a deterministic function of its (classical)
+    #     parents extends to the original structure with X1 outputting a copy of s.
+    # Hence the structure G' obtained by deleting X1 and restricting s to common(s) satisfies: a QC gap in G' implies a
+    # QC gap in G, with no caveat about perfect correlations in G'. Quantum facets read by s become classical for s.
+    # In "copy" mode s is left untouched and a fresh node s_copy carrying the common (classical) part is added; this is
+    # the node-splitting version of the trick (e.g. triangle -> Bell).
+    # ------------------------------------------------------------------
 
+    @cached_property
+    def effective_DAG_data(self) -> Tuple["nx.DiGraph", Dict[int, Tuple[str, frozenset]]]:
+        """Directed graph on visible nodes plus one node per classical facet, quantum facet and private noise source.
+        Returns the graph and a dict latent_index -> (kind, frozenset of visible children)."""
+        n = self.number_of_visible
+        edges = set(self.directed_structure_instance.as_set_of_tuples)
+        latent_nodes: Dict[int, Tuple[str, frozenset]] = dict()
+        idx = n
+        for kind, hypergraph in (('C', self.C_simplicial_complex_instance), ('Q', self.Q_simplicial_complex_instance)):
+            for facet in sorted(map(tuple, map(sorted, hypergraph.simplicial_complex_as_sets))):
+                latent_nodes[idx] = (kind, frozenset(facet))
+                edges.update((idx, v) for v in facet)
+                idx += 1
+        for v in range(n):
+            latent_nodes[idx] = ('noise', frozenset({v}))
+            edges.add((idx, v))
+            idx += 1
+        g = nx.DiGraph()
+        g.add_nodes_from(range(idx))
+        g.add_edges_from(edges)
+        return g, latent_nodes
+
+    def fritz_admissible_targets(self, predictors: Iterable[int]) -> Dict[int, Tuple[frozenset, frozenset]]:
+        """Maps each admissible predicted node s to (common(s), others(s)) in effective-DAG indices."""
+        predictors = frozenset(predictors)
+        assert predictors.issubset(self.vis_nodes_with_no_children), "Fritz predictors must be childless visible nodes."
+        g, latent_nodes = self.effective_DAG_data
+        seen_by_predictors = set(predictors)
+        for y in predictors:
+            seen_by_predictors.update(g.predecessors(y))
+        candidates = set()
+        for y in predictors:
+            candidates.update(self.latent_siblings_of(y))
+        candidates.difference_update(predictors)
+        admissible = dict()
+        for s in sorted(candidates):
+            parents = set(g.predecessors(s))
+            common = parents.intersection(seen_by_predictors)
+            others = parents.difference(common)
+            # Predictors are childless, so none of them is a parent of s and `others` always contains s's noise node.
+            if nx.is_d_separator(g, predictors, others, common):
+                admissible[s] = (frozenset(common), frozenset(others))
+        return admissible
+
+    def _fritz_build(self, predictors: frozenset, choices: Dict[int, str],
+                     admissible: Dict[int, Tuple[frozenset, frozenset]],
+                     drop_predictors: bool = True, keep_quantum_facets: bool = False) -> Tuple["QmDAG", Dict[Any, int]]:
+        """Builds the post-Fritz QmDAG for the given mode per predicted node ('replace' or 'copy').
+        Returns the QmDAG and the name -> index translation."""
+        g, latent_nodes = self.effective_DAG_data
+        copies = {s: str(s) + '_copy' for s, mode in choices.items() if mode == 'copy'}
+        kept_originals = [v for v in self.visible_nodes if drop_predictors is False or v not in predictors]
+        names = tuple(kept_originals) + tuple(copies[s] for s in sorted(copies))
+        name_set = set(names)
+
+        edges = set()
+        for (a, b) in self.directed_structure_instance.as_set_of_tuples:
+            if b in choices:
+                common = admissible[b][0]
+                if choices[b] == 'copy':
+                    edges.add((a, b))
+                    if a in common:
+                        edges.add((a, copies[b]))
+                elif a in common:
+                    edges.add((a, b))
+            else:
+                edges.add((a, b))
+        # A copy is a sub-output of s, so it feeds exactly the children that still see s.
+        for s, s_copy in copies.items():
+            for c in self.directed_structure_instance.adjMat.children_of(s):
+                if c in choices:
+                    if choices[c] == 'copy':
+                        edges.add((s_copy, c))
+                    if s in admissible[c][0]:
+                        edges.add((s_copy, c if choices[c] == 'replace' else copies[c]))
+                else:
+                    edges.add((s_copy, c))
+        edges = [(a, b) for (a, b) in edges if a in name_set and b in name_set]
+
+        C_facets = set()
+        Q_facets = set()
+        for idx, (kind, facet) in latent_nodes.items():
+            if kind == 'noise':
+                continue
+            quantum_readers = set()
+            classical_readers = set()
+            replaced_reader_present = False
+            for v in facet:
+                if drop_predictors and v in predictors:
+                    continue
+                if v in choices:
+                    is_common = idx in admissible[v][0]
+                    if choices[v] == 'copy':
+                        quantum_readers.add(v)
+                        if is_common:
+                            classical_readers.add(copies[v])
+                    elif is_common:
+                        classical_readers.add(v)
+                        replaced_reader_present = True
+                else:
+                    quantum_readers.add(v)
+            if kind == 'C':
+                C_facets.add(frozenset(quantum_readers.union(classical_readers)))
+            else:
+                if classical_readers:
+                    C_facets.add(frozenset(quantum_readers.union(classical_readers)))
+                if keep_quantum_facets or not replaced_reader_present:
+                    Q_facets.add(frozenset(quantum_readers))
+        new_ds = LabelledDirectedStructure(names, edges)
+        new_QmDAG = QmDAG(new_ds, LabelledHypergraph(names, C_facets), LabelledHypergraph(names, Q_facets))
+        return new_QmDAG, new_ds.translation_dict
+
+    def fritz_transitions(self, predictors: Iterable[int], modes: Tuple[str, ...] = ('replace', 'copy'),
+                          max_visible: int = None, min_visible: int = 3,
+                          keep_quantum_facets: bool = False, districts_check: bool = False) -> List[Tuple[Tuple[Tuple[int, str], ...], "QmDAG"]]:
+        """All structures obtainable by the Fritz piggyback with the given childless predictors.
+        Returns (params, QmDAG) pairs where params = ((s, mode), ...) sorted by s."""
+        predictors = frozenset(predictors)
+        if max_visible is None:
+            max_visible = self.number_of_visible + 1
+        admissible = self.fritz_admissible_targets(predictors)
+        targets = sorted(admissible)
+        results = []
+        for r in range(1, len(targets) + 1):
+            for chosen in itertools.combinations(targets, r):
+                for mode_choice in itertools.product(modes, repeat=r):
+                    new_size = self.number_of_visible - len(predictors) + mode_choice.count('copy')
+                    if not (min_visible <= new_size <= max_visible):
+                        continue
+                    params = tuple(zip(chosen, mode_choice))
+                    new_QmDAG, to_nums = self._fritz_build(predictors, dict(params), admissible,
+                                                           drop_predictors=True, keep_quantum_facets=keep_quantum_facets)
+                    if districts_check and not self._fritz_preserves_districts(predictors, dict(params), new_QmDAG, to_nums):
+                        continue
+                    results.append((params, new_QmDAG))
+        return results
+
+    def _fritz_preserves_districts(self, predictors: frozenset, choices: Dict[int, str], new_QmDAG: "QmDAG",
+                                   to_nums: Dict[Any, int]) -> bool:
+        """Districts of the output (copies identified with their originals) equal the old districts minus predictors."""
+        old_districts = set(frozenset(d.difference(predictors)) for d in self.as_mDAG.numerical_districts)
+        old_districts.discard(frozenset())
+        to_original = dict()
+        for name, num in to_nums.items():
+            to_original[num] = int(str(name).split('_copy')[0]) if isinstance(name, str) else name
+        new_districts = set(frozenset(to_original[v] for v in d) for d in new_QmDAG.as_mDAG.numerical_districts)
+        return old_districts == new_districts
+
+    def fritz_intermediate_with_pp(self, predictors: Iterable[int], choices: Dict[int, str],
+                                   keep_quantum_facets: bool = False) -> "QmDAG":
+        """The Fritz-reduced structure with the predictors retained, carrying perfect-prediction restrictions
+        (each predicted node, or its copy, is a function of the predictors) for supports-based inference."""
+        predictors = frozenset(predictors)
+        admissible = self.fritz_admissible_targets(predictors)
+        assert set(choices).issubset(admissible), "Some chosen node is not an admissible Fritz target."
+        new_QmDAG, to_nums = self._fritz_build(predictors, choices, admissible,
+                                               drop_predictors=False, keep_quantum_facets=keep_quantum_facets)
+        predictor_nums = tuple(sorted(to_nums[y] for y in predictors))
+        pp = []
+        for s, mode in sorted(choices.items()):
+            predicted = to_nums[str(s) + '_copy'] if mode == 'copy' else to_nums[s]
+            pp.append((predicted, predictor_nums))
+        return QmDAG(new_QmDAG.directed_structure_instance, new_QmDAG.C_simplicial_complex_instance,
+                     new_QmDAG.Q_simplicial_complex_instance, pp_restrictions=tuple(pp))
+
+    # ------------------------------------------------------------------
+    # COMPOSITION OF PIGGYBACKS
+    # ------------------------------------------------------------------
+
+    def piggyback_children(self, max_visible: int, min_visible: int = 3, districts_check: bool = False,
+                           apply_teleportation: bool = True, include_Fritz: bool = True,
+                           keep_quantum_facets: bool = False) -> Iterable["QmDAG"]:
+        """One application of every piggyback (PD, conditioning, marginalization, interruption, Fritz)."""
+        n = self.number_of_visible
+        if n > min_visible:
+            yield from self.subgraphs
+            for node in self.visible_nodes:
+                if not self.has_grandparents_that_are_not_parents(node):
+                    yield self.condition(node)
+                marginalized = self.marginalize(node, districts_check=districts_check,
+                                                apply_teleportation=apply_teleportation)
+                if marginalized is not None:
+                    yield marginalized
+        if n > min_visible:
+            yield from self.subinterruptions
+        if include_Fritz:
+            for y in sorted(self.vis_nodes_with_no_children):
+                for params, new_QmDAG in self.fritz_transitions((y,), max_visible=max_visible, min_visible=min_visible,
+                                                                keep_quantum_facets=keep_quantum_facets,
+                                                                districts_check=districts_check):
+                    yield new_QmDAG
+
+    def piggyback_closure(self, max_visible: int = None, min_visible: int = 3, max_states: int = 50000,
+                          **kwargs) -> Dict[Tuple[int, int, int, int], "QmDAG"]:
+        """Every structure reachable by composing piggybacks in any order, keyed by unlabelled id.
+        Each unlabelled id is expanded once (all tricks are label-equivariant)."""
+        if max_visible is None:
+            max_visible = self.number_of_visible + 1
+        reached = {self.unique_unlabelled_id: self}
+        frontier = [self]
+        while frontier:
+            current = frontier.pop()
+            for child in current.piggyback_children(max_visible=max_visible, min_visible=min_visible, **kwargs):
+                if not (min_visible <= child.number_of_visible <= max_visible):
+                    continue
+                child_id = child.unique_unlabelled_id
+                if child_id not in reached:
+                    reached[child_id] = child
+                    frontier.append(child)
+                    if len(reached) > max_states:
+                        warnings.warn("Piggyback closure exceeded max_states; the result is incomplete. "
+                                      "Raise max_states or lower max_visible.")
+                        return reached
+        return reached
 
     @lru_cache(maxsize=None)
-    def apply_Fritz_trick(self, node_decomposition=True, safe_for_inference=True, districts_check=False, Sofia_extra=True):
-        """Returns the frozenset of QmDAGs obtainable by one application of the Fritz trick."""
-        return frozenset(filter(None, self._iter_Fritz_trick(node_decomposition=node_decomposition,
-                                                             safe_for_inference=safe_for_inference,
-                                                             districts_check=districts_check,
-                                                             Sofia_extra=Sofia_extra)))
+    def unique_unlabelled_ids_obtainable_by_Fritz_for_QC(self, max_visible: int = None,
+                                                         keep_quantum_facets: bool = False) -> Set[Tuple[int, int, int, int]]:
+        """Unlabelled ids reachable from self by any composition of the piggybacks including Fritz (self excluded)."""
+        reached = self.piggyback_closure(max_visible=max_visible, districts_check=False, apply_teleportation=True,
+                                         include_Fritz=True, keep_quantum_facets=keep_quantum_facets)
+        return set(reached).difference({self.unique_unlabelled_id})
 
-    def _iter_Fritz_trick(self, node_decomposition=True, safe_for_inference=True, districts_check=False, Sofia_extra=True):
-        if not self.Fritz_trick_has_been_applied_already:
-            expanded_edge_set = self.directed_structure_instance.as_set_of_tuples.copy()
-            #Note that we use the expanded classical simplicial complex to ensure common cause in node decomposition.
-            for i, children in zip(self.classical_latent_nodes, self.C_simplicial_complex_instance.extended_simplicial_complex_as_sets):
-                expanded_edge_set.update(zip(itertools.repeat(i), children))
-            # print("2. Nodes are: ", set(itertools.chain.from_iterable(expanded_edge_set)))
-            for i, children in zip(self.quantum_latent_nodes, self.Q_simplicial_complex_instance.compressed_simplicial_complex):
-                expanded_edge_set.update(zip(itertools.repeat(i), children))
-            # num_quantum_nodes = self.Q_simplicial_complex_instance.number_of_nonsingleton_latent
-            num_effective_nodes = self.Q_simplicial_complex_instance.number_of_visible_plus_nonsingleton_latent\
-                                  + self.C_simplicial_complex_instance.number_of_visible_plus_latent\
-                                  - self.number_of_visible
-            assert all(isinstance(v, int) for v in set(itertools.chain.from_iterable(expanded_edge_set))), 'Somehow we have a non integer node!'
-            effective_DAG = DirectedStructure(expanded_edge_set, num_effective_nodes)
-            effective_nx_DAG = effective_DAG.as_networkx_graph
-            # expanded_edge_set_of_tuples_of_strings = set([(str(i), str(j)) for (i,j) in expanded_edge_set])
-            #We will make as subvariables as classical-common-cause connected only, so all quantum facets must be duplicated.
-            #One for original vars, one for subvars.
-            # for i, children in zip(self.quantum_latent_nodes, self.Q_simplicial_complex_instance.compressed_simplicial_complex):
-            #     expanded_edge_set_of_tuples_of_strings.update(zip(itertools.repeat(str(i+num_quantum_nodes)), map(str,children)))
-            common_cause_connected_sets = maximal_sets_within(effective_DAG.adjMat.descendantsplus_list)
-            allnode_name_variants = dict()
-            pprestrictions_if_present = dict()
-            nodes_relevant_for_pp = dict()
-            kept_parents_dict = dict()
-            for target in self.visible_nodes:
-                allnode_name_variants[target] = {target}
-                pprestrictions_if_present[target] = set()
-                nodes_relevant_for_pp[target] = set()
-                effective_target_parents = effective_DAG.adjMat.parents_of(target)
-                kept_parents_dict[target] = effective_target_parents
-            for target in self.visible_nodes:
-                effective_target_parents = set(kept_parents_dict[target].tolist())
-                target_children = self.directed_structure_instance.adjMat.children_of(target)
-                candidates_Yi = self.latent_siblings_of(target).union(self.directed_structure_instance.adjMat.parents_of(target))
-                ### OLD CODE
-                # singleton_edge_removals = {Yi: frozenset([v for v in effective_target_parents if not
-                #                         any({v, Yi}.issubset(common_cause_connected_set) for common_cause_connected_set in common_cause_connected_sets)])
-                #                            for Yi in candidates_Yi}
-                ### Marina and TC's version which hold classically
-                singleton_edge_removals = {Yi: frozenset([v for v in effective_target_parents.difference({Yi}) if
-                                                          nx.is_d_separator(effective_nx_DAG, {Yi}, {v},
-                                                                         effective_target_parents.difference({Yi,v}))])
-                                           for Yi in candidates_Yi}
-
-                collective_predicting_set_edge_removals = dict()
-                for r in range(1, len(candidates_Yi) + 1):
-                    for collective_predicting in map(frozenset, itertools.combinations(candidates_Yi, r)):
-                        individual_edge_set_removals = [singleton_edge_removals[Yi] for Yi in
-                                            collective_predicting]
-                        collective_edge_removals = frozenset.union(*individual_edge_set_removals)
-                        if len(collective_edge_removals)>=1:
-                            collective_predicting_set_edge_removals[collective_predicting] = collective_edge_removals
-                for (removed_edges, perfectly_predicting_sets) in invert_dict(collective_predicting_set_edge_removals).items():
-                    minimal_pp_sets = minimal_sets_within(perfectly_predicting_sets)
-                    for wasteful_pp_set in set(perfectly_predicting_sets).difference(minimal_pp_sets):
-                        del collective_predicting_set_edge_removals[wasteful_pp_set]
-                independently_predicting_set_edge_removals = dict()
-                # independently_predicting_sets = set()
-                collective_predicting_sets = collective_predicting_set_edge_removals.keys()
-                max_r = len(collective_predicting_sets) + 1
-                if not Sofia_extra:
-                    max_r = 2
-                for r in range(1, max_r):
-                    for independently_predicting in map(frozenset, itertools.combinations(collective_predicting_sets, r)):
-                        # independently_predicting_sets.add(independently_predicting)
-                        individual_edge_set_removals = [collective_predicting_set_edge_removals[collective_predicting] for collective_predicting in
-                                            independently_predicting]
-                        independently_predicting_set_edge_removals[independently_predicting] = frozenset.union(*individual_edge_set_removals)
-                for (removed_parents, perfectly_predicting_sets) in invert_dict(independently_predicting_set_edge_removals).items():
-                    minimal_pp_sets = minimal_sets_within(perfectly_predicting_sets)
-                    for wasteful_pp_set in set(perfectly_predicting_sets).difference(minimal_pp_sets):
-                        del independently_predicting_set_edge_removals[wasteful_pp_set]
-                # independently_predicting_sets = independently_predicting_set_edge_removals.keys()
-                for minimal_pp_set, removed_parents in independently_predicting_set_edge_removals.items():
-                    subtarget = str(target)+'_'+stringify_in_tuple(map(stringify_in_set, minimal_pp_set))
-                    allnode_name_variants[target].add(subtarget)
-                    pprestrictions_if_present[subtarget] = list(zip(itertools.repeat(subtarget), map(tuple, minimal_pp_set)))
-                    nodes_relevant_for_pp[subtarget] = tuple(set(itertools.chain.from_iterable(minimal_pp_set)))
-                    kept_parents = effective_target_parents.difference(removed_parents)
-                    kept_parents_dict[subtarget] = kept_parents
-                    for p in kept_parents:
-                        if p in self.visible_nodes:
-                            for p_variant in allnode_name_variants[p]:
-                                expanded_edge_set.add((p_variant, subtarget))
-                        else:
-                            expanded_edge_set.add((p, subtarget))
-                    for c in target_children:
-                        if c in self.visible_nodes:
-                            for c_variant in allnode_name_variants[c]:
-                                if target in kept_parents_dict[c_variant]:
-                                    expanded_edge_set.add((subtarget, c_variant))
-                        else:
-                            expanded_edge_set.add((subtarget, c))
-            code_for_classical_latents = self.classical_latent_nodes + self.quantum_latent_nodes
-            new_nodes = set(itertools.chain.from_iterable(allnode_name_variants.values()))
-            new_directed_structure = [(i,j) for (i,j) in expanded_edge_set if i not in code_for_classical_latents]
-            # print("New ds: ", new_directed_structure)
-            new_C_simplicial_complex = [set([j for j in new_nodes if (i,j) in expanded_edge_set]) for i in code_for_classical_latents]
-            new_C_simplicial_complex = hypergraph_full_cleanup(new_C_simplicial_complex)
-            # print("New sc: ", new_C_simplicial_complex)
-            new_Q_simplicial_complex = self.Q_simplicial_complex_instance.compressed_simplicial_complex.copy()
-            # print("New qsc: ", new_Q_simplicial_complex)
-            if not node_decomposition:
-                for choice_of_nodes in itertools.product(*allnode_name_variants.values()):
-                    if not set(choice_of_nodes).issubset(self.visible_nodes):
-                        # print("Chosen nodes to explore:", choice_of_nodes)
-                        nodes_to_marginalize_away = set(
-                            itertools.chain.from_iterable((nodes_relevant_for_pp[i] for i in choice_of_nodes)))
-                        if nodes_to_marginalize_away.issubset(choice_of_nodes):
-                            yield self._yield_from_Fritz_trick(choice_of_nodes,
-                                                    new_directed_structure, new_C_simplicial_complex, new_Q_simplicial_complex,
-                                                    nodes_relevant_for_pp, pprestrictions_if_present,
-                                                               safe_for_inference=safe_for_inference,
-                                                               districts_check=districts_check)
-            else:
-                bonus_node_variants = [name_variants.difference(self.visible_nodes) for name_variants in allnode_name_variants.values() if
-                                       len(name_variants) >= 2]
-                bonus_node_variants = [name_variants.union({'-1'}) for name_variants in bonus_node_variants]
-                for bonus_nodes in itertools.product(*bonus_node_variants):
-                    actual_bonus_nodes = set(bonus_nodes).difference({'-1'})
-                    choice_of_nodes = tuple(self.visible_nodes) + tuple(actual_bonus_nodes)
-                    nodes_to_marginalize_away = set(
-                        itertools.chain.from_iterable((nodes_relevant_for_pp[i] for i in choice_of_nodes)))
-                    if nodes_to_marginalize_away.issubset(choice_of_nodes):
-                        yield self._yield_from_Fritz_trick(choice_of_nodes,
-                                                           new_directed_structure, new_C_simplicial_complex,
-                                                           new_Q_simplicial_complex,
-                                                           nodes_relevant_for_pp, pprestrictions_if_present,
-                                                           safe_for_inference=safe_for_inference,
-                                                           districts_check=districts_check)
-
-
-
-    def _unique_unlabelled_ids_obtainable_by_Fritz_for_QC(self, **kwargs):
-        for new_QmDAG in self.apply_Fritz_trick(**kwargs):
-            yield new_QmDAG.unique_unlabelled_id
-            for unlabelled_id in new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction(districts_check=False, apply_teleportation=True):
-                yield unlabelled_id
-    
     @lru_cache(maxsize=None)
-    def unique_unlabelled_ids_obtainable_by_Fritz_for_QC(self, **kwargs):
-        return set(self._unique_unlabelled_ids_obtainable_by_Fritz_for_QC(**kwargs))
+    def unique_unlabelled_ids_obtainable_by_Fritz_for_IC(self, max_visible: int = None,
+                                                         keep_quantum_facets: bool = False) -> Set[Tuple[int, int, int, int]]:
+        reached = self.piggyback_closure(max_visible=max_visible, districts_check=True, apply_teleportation=False,
+                                         include_Fritz=True, keep_quantum_facets=keep_quantum_facets)
+        return set(reached).difference({self.unique_unlabelled_id})
 
-    def _unique_unlabelled_ids_obtainable_by_Fritz_for_IC(self, **kwargs):
-        for new_QmDAG in self.apply_Fritz_trick(districts_check=True, **kwargs):
-            yield new_QmDAG.unique_unlabelled_id
-            for unlabelled_id in new_QmDAG.unique_unlabelled_ids_obtainable_by_reduction(districts_check=True, apply_teleportation=False):
-                yield unlabelled_id
-                    
-    def unique_unlabelled_ids_obtainable_by_Fritz_for_IC(self, **kwargs):
-        return set(self._unique_unlabelled_ids_obtainable_by_Fritz_for_IC(**kwargs))
 
 if __name__ == '__main__':
     ghost = QmDAG(DirectedStructure([(1, 2), (1, 3)], 4), Hypergraph([], 4), Hypergraph([(0, 2), (0, 3)], 4))
     print("All graphs obtainable from the Ghost by Interruption (should be Evans)")
     print(ghost.subinterruptions)
-    print("Now assessing Fritz trick...")
-    Q1 = QmDAG(DirectedStructure([(0, 1), (1, 2), (2, 3)], 4), Hypergraph([], 4),
-               Hypergraph([(0, 1), (0, 2), (0, 3), (1, 2, 3)], 4))
-    post_Fritz_set = Q1.apply_Fritz_trick(node_decomposition=False, districts_check=True, safe_for_inference=True)
-    print(post_Fritz_set)
-    print([post_Fritz_qmDAG.number_of_visible for post_Fritz_qmDAG in post_Fritz_set])
+    print("Now assessing Fritz trick on the triangle (should reach Bell):")
+    triangle = QmDAG(DirectedStructure([], 3), Hypergraph([], 3), Hypergraph([(0, 1), (1, 2), (0, 2)], 3))
+    for params, post_Fritz in triangle.fritz_transitions((2,)):
+        print(params)
+        print(post_Fritz)
