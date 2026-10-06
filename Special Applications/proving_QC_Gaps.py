@@ -97,7 +97,8 @@ def four_node_representatives():
     return QmDAGs4_representatives
 
 
-def run_pipeline(QmDAGs4_representatives=None, max_visible=5):
+def run_pipeline(QmDAGs4_representatives=None, max_visible=5, keep_quantum_facets=True,
+                 allow_childful_predictors=True, max_predictors=2):
     """Hand-ordered application of the piggyback tricks. Returns a dict of counts and the remaining QmDAGs."""
     if QmDAGs4_representatives is None:
         QmDAGs4_representatives = four_node_representatives()
@@ -163,7 +164,10 @@ def run_pipeline(QmDAGs4_representatives=None, max_visible=5):
     def reduces_to_knownQCGap_by_Fritz(qmDAG):
         # Closure of all piggybacks (Fritz included) composed in any order, with at most one extra visible node.
         return not updated_known_QC_Gaps_QmDAGs_ids.isdisjoint(
-            qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_for_QC(max_visible=max_visible))
+            qmDAG.unique_unlabelled_ids_obtainable_by_Fritz_for_QC(max_visible=max_visible,
+                                                                   keep_quantum_facets=keep_quantum_facets,
+                                                                   allow_childful_predictors=allow_childful_predictors,
+                                                                   max_predictors=max_predictors))
 
     counts['before_Fritz'] = len(QC_gap_by_PD_trick + QC_gap_by_interruption + QC_gap_by_naive_marginalization
                                  + QC_gap_by_marginalization + QC_gap_by_conditioning)

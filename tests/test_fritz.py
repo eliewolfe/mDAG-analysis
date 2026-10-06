@@ -64,13 +64,15 @@ def test_counterexample_G2_is_inadmissible_and_unreachable():
     assert IV3b.unique_unlabelled_id not in ids
 
 
-def test_non_childless_predictor_is_rejected():
+def test_childful_predictor_requires_opt_in():
     chain = Q([(0, 1)], 3, [], [(0, 2), (1, 2)])
     import pytest
     with pytest.raises(AssertionError):
-        chain.fritz_admissible_targets((0,))
+        chain.fritz_admissible_targets((0,), allow_childful_predictors=False)
     with pytest.raises(AssertionError):
-        chain.fritz_intermediate_with_pp((0,), {1: 'replace'})
+        chain.fritz_transitions((0,), allow_childful_predictors=False)
+    # With the opt-in, 2 is predicted by 0 through their shared latent; 1 is downstream of 0 and never admissible.
+    assert set(chain.fritz_admissible_targets((0,))) == {2}
 
 
 def test_copy_feeds_only_children_that_still_see_the_original():
@@ -108,3 +110,57 @@ def test_closure_composes_in_both_directions():
     assert SQUARE.unique_unlabelled_id not in ids
     assert ids.issuperset(SQUARE.unique_unlabelled_ids_obtainable_by_reduction(districts_check=False,
                                                                                  apply_teleportation=True))
+
+
+# ---------------------------------------------------------------- stage 3: extensions
+
+LOST_FOUR = [Q([(0, 2), (1, 2), (2, 3)], 4, [], [(0, 1), (0, 2), (1, 3)]),
+             Q([(0, 1), (1, 2), (2, 3)], 4, [], [(0, 1), (0, 2), (1, 3)]),
+             Q([(0, 2), (1, 2), (2, 3)], 4, [], [(0, 1), (0, 3), (1, 2)]),
+             Q([(0, 1), (0, 2), (1, 2), (2, 3)], 4, [], [(0, 1), (0, 2), (1, 3)])]
+IV2b = Q([(0, 1), (1, 2)], 3, [(0, 1)], [(1, 2)])
+
+
+def test_joint_predictors_keep_every_shared_latent():
+    # The old code stripped both latents of node 1 here; joint prediction by {0, 2} keeps both.
+    admissible = TRIANGLE.fritz_admissible_targets((0, 2))
+    common, others = admissible[1]
+    assert common == {latent_index(TRIANGLE, 'Q', {0, 1}), latent_index(TRIANGLE, 'Q', {1, 2})}
+    assert others == {latent_index(TRIANGLE, 'noise', {1})}
+
+
+def test_marginalizing_a_childless_predictor_equals_dropping_it():
+    predictors = frozenset({3})
+    admissible = SQUARE.fritz_admissible_targets(predictors)
+    for params, direct in SQUARE.fritz_transitions(predictors):
+        intermediate, to_nums = SQUARE._fritz_build(predictors, dict(params), admissible, drop_predictors=False)
+        to_original = {num: SQUARE._fritz_original_of(name) for name, num in to_nums.items()}
+        marginalized, _ = SQUARE._marginalize_predictors(intermediate, to_original, (3,),
+                                                         districts_check=False, apply_teleportation=True)
+        assert marginalized.unique_unlabelled_id == direct.unique_unlabelled_id
+
+
+def test_joint_childful_predictors_enumerate_every_removal_order():
+    # Teleportation makes marginalization order-dependent; both orders must be produced (found by brute force).
+    g = Q([(0, 2), (0, 3), (0, 4), (1, 3), (3, 4)], 5, [(2, 4)], [(0, 1), (1, 4), (0, 3)])
+    outputs = [out.unique_unlabelled_id for params, out in g.fritz_transitions((0, 1), max_visible=5)
+               if params == ((3, 'copy'),)]
+    assert len(outputs) == 2 and len(set(outputs)) == 2
+
+
+def test_childful_predictor_recovers_the_four_graphs_lost_in_stage_2():
+    for g in LOST_FOUR:
+        strict = g.unique_unlabelled_ids_obtainable_by_Fritz_for_QC(allow_childful_predictors=False)
+        assert IV2b.unique_unlabelled_id not in strict
+        assert IV2b.unique_unlabelled_id in g.unique_unlabelled_ids_obtainable_by_Fritz_for_QC()
+
+
+def test_replace_mode_keeps_quantum_facet_on_other_children():
+    # Facet {0,1,2,3}; predictor 3 predicts 0 (replace): 1 and 2 keep a quantum facet, 0 joins them classically.
+    g = Q([], 4, [], [(0, 1, 2, 3)])
+    outputs = dict(g.fritz_transitions((3,), keep_quantum_facets=True))
+    out = outputs[((0, 'replace'),)]
+    assert out.Q_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({1, 2})}
+    assert out.C_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({0, 1, 2})}
+    legacy = dict(g.fritz_transitions((3,), keep_quantum_facets=False))[((0, 'replace'),)]
+    assert legacy.Q_simplicial_complex_instance.simplicial_complex_as_sets == set()
