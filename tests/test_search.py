@@ -68,3 +68,25 @@ def test_report_counts_are_consistent():
     for name in S.TRICK_GROUPS_FOR_REPORT:
         assert 0 <= counts['only via ' + name] <= counts['proven']
         assert counts['with ' + name] <= counts['proven']
+
+
+def test_extend_and_rescue_apply_extra_tricks_only_where_asked():
+    base = {name: trick for name, trick in S.default_tricks(max_visible=4).items() if name in ('PD', 'conditioning')}
+    calls = []
+
+    def fake_expensive(g):
+        calls.append(g.unique_unlabelled_id)
+        if g.unique_unlabelled_id == SQUARE.unique_unlabelled_id:
+            yield (('fake',),), TRIANGLE
+    report = S.prove_gaps([LOST], {'QG_Bell6': QG_Bell6}, tricks=base, max_visible=4, verbose=False)
+    assert LOST.unique_unlabelled_id not in report.proven
+    rescued = S.rescue(report, {'fake': fake_expensive}, trick_groups=S.TRICK_GROUPS_FOR_REPORT, verbose=False)
+    explorer = rescued.explorer
+    assert 'fake' in explorer.applied[LOST.unique_unlabelled_id]
+    assert calls == [LOST.unique_unlabelled_id]          # roots only
+    assert explorer.base_tricks == frozenset(base)       # extra tricks are not promoted to base tricks
+    # A fresh root handed to extend is closed under the base tricks before the extra trick runs.
+    fresh = S.ClosureExplorer(dict(base), max_visible=4)
+    fresh.extend({'fake': fake_expensive}, [SQUARE])
+    assert {'PD', 'conditioning', 'fake'} <= fresh.applied[SQUARE.unique_unlabelled_id]
+    assert TRIANGLE.unique_unlabelled_id in fresh.reachable(SQUARE.unique_unlabelled_id, frozenset({'fake'}))

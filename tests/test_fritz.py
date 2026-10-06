@@ -133,7 +133,8 @@ def test_marginalizing_a_childless_predictor_equals_dropping_it():
     predictors = frozenset({3})
     admissible = SQUARE.fritz_admissible_targets(predictors)
     for params, direct in SQUARE.fritz_transitions(predictors):
-        intermediate, to_nums = SQUARE._fritz_build(predictors, dict(params), admissible, drop_predictors=False)
+        kept = SQUARE._fritz_kept_parents(admissible, dict(params))
+        intermediate, to_nums = SQUARE._fritz_build(predictors, dict(params), kept, drop_predictors=False)
         to_original = {num: SQUARE._fritz_original_of(name) for name, num in to_nums.items()}
         marginalized, _ = SQUARE._marginalize_predictors(intermediate, to_original, (3,),
                                                          districts_check=False, apply_teleportation=True)

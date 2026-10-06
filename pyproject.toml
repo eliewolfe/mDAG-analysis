@@ -24,6 +24,13 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
 
+[tool.poetry.group.lp]
+optional = true
+
+[tool.poetry.group.lp.dependencies]
+# Entropy-vector LPs for the entropic Fritz piggyback (Mosek Optimizer API; needs a licence).
+mosek = "^11.0"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = ["slow: full 4-node pipeline run (several minutes)"]
