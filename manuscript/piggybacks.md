@@ -302,7 +302,7 @@ The inputs are the four-node mDAGs whose edges respect the order $0\lt1\lt2\lt3$
 | 3. Fritz, kept predictors, d-separation | 919 | 1 |
 | 4. entropic Fritz, LP-certified, both predictor modes | 924 | 5 |
 
-Labelled input structures 2759, distinct 990, remaining 66. Stages 1 and 2 take about three minutes together; the whole search, dominated by stage 3 (node splitting of childful predictors, marginalization of the copies in every order, and the reductions of the resulting dense structures) and by the LP solves of stage 4, took about 1 h 50 min with two searches sharing the machine.
+Labelled input structures 2759, distinct 990, remaining 66; 6870 structures expanded. Stages 1 and 2 take about three minutes together; the whole search, dominated by stage 3 (node splitting of childful predictors, marginalization of the copies in every order, and the reductions of the resulting dense structures) and by the LP solves of stage 4, took about 45 minutes with two searches sharing the machine.
 
 The search also established, in passing, the gap of every structure it touched that reaches a seed: 1323 structures in all (9 with three visible nodes, 1044 with four, 270 with five), 394 of them with at least one classical facet (`GapReport.proven_structure_ids`, Section 7).
 
@@ -312,7 +312,14 @@ The search also established, in passing, the gap of every structure it touched t
 
 | trick | alone | only |
 |---|---|---|
-TODO-PER-TRICK-TABLE
+| point distribution | 860 | 216 |
+| interruption | 7 | 0 |
+| conditioning | 289 | 20 |
+| naive marginalization | 515 | 0 |
+| teleportation marginalization | 540 | 0 |
+| `Fritz` (dropped predictors, d-separation) | 575 | 4 |
+| `Fritz_kept` (kept predictors, d-separation) | 575 | 1 |
+| `Fritz_entropic` (LP) | 580 | 5 |
 
 Three remarks on reading the "only" column.
 
@@ -376,7 +383,7 @@ Of the Bell variants that are census inputs, three are proven, all by interrupti
 
 ### 8.5 Entropic certificates attempted
 
-Per predictor–target candidate, both predictor modes, split structures included (`ENTROPIC_STATS`): admissible by d-separation 2472; beyond d-separation, `markov` 120, `relabel` 70, failed 1024; joint targets certified 149, failed 55; extra-deletion candidates verified 1203, none failed. Among candidates that d-separation rejects, the LP certifies roughly one in six. Success is common but far from universal, and a failure of the LP is not a proof that the implication is false (6.4). Almost none of these certified steps is decisive (8.3): their outputs are structures the cheaper tricks reach as well, or structures that are not gaps as far as the seeds know.
+Per predictor–target candidate, both predictor modes, split structures included (`ENTROPIC_STATS`): admissible by d-separation 1997; beyond d-separation, `markov` 112, `relabel` 70, failed 875; joint targets (several predicted nodes at once) certified 82, failed 55; extra-deletion candidates verified 339, none failed. Among candidates that d-separation rejects, the LP certifies roughly one in six. Success is common but far from universal, and a failure of the LP is not a proof that the implication is false (6.4). Almost none of these certified steps is decisive (8.3): their outputs are structures the cheaper tricks reach as well, or structures that are not gaps as far as the seeds know.
 
 ---
 
