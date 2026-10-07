@@ -15,7 +15,7 @@ def Q(edges, n, Cf, Qf):
 
 
 LOST = Q([(0, 2), (1, 2), (2, 3)], 4, [], [(0, 1), (0, 2), (1, 3)])
-TRIANGLE = Q([], 3, [], [(0, 1), (1, 2), (0, 2)])          # itself a seed (QG_Triangle)
+TRIANGLE = Q([], 3, [], [(0, 1), (1, 2), (0, 2)])          # degrades to the seed QG_Triangle3 (one lookup step)
 SQUARE = Q([], 4, [], [(2, 3), (1, 3), (0, 1), (0, 2)])    # conditioning on a node gives the triangle
 BELL_SEEDS = {k: g for k, g in SEEDS.items() if g.number_of_visible == 4}
 
@@ -25,7 +25,9 @@ def test_round_trip_and_invalidation_by_piggyback_version(tmp_path, monkeypatch)
     report = S.prove_gaps([LOST, SQUARE, TRIANGLE], SEEDS, verbose=False)
     cache = C.GapCache(path)
     added = cache.record(report)
-    assert added == 2 and len(cache) == 2      # the triangle is a seed: nothing to cache
+    assert added == 3 and len(cache) == 3
+    tri_entry = cache.entries[C.id_key(TRIANGLE.unique_unlabelled_id)]
+    assert [step['trick'] for step in tri_entry['chain']] == ['degradation'] and tri_entry['seed'] == 'QG_Triangle3'
     cache.save()
     data = json.load(open(path))
     assert data['piggyback_versions'] == S.PIGGYBACK_VERSIONS
@@ -40,7 +42,7 @@ def test_round_trip_and_invalidation_by_piggyback_version(tmp_path, monkeypatch)
 
     # Reloading keeps both entries; they act as known gaps.
     loaded = C.GapCache.load(path)
-    assert loaded.valid_ids() == {LOST.unique_unlabelled_id, SQUARE.unique_unlabelled_id} and loaded.dropped == 0
+    assert loaded.valid_ids() == {LOST.unique_unlabelled_id, SQUARE.unique_unlabelled_id, TRIANGLE.unique_unlabelled_id} and loaded.dropped == 0
     assert set(loaded.known().values()) == loaded.valid_ids()
     # Recording the same report again adds nothing.
     assert loaded.record(report) == 0
@@ -54,9 +56,10 @@ def test_round_trip_and_invalidation_by_piggyback_version(tmp_path, monkeypatch)
     bumped[next(iter(only_lost))] += 1
     monkeypatch.setattr(C, 'PIGGYBACK_VERSIONS', bumped)
     reloaded = C.GapCache.load(path)
-    assert reloaded.valid_ids() == {SQUARE.unique_unlabelled_id} and reloaded.dropped == 1
+    assert reloaded.valid_ids() == {SQUARE.unique_unlabelled_id, TRIANGLE.unique_unlabelled_id} and reloaded.dropped == 1
     # An unknown trick (removed from the versions table) also invalidates.
-    del bumped[next(iter(tricks_tri))]
+    for trick in tricks_tri | {'degradation'}:
+        bumped.pop(trick, None)
     assert C.GapCache.load(path).valid_ids() == set()
     monkeypatch.setattr(C, 'PIGGYBACK_VERSIONS', S.PIGGYBACK_VERSIONS)
     # So does a seed that is no longer in the seed list.

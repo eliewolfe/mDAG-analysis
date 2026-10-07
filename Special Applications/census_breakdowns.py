@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.dirname(_HERE))
 sys.path.insert(0, _HERE)
 
 from known_QC_gaps import SEEDS  # noqa: E402
-from qc_gap_search import (ClosureExplorer, Transition, GapReport, entropic_tricks, add_stage, render_certificate,  # noqa: E402
+from qc_gap_search import (ClosureExplorer, Transition, GapReport, fritz_tricks, add_stage, render_certificate,  # noqa: E402
                            STEP_CATEGORIES, _fixpoint_if, is_fritz_type)
 from proving_QC_Gaps import run_search, print_cheap_report, print_report  # noqa: E402
 
@@ -106,7 +106,7 @@ def examples(with_entropic: bool = True) -> None:
     elementary = lambda t: not is_fritz_type(t)  # noqa: E731
     proven_cheap = _fixpoint_if(cheap, elementary)
     assert len(proven_cheap) == cheap.counts['proven']
-    for trick in ('PD', 'conditioning', 'interruption', 'naive_marginalization', 'teleportation_marginalization'):
+    for trick in ('PD', 'conditioning', 'node_stitching', 'naive_marginalization', 'teleportation_marginalization'):
         lost = proven_cheap - _fixpoint_if(cheap, lambda t, trick=trick: elementary(t) and t.trick != trick)
         assert len(lost) == cheap.only_via[trick]
         show_examples(cheap, lost, elementary, f"[phase 1] only via {trick}", limit=3)
@@ -140,7 +140,7 @@ def lp_closure() -> None:
     _, report, _ = run_search(verbose=False, use_cache=False)
     print("staged search:", report.stage_counts, f"({time.time()-t0:.0f}s)")
     before = set(report.proven)
-    report = add_stage(report, entropic_tricks(max_visible=5, max_predictors=1), roots_only=False, name='Fritz_entropic_closure', verbose=False)
+    report = add_stage(report, fritz_tricks(max_visible=5, max_predictors=1, predictor_mode='split'), roots_only=False, name='Fritz_closure', verbose=False)
     print("after LP closure over everything reachable:", report.stage_counts, f"({time.time()-t0:.0f}s); structures {len(report.explorer.edges)}")
     new = set(report.proven) - before
     print("newly proven inputs:", len(new))

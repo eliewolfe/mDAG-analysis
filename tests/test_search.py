@@ -20,7 +20,7 @@ LOST = Q([(0, 2), (1, 2), (2, 3)], 4, [], [(0, 1), (0, 2), (1, 3)])
 def test_explorer_expands_each_id_once_and_reachability_is_monotone():
     explorer = S.ClosureExplorer(S.default_tricks(max_visible=5), max_visible=5)
     reached = explorer.expand(SQUARE)
-    assert set(reached).issubset(explorer.edges)  # everything reached was expanded
+    assert (set(reached) - explorer.lookup_only).issubset(explorer.edges)  # everything reached was expanded (lookups aside)
     root = SQUARE.unique_unlabelled_id
     everything = explorer.reachable(root)
     for name, (group, _) in S.TRICK_GROUPS_FOR_REPORT.items():
@@ -49,7 +49,7 @@ def test_lost_graph_needs_fritz_and_marginalization():
     assert report.provable_with['PD'] == 0
     # The expensive steps are assessed by the ladder and the step categories, never by "provable alone".
     assert 'Fritz' not in ' '.join(report.provable_with)
-    assert S.fritz_breakdown(report)['all Fritz (dropped predictors) steps'] == 1
+    assert S.fritz_breakdown(report)['all Fritz steps'] == 1
     rungs = S.ladder(report)
     assert rungs[0] == ('elementary', 0, 0)
     assert rungs[-1][1] == 1
@@ -106,7 +106,7 @@ def test_stage_params_are_stated_in_the_labels_of_the_stored_representative():
     a = Q([(0, 2), (1, 2)], 4, [], [(0, 1), (1, 3), (2, 3)])
     b = Q([(0, 3), (1, 3)], 4, [], [(0, 1), (1, 2), (2, 3)])
     assert a.unique_unlabelled_id == b.unique_unlabelled_id
-    extra = S.entropic_tricks(max_visible=5)
+    extra = S.fritz_tricks(max_visible=5)   # with the LP; the base tricks have Fritz by d-separation only
     explorer = S.ClosureExplorer(S.default_tricks(max_visible=5), max_visible=5)
     explorer.expand(a)
     explorer.extend(extra, [b])

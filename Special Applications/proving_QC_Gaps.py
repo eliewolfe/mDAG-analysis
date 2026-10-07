@@ -8,17 +8,25 @@ RELABELLING (distinct unlabelled ids).
 
 The census has two phases.
 
-Phase 1 (cheap): the node-count-reducing piggybacks (point distribution, interruption, conditioning, marginalization
-with and without teleportation), composed in any order over everything reachable, starting from the THREE-node known
-gaps only. The 4-node Bell variants are inputs here, not seeds, so this phase shows what each elementary piggyback
-contributes: how many inputs it proves alone and how many are lost without it.
+Phase 1 (cheap): the node-count-reducing piggybacks (point distribution, node stitching, conditioning,
+marginalization with and without teleportation), composed in any order over everything reachable, starting from the
+THREE-node known gaps only. The 4-node Bell variants are inputs here, not seeds, so this phase shows what each
+elementary piggyback contributes: how many inputs it proves alone and how many are lost without it.
 
 Phase 2 (expensive): the inputs that phase 1 left unproven, minus the Bell variants (which are known gaps and are
-now seeds), are attacked by the staged cascade: Fritz with dropped predictors, Fritz with kept predictors, and the
-entropic (LP-certified) Fritz piggyback, each applied once to the still-unproven inputs with elementary follow-up.
-The report gives the cumulative counts after each stage, the cheap-to-expensive ladder, and the number of inputs
-lost when each category of expensive step is removed. The expensive stages never measure what a piggyback proves
-alone.
+now seeds), are attacked by the staged cascade of the Fritz piggyback: replace mode with dropped predictors, replace
+mode with kept predictors, copy mode with dropped predictors, copy mode with kept predictors. Every candidate is
+certified by d-separation first and by the entropic LP only where d-separation fails. Each stage is applied once to
+the still-unproven inputs with elementary follow-up. The report gives the cumulative counts after each stage and
+the cheap-to-expensive ladder, which splits each stage into its d-separation and its LP part.
+
+Throughout, a structure counts as known as soon as one of its degradations (some quantum facets made classical) is
+known: the degradation piggyback is applied as a lookup to every structure the search meets. The seeds are therefore
+kept in their weakest form only (known_QC_gaps.SEEDS).
+
+LP options (see qc_gap_search.default_stages): the LP tries the `relabel` target set only and single predicted
+nodes only, because the `markov` target set and the joint LP targets never decided an input. To turn them back on,
+pass lp_markov_target=True and/or lp_joint_targets=True to default_stages in `expensive_run` below.
 
 Proven gaps are cached on disk (cache/known_gaps.json) with the version of every piggyback their proof relies on;
 cached gaps count as known, so after the first run the expensive stages only touch inputs that are not yet proven.
@@ -76,8 +84,10 @@ def expensive_run(cheap: GapReport, max_visible=5, verbose=True, with_entropic=T
     bell_ids = {g.unique_unlabelled_id for g in SEEDS_4_NODES.values()}
     inputs = [g for g in cheap.inputs if g.unique_unlabelled_id not in bell_ids]
     known = cache.known() if cache is not None else {}
+    # LP options: lp_markov_target=True also tries the `markov` target set after `relabel` fails; lp_joint_targets=True
+    # runs the LP on joint predicted sets. Both are off: in the four-node census neither ever decided an input.
     stages = default_stages(max_visible=max_visible, with_entropic=with_entropic, with_kept=with_kept,
-                            strict_conditioning=strict_conditioning)
+                            strict_conditioning=strict_conditioning, lp_markov_target=False, lp_joint_targets=False)
     # Re-base the report on the phase-2 inputs, seeds and known gaps; then run the cascade on what is left.
     report = build_report(cheap.explorer, inputs, SEEDS, TRICK_GROUPS_FOR_REPORT, known=known)
     for name, extra, roots_only, followup in stages[1:]:
@@ -168,9 +178,9 @@ def print_report(report: GapReport, certificates_for=()) -> None:
     print("Cheap to expensive, cumulatively (which transitions are allowed):")
     for name, proven, new in ladder(report):
         print(f"    {name:>50}: proven {proven:4d}  (new {new:3d})")
-    print("Inputs lost when a category of expensive step is removed (everything else kept):")
+    print("Inputs lost when a category of Fritz step is removed (everything else kept):")
     for name, lost in fritz_breakdown(report).items():
-        print(f"    {name:>80}: {lost}")
+        print(f"    {name:>50}: {lost}")
     print("Structures expanded by the search: ", len(report.explorer.edges))
     if ENTROPIC_STATS:
         print("Entropic certificates (kind, outcome) -> count: ", dict(sorted(ENTROPIC_STATS.items())))

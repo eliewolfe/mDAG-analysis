@@ -306,7 +306,7 @@ class QmDAG:
         return set(new_QmDAG.unique_unlabelled_id for new_QmDAG in self.subconditionals)
 
 
-    def interruption_creation(self, node_with_no_children: int, node_with_no_parents: int) -> "QmDAG":
+    def node_stitching(self, node_with_no_children: int, node_with_no_parents: int) -> "QmDAG":
         """We make the children of the node with no parents into the children of the node that previously had no children, and then we remove the node with no parents."""
         remaining_nodes = self.visible_nodes[:node_with_no_parents] + self.visible_nodes[(node_with_no_parents + 1):]
         new_directed_edges = set(self.directed_structure_instance.edge_list)
@@ -320,6 +320,9 @@ class QmDAG:
                 LabelledHypergraph(remaining_nodes, self.Q_simplicial_complex_instance.simplicial_complex_as_sets),
                 )
 
+
+    # The forward map stitches the exogenous node onto the sink; its inverse interrupts a node. Old name kept.
+    interruption_creation = node_stitching
 
     def _subinterruptions(self) -> Set["QmDAG"]:
         for node_with_no_children in self.vis_nodes_with_no_children:
@@ -742,10 +745,11 @@ class QmDAG:
         return rows
 
     def _entropic_certificate(self, predictors: frozenset, kept_parents: Dict[int, frozenset],
-                              predicted: Tuple[int, ...]):
+                              predicted: Tuple[int, ...], try_markov: bool = True):
         """Returns 'relabel', 'markov' or None: whether the LP certifies that a classical model of G in which the
         predictors perfectly predict the predicted nodes yields a classical model of the candidate. Each target set
-        is one LP (the sum of its Markov rows, see EntropicLP.implies_all)."""
+        is one LP (the sum of its Markov rows, see EntropicLP.implies_all). With try_markov=False only the
+        `relabel` target set is tried (the census does this: `markov` never decided an input)."""
         from entropic_lp import local_markov_rows
         nodes, parents = self.lp_structure
         lp = self._entropic_lp()
@@ -764,17 +768,18 @@ class QmDAG:
                     nodes_c = [v for v in nodes if v != lam]
                     if lp.implies_all(row for _, row in local_markov_rows(relabelled, nodes_c)):
                         return 'relabel'
-            if lp.implies_all(row for _, row in local_markov_rows(kept_parents, nodes)):
+            if try_markov and lp.implies_all(row for _, row in local_markov_rows(kept_parents, nodes)):
                 return 'markov'
             return None
         finally:
             lp.pop_to(handle)
 
     def fritz_entropic_admissible_targets(self, predictors: Iterable[int],
-                                          allow_childful_predictors: bool = True
-                                          ) -> Dict[int, Tuple[frozenset, frozenset, str]]:
+                                          allow_childful_predictors: bool = True, use_lp: bool = True,
+                                          try_markov: bool = True) -> Dict[int, Tuple[frozenset, frozenset, str]]:
         """Like fritz_admissible_targets, certified by the entropic LP. Maps s -> (common(s), others(s), certificate)
-        where certificate is 'dsep' (already admissible by d-separation), 'markov' or 'relabel'."""
+        where certificate is 'dsep' (already admissible by d-separation), 'markov' or 'relabel'. With use_lp=False
+        only the d-separation-admissible targets are returned (no LP is solved)."""
         predictors = frozenset(predictors)
         if not allow_childful_predictors:
             assert predictors.issubset(self.vis_nodes_with_no_children), "Fritz predictors must be childless visible nodes."
@@ -795,11 +800,13 @@ class QmDAG:
                 admissible[s] = by_dsep[s] + ('dsep',)
                 _tally('single', 'dsep')
                 continue
+            if not use_lp:
+                continue
             common = parents[s].intersection(seen_by_predictors)
             others = parents[s].difference(common) | {noise_of[s]}
             kept = dict(parents)
             kept[s] = frozenset(common)
-            certificate = self._entropic_certificate(predictors, kept, (s,))
+            certificate = self._entropic_certificate(predictors, kept, (s,), try_markov=try_markov)
             _tally('single', certificate or 'fail')
             if certificate is not None:
                 admissible[s] = (frozenset(common), frozenset(others), certificate)
@@ -851,6 +858,26 @@ class QmDAG:
             return kept_parents, None, []
         return kept, certificate, deleted
 
+    def degradations(self) -> List[Tuple[Tuple, "QmDAG"]]:
+        """The degradation piggyback (quantum source to classical source): every structure obtained by making a
+        nonempty set of quantum facets classical. A QC gap in any of them implies a QC gap here, since the
+        classical model sets coincide and the quantum set only shrinks. A quantum facet made classical inside a
+        classical facet is absorbed by it. params: (('classical', (facet, ...)),)."""
+        Q_facets = sorted(sorted(f) for f in self.Q_simplicial_complex_instance.simplicial_complex_as_sets)
+        C_facets = [tuple(sorted(f)) for f in self.C_simplicial_complex_instance.simplicial_complex_as_sets]
+        n = self.number_of_visible
+        results = []
+        for r in range(1, len(Q_facets) + 1):
+            for chosen in itertools.combinations(Q_facets, r):
+                chosen = tuple(tuple(f) for f in chosen)
+                new_C = Hypergraph(hypergraph_full_cleanup(set(map(frozenset, C_facets + list(chosen)))), n)
+                remaining_Q = [f for f in Q_facets if tuple(f) not in chosen]
+                if not remaining_Q:
+                    continue   # a structure without quantum facets has no QC gap: useless as a lookup target
+                new_Q = Hypergraph(remaining_Q, n)
+                results.append(((('classical', chosen),), QmDAG(self.directed_structure_instance, new_C, new_Q)))
+        return results
+
     def split_node(self, node: int) -> "QmDAG":
         """Node splitting piggyback: `node` is replaced by itself and a copy (appended as the last visible node)
         with the same parents and children and a shared classical two-party latent (their common private noise).
@@ -877,8 +904,13 @@ class QmDAG:
                                    only_beyond_dsep: bool = True, max_lps: int = 60,
                                    max_lp_variables: Optional[int] = None,
                                    base_predictor_modes: Tuple[str, ...] = ('drop', 'split'),
+                                   use_lp: bool = True, try_markov: bool = True, joint_lp: bool = True,
                                    _presplit: bool = False, _exclude_targets: frozenset = frozenset()) -> List[Tuple[Tuple, "QmDAG"]]:
-        """Fritz transitions certified by the entropic LP.
+        """Fritz transitions, each certified by d-separation where that suffices and by the entropic LP otherwise.
+        With only_beyond_dsep=False this is the complete Fritz piggyback (the unified trick of the search); with
+        use_lp=False it is the plain d-separation trick. try_markov=False restricts the LP to the `relabel` target
+        set; joint_lp=False restricts the LP to single predicted nodes (joint predicted sets are then admitted by
+        d-separation only).
         Copy mode is realised as node splitting followed by replace mode on the copy (so the LP sees the copy as a
         genuine node with its own shared noise). predictor_mode 'drop' removes the predictors as in fritz_transitions
         (deleted if childless, marginalized otherwise); 'split' splits each predictor into itself and a full copy
@@ -904,7 +936,8 @@ class QmDAG:
                     max_visible=max_visible, min_visible=min_visible, keep_quantum_facets=keep_quantum_facets,
                     districts_check=districts_check, allow_childful_predictors=allow_childful_predictors,
                     apply_teleportation=apply_teleportation, only_beyond_dsep=only_beyond_dsep, max_lps=max_lps,
-                    max_lp_variables=max_lp_variables, base_predictor_modes=base_predictor_modes)
+                    max_lp_variables=max_lp_variables, base_predictor_modes=base_predictor_modes,
+                    use_lp=use_lp, try_markov=try_markov, joint_lp=joint_lp)
             work, copies = self._split_predictors(childful)
             copy_label = {c: f"{x}_predictor_copy" for c, x in zip(copies, sorted(childful))}
             for params, out in work.fritz_entropic_transitions(
@@ -913,14 +946,16 @@ class QmDAG:
                     keep_quantum_facets=keep_quantum_facets, districts_check=districts_check,
                     allow_childful_predictors=True, apply_teleportation=apply_teleportation,
                     only_beyond_dsep=only_beyond_dsep, max_lps=max_lps, max_lp_variables=max_lp_variables,
-                    base_predictor_modes=base_predictor_modes, _presplit=True, _exclude_targets=frozenset(childful)):
+                    base_predictor_modes=base_predictor_modes, use_lp=use_lp, try_markov=try_markov, joint_lp=joint_lp,
+                    _presplit=True, _exclude_targets=frozenset(childful)):
                 info = dict(params[1:])
                 info['deleted'] = tuple((copy_label.get(a, a), copy_label.get(b, b)) for a, b in info['deleted'])
                 results.append(((params[0],) + tuple(info.items()), out))
             return results
         if max_lp_variables is not None and len(self.lp_structure[0]) > max_lp_variables:
             return []
-        admissible = self.fritz_entropic_admissible_targets(predictors, allow_childful_predictors)
+        admissible = self.fritz_entropic_admissible_targets(predictors, allow_childful_predictors, use_lp=use_lp,
+                                                            try_markov=try_markov)
         admissible = {t: v for t, v in admissible.items() if t not in _exclude_targets}
         targets = sorted(admissible)
         n = self.number_of_visible
@@ -950,7 +985,8 @@ class QmDAG:
                         continue
                     adm_work = admissibility_memo.get(work.unique_id)
                     if adm_work is None:
-                        adm_work = work.fritz_entropic_admissible_targets(predictors, allow_childful_predictors)
+                        adm_work = work.fritz_entropic_admissible_targets(predictors, allow_childful_predictors,
+                                                                          use_lp=use_lp, try_markov=try_markov)
                         adm_work = {t: v for t, v in adm_work.items() if t not in _exclude_targets}
                         admissibility_memo[work.unique_id] = adm_work
                     if not set(predicted).issubset(adm_work):
@@ -961,8 +997,10 @@ class QmDAG:
                         certificate = 'dsep'
                     elif len(predicted) == 1:
                         certificate = adm_work[predicted[0]][2]
+                    elif not (use_lp and joint_lp):
+                        continue   # joint predicted sets are admitted by d-separation only
                     else:
-                        certificate = work._entropic_certificate(predictors, kept, predicted)
+                        certificate = work._entropic_certificate(predictors, kept, predicted, try_markov=try_markov)
                         _tally('joint', certificate or 'fail')
                         if certificate is None:
                             continue
