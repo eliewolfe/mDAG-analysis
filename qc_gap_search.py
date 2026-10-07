@@ -162,14 +162,15 @@ def default_tricks(max_visible: int = 5, keep_quantum_facets: bool = True, allow
 Stage = Tuple[str, Dict[str, Callable], bool]   # (name, tricks, roots_only)
 
 
-def default_stages(max_visible: int = 5, with_entropic: bool = True, with_kept: bool = False,
+def default_stages(max_visible: int = 5, with_entropic: bool = True, with_kept: bool = True,
                    keep_quantum_facets: bool = True, allow_childful_predictors: bool = True, max_predictors: int = 2,
                    districts_check: bool = False, strict_conditioning: bool = True) -> List[Stage]:
     """The search runs in stages, cheapest first; every structure proven in a stage is a known gap for the next.
     (1) The elementary reductions, on everything reachable. (2) Fritz with the d-separation certificate, predictors
-    dropped, on everything reachable. (3) The entropic Fritz piggyback, LP-certified steps only, predictors
-    dropped, on the inputs still unproven. with_kept=True inserts a kept-predictor Fritz stage before (3) and lets
-    (3) keep predictors too; both are applied to the unproven inputs only and are off by default for cost."""
+    dropped, on everything reachable. (3) Fritz with the d-separation certificate and kept predictors (childless
+    predictors untouched, childful ones split and their copies marginalized), applied once to each input still
+    unproven, its children expanded with the tricks of (1) and (2) ("depth one"). (4) The entropic Fritz piggyback,
+    LP-certified steps only, in both predictor modes, applied once to each input still unproven."""
     common = dict(max_visible=max_visible, keep_quantum_facets=keep_quantum_facets,
                   allow_childful_predictors=allow_childful_predictors, districts_check=districts_check)
     stages: List[Stage] = [

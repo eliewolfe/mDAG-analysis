@@ -169,6 +169,8 @@ def headline(with_rescue: bool = True) -> None:
 
     categories: Dict[str, Predicate] = {
         'Fritz (dropped predictors) in copy mode': lambda t: not (t.trick == 'Fritz' and uses_copy(t)),
+        'Fritz_kept in copy mode': lambda t: not (t.trick == 'Fritz_kept' and uses_copy(t)),
+        'Fritz_entropic with kept predictors': lambda t: not (t.trick == 'Fritz_entropic' and dict(t.params[2:]).get('predictor_mode') == 'split'),
         'Fritz_entropic in copy mode': lambda t: not (t.trick == 'Fritz_entropic' and uses_copy(t)),
         'any copy-mode step': lambda t: not (is_fritz_type(t) and uses_copy(t)),
         'any joint-predictor step': lambda t: not (is_fritz_type(t) and len(predictors_of(t)) >= 2),
@@ -176,6 +178,8 @@ def headline(with_rescue: bool = True) -> None:
         'Fritz_entropic certified by markov': lambda t: not (t.trick == 'Fritz_entropic' and info_of(t)['certificate'] == 'markov'),
         'Fritz_entropic with extra deletions': lambda t: not (t.trick == 'Fritz_entropic' and info_of(t)['deleted']),
         'all Fritz_entropic steps': lambda t: t.trick != 'Fritz_entropic',
+        'all Fritz_kept steps': lambda t: t.trick != 'Fritz_kept',
+        'all kept-predictor steps (Fritz_kept and entropic split)': lambda t: not (t.trick == 'Fritz_kept' or (t.trick == 'Fritz_entropic' and dict(t.params[2:]).get('predictor_mode') == 'split')),
         'all Fritz (dropped predictors) steps': lambda t: t.trick != 'Fritz',
         'all Fritz-type steps': lambda t: not is_fritz_type(t),
     }
@@ -202,6 +206,8 @@ def headline(with_rescue: bool = True) -> None:
     replace_fritz_examples = fixpoint(ex, input_ids, set(seed_ids), lambda t: not (is_fritz_type(t) and uses_copy(t)) and t.trick != 'Fritz_entropic') - non_fritz
     show_examples(ex, replace_fritz_examples, seed_ids, proven_all, lambda t: not (is_fritz_type(t) and uses_copy(t)) and t.trick != 'Fritz_entropic',
                   "Provable with d-separation Fritz in replace mode (no copy mode, no LP) but not without Fritz", limit=4)
+    show_examples(ex, results['all Fritz_kept steps'], seed_ids, proven_all, everything, "Lost when the kept-predictor d-separation steps are removed", limit=3)
+    show_examples(ex, results['all kept-predictor steps (Fritz_kept and entropic split)'], seed_ids, proven_all, everything, "Lost when every kept-predictor step is removed", limit=3)
     show_examples(ex, results['any copy-mode step'], seed_ids, proven_all, everything, "Only via copy mode")
     show_examples(ex, results['any joint-predictor step'], seed_ids, proven_all, everything, "Only via joint predictors")
     only_entropic = results['all Fritz_entropic steps']
@@ -280,8 +286,10 @@ def ladder(with_rescue: bool = True) -> None:
         ('elementary reductions only', lambda t: not is_fritz_type(t)),
         ('+ Fritz, dropped predictors, replace mode', lambda t: not is_fritz_type(t) or (t.trick == 'Fritz' and not uses_copy(t))),
         ('+ Fritz, dropped predictors, copy mode', lambda t: not is_fritz_type(t) or t.trick == 'Fritz'),
-        ('+ Fritz_entropic (LP), replace mode', lambda t: t.trick != 'Fritz_entropic' or not uses_copy(t)),
-        ('+ Fritz_entropic (LP), copy mode', lambda t: True),
+        ('+ Fritz_kept, kept predictors, replace mode', lambda t: t.trick not in ('Fritz_kept', 'Fritz_entropic') or (t.trick == 'Fritz_kept' and not uses_copy(t))),
+        ('+ Fritz_kept, kept predictors, copy mode', lambda t: t.trick != 'Fritz_entropic'),
+        ('+ Fritz_entropic (LP), dropped predictors', lambda t: t.trick != 'Fritz_entropic' or dict(t.params[2:]).get('predictor_mode') == 'drop'),
+        ('+ Fritz_entropic (LP), kept predictors', lambda t: True),
     ]
     print(f"\n==== Cumulative ladder (cheap to expensive); headline seeds; {len(input_ids)} inputs up to relabelling")
     previous = set()
