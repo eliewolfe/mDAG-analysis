@@ -7,7 +7,7 @@ certificates, extra deletions) and prints, for every category, the inputs that a
 transition is removed, with one certificate each. It also reruns the base closure with only the three-node seeds, to
 show what the node-count-reducing piggybacks contribute when the Bell variants are not given as known gaps.
 
-Usage: python "Special Applications/census_breakdowns.py" [--no-rescue] [--only headline|threeseeds|threeseeds-rescue|ladder|lpclosure]
+Usage: python "Special Applications/census_breakdowns.py" [--no-rescue] [--only headline|threeseeds|threeseeds-rescue|lpclosure]
 """
 import os
 import sys
@@ -194,10 +194,11 @@ def headline(with_rescue: bool = True) -> None:
     replace_only = lambda t: (is_fritz_type(t) and not uses_copy(t)) or t.trick in ('naive_marginalization', 'teleportation_marginalization')  # noqa: E731
     fritz_replace = fixpoint(ex, input_ids, set(seed_ids), lambda t: t.trick in ('Fritz', 'Fritz_kept', 'naive_marginalization', 'teleportation_marginalization') and not uses_copy(t))
     fritz_any = fixpoint(ex, input_ids, set(seed_ids), lambda t: t.trick in ('Fritz', 'Fritz_kept', 'naive_marginalization', 'teleportation_marginalization'))
-    print("Fritz (d-sep) + marginalization, replace mode only:", len(fritz_replace), "; with copy mode:", len(fritz_any))
+    print("Fritz (d-sep, both predictor modes) + marginalization, replace mode only:", len(fritz_replace), "; with copy mode:", len(fritz_any))
     ent_replace = fixpoint(ex, input_ids, set(seed_ids), lambda t: replace_only(t))
     ent_any = fixpoint(ex, input_ids, set(seed_ids), lambda t: is_fritz_type(t) or t.trick in ('naive_marginalization', 'teleportation_marginalization'))
     print("Fritz + entropic + marginalization, replace mode only:", len(ent_replace), "; with copy mode:", len(ent_any))
+    print_ladder(ex, input_ids, seed_ids)
 
     # Examples.
     non_fritz = fixpoint(ex, input_ids, set(seed_ids), lambda t: not is_fritz_type(t))
@@ -272,16 +273,8 @@ def three_node_seeds_only(with_rescue: bool = False) -> None:
 # Cheap to expensive: a cumulative ladder of trick categories
 # --------------------------------------------------------------------------------------------------
 
-def ladder(with_rescue: bool = True) -> None:
-    """Proven by the base tricks without Fritz; then additionally by Fritz without copy mode; then with copy mode;
-    then additionally by the entropic trick without copy mode; then with copy mode."""
-    reps = four_node_representatives()
-    seed_ids = {g.unique_unlabelled_id: name for name, g in SEEDS.items()}
-    inputs = [g for g in reps if g.unique_unlabelled_id not in seed_ids]
-    report = prove_gaps(inputs, SEEDS, stages=default_stages(max_visible=5, with_entropic=with_rescue), max_visible=5, verbose=False)
-    print("stage counts:", report.stage_counts)
-    ex = report.explorer
-    input_ids = list(dict.fromkeys(g.unique_unlabelled_id for g in inputs))
+def print_ladder(ex, input_ids, seed_ids) -> None:
+    """Cheap to expensive, cumulatively: what each successive category of step adds."""
     rungs = [
         ('elementary reductions only', lambda t: not is_fritz_type(t)),
         ('+ Fritz, dropped predictors, replace mode', lambda t: not is_fritz_type(t) or (t.trick == 'Fritz' and not uses_copy(t))),
@@ -291,7 +284,7 @@ def ladder(with_rescue: bool = True) -> None:
         ('+ Fritz_entropic (LP), dropped predictors', lambda t: t.trick != 'Fritz_entropic' or dict(t.params[2:]).get('predictor_mode') == 'drop'),
         ('+ Fritz_entropic (LP), kept predictors', lambda t: True),
     ]
-    print(f"\n==== Cumulative ladder (cheap to expensive); headline seeds; {len(input_ids)} inputs up to relabelling")
+    print(f"\n==== Cumulative ladder (cheap to expensive); {len(input_ids)} inputs up to relabelling")
     previous = set()
     for name, keep in rungs:
         proven = fixpoint(ex, input_ids, set(seed_ids), keep)
@@ -327,8 +320,6 @@ if __name__ == '__main__':
         headline(with_rescue=with_rescue)
     if only in (None, 'threeseeds'):
         three_node_seeds_only(with_rescue=False)
-    if only in (None, 'ladder'):
-        ladder(with_rescue=with_rescue)
     if only == 'threeseeds-rescue':
         three_node_seeds_only(with_rescue=True)
     if only == 'lpclosure':

@@ -159,7 +159,7 @@ def default_tricks(max_visible: int = 5, keep_quantum_facets: bool = True, allow
                            districts_check, predictor_mode)}
 
 
-Stage = Tuple[str, Dict[str, Callable], bool]   # (name, tricks, roots_only)
+Stage = Tuple[str, Dict[str, Callable], bool, Optional[FrozenSet[str]]]   # (name, tricks, roots_only, follow-up tricks)
 
 
 def default_stages(max_visible: int = 5, with_entropic: bool = True, with_kept: bool = True,
@@ -169,19 +169,22 @@ def default_stages(max_visible: int = 5, with_entropic: bool = True, with_kept: 
     (1) The elementary reductions, on everything reachable. (2) Fritz with the d-separation certificate, predictors
     dropped, on everything reachable. (3) Fritz with the d-separation certificate and kept predictors (childless
     predictors untouched, childful ones split and their copies marginalized), applied once to each input still
-    unproven, its children expanded with the tricks of (1) and (2) ("depth one"). (4) The entropic Fritz piggyback,
-    LP-certified steps only, in both predictor modes, applied once to each input still unproven."""
+    unproven; its outputs are then reduced with the elementary tricks only, never with another Fritz step ("depth
+    one"). (4) The entropic Fritz piggyback, LP-certified steps only, in both predictor modes, applied once to each
+    input still unproven, outputs reduced as in (3). Each stage runs only on what the cheaper stages left."""
     common = dict(max_visible=max_visible, keep_quantum_facets=keep_quantum_facets,
                   allow_childful_predictors=allow_childful_predictors, districts_check=districts_check)
+    elementary = elementary_tricks(max_visible, districts_check, strict_conditioning)
+    reductions = frozenset(elementary)
     stages: List[Stage] = [
-        ('elementary', elementary_tricks(max_visible, districts_check, strict_conditioning), False),
-        ('Fritz', fritz_tricks(max_predictors=max_predictors, predictor_mode='drop', **common), False),
+        ('elementary', elementary, False, None),
+        ('Fritz', fritz_tricks(max_predictors=max_predictors, predictor_mode='drop', **common), False, None),
     ]
     if with_kept:
-        stages.append(('Fritz_kept', fritz_tricks(max_predictors=1, predictor_mode='split', **common), True))
+        stages.append(('Fritz_kept', fritz_tricks(max_predictors=1, predictor_mode='split', **common), True, reductions))
     if with_entropic:
         modes = ('drop', 'split') if with_kept else ('drop',)
-        stages.append(('Fritz_entropic', entropic_tricks(max_predictors=1, predictor_modes=modes, **common), True))
+        stages.append(('Fritz_entropic', entropic_tricks(max_predictors=1, predictor_modes=modes, **common), True, reductions))
     return stages
 
 
@@ -237,9 +240,10 @@ class ClosureExplorer:
         self.representatives.setdefault(gid, g)
         return gid
 
-    def _expand_one(self, gid: UnlabelledId) -> List[Transition]:
-        """Applies every trick not yet applied to this id; returns all of its transitions."""
-        pending = [name for name in self.tricks if name not in self.applied.get(gid, set())]
+    def _expand_one(self, gid: UnlabelledId, only: Optional[FrozenSet[str]] = None) -> List[Transition]:
+        """Applies every trick (or every trick in `only`) not yet applied to this id; returns its transitions."""
+        pending = [name for name in self.tricks if name not in self.applied.get(gid, set())
+                   and (only is None or name in only)]
         if not pending:
             return self.edges.get(gid, [])
         g = self.representatives[gid]
@@ -254,14 +258,17 @@ class ClosureExplorer:
             self.applied.setdefault(gid, set()).add(trick_name)
         return self.edges.get(gid, [])
 
-    def expand(self, root: QmDAG) -> Set[UnlabelledId]:
-        """Expands everything reachable from root under all tricks; returns the reachable ids (root included)."""
+    def expand(self, root: QmDAG, only: Optional[FrozenSet[str]] = None) -> Set[UnlabelledId]:
+        """Expands everything reachable from root under all tricks (or under the tricks in `only`); returns the
+        reachable ids (root included)."""
         root_id = self.register(root)
         reached = {root_id}
         frontier = deque([root_id])
         while frontier:
             current = frontier.popleft()
-            for transition in self._expand_one(current):
+            for transition in self._expand_one(current, only):
+                if only is not None and transition.trick not in only:
+                    continue
                 if transition.target not in reached:
                     reached.add(transition.target)
                     frontier.append(transition.target)
@@ -277,10 +284,10 @@ class ClosureExplorer:
             self.stage_tricks.append(self.stage_tricks[-1] | frozenset(extra_tricks))
 
     def extend(self, extra_tricks: Dict[str, Callable], roots: Iterable[QmDAG], roots_only: bool = True,
-               stage: Optional[str] = None) -> None:
+               stage: Optional[str] = None, followup: Optional[FrozenSet[str]] = None) -> None:
         """Applies extra tricks. With roots_only, they are applied to the roots alone and the new children are
-        expanded with the tricks already in the explorer; otherwise the extra tricks join the trick set and are
-        applied to everything reachable from the roots. `stage` names the stage for reporting."""
+        expanded with the tricks already in the explorer, or only with those in `followup`; otherwise the extra
+        tricks join the trick set and are applied to everything reachable from the roots. `stage` names the stage."""
         self.begin_stage(stage or '+'.join(sorted(extra_tricks)), extra_tricks)
         if roots_only:
             for root in roots:
@@ -300,7 +307,7 @@ class ClosureExplorer:
                     self.applied.setdefault(gid, set()).add(trick_name)
                     new_children.extend(t.target for t in transitions)
                 for child_id in new_children:
-                    self.expand(self.representatives[child_id])
+                    self.expand(self.representatives[child_id], only=followup)
             return
         self.tricks.update(extra_tricks)
         for root in roots:
@@ -441,9 +448,9 @@ def prove_gaps(inputs: Iterable[QmDAG], seeds: Dict[str, QmDAG], tricks: Optiona
     this holds whatever the order; the order decides cost and which tricks certificates prefer)."""
     inputs = list(inputs)
     if stages is None:
-        stages = [('base', dict(tricks), False)] if tricks is not None \
+        stages = [('base', dict(tricks), False, None)] if tricks is not None \
             else default_stages(max_visible=max_visible, with_entropic=with_entropic)
-    name, first, _ = stages[0]
+    name, first = stages[0][0], stages[0][1]
     explorer = ClosureExplorer(first, max_visible=max_visible)
     explorer.stage_names[0] = name
     for i, g in enumerate(inputs):
@@ -451,17 +458,21 @@ def prove_gaps(inputs: Iterable[QmDAG], seeds: Dict[str, QmDAG], tricks: Optiona
             print(f"[{name}] expanding {i} of {len(inputs)} inputs; {len(explorer.edges)} structures expanded so far")
         explorer.expand(g)
     report = build_report(explorer, inputs, seeds, _trick_groups_for(explorer, trick_groups))
-    for name, extra, roots_only in stages[1:]:
-        report = add_stage(report, extra, trick_groups=trick_groups, verbose=verbose, roots_only=roots_only, name=name)
+    for stage in stages[1:]:
+        name, extra, roots_only = stage[0], stage[1], stage[2]
+        followup = stage[3] if len(stage) > 3 else None
+        report = add_stage(report, extra, trick_groups=trick_groups, verbose=verbose, roots_only=roots_only, name=name,
+                           followup=followup)
     return report
 
 
 def add_stage(report: GapReport, extra_tricks: Dict[str, Callable],
               trick_groups: Optional[Dict[str, Tuple[FrozenSet[str], FrozenSet[str]]]] = None,
-              verbose: bool = True, roots_only: bool = True, name: Optional[str] = None) -> GapReport:
+              verbose: bool = True, roots_only: bool = True, name: Optional[str] = None,
+              followup: Optional[FrozenSet[str]] = None) -> GapReport:
     """Applies further tricks to the explorer of `report` and rebuilds the report. With roots_only the tricks are
-    applied to the still-unproven inputs only (their children are expanded with the tricks already present);
-    otherwise to everything reachable from every input."""
+    applied to the still-unproven inputs only, and their children are expanded with the tricks already present
+    (or only with those in `followup`); otherwise to everything reachable from every input."""
     explorer = report.explorer
     name = name or '+'.join(sorted(extra_tricks))
     if 'Fritz_entropic' in extra_tricks:
@@ -474,7 +485,7 @@ def add_stage(report: GapReport, extra_tricks: Dict[str, Callable],
     for i, g in enumerate(roots):
         if verbose and i % 250 == 0:
             print(f"[{name}] expanding {i} of {len(roots)} roots; {len(explorer.edges)} structures")
-        explorer.extend(extra_tricks, [g], roots_only=roots_only, stage=name)
+        explorer.extend(extra_tricks, [g], roots_only=roots_only, stage=name, followup=followup)
     return build_report(explorer, report.inputs, report.seeds, _trick_groups_for(explorer, trick_groups))
 
 
