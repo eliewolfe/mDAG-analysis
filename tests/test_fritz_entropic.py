@@ -59,7 +59,7 @@ def test_kpc_example_is_rescued_by_the_relabelled_target_set():
 
 
 def test_kpc_example_reaches_bell_in_one_split_step():
-    outputs = G1_KPC.fritz_entropic_transitions((3,), predictor_modes=('split',), extra_deletions=False)
+    outputs = G1_KPC.fritz_entropic_transitions((3,), predictor_modes=('split',), extra_deletions=False, only_beyond_dsep=False)
     by_params = {params[0]: (dict(params[1:]), out) for params, out in outputs}
     info, out = by_params[((2, 'replace'),)]
     assert out.unique_unlabelled_id == QG_Bell5.unique_unlabelled_id
@@ -67,13 +67,16 @@ def test_kpc_example_reaches_bell_in_one_split_step():
     assert by_params[((1, 'replace'),)][0]['certificate'] == 'dsep'
 
 
-def test_only_beyond_dsep_filters_plain_fritz_transitions():
-    # Dropping the predictor with d-separation certificates is what the base Fritz trick already does; keeping it
-    # ('split') is reserved for the final pass, so those outputs are emitted even when certified by d-separation.
-    assert TRIANGLE.fritz_entropic_transitions((2,), predictor_modes=('drop',)) == []
-    assert TRIANGLE.fritz_entropic_transitions((2,), predictor_modes=('drop',), only_beyond_dsep=False) != []
-    split_outputs = TRIANGLE.fritz_entropic_transitions((2,), predictor_modes=('split',))
-    assert split_outputs and all(dict(p[1:])['certificate'] == 'dsep' for p, _ in split_outputs)
+def test_only_lp_reliant_steps_are_emitted_by_default():
+    # Steps that plain d-separation certifies belong to the Fritz trick (any predictor mode); the entropic trick emits
+    # them only when asked (only_beyond_dsep=False).
+    for mode in ('drop', 'split'):
+        assert TRIANGLE.fritz_entropic_transitions((2,), predictor_modes=(mode,)) == []
+        outputs = TRIANGLE.fritz_entropic_transitions((2,), predictor_modes=(mode,), only_beyond_dsep=False)
+        assert outputs and all(dict(p[1:])['certificate'] == 'dsep' for p, _ in outputs)
+    # The KPC example has one LP-reliant step; it is emitted regardless.
+    emitted = G1_KPC.fritz_entropic_transitions((3,), predictor_modes=('split',), extra_deletions=False)
+    assert {p[0] for p, _ in emitted} == {((2, 'replace'),)}
 
 
 def test_split_node_is_a_faithful_duplication():
@@ -93,7 +96,8 @@ def test_copy_mode_runs_the_lp_on_the_split_structure():
     # Copy mode = split the node, then replace mode on the copy. For G1 the copy of E is NOT certified: the
     # original E keeps reading A, so neither target set can identify A with the copy (a classical model may encode
     # A differently for E and for the copy). The copy of D is certified by plain d-separation.
-    outputs = G1_KPC.fritz_entropic_transitions((3,), modes=('copy',), predictor_modes=('split',), extra_deletions=False)
+    outputs = G1_KPC.fritz_entropic_transitions((3,), modes=('copy',), predictor_modes=('split',), extra_deletions=False,
+                                                only_beyond_dsep=False)
     by_params = {params[0]: dict(params[1:]) for params, _ in outputs}
     assert set(by_params) == {((1, 'copy'),)}
     assert by_params[((1, 'copy'),)]['certificate'] == 'dsep'

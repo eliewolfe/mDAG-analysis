@@ -6,11 +6,14 @@ is not provably algebraic (not equivalent to a latent-free structure), with ever
 yields them as members of equivalence classes, so many inputs are relabellings of one another; ALL COUNTS ARE UP TO
 RELABELLING (distinct unlabelled ids). Bell-scenario seeds are removed from the inputs.
 
-Every input is expanded under all piggyback tricks (point distribution, interruption, conditioning, marginalization
-with and without teleportation, Fritz) composed in any order, and is proven to have a QC gap when some reachable
-structure is a known gap (a seed from known_QC_gaps.py, or an input already proven). The report lists how many
-inputs each trick proves on its own, how many are provable only with it, and a certificate (the chain of tricks down
-to a seed) for every proven input.
+The search runs in stages, cheapest first: (1) the elementary reductions (point distribution, interruption,
+conditioning, marginalization with and without teleportation), composed in any order over everything reachable;
+(2) the Fritz piggyback with the d-separation certificate; (3) the entropic Fritz piggyback, whose steps are
+LP-certified, applied to the inputs still unproven. Predictors are dropped throughout (kept predictors are an option
+of `default_stages`, off for cost). An input is proven to have a QC gap when some
+reachable structure is a known gap (a seed from known_QC_gaps.py, or an input already proven). The report lists the
+inputs proven after each stage, how many inputs each trick proves on its own, how many are provable only with it,
+and a certificate (the chain of tricks down to a seed) for every proven input.
 """
 from __future__ import absolute_import
 import sys
@@ -25,7 +28,7 @@ from itertools import chain
 from quantum_mDAG import upgrade_to_QmDAG
 from metagraph_temporally_ordered import Metagraph_temporally_ordered_mDAGs
 from known_QC_gaps import SEEDS, SEEDS_4_NODES
-from qc_gap_search import prove_gaps, rescue, entropic_tricks, default_tricks, GapReport, MARGINALIZATION_TRICKS
+from qc_gap_search import prove_gaps, default_stages, GapReport, MARGINALIZATION_TRICKS
 from quantum_mDAG import ENTROPIC_STATS
 
 
@@ -43,10 +46,10 @@ def four_node_representatives():
     return QmDAGs4_representatives
 
 
-def run_search(QmDAGs4_representatives=None, max_visible=5, verbose=True, with_rescue=False,
+def run_search(QmDAGs4_representatives=None, max_visible=5, verbose=True, with_entropic=True,
                strict_conditioning=True) -> GapReport:
-    """Closure under the default piggybacks; with_rescue additionally applies the entropic (LP-certified) Fritz
-    piggyback to whatever remains unproven."""
+    """Staged closure (elementary reductions, Fritz with d-separation, entropic Fritz); with_entropic=False stops
+    after the Fritz stage."""
     if QmDAGs4_representatives is None:
         QmDAGs4_representatives = four_node_representatives()
     seed_ids = set(g.unique_unlabelled_id for g in SEEDS_4_NODES.values())
@@ -54,12 +57,8 @@ def run_search(QmDAGs4_representatives=None, max_visible=5, verbose=True, with_r
     distinct = len(set(g.unique_unlabelled_id for g in inputs))
     print(f"Total number of qmDAGs to analyze: {distinct} up to relabelling ({len(inputs)} labelled)")
     print("Number of labelled representatives that are known Bell seeds: ", len(QmDAGs4_representatives) - len(inputs))
-    report = prove_gaps(inputs, SEEDS, tricks=default_tricks(max_visible=max_visible, strict_conditioning=strict_conditioning),
-                        max_visible=max_visible, verbose=verbose)
-    if with_rescue:
-        print("# still to be assessed before the entropic rescue: ", len(report.remaining))
-        report = rescue(report, entropic_tricks(max_visible=max_visible), verbose=verbose)
-    return report
+    stages = default_stages(max_visible=max_visible, with_entropic=with_entropic, strict_conditioning=strict_conditioning)
+    return prove_gaps(inputs, SEEDS, stages=stages, max_visible=max_visible, verbose=verbose)
 
 
 FRITZ_TRICKS = ('Fritz', 'Fritz_entropic')
@@ -81,6 +80,9 @@ def print_report(report: GapReport, certificates_for=()) -> None:
     print(f"Inputs up to relabelling: {counts['inputs']} (from {counts['labelled_inputs']} labelled structures)")
     print("# of QC gaps proven: ", counts['proven'])
     print("# still to be assessed: ", counts['remaining'])
+    print("Proven after each stage (cumulative, up to relabelling):")
+    for name, count in report.stage_counts:
+        print(f"    {name:>35}: {count}")
     print("Provable using only this trick (closed under implication among the inputs; up to relabelling):")
     for name, count in report.provable_with.items():
         print(f"    {name:>35}: {count}")
@@ -99,6 +101,6 @@ def print_report(report: GapReport, certificates_for=()) -> None:
 
 if __name__ == '__main__':
     import sys
-    with_rescue = '--no-rescue' not in sys.argv
-    report = run_search(with_rescue=with_rescue)
+    with_entropic = '--no-entropic' not in sys.argv
+    report = run_search(with_entropic=with_entropic)
     print_report(report, certificates_for=proven_through_fritz(report))

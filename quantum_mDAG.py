@@ -832,14 +832,14 @@ class QmDAG:
                                    allow_childful_predictors: bool = True, apply_teleportation: bool = True,
                                    only_beyond_dsep: bool = True, max_lps: int = 60,
                                    max_lp_variables: int = 11,
-                                   base_predictor_modes: Tuple[str, ...] = ('drop',)) -> List[Tuple[Tuple, "QmDAG"]]:
+                                   base_predictor_modes: Tuple[str, ...] = ('drop', 'split')) -> List[Tuple[Tuple, "QmDAG"]]:
         """Fritz transitions certified by the entropic LP.
         Copy mode is realised as node splitting followed by replace mode on the copy (so the LP sees the copy as a
         genuine node with its own shared noise). predictor_mode 'drop' removes the predictors as in fritz_transitions
         (deleted if childless, marginalized otherwise); 'split' keeps them untouched, modelling a predictor that is
-        the fine-graining (X1, s) of itself. With only_beyond_dsep, outputs in a base predictor mode (one that
-        fritz_transitions already explores) whose certificate is plain d-separation and that delete nothing extra
-        are skipped.
+        the fine-graining (X1, s) of itself. With only_beyond_dsep, outputs in a predictor mode listed in
+        base_predictor_modes whose certificate is plain d-separation and that delete nothing extra are skipped:
+        by default every emitted step is LP-reliant, and d-separation-certified steps are left to fritz_transitions.
         params: (((s, mode), ...), ('predictor_mode', m), ('certificate', c), ('deleted', ((p, t), ...)))."""
         predictors = frozenset(predictors)
         if max_visible is None:

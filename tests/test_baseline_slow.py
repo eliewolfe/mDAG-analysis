@@ -34,7 +34,7 @@ EXPECTED = {
 
 @pytest.mark.slow
 def test_search_counts(proving_QC_Gaps):
-    report = proving_QC_Gaps.run_search(verbose=False, with_rescue=True)
+    report = proving_QC_Gaps.run_search(verbose=False, with_entropic=True)
     assert report.counts == EXPECTED
     # Every proven input has a certificate ending at a named seed.
     for gid in report.proven:
