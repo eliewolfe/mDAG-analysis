@@ -40,7 +40,7 @@ All piggybacks here are **caveat-free**: the hypothesis is a QC gap of $G'$ as a
 
 ### 0.4 The census, the seeds and the names of the tricks
 
-The **census** (Section 8) is the set of four-node mDAGs whose directed edges respect the order $0\lt1\lt2\lt3$ and that are not provably algebraic, with every latent facet quantum; these are the **inputs**. The **seeds** (`known_QC_gaps.py`) are structures with an established QC gap: the instrumental, triangle and Evans variants with three visible nodes, and the Bell variants with four, which are removed from the inputs. An input is **proven** when a chain of piggybacks leads from it to a seed or to an input already proven; a proven structure is a **known gap**. "Provable only through $T$" means that the input is no longer proven when every transition of trick $T$ is removed from the record and everything else is kept (Section 7).
+The **census** (Section 8) is the set of four-node mDAGs whose directed edges respect the order $0\lt1\lt2\lt3$ and that are not provably algebraic, with every latent facet quantum; these are the **inputs**. The **seeds** (`known_QC_gaps.py`) are structures with an established QC gap: the instrumental, triangle and Evans variants with three visible nodes, and the Bell variants with four. The census runs in two phases (Section 7): a cheap phase in which only the elementary reductions act and only the three-node seeds are known, so that the Bell variants are inputs, and an expensive phase in which the Bell variants are seeds and the Fritz-type tricks are applied to whatever the cheap phase left. An input is **proven** when a chain of piggybacks leads from it to a seed or to an input already proven; a proven structure is a **known gap**. "Provable only through $T$" means that the input is no longer proven when every transition of trick $T$ is removed from the record and everything else is kept (Section 7).
 
 The **tricks** are the piggybacks as the search applies them: `PD`, `interruption`, `conditioning`, `naive_marginalization` and `teleportation_marginalization` (the **elementary reductions**, which lower the number of visible nodes), and the Fritz-type tricks `Fritz`, `Fritz_kept` and `Fritz_entropic` (Sections 5 and 6). The search runs them in **stages** named after the tricks (Section 7). Two nodes are **latent siblings** when they share a facet, **quantum siblings** when they share a quantum facet.
 
@@ -68,7 +68,7 @@ The **tricks** are the piggybacks as the search applies them: `PD`, `interruptio
 
 *Order dependence.* Teleportation is not symmetric, so marginalizing several nodes in different orders can give different structures; wherever the code removes several nodes it enumerates every order (`QmDAG._marginalize_predictors`).
 
-**Example** (provable only through marginalization; three such inputs among those the exhaustive stages prove, 8.2). Input: 0→1→2→3; Q{1,3}. Node 2 relays the outcome of 1 to 3 and has no latent of its own. Marginalizing it relays the edge, 0→1→3; Q{1,3}, which is `QG_Instrumental1`. Nothing else works: PD on 2 leaves 3 without an input; conditioning on 2 is inadmissible because the grandparent 0 is not a parent of 2, and after PD on 0 it is still inadmissible by condition 2 of Section 3, since the facet Q{1,3} contains the parent 1 but not 2. Both marginalizations give the same output here, since 2 has no quantum facet. The same pattern, a chain through a latent-free relay node, accounts for all three inputs; another is 0→1→2; Q{0,2}, Q{0,3}, where marginalizing 1 relays the setting 0 to 2 and gives `QG_Instrumental3`.
+**Example** (provable only through marginalization; one of the 24 such inputs of the cheap phase, 8.1). Input: 0→1→2→3; Q{1,3}. Node 2 relays the outcome of 1 to 3 and has no latent of its own. Marginalizing it relays the edge, 0→1→3; Q{1,3}, which is `QG_Instrumental1`. Nothing else works: PD on 2 leaves 3 without an input; conditioning on 2 is inadmissible because the grandparent 0 is not a parent of 2, and after PD on 0 it is still inadmissible by condition 2 of Section 3, since the facet Q{1,3} contains the parent 1 but not 2. Both marginalizations give the same output here, since 2 has no quantum facet. The same pattern, a chain through a latent-free relay node, accounts for all three inputs; another is 0→1→2; Q{0,2}, Q{0,3}, where marginalizing 1 relays the setting 0 to 2 and gives `QG_Instrumental3`.
 
 ---
 
@@ -185,7 +185,7 @@ What *does* decompose is the choice of several predicted nodes for one *childles
 
 **Kept predictor, d-separation** (`Fritz_kept`; the one census input that needs it). Input: 0→1→2; Q{0,2}, Q{0,3}, Q{1,3}. Predictor 0, which feeds 1, predicts 3 in copy mode: $\mathrm{common}(3)$ is Q{0,3}, $\mathrm{others}(3)$ is Q{1,3} and noise, separated from 0 given Q{0,3} because 0→1←Q{1,3} is blocked at 1. Since 0 has a child, it is split into 0 and a full copy 0′ (both feeding 1); the copy predicts and is marginalized, which relays its facets to 1: the copy 3′ of 3 reads a classical facet shared by 0, 1, 3 and 3′, and 1 joins a classical facet with 0 and 2. Conditioning on 3 (no visible parents, so admissible) swaps entanglement onto 0 and 1, and marginalizing 0 with teleportation gives 1→2; C{1,3′}, Q{1,2}: `QG_Instrumental3b`. With 0 dropped instead of split, 0's facets land on 1 classically and the quantum link needed for the instrumental shape is lost.
 
-**Joint predictor sets.** The code supports a predictor *set* that predicts jointly: $\mathrm{common}(s)$ collects everything any member sees. In the four-node census such steps are never essential (8.3). Fritz's own construction for the tetrahedron (no edges; all four triples as quantum facets) is different: each of two nodes alone predicts a copy, so the copy keeps only what *both* see, the intersection. In the search this is two sequential single-predictor steps: predictor 2 makes copies 0' and 1' and keeps Q{0,1,2}, Q{0,2,3} for 0' and Q{0,1,2}, Q{1,2,3} for 1', then predictor 3 restricts 0' to Q{0,2,3} and 1' to Q{1,2,3}; dropping both predictors leaves Q{0,1}, C{0,0'}, C{1,1'}, which is `QG_Bell6`. The tetrahedron is also proven in one step by a single predictor (the replace-mode example above), so neither route is essential for it, and in the search the two-step route, although available in the exhaustive stage 2 of Section 7, is never the one recorded, since `build_report` prefers the shortest chain and the tetrahedron is captured by its one-step derivation of `QG_Triangle3`.
+**Joint predictor sets.** The code supports a predictor *set* that predicts jointly (`max_predictors`): $\mathrm{common}(s)$ collects everything any member sees. In an earlier four-node census run with pairs enabled such steps were never essential, and the census now uses single predictors only. Fritz's own construction for the tetrahedron (no edges; all four triples as quantum facets) is different: each of two nodes alone predicts a copy, so the copy keeps only what *both* see, the intersection. In the search this is two sequential single-predictor steps: predictor 2 makes copies 0' and 1' and keeps Q{0,1,2}, Q{0,2,3} for 0' and Q{0,1,2}, Q{1,2,3} for 1', then predictor 3 restricts 0' to Q{0,2,3} and 1' to Q{1,2,3}; dropping both predictors leaves Q{0,1}, C{0,0'}, C{1,1'}, which is `QG_Bell6`. The tetrahedron is also proven in one step by a single predictor (the replace-mode example above), so neither route is essential for it, and in the search the two-step route is in any case beyond the depth-one cascade of Section 7 and is never the one recorded, since `build_report` prefers the shortest chain and the tetrahedron is captured by its one-step derivation of `QG_Triangle3`.
 
 ---
 
@@ -199,14 +199,14 @@ In the pull-back of 5.2 the only facts about the classical model that were used 
 
 For $n$ random variables the entropy vector $h\in\mathbb R^{2^n-1}$ lists $H(S)$ for every nonempty $S$. Every entropy vector satisfies the **elemental Shannon inequalities** $H(i\mid[n]\setminus i)\ge0$ and $I(i{:}j\mid K)\ge0$ for $i\lt j$ and $K\subseteq[n]\setminus\lbrace i,j\rbrace$, which number $n+\binom n2 2^{n-2}$ (`elemental_inequalities(n)`; the $n=3$ matrix is checked against the Mathematica notebook of Khanna, Pusey and Colbeck (KPC), the row count for $n\le8$). A conditional independence is the vanishing of a conditional mutual information, a functional dependence the vanishing of a conditional entropy; both are nonnegative on the cone, so each hypothesis is one inequality "$\le0$". The local Markov property of a DAG is one conditional mutual information per node, $I(v{:}\mathrm{nondesc}(v)\setminus\mathrm{pa}(v)\mid\mathrm{pa}(v))=0$ (`local_markov_rows`). The Shannon cone with these hypotheses implies exactly the d-separations of the DAG: every d-separation follows from the local Markov statements by the semigraphoid axioms (Verma and Pearl), which are Shannon-derivable, and nothing beyond the d-separations can follow because classical models realise every non-d-separated dependence (F2). This is tested on random DAGs.
 
-A target functional $t$ is **implied** when the LP $\lbrace\text{Shannon}\ge0,\ \text{hypotheses}\le0,\ t\ge1\rbrace$ is infeasible (the cone is scale invariant). Geometrically the question is **cone inclusion**: the hypotheses cut out a polyhedral cone $K$, each target is a halfspace, and the certificate asks whether $K$ lies in the intersection of the target halfspaces, that is, inside the cone of entropy vectors Markov to the target graph. Both cones are given by inequalities, and inclusion of one inequality description in another is decided by one LP per inequality of the inner one; converting to extreme rays (as cdd, lrs or PANDA would) is exponential and unnecessary. Infeasibility is decided with the Mosek Optimizer API (`EntropicLP`, interior point); the dual ray is a Farkas certificate, a nonnegative combination of elemental inequalities and hypotheses that reproduces $t$, available through `EntropicLP.farkas_certificate`. Implications proven this way are valid for every distribution, with or without full support, because they use only Shannon inequalities. The method is incomplete in the other direction: a feasible LP does not exhibit a distribution, only a vector in the Shannon cone.
+A target functional $t$ is **implied** when the LP $\lbrace\text{Shannon}\ge0,\ \text{hypotheses}\le0,\ t\ge1\rbrace$ is infeasible (the cone is scale invariant). Geometrically the question is **cone inclusion**: the hypotheses cut out a polyhedral cone $K$, each target is a halfspace, and the certificate asks whether $K$ lies in the intersection of the target halfspaces, that is, inside the cone of entropy vectors Markov to the target graph. Both cones are given by inequalities, and inclusion of one inequality description in another needs no conversion to extreme rays (as cdd, lrs or PANDA would do; that is exponential and unnecessary). It needs one LP per target set, not one per target: every target is a conditional mutual information, nonnegative on the Shannon cone, and a sum of nonnegative quantities vanishes iff each term does, so all targets are implied iff their **sum** is implied (`EntropicLP.implies_all`, `sum_rows`). The Farkas certificate of the summed row certifies every target at once. Solving one LP in place of $n$ per target set is where the time of the entropic stage goes, so this is roughly an $n$-fold saving. Infeasibility is decided with the Mosek Optimizer API (`EntropicLP`, interior point); the dual ray is a Farkas certificate, a nonnegative combination of elemental inequalities and hypotheses that reproduces $t$, available through `EntropicLP.farkas_certificate`. Implications proven this way are valid for every distribution, with or without full support, because they use only Shannon inequalities. The method is incomplete in the other direction: a feasible LP does not exhibit a distribution, only a vector in the Shannon cone.
 
 ### 6.3 The certificate and its two target sets (`QmDAG._entropic_certificate`)
 
-Variables: all nodes of `lp_structure`, the visible nodes and the facets of $G$; quantum facets are ordinary latent variables here, since only classical models are analysed (F2). Hypotheses: Shannon; local Markov of $G$; $H(s\mid\mathbf X)\le0$; and $\mathcal I(G_1)$, the set of elementary observable d-separations $I(x{:}y\mid Z)=0$ of the candidate $G_1$ over its visible nodes (`observable_dseparation_rows`). Two target sets are tried, in this order.
+Variables: all nodes of `lp_structure`, the visible nodes and the facets of $G$; quantum facets are ordinary latent variables here, since only classical models are analysed (F2). Hypotheses: Shannon; local Markov of $G$; $H(s\mid\mathbf X)\le0$; and $\mathcal I(G_1)$, the set of elementary observable d-separations $I(x{:}y\mid Z)=0$ of the candidate $G_1$ over its visible nodes (`observable_dseparation_rows`). Two target sets are tried, each as one LP on its summed row (6.2), in this order: `relabel` first, since it is the certificate that reaches beyond d-separation in practice (8.3), and `markov` only when `relabel` is inapplicable or fails.
 
-* **`markov`**: the local Markov equalities of $G_1$ over $G$'s own latents. If all are implied, the joint of any classical model of $G$ satisfying the hypotheses is Markov to $G_1$, hence $P\in\mathcal C(G_1)$.
 * **`relabel`**: applicable when there is a single predicted node $s$ and it keeps exactly one parent in $G_1$, a facet $L$ (the code tests `len(predicted) == 1`, `len(common) == 1` and that the element is a facet index). Let $G''$ be $G_1$ with $L$ deleted and $s$ made a parent of every other child of $L$. Targets: the local Markov equalities of $G''$ over $G$'s variables other than $L$.
+* **`markov`**: the local Markov equalities of $G_1$ over $G$'s own latents. If all are implied, the joint of any classical model of $G$ satisfying the hypotheses is Markov to $G_1$, hence $P\in\mathcal C(G_1)$.
 
 ### 6.4 Why `relabel` is justified
 
@@ -232,9 +232,9 @@ In the KPC example (6.7) this reads: every model in which $E$ depends on $C$ and
 
 **Proof.** Lift as in 5.3: $P\in\mathcal Q(G)$ with $H(s\mid\mathbf X)=0$; since the lifted strategy is a strategy for $G_1$ with fine-grained predictor outputs, (F2) gives that $P$ satisfies every observable d-separation of $G_1$. Let $M$ be a classical model of $G$ for $P$. Its joint entropy vector lies in the Shannon cone, satisfies the local Markov equalities of $G$ and the hypotheses $H(s\mid\mathbf X)=0$ and $\mathcal I(G_1)$. The LP implication forces the target quantities to vanish, so the joint of $M$ is Markov to the restricted structure with the predictors present (or to its relabelled version, and then 6.4 gives such a model). Removing the predictors as in 5.3, by deletion or marginalization, gives $P'\in\mathcal C(G')$. $\square$
 
-Several predicted nodes for the same $\mathbf X$ are handled jointly (the "joint targets" of 8.5): one hypothesis $H(s_i\mid\mathbf X)\le0$ per node, one candidate $G_1$ restricting all of them, and only the `markov` target set.
+Several predicted nodes for the same $\mathbf X$ can be handled jointly (the "joint targets" of `ENTROPIC_STATS`, 8.4): one hypothesis $H(s_i\mid\mathbf X)\le0$ per node, one candidate $G_1$ restricting all of them, and only the `markov` target set.
 
-### 6.6 The search procedure and extra deletions (`QmDAG.fritz_entropic_transitions`, `QmDAG._entropic_extra_deletions`)
+### 6.6 The search procedure, and the optional extra deletions (`QmDAG.fritz_entropic_transitions`, `QmDAG._entropic_extra_deletions`)
 
 Stated edge-first, the unit of search is a **candidate deletion**: a visible node $s$ and a set $D\subseteq\mathrm{Pa}(s)$ of its parents in the effective DAG to delete, a parent being a visible parent or a facet containing $s$. Deleting $D$ dictates everything else.
 
@@ -242,11 +242,11 @@ Stated edge-first, the unit of search is a **candidate deletion**: a visible nod
 2. **Which conditional independences.** $G_1$ is $G$ with $D$ deleted, predictors kept, so the hypothesis set $\mathcal I(G_1)$ is fixed by $D$.
 3. **What has to be proven.** The `markov` or `relabel` targets from Shannon, Markov($G$), $H(s\mid\mathbf X)=0$ and $\mathcal I(G_1)$.
 
-The implementation runs this in the opposite order: for each predictor set (single nodes by default, pairs optionally) and each latent sibling $s$ of a predictor, it takes the maximal deletion $D_0=\mathrm{Pa}(s)\setminus\mathrm{common}(s)$, everything the predictors cannot see. The d-separation test of 5.3 is run first and the LP only where it fails. Then a **greedy loop** tries further deletions: the hypotheses do not mention which node a deletion concerns, so the same LP can certify deleting a parent $p$ of any non-predictor node $t$ through the per-edge target $I(t{:}p\mid\mathrm{Pa}'(t)\setminus p)\le0$, where $\mathrm{Pa}'(t)$ are the parents of $t$ in the current candidate. Deleting an edge enlarges $\mathcal I(G_1)$, so the hypotheses are recomputed from the current candidate after each deletion and the loop runs to a fixed point, order-dependent and budgeted at `max_lps=60` LP solves per candidate, not exhaustive. Because deleting edges also enlarges non-descendant sets, the final candidate is verified as a whole with 6.3; if that fails, the candidate without extra deletions is kept. Soundness is Theorem 6.5 for the final candidate.
+The implementation runs this in the opposite order: for each predictor (single nodes; joint predictor sets are supported by `max_predictors` but off, 5.5) and each latent sibling $s$ of a predictor, it takes the maximal deletion $D_0=\mathrm{Pa}(s)\setminus\mathrm{common}(s)$, everything the predictors cannot see. The d-separation test of 5.3 is run first and the LP only where it fails. Optionally (`extra_deletions=True`, off in the census) a **greedy loop** then tries further deletions: the hypotheses do not mention which node a deletion concerns, so the same LP can certify deleting a parent $p$ of any non-predictor node $t$ through the per-edge target $I(t{:}p\mid\mathrm{Pa}'(t)\setminus p)\le0$, where $\mathrm{Pa}'(t)$ are the parents of $t$ in the current candidate. Deleting an edge enlarges $\mathcal I(G_1)$, so the hypotheses are recomputed from the current candidate after each deletion and the loop runs to a fixed point, order-dependent and budgeted at `max_lps=60` LP solves per candidate, not exhaustive. Because deleting edges also enlarges non-descendant sets, the final candidate is verified as a whole with 6.3; if that fails, the candidate without extra deletions is kept. Soundness is Theorem 6.5 for the final candidate. In an earlier census run with the loop on, extra deletions certified hundreds of candidate steps and decided no input, which is why the census leaves them off. Deletions never touch a predictor (it must keep seeing $\mathrm{common}(s)$), and never remove the last facet a predicted node shares with its predictors: without it the hypotheses $H(s\mid\mathbf X)=0$ and $s\perp\mathbf X$ (an observable d-separation of the resulting $G_1$) are jointly satisfiable only by a constant $s$, the LP would certify a vacuous statement, and the lift would no longer exist.
 
-Two further limits of the implementation bear on the counts of Section 8: a candidate whose LP would have more than `max_lp_variables=11` variables (visible nodes plus facets, after any splitting) is skipped, and deletions never touch a predictor (it must keep seeing $\mathrm{common}(s)$), and never remove the last facet a predicted node shares with its predictors: without it the hypotheses $H(s\mid\mathbf X)=0$ and $s\perp\mathbf X$ (an observable d-separation of the resulting $G_1$) are jointly satisfiable only by a constant $s$, the LP would certify a vacuous statement, and the lift would no longer exist.
+**LP size and time.** An LP over $n$ variables (visible nodes plus facets, after any splitting) has $2^n-1$ columns and $n+\binom n2 2^{n-2}$ elemental rows; measured solve times on one core are about 0.2, 0.5, 2 and 9 seconds for $n=10,11,12,13$, and memory stays below a gigabyte up to $n=13$. The number of variables is not capped. Instead every solve carries a Mosek time limit of 60 seconds (`EntropicLP(max_time=60.0)`, `optimizer_max_time`); a solve that hits it is counted (`entropic_lp.TIMEOUTS`) and treated as undecided, which is the conservative answer: the implication is then not claimed. The census report states how many solves timed out (8.4).
 
-For every candidate the code records the predictor set, the predicted nodes and their modes, the predictor mode, which certificate closed it and the extra deletions, so each entropic step in a certificate can be re-derived by hand. `Fritz_entropic` emits only LP-reliant steps: those certified by `markov` or `relabel`, or carrying extra deletions. A candidate that plain d-separation certifies is left to `Fritz` and `Fritz_kept`, so the three trick names partition the Fritz-type steps by the justification they need.
+For every candidate the code records the predictor set, the predicted nodes and their modes, the predictor mode, which certificate closed it and the extra deletions (none in the census), so each entropic step in a certificate can be re-derived by hand. `Fritz_entropic` emits only LP-reliant steps: those certified by `markov` or `relabel`, or carrying extra deletions. A candidate that plain d-separation certifies is left to `Fritz` and `Fritz_kept`, so the three trick names partition the Fritz-type steps by the justification they need.
 
 ### 6.7 Worked example: the KPC structure
 
@@ -254,13 +254,13 @@ $G_1$: visible $C,D,E,F$; facets $A=\lbrace E,F\rbrace$, $B=\lbrace D,F\rbrace$;
 
 ### 6.8 Further examples from the census
 
-Five inputs are provable only with an LP-certified step (8.2). All five use a childless predictor that is kept, the `relabel` target set, and no extra deletion, and each reaches a Bell seed in one step. Two of them:
+Five inputs are lost when every LP-certified step is removed (8.3). All five use a childless predictor that is kept and the `relabel` target set, and each reaches a Bell seed in one step. Two of them:
 
 **One step to `QG_Bell9`.** Input: 0→1→2; Q{0,2}, Q{1,3}, Q{2,3}. Predictor 3 (childless, kept), predicted 2: $\mathrm{common}(2)$ is Q{2,3}; $\mathrm{others}(2)$ is the visible parent 1, the facet Q{0,2} and noise. d-separation fails because 3←Q{1,3}→1 is open. In the candidate $G_1$, where 2 reads Q{2,3} alone, node 2 is separated from 0 and 1 (every path leaves 2 through Q{2,3} to 3, where it meets a collider), so $I(2{:}01)=0$ is a hypothesis. With it the LP derives the `relabel` targets: the joint is Markov to $G''$ in which 2 is a root and a parent of 3. Output: 0→1; C{2,3}, Q{1,3}, which is `QG_Bell9` (party 1 with setting 0, party 3 whose "setting" 2 is a classical copy correlated with it).
 
 **One step to `QG_Bell6c`.** Input: 0→2, 1→2; Q{0,1}, Q{1,3}, Q{2,3}. Predictor 3 (childless, kept), predicted 2: both visible parents 0 and 1 are deleted at once (5.4), Q{2,3} is kept and becomes classical for 2. d-separation fails through 3←Q{1,3}→1→2. In $G_1$ node 2 is separated from 0 and 1, and the LP certifies the `relabel` targets. Output: Q{0,1}, C{2,3}, Q{1,3}, which is `QG_Bell6c`.
 
-Dropping the predictor instead would delete 3 and with it the only facet 2 keeps, proving nothing, so these five inputs are exactly where kept predictors matter for the LP trick (8.3). The `markov` target set and the extra deletions, which certify many candidate steps during the search (8.5), are never decisive in four nodes.
+Dropping the predictor instead would delete 3 and with it the only facet 2 keeps, proving nothing, so these five inputs are exactly where kept predictors matter for the LP trick (8.3). The `markov` target set, which certifies many candidate steps during the search (8.4), is never decisive in four nodes; neither were the extra deletions in the earlier run that had them on (6.6).
 
 ---
 
@@ -268,89 +268,72 @@ Dropping the predictor instead would delete 3 and with it the only facet 2 keeps
 
 `ClosureExplorer` expands every reachable structure, up to relabelling, exactly once under a set of tricks and records each `Transition(trick, params, source, target)`. Every transformation builds a `LabelledDirectedStructure`/`LabelledHypergraph` over named nodes and re-indexes them; copies are named `"<s>_copy"` during construction. Each unlabelled id has one stored representative, every trick is applied to that representative, and the recorded params are stated in its labels; certificates print the representative above each step. Keying on unlabelled ids is legitimate because every piggyback is label-equivariant. The order dependence of Section 2 is enumerated rather than fixed because different removal orders give different structures and none is canonical.
 
-**Stages.** `prove_gaps` runs the search in stages, cheapest first (`default_stages`). Every structure proven in a stage is a known gap for the next.
+**Two phases, four stages.** `Special Applications/proving_QC_Gaps.py` runs the census in two phases over one shared explorer.
 
-1. `elementary`: PD, interruption, conditioning and both marginalizations, closed over everything reachable from every input.
-2. `Fritz`: the d-separation Fritz piggyback with dropped predictors, single predictors and pairs, closed over everything reachable.
-3. `Fritz_kept`: the d-separation Fritz piggyback with kept predictors (Section 5.2), single predictors only, applied once to each input still unproven; its outputs are then reduced with the elementary tricks of stage 1 only, never with another Fritz step ("depth one").
-4. `Fritz_entropic`: the LP-certified steps, in both predictor modes, single predictors only, applied once to each input still unproven, outputs reduced as in stage 3.
+*Phase 1 (cheap).* Only the elementary reductions act, closed over everything reachable from every input, and only the three-node seeds are known, so the Bell variants are inputs like any other. Reachability is transitive within this phase, so the set of inputs it proves does not depend on the order in which the tricks are applied, and `_fixpoint` iterates the implication closure among the inputs until nothing changes. Because every elementary trick is cheap and the phase is exhaustive, it is the one phase where "what does this trick prove alone, and what is lost without it" is a meaningful and affordable question, and 8.1 reports exactly that, per elementary trick.
 
-A stage is named after the trick it adds, and the trick name is what the provenance of each transition records.
+*Phase 2 (expensive).* The Bell variants join the seeds (every Bell variant has a gap by the direct argument, and those not reachable from the three-node seeds, such as `QG_Bell6d`, can only be seeds), the gaps of phase 1 and of the cache (below) are known, and the inputs the cheap phase left unproven are attacked by a cascade of stages of increasing cost (`default_stages`), each applied only to the inputs the previous stages left:
 
-Within stages 1 and 2 reachability is transitive, so the set of inputs they prove does not depend on the order in which their tricks are applied, and `_fixpoint` iterates the implication closure among the inputs until nothing changes.
+1. `Fritz`: the d-separation Fritz piggyback with dropped predictors, single predictors.
+2. `Fritz_kept`: the d-separation Fritz piggyback with kept predictors (Section 5.2), single predictors.
+3. `Fritz_entropic`: the LP-certified steps, in both predictor modes, single predictors.
 
-Stages 3 and 4 are a cascade of increasing cost: each runs only on what the cheaper stages left, and only one Fritz-type step is allowed before the reductions take over. This loses proofs that would need two kept-predictor steps or a kept step followed by a dropped one, which is accepted: a kept-predictor output has as many visible nodes as its source, and re-expanding every such output under the Fritz tricks was found to be far slower than everything else combined. The counts of 8.1 and 8.3 are therefore lower bounds for what the tricks can prove, exact for stages 1 and 2. What the order decides is cost (the LP runs only where the cheap stages failed) and which tricks a certificate prefers (`build_report` takes the shortest chain within the earliest stage that has one). The seeds (`known_QC_gaps.py`) are the instrumental, triangle and Evans variants with three visible nodes and the Bell variants with four; `prove_gaps` closes the proven set under implication from them and attaches to every proven input a certificate, the shortest chain of transitions down to a named seed.
+Each stage applies its trick once to each input still unproven, and the outputs are then reduced with the elementary tricks only, never with another Fritz-type step ("depth one"). A stage is named after the trick it adds, and the trick name is what the provenance of each transition records. The cascade loses proofs that would need two Fritz-type steps, which is accepted: a Fritz-type output has at least as many visible nodes as its source, and re-expanding every such output under the Fritz tricks was found to be far slower than everything else combined. The counts of 8.2 and 8.3 are therefore lower bounds for what the tricks can prove, exact for phase 1. What the order decides is cost (the LP runs only where the cheap stages failed) and which tricks a certificate prefers (`build_report` takes the shortest chain within the earliest stage that has one). `prove_gaps` closes the proven set under implication from the seeds and attaches to every proven input a certificate, the shortest chain of transitions down to a named seed.
 
-**The known-gap database the search establishes.** Every structure the search touches, inputs, intermediates and the hybrid structures with classical facets that the Fritz steps create, is a proven QC gap as soon as it reaches a seed, and `GapReport.proven_structure_ids` returns that set. This is the database to keep: the census inputs have every latent quantum, but a structure with some facets classical is a *weaker* structure, its gap is not implied by the gap of the all-quantum version (making a facet classical shrinks the quantum set and leaves the classical set), and it is a gap only if a chain of piggybacks from it reaches a seed. Fritz steps are indifferent to whether the shared facet is classical or quantum, so chains often transfer; conditioning and teleportation are not, since they create quantum facets only among quantum siblings. 8.1 reports how many hybrid structures the census proves in passing. Hybrid four-node structures as *inputs* are not in the census yet.
+**What is never computed.** The search never asks how many inputs an expensive piggyback proves *alone*: that would mean closing the search under that piggyback over everything reachable, which is exactly the cost the cascade avoids, and it would answer a question nobody needs answered. The expensive steps are assessed in two cheaper ways over the recorded transitions (8.3): the cumulative ladder, which adds categories of step from cheap to expensive and counts what each adds, and the "lost when removed" count for each category of step, which removes just that category and keeps everything else.
 
-**Reading the tables.** Reachability restricted to any subset of tricks, or to any predicate on the recorded parameters, is a graph query over the recorded transitions. "Alone" counts the inputs provable with one trick or group; "only" counts the inputs lost when one trick is removed and everything else kept; the stage counts of 8.1 are cumulative. Since `Fritz_kept` and `Fritz_entropic` were applied only to inputs the earlier stages left unproven, an input is "only via `Fritz`" when it needs a Fritz-type step that d-separation with dropped predictors supplies, not because the later tricks could not supply it.
+**The cache** (`gap_cache.py`, `cache/known_gaps.json`). Every proven input is stored with its unlabelled id, its structure, the seed its certificate ends at, the chain of transitions (trick, parameters, source and target ids), the rendered certificate, and the **version** of every piggyback the chain uses (`PIGGYBACK_VERSIONS` in `qc_gap_search.py`). A certificate that ends at a cached gap inherits that entry's versions, so dependence is transitive. When a piggyback is corrected its version is bumped, and loading the cache drops exactly the entries whose proof relied on it; everything else stays known, and the expensive stages run only on the inputs that are neither cached nor proven by phase 1. The entries are up to relabelling, like everything else.
 
-**The seeds matter.** Every piggyback except the Fritz type reduces the number of visible nodes, so for four-node inputs a four-node seed can only be reached by a Fritz-type step. Listing the Bell variants as seeds is what lets the Fritz steps conclude in one move; it also means the reductions get no credit for the Bell variants themselves, which is why 8.4 also reports a run with the three-node seeds only. The Bell variants that are not derivable from the three-node seeds by any piggyback (8.4) have to be seeds, on the strength of the direct Bell argument.
+**The known-gap database the search establishes.** Every structure the search touches, inputs, intermediates and the hybrid structures with classical facets that the Fritz steps create, is a proven QC gap as soon as it reaches a seed, and `GapReport.proven_structure_ids` returns that set. This is the database to keep: the census inputs have every latent quantum, but a structure with some facets classical is a *weaker* structure, its gap is not implied by the gap of the all-quantum version (making a facet classical shrinks the quantum set and leaves the classical set), and it is a gap only if a chain of piggybacks from it reaches a seed. Fritz steps are indifferent to whether the shared facet is classical or quantum, so chains often transfer; conditioning and teleportation are not, since they create quantum facets only among quantum siblings. 8.2 reports how many hybrid structures the census proves in passing. Hybrid four-node structures as *inputs* are not in the census yet.
+
+**Reading the tables.** Reachability restricted to any subset of tricks, or to any predicate on the recorded parameters, is a graph query over the recorded transitions. In 8.1, "via" counts the inputs provable with one elementary trick alone and "only via" the inputs lost when that trick is removed and everything else kept; both are computed in phase 1 with the three-node seeds. In 8.2 the stage counts are cumulative. In 8.3 "lost when removed" removes one category of expensive step and keeps everything else; since each stage of the cascade ran only on inputs the earlier stages left unproven, an input is lost without `Fritz` when it needs a Fritz-type step that d-separation with dropped predictors supplies, not because the later tricks could not supply it.
+
+**The seeds matter.** Every piggyback except the Fritz type reduces the number of visible nodes, so for four-node inputs a four-node seed can only be reached by a Fritz-type step. Listing the Bell variants as seeds in phase 2 is what lets the Fritz steps conclude in one move; keeping them out of phase 1 is what lets the reductions get credit for the Bell variants they do reach (8.1). The Bell variants that are not derivable from the three-node seeds by any piggyback have to be seeds, on the strength of the direct Bell argument.
 
 ---
 
 ## 8. Results on the four-node census
 
-The inputs are the four-node mDAGs whose edges respect the order $0\lt1\lt2\lt3$ and that are not provably algebraic, with every latent quantum and the Bell seeds removed. All counts are of distinct structures up to relabelling. `tests/test_baseline_slow.py` pins the headline values; `Special Applications/census_breakdowns.py` produces the finer tables.
+The inputs are the four-node mDAGs whose edges respect the order $0\lt1\lt2\lt3$ and that are not provably algebraic, with every latent quantum: 2807 labelled structures, 996 distinct up to relabelling, of which 6 are Bell variants (the Bell variants with a classical facet are not census inputs). All counts are of distinct structures up to relabelling. `tests/test_baseline_slow.py` pins every number below; `Special Applications/census_breakdowns.py` prints one certificate per row of the tables.
 
-### 8.1 Headline: proven after each stage
+### 8.1 Phase 1: the elementary piggybacks, from the three-node seeds
 
-| stage | proven (cumulative) | new |
+Only the elementary reductions act and only the three-node seeds (instrumental, triangle, Evans variants) are known, so the Bell variants are inputs. "Via" is the number of inputs provable using only that trick, closed under implication among the inputs; "only via" is the number no longer provable when that trick alone is removed from the recorded transitions, everything else kept. This phase takes two seconds.
+
+| elementary piggyback | via | only via |
 |---|---|---|
-| 1. elementary reductions | 914 | 914 |
-| 2. Fritz, dropped predictors, d-separation | 918 | 4 |
-| 3. Fritz, kept predictors, d-separation | 919 | 1 |
-| 4. entropic Fritz, LP-certified, both predictor modes | 924 | 5 |
-
-Labelled input structures 2759, distinct 990, remaining 66; 6870 structures expanded. Stages 1 and 2 take about three minutes together; the whole search, dominated by stage 3 (node splitting of childful predictors, marginalization of the copies in every order, and the reductions of the resulting dense structures) and by the LP solves of stage 4, took about 45 minutes with two searches sharing the machine.
-
-The search also established, in passing, the gap of every structure it touched that reaches a seed: 1323 structures in all (9 with three visible nodes, 1044 with four, 270 with five), 394 of them with at least one classical facet (`GapReport.proven_structure_ids`, Section 7).
-
-### 8.2 Per trick
-
-"Alone" is the number of inputs provable using only that trick, closed under implication among the inputs; the Fritz-type tricks are counted together with the marginalizations (their outputs often need reducing), `Fritz_kept` together with `Fritz`, and `Fritz_entropic` together with both. "Only" is the number of inputs no longer provable when that single trick is removed from the recorded transitions, everything else kept.
-
-| trick | alone | only |
-|---|---|---|
-| point distribution | 860 | 216 |
-| interruption | 7 | 0 |
+| point distribution | 860 | 246 |
+| interruption | 10 | 3 |
 | conditioning | 289 | 20 |
 | naive marginalization | 515 | 0 |
-| teleportation marginalization | 540 | 0 |
-| `Fritz` (dropped predictors, d-separation) | 575 | 4 |
-| `Fritz_kept` (kept predictors, d-separation) | 575 | 1 |
-| `Fritz_entropic` (LP) | 580 | 5 |
+| teleportation marginalization | 540 | 16 |
+| marginalization, either kind (both removed at once) | 540 | 24 |
+| all elementary piggybacks | 917 | |
 
-Three remarks on reading the "only" column.
+Of the 996 inputs, 917 are proven and 79 are left for phase 2. Of the 6 Bell variants that are inputs, 3 are proven, all by interruption from an instrumental variant (Section 4): `QG_Bell1` to `QG_Instrumental1`, `QG_Bell3b` to `QG_Instrumental2`, `QG_Bell9b` to `QG_Instrumental3`. The other 3 (`QG_Bell6d` among them) are not reached from the three-node seeds by any piggyback: deleting a facet is never a piggyback, so a structure such as `QG_Bell6d` (no edges; Q{0,2}, Q{1,3}, Q{2,3}) has no route to a three-node seed and has to be a seed itself, on the strength of the direct Bell argument. Those 3 are the difference between the 917 of phase 1 and the 914 inputs that phase 2 counts as proven by the elementary stage (8.2): in phase 2 they are seeds, not inputs.
 
-* The four inputs lost without `Fritz` are of course also within reach of `Fritz_kept` and `Fritz_entropic`, which subsume it (Section 5.2, 6.4). They count as `Fritz`-only because the later stages ran only on inputs the earlier stages had not proven (Section 7). One of them is the replace-mode example of 5.5; the other three need copy mode.
-* The zeros for interruption and the marginalizations are not statements of uselessness. Interruption's exclusive product is pre-empted by the Bell seeds (Section 4). The two marginalizations coincide whenever the removed node has no quantum facet, so removing one of them alone loses nothing; removing both loses three of the inputs the exhaustive stages prove (Section 2), and removing only the steps in which teleportation actually acts, those at a node holding a quantum facet, loses none.
-* "Only" counts are not additive. The `Fritz_entropic`-only inputs are exactly those stage 4 adds; the PD-only and conditioning-only sets are disjoint from each other.
+Reading the "only via" column. The two marginalizations coincide whenever the removed node has no quantum facet, so removing the naive one alone loses nothing; removing the teleportation one alone loses 16 inputs, those where the removed node holds a quantum facet and the relayed entanglement is what the proof needs; removing both loses 24. Interruption is the sole route for 3 inputs, the 3 Bell variants above: its characteristic product is a Bell variant derived from an instrumental variant, and every other input it proves is also reachable by PD or conditioning (8.5).
 
-### 8.3 Fritz-type steps by mode and certificate
+### 8.2 Phase 2: the cascade
 
-The provenance of each Fritz-type transition records its predictor set, the mode of each predicted node, the predictor mode and the certificate, so the counts can be refined to categories of steps. "Lost" is the number of inputs no longer provable when every transition of that category is removed, all other transitions kept.
+The Bell variants are seeds, so there are 990 inputs (2759 labelled), of which the elementary stage proves 914. The cascade runs on the 76 that are left.
 
-| category of step | lost when removed |
-|---|---|
-| `Fritz` (dropped predictors) in copy mode | 3 |
-| `Fritz_kept` in copy mode | 1 |
-| any copy-mode step | 4 |
-| any step with a joint predictor set | 0 |
-| `Fritz_entropic` steps with kept predictors | 5 |
-| `Fritz_entropic` steps with dropped predictors | 0 |
-| steps certified by `relabel` | 5 |
-| steps certified by `markov` | 0 |
-| steps with extra deletions | 0 |
-| all `Fritz_kept` steps | 1 |
-| all kept-predictor steps (`Fritz_kept` and `Fritz_entropic` with kept predictors) | 6 |
-| all `Fritz` (dropped predictors) steps | 4 |
-| all `Fritz_entropic` steps | 5 |
-| all Fritz-type steps | 10 |
+| stage | proven (cumulative) | new | inputs the stage was applied to |
+|---|---|---|---|
+| elementary reductions | 914 | 914 | 990 |
+| `Fritz`, dropped predictors, d-separation | 918 | 4 | 76 |
+| `Fritz_kept`, kept predictors, d-separation | 919 | 1 | 72 |
+| `Fritz_entropic`, LP-certified, both predictor modes | 924 | 5 | 71 |
 
-Cheap to expensive, cumulatively:
+Remaining 66; 1820 structures expanded. The whole census, both phases, takes about four minutes on one core (217 seconds in the pinned run), against about 45 minutes before the Fritz stage was made depth-one and the LP was reduced to one solve per target set; no LP solve reached the 60-second time limit.
 
-| tricks allowed | proven | new |
+The search also established, in passing, the gap of every structure it touched that reaches a seed: 960 structures in all (9 with three visible nodes, 939 with four, 12 with five), 25 of them with at least one classical facet (`GapReport.proven_structure_ids`, Section 7). All 924 proven inputs are stored in `cache/known_gaps.json` with their certificates and piggyback versions; a second run loads them and finds nothing left for the expensive stages to do.
+
+### 8.3 The expensive steps: cheap to expensive, and what each category decides
+
+The provenance of each Fritz-type transition records its predictor, the mode of each predicted node, the predictor mode and the certificate, so the recorded transitions can be filtered by category of step. Cheap to expensive, cumulatively:
+
+| transitions allowed | proven | new |
 |---|---|---|
 | elementary reductions only | 914 | 914 |
 | + `Fritz`, dropped predictors, replace mode | 915 | 1 |
@@ -361,43 +344,47 @@ Cheap to expensive, cumulatively:
 | + `Fritz_entropic`, kept predictors | 924 | 5 |
 | remaining | | 66 |
 
-**Where kept predictors prove something dropped predictors cannot.** Six inputs: one by d-separation (the `Fritz_kept` example of 5.5, where the childful predictor is split and its copy marginalized) and five by the LP (6.8), all five with a childless predictor kept, the `relabel` target set and no extra deletion. The LP trick with dropped predictors adds nothing beyond d-separation in four nodes, and neither the `markov` targets nor the extra deletions are ever decisive, although both certify many candidate steps (8.5) whose outputs are also reached otherwise or are not gaps as far as the seeds know. Copy mode is decisive for four inputs, joint predictor sets for none. Provable with the Fritz-type tricks and marginalization alone: 571 inputs in replace mode only and 575 with copy mode using d-separation; 576 and 580 with the entropic trick added.
+"Lost" is the number of inputs no longer provable when every transition of that category is removed, all other transitions kept:
 
-### 8.4 Three-node seeds only
-
-Rerunning the staged search with the three-node seeds only (instrumental, triangle and Evans variants), the Bell variants being ordinary inputs:
-
-| quantity | value |
+| category of step | lost when removed |
 |---|---|
-| inputs up to relabelling (Bell variants with all facets quantum included) | 996 |
-| proven after stage 1 / 2 / 3 / 4 | 917 / 921 / 922 / 925 |
-| only via PD | 216 |
-| only via interruption | 6 |
-| only via conditioning | 21 |
-| only via naive, or via teleportation, marginalization (one removed at a time) | 0 |
-| only via `Fritz` | 4 |
-| only via `Fritz_kept` | 1 |
-| only via `Fritz_entropic` | 3 |
+| `Fritz` (dropped predictors) in copy mode | 3 |
+| `Fritz_kept` in copy mode | 1 |
+| any copy-mode step | 4 |
+| `Fritz_entropic` steps with kept predictors | 5 |
+| `Fritz_entropic` steps with dropped predictors | 0 |
+| steps certified by `relabel` | 5 |
+| steps certified by `markov` | 0 |
+| all `Fritz_kept` steps | 1 |
+| all kept-predictor steps (`Fritz_kept` and `Fritz_entropic` with kept predictors) | 6 |
+| all `Fritz` (dropped predictors) steps | 4 |
+| all `Fritz_entropic` steps | 5 |
+| all Fritz-type steps | 10 |
 
-Of the Bell variants that are census inputs, three are proven, all by interruption from an instrumental variant (Section 4), and interruption is the sole route for three further inputs. The LP stage adds three inputs here against five in the headline run: the two that drop out reach Bell variants (`QG_Bell6c` among them) that are themselves not derivable from the three-node seeds. The other Bell variants are not reached from the three-node seeds by any trick: deleting a facet is never a piggyback, so a structure such as `QG_Bell6d` (no edges; Q{0,2}, Q{1,3}, Q{2,3}) has no route to a three-node seed and has to be a seed itself, on the strength of the direct Bell argument.
+The four inputs lost without `Fritz` are of course also within reach of `Fritz_kept` and `Fritz_entropic`, which subsume it (Sections 5.2, 6.4); they count against `Fritz` because the later stages ran only on inputs the earlier stages had not proven (Section 7). One of them is the replace-mode example of 5.5; the other three need copy mode.
 
-### 8.5 Entropic certificates attempted
+**Where kept predictors prove something dropped predictors cannot.** Six inputs: one by d-separation (the `Fritz_kept` example of 5.5, where the childful predictor is split and its copy marginalized) and five by the LP (6.8), all five with a childless predictor kept and the `relabel` target set. The LP trick with dropped predictors adds nothing beyond d-separation in four nodes, and the `markov` targets are never decisive, although they certify many candidate steps (8.4) whose outputs are also reached otherwise or are not gaps as far as the seeds know. Copy mode is decisive for four inputs.
 
-Per predictor–target candidate, both predictor modes, split structures included (`ENTROPIC_STATS`): admissible by d-separation 1997; beyond d-separation, `markov` 112, `relabel` 70, failed 875; joint targets (several predicted nodes at once) certified 82, failed 55; extra-deletion candidates verified 339, none failed. Among candidates that d-separation rejects, the LP certifies roughly one in six. Success is common but far from universal, and a failure of the LP is not a proof that the implication is false (6.4). Almost none of these certified steps is decisive (8.3): their outputs are structures the cheaper tricks reach as well, or structures that are not gaps as far as the seeds know.
+### 8.4 Entropic certificates attempted
 
----
+Per predictor–target candidate, both predictor modes, split structures included (`ENTROPIC_STATS`): admissible by d-separation 2057; beyond d-separation, `relabel` 114, `markov` 68 (tried only where `relabel` was inapplicable or failed), failed 895; joint targets (several predicted nodes at once, `markov` only) certified 82, failed 55. No solve hit the time limit. Among candidates that d-separation rejects, the LP certifies roughly one in six. Success is common but far from universal, and a failure of the LP is not a proof that the implication is false (6.4). Almost none of these certified steps is decisive (8.3): their outputs are structures the cheaper tricks reach as well, or structures that are not gaps as far as the seeds know.
 
-### 8.6 Why interruption and the marginalizations show no exclusive proofs
+### 8.5 Why interruption and naive marginalization show few exclusive proofs
 
-**Why 8.2 shows nothing exclusive for interruption.** Its characteristic product is a Bell variant derived from an instrumental variant, and the Bell variants are seeds of the headline census, removed from the inputs. In the run with three-node seeds only (8.4) interruption is the sole route for the three Bell-variant inputs that are proven at all. Every other input it proves (seven in the headline census) is also reachable by PD or conditioning. Interruption is the only reduction that re-uses an outcome as a setting; how much it contributes is bounded by how many Bell-type seeds the seed list already contains.
+**Interruption.** Its characteristic product is a Bell variant derived from an instrumental variant. In phase 1 it is the sole route for exactly the three Bell variants that are proven at all (8.1); every other input it proves (ten in all) is also reachable by PD or conditioning. Interruption is the only reduction that re-uses an outcome as a setting; how much it contributes is bounded by how many Bell-type structures the input set contains that the seed list does not already hold.
 
-**Why teleportation never decides a case in four nodes.** Removing only the marginalization steps whose node holds a quantum facet, the steps where teleportation actually acts, loses no input (8.2). Conditioning explains most of this: conditioning on a node $v$ without visible parents adds a quantum facet over all quantum siblings of $v$, which is entanglement swapping, and that is the same connection teleportation marginalization would relay to the children of $v$, only not restricted to children. What conditioning cannot provide is the relayed visible input of $v$. But a node that holds a quantum share and has a visible input is itself a candidate party of a Bell-type seed, so in the structures where the relayed input matters, the structure with $v$ in place is usually provable with $v$ as the party. Where conditioning on $v$ is blocked by a grandparent, PD on that grandparent typically unblocks it. None of this is a theorem; it is why no four-node example separates the two marginalizations, and larger structures may yet do so (the lift of Section 2 is sound regardless).
+**The two marginalizations.** They coincide at a node without a quantum facet, so naive marginalization alone is never exclusive: wherever it applies, the teleportation version makes the same move. The 16 inputs lost without teleportation marginalization are where the removed node holds a quantum share and relaying it to the node's children is what the proof needs. Conditioning covers part of the same ground, since conditioning on a node $v$ without visible parents adds a quantum facet over all quantum siblings of $v$ (entanglement swapping), the same connection teleportation relays to the children of $v$, only not restricted to children; what conditioning cannot provide is the relayed visible input of $v$, and where that input matters, or where conditioning is blocked by a grandparent, teleportation marginalization is the route. The earlier census, which closed the dropped-predictor Fritz trick over everything reachable and had the Bell variants as seeds, found alternative routes for all of these; the cheap phase, with the elementary tricks alone and the three-node seeds, does not.
+
+**Example** (only via teleportation marginalization). Input: 0→1→2; Q{0,1,3}, Q{0,2}. Node 0 is the setting of 1, holds a share of a tripartite state with 1 and 3, and a bipartite state with 2. Marginalizing 0 with teleportation relays its share of Q{0,1,3} and of Q{0,2} to its child 1: 1→2; Q{1,3}, Q{1,2}, which is `QG_Instrumental3`. Naive marginalization of 0 relays only a classical common cause to 1 and 2 and leaves 1→2; C{1,2}, Q{1,3}, not a known gap; conditioning on 0 gives 1→2; Q{1,2,3}, PD on 0 gives 1→2; Q{1,3}, neither a known gap; interruption needs an exogenous node, and 0 holds facets; and no reduction at 1, 2 or 3 reaches a seed either, since each either destroys the setting or isolates 3. A second example of the same shape, 0→1, 1→2, 1→3 with Q{0,1,2}, Q{0,3}, relays the shares of 0 to 1 and gives `QG_Evans`.
+
+**Example** (only via marginalization, either kind). Input: 2→3; Q{0,1}, Q{0,3}, Q{1,2}. Node 2 has no latent of its own: it relays nothing but its outcome to 3. Marginalizing 2 gives Q{0,1}, Q{0,3}, C{1,3} up to relabelling, which is `QG_Triangle2`; here teleportation has nothing to relay, so both marginalizations coincide, and the input counts in the "either kind" row but in neither single row.
 
 ---
 
 ## 9. Open questions
 
 * **Completeness of the entropic certificate.** The failures recorded in `ENTROPIC_STATS` are failures of the LP, not necessarily of the piggyback (6.4). Substituting other sets of variables for the latents of $G'$, beyond $\lbrace L\rbrace$ and $\lbrace s\rbrace$, is the natural next level: each substitution is expressible because the LP indexes joint entropies of sets, and the soundness proof is that of 6.4.
+* **Predictors that are parents of the predicted node.** The candidate set of every Fritz-type trick is the set of latent siblings of the predictor: $s$ qualifies because a facet $L$ shared with $X$ lets the lifted $X$ learn the value $s$ will compute from $\mathrm{common}(s)$. A visible *child* $s$ of $X$ qualifies for the same reason with the edge $X\to s$ in the role of $L$: in the lift $X$ computes the restricted $s$ from what it sees and sends it down the edge, and $s$ outputs it, so $H(s\mid X)=0$ holds and $s$ depends on $\mathrm{common}(s)$ alone; the pull-back is the same as in 5.3 and 6.5, since neither the d-separation test nor the LP hypotheses care whether the channel from $X$'s inputs to $s$ is a facet or an edge, and the rule that a predicted node must keep a facet shared with its predictors (6.6) becomes that it must keep the edge or such a facet. In the output the edge is removed with $X$ when $X$ is dropped, and relayed by marginalization when $X$ is split. This would enlarge the candidate pool of every childful node; it is not implemented, and the 66 remaining inputs (below), all of which have a visible edge out of a node holding quantum facets, are where it would be tried first.
 * **The prediction-free edge-deletion piggyback** (KPC, Corollary 3): the same LP without the perfect-prediction hypothesis certifies deleting edges justified by the new graph's independences alone. The code can check it (`QmDAG._entropic_certificate(..., predicted=())`), but it is not exposed as a trick.
 * **Exact certificates.** Farkas multipliers are floating point; rationalising them and re-verifying the combination exactly is cheap and would make every entropic step a checkable proof.
 * **The remaining structures.** The 66 unproven inputs are listed below. Every one of them contains a visible edge out of a node that also holds quantum facets with later nodes, and most contain a chain of two or three visible edges.

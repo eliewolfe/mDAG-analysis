@@ -4,20 +4,29 @@ Which 4-node causal structures have a quantum-classical (QC) gap?
 Inputs: every 4-node mDAG whose directed edges respect the node order 0 < 1 < 2 < 3 ("temporally ordered") and that
 is not provably algebraic (not equivalent to a latent-free structure), with every latent quantum. The metagraph
 yields them as members of equivalence classes, so many inputs are relabellings of one another; ALL COUNTS ARE UP TO
-RELABELLING (distinct unlabelled ids). Bell-scenario seeds are removed from the inputs.
+RELABELLING (distinct unlabelled ids).
 
-The search runs in stages, cheapest first: (1) the elementary reductions (point distribution, interruption,
-conditioning, marginalization with and without teleportation), composed in any order over everything reachable;
-(2) the Fritz piggyback with the d-separation certificate and dropped predictors; (3) the same with kept predictors
-(childless ones untouched, childful ones split and their copies marginalized), applied once to each input still
-unproven, outputs reduced with the elementary tricks only; (4) the entropic Fritz piggyback, whose steps are
-LP-certified, in both predictor modes, applied once to each input still unproven. An input is proven to have a QC gap when some
-reachable structure is a known gap (a seed from known_QC_gaps.py, or an input already proven). The report lists the
-inputs proven after each stage, how many inputs each trick proves on its own, how many are provable only with it,
-and a certificate (the chain of tricks down to a seed) for every proven input.
+The census has two phases.
+
+Phase 1 (cheap): the node-count-reducing piggybacks (point distribution, interruption, conditioning, marginalization
+with and without teleportation), composed in any order over everything reachable, starting from the THREE-node known
+gaps only. The 4-node Bell variants are inputs here, not seeds, so this phase shows what each elementary piggyback
+contributes: how many inputs it proves alone and how many are lost without it.
+
+Phase 2 (expensive): the inputs that phase 1 left unproven, minus the Bell variants (which are known gaps and are
+now seeds), are attacked by the staged cascade: Fritz with dropped predictors, Fritz with kept predictors, and the
+entropic (LP-certified) Fritz piggyback, each applied once to the still-unproven inputs with elementary follow-up.
+The report gives the cumulative counts after each stage, the cheap-to-expensive ladder, and the number of inputs
+lost when each category of expensive step is removed. The expensive stages never measure what a piggyback proves
+alone.
+
+Proven gaps are cached on disk (cache/known_gaps.json) with the version of every piggyback their proof relies on;
+cached gaps count as known, so after the first run the expensive stages only touch inputs that are not yet proven.
+Bumping a piggyback's version in qc_gap_search.PIGGYBACK_VERSIONS discards exactly the cached proofs that used it.
 """
 from __future__ import absolute_import
 import sys
+import time
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -25,12 +34,15 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from itertools import chain
+from typing import Dict, List, Optional, Tuple
 
-from quantum_mDAG import upgrade_to_QmDAG
+from quantum_mDAG import upgrade_to_QmDAG, ENTROPIC_STATS
 from metagraph_temporally_ordered import Metagraph_temporally_ordered_mDAGs
-from known_QC_gaps import SEEDS, SEEDS_4_NODES
-from qc_gap_search import prove_gaps, default_stages, GapReport, MARGINALIZATION_TRICKS
-from quantum_mDAG import ENTROPIC_STATS
+from known_QC_gaps import SEEDS, SEEDS_3_NODES, SEEDS_4_NODES
+from qc_gap_search import (prove_gaps, add_stage, build_report, default_stages, GapReport, FRITZ_TRICKS_ALL,
+                           TRICK_GROUPS_FOR_REPORT, fritz_breakdown, ladder)
+from gap_cache import GapCache, CACHE_PATH
+import entropic_lp
 
 
 def four_node_representatives():
@@ -47,52 +59,116 @@ def four_node_representatives():
     return QmDAGs4_representatives
 
 
-def run_search(QmDAGs4_representatives=None, max_visible=5, verbose=True, with_entropic=True,
-               strict_conditioning=True) -> GapReport:
-    """Staged closure (elementary reductions, Fritz with d-separation, entropic Fritz); with_entropic=False stops
-    after the Fritz stage."""
+def cheap_run(QmDAGs4_representatives, max_visible=5, verbose=True, strict_conditioning=True) -> GapReport:
+    """Phase 1: the elementary reductions only, from the three-node seeds, over all inputs (Bell variants included)."""
+    stages = default_stages(max_visible=max_visible, strict_conditioning=strict_conditioning)[:1]
+    return prove_gaps(QmDAGs4_representatives, SEEDS_3_NODES, stages=stages, max_visible=max_visible, verbose=verbose)
+
+
+def expensive_run(cheap: GapReport, max_visible=5, verbose=True, with_entropic=True, with_kept=True,
+                  strict_conditioning=True, cache: Optional[GapCache] = None) -> GapReport:
+    """Phase 2: the staged cascade on the inputs phase 1 left unproven. The Bell variants become seeds (so they are
+    no longer inputs), and the cached gaps count as known. Shares the explorer of `cheap`, so the elementary
+    transitions are not recomputed."""
+    bell_ids = {g.unique_unlabelled_id for g in SEEDS_4_NODES.values()}
+    inputs = [g for g in cheap.inputs if g.unique_unlabelled_id not in bell_ids]
+    known = cache.known() if cache is not None else {}
+    stages = default_stages(max_visible=max_visible, with_entropic=with_entropic, with_kept=with_kept,
+                            strict_conditioning=strict_conditioning)
+    # Re-base the report on the phase-2 inputs, seeds and known gaps; then run the cascade on what is left.
+    report = build_report(cheap.explorer, inputs, SEEDS, TRICK_GROUPS_FOR_REPORT, known=known)
+    for name, extra, roots_only, followup in stages[1:]:
+        report = add_stage(report, extra, verbose=verbose, roots_only=roots_only, name=name, followup=followup)
+    return report
+
+
+def run_search(QmDAGs4_representatives=None, max_visible=5, verbose=True, with_entropic=True, with_kept=True,
+               strict_conditioning=True, use_cache=True, cache_path: str = CACHE_PATH) -> Tuple[GapReport, GapReport, Optional[GapCache]]:
+    """Both phases. Returns (phase-1 report, phase-2 report, cache). The cache is loaded before phase 2 (entries whose
+    piggyback versions are stale are dropped), updated with every newly proven input, and saved."""
     if QmDAGs4_representatives is None:
         QmDAGs4_representatives = four_node_representatives()
-    seed_ids = set(g.unique_unlabelled_id for g in SEEDS_4_NODES.values())
-    inputs = [g for g in QmDAGs4_representatives if g.unique_unlabelled_id not in seed_ids]
-    distinct = len(set(g.unique_unlabelled_id for g in inputs))
-    print(f"Total number of qmDAGs to analyze: {distinct} up to relabelling ({len(inputs)} labelled)")
-    print("Number of labelled representatives that are known Bell seeds: ", len(QmDAGs4_representatives) - len(inputs))
-    stages = default_stages(max_visible=max_visible, with_entropic=with_entropic, strict_conditioning=strict_conditioning)
-    return prove_gaps(inputs, SEEDS, stages=stages, max_visible=max_visible, verbose=verbose)
+    distinct = len(set(g.unique_unlabelled_id for g in QmDAGs4_representatives))
+    print(f"Total number of qmDAGs to analyze: {distinct} up to relabelling ({len(QmDAGs4_representatives)} labelled)")
+    t0 = time.time()
+    cheap = cheap_run(QmDAGs4_representatives, max_visible=max_visible, verbose=verbose, strict_conditioning=strict_conditioning)
+    if verbose:
+        print(f"[phase 1 done in {time.time() - t0:.0f}s]")
+    cache = GapCache.load(cache_path, seeds=SEEDS) if use_cache else None
+    if cache is not None and verbose:
+        print(f"Cache: {len(cache)} valid entries loaded, {cache.dropped} dropped (stale piggyback version or seed)")
+    report = expensive_run(cheap, max_visible=max_visible, verbose=verbose, with_entropic=with_entropic,
+                           with_kept=with_kept, strict_conditioning=strict_conditioning, cache=cache)
+    if cache is not None:
+        added = cache.record(report)
+        cache.save()
+        if verbose:
+            print(f"Cache: {added} entries added in the final pass; {len(cache)} entries saved to {cache.path}")
+    if verbose:
+        print(f"[phase 2 done; total {time.time() - t0:.0f}s]")
+    return cheap, report, cache
 
 
-FRITZ_TRICKS = ('Fritz', 'Fritz_kept', 'Fritz_entropic')
-
-
-def proven_through_fritz(report: GapReport, tricks=FRITZ_TRICKS):
-    """Inputs whose certificate uses one of the given Fritz-type tricks (and otherwise only marginalization)."""
-    found = []
+def proven_through_fritz(report: GapReport, tricks=FRITZ_TRICKS_ALL) -> List:
+    """Inputs whose certificate uses one of the given Fritz-type tricks."""
+    found, seen = [], set()
     for g in report.inputs:
-        chain_ = report.proven.get(g.unique_unlabelled_id)
-        if chain_ and any(t.trick in tricks for t in chain_) \
-                and all(t.trick in tricks or t.trick in MARGINALIZATION_TRICKS for t in chain_):
+        gid = g.unique_unlabelled_id
+        chain_ = report.proven.get(gid)
+        if gid not in seen and chain_ and any(t.trick in tricks for t in chain_):
             found.append(g)
+            seen.add(gid)
     return found
+
+
+def print_cheap_report(report: GapReport) -> None:
+    counts = report.counts
+    bell_ids = {g.unique_unlabelled_id: name for name, g in SEEDS_4_NODES.items()}
+    print("=" * 20, "Phase 1: elementary piggybacks from the three-node seeds", "=" * 20)
+    print(f"Inputs up to relabelling: {counts['inputs']} (from {counts['labelled_inputs']} labelled structures; "
+          f"Bell variants included as inputs)")
+    print("# of QC gaps proven: ", counts['proven'])
+    print("# left for phase 2: ", counts['remaining'])
+    print("Provable using only this piggyback (closed under implication among the inputs):")
+    for name, count in report.provable_with.items():
+        print(f"    via {name:>35}: {count}")
+    print("Provable ONLY with this piggyback (lost when it is removed):")
+    for name, count in report.only_via.items():
+        print(f"    only via {name:>30}: {count}")
+    input_ids = set(report.input_ids)
+    bell_inputs = {gid: name for gid, name in bell_ids.items() if gid in input_ids}
+    proven_bell = [name for gid, name in bell_inputs.items() if gid in report.proven]
+    print(f"Bell variants that are census inputs (every facet quantum): {len(bell_inputs)} of {len(bell_ids)}; "
+          f"proven from the three-node seeds: {len(proven_bell)}")
+    for gid, name in sorted(bell_ids.items(), key=lambda kv: kv[1]):
+        chain_ = report.proven.get(gid)
+        print(f"    {name}: " + ("not a census input (classical facets)" if gid not in input_ids else
+                                 "unproven" if chain_ is None else
+                                 " -> ".join(t.trick for t in chain_) + " -> " + report.seed_hit[gid]))
 
 
 def print_report(report: GapReport, certificates_for=()) -> None:
     counts = report.counts
-    print(f"Inputs up to relabelling: {counts['inputs']} (from {counts['labelled_inputs']} labelled structures)")
+    print("=" * 20, "Phase 2: the cascade on the remaining inputs", "=" * 20)
+    print(f"Inputs up to relabelling: {counts['inputs']} (from {counts['labelled_inputs']} labelled structures; "
+          f"Bell variants are seeds)")
     print("# of QC gaps proven: ", counts['proven'])
     print("# still to be assessed: ", counts['remaining'])
+    if report.known:
+        print("# known gaps supplied by the cache: ", len(report.known))
     print("Proven after each stage (cumulative, up to relabelling):")
     for name, count in report.stage_counts:
         print(f"    {name:>35}: {count}")
-    print("Provable using only this trick (closed under implication among the inputs; up to relabelling):")
-    for name, count in report.provable_with.items():
-        print(f"    {name:>35}: {count}")
-    print("Provable ONLY with this trick (lost when the trick is removed):")
-    for name, count in report.only_via.items():
-        print(f"    {name:>35}: {count}")
+    print("Cheap to expensive, cumulatively (which transitions are allowed):")
+    for name, proven, new in ladder(report):
+        print(f"    {name:>50}: proven {proven:4d}  (new {new:3d})")
+    print("Inputs lost when a category of expensive step is removed (everything else kept):")
+    for name, lost in fritz_breakdown(report).items():
+        print(f"    {name:>80}: {lost}")
     print("Structures expanded by the search: ", len(report.explorer.edges))
     if ENTROPIC_STATS:
         print("Entropic certificates (kind, outcome) -> count: ", dict(sorted(ENTROPIC_STATS.items())))
+    print("LP solves that hit the time limit: ", entropic_lp.TIMEOUTS[0])
     for g in certificates_for:
         print("-" * 60)
         print(g.as_string.rstrip())
@@ -101,7 +177,9 @@ def print_report(report: GapReport, certificates_for=()) -> None:
 
 
 if __name__ == '__main__':
-    import sys
     with_entropic = '--no-entropic' not in sys.argv
-    report = run_search(with_entropic=with_entropic)
+    with_kept = '--no-kept' not in sys.argv
+    use_cache = '--no-cache' not in sys.argv
+    cheap, report, cache = run_search(with_entropic=with_entropic, with_kept=with_kept, use_cache=use_cache)
+    print_cheap_report(cheap)
     print_report(report, certificates_for=proven_through_fritz(report))

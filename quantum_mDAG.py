@@ -10,7 +10,7 @@ from sys import version_info
 assert version_info >= (3, 8), "Python 3.8+ is required for cached_property support."
 from functools import total_ordering
 from utilities import stringify_in_set as stringify
-from typing import Any, Dict, Iterable, List, Set, Tuple
+from typing import Optional, Any, Dict, Iterable, List, Set, Tuple
 try:
     import networkx as nx
 except ImportError:
@@ -743,15 +743,16 @@ class QmDAG:
 
     def _entropic_certificate(self, predictors: frozenset, kept_parents: Dict[int, frozenset],
                               predicted: Tuple[int, ...]):
-        """Returns 'markov', 'relabel' or None: whether the LP certifies that a classical model of G in which the
-        predictors perfectly predict the predicted nodes yields a classical model of the candidate."""
+        """Returns 'relabel', 'markov' or None: whether the LP certifies that a classical model of G in which the
+        predictors perfectly predict the predicted nodes yields a classical model of the candidate. Each target set
+        is one LP (the sum of its Markov rows, see EntropicLP.implies_all)."""
         from entropic_lp import local_markov_rows
         nodes, parents = self.lp_structure
         lp = self._entropic_lp()
         handle = lp.push_hypotheses(self._entropic_hypotheses(predictors, kept_parents, predicted))
         try:
-            if lp.implies_all(row for _, row in local_markov_rows(kept_parents, nodes)):
-                return 'markov'
+            # 'relabel' is tried first (it is the certificate that reaches beyond d-separation in practice), 'markov'
+            # only if 'relabel' is inapplicable or fails.
             if len(predicted) == 1:
                 s = predicted[0]
                 common = kept_parents[s]
@@ -763,6 +764,8 @@ class QmDAG:
                     nodes_c = [v for v in nodes if v != lam]
                     if lp.implies_all(row for _, row in local_markov_rows(relabelled, nodes_c)):
                         return 'relabel'
+            if lp.implies_all(row for _, row in local_markov_rows(kept_parents, nodes)):
+                return 'markov'
             return None
         finally:
             lp.pop_to(handle)
@@ -867,12 +870,12 @@ class QmDAG:
                      Hypergraph(hypergraph_full_cleanup(Q_facets), n + 1))
 
     def fritz_entropic_transitions(self, predictors: Iterable[int], modes: Tuple[str, ...] = ('replace', 'copy'),
-                                   predictor_modes: Tuple[str, ...] = ('split',), extra_deletions: bool = True,
+                                   predictor_modes: Tuple[str, ...] = ('split',), extra_deletions: bool = False,
                                    max_visible: int = None, min_visible: int = 3,
                                    keep_quantum_facets: bool = True, districts_check: bool = False,
                                    allow_childful_predictors: bool = True, apply_teleportation: bool = True,
                                    only_beyond_dsep: bool = True, max_lps: int = 60,
-                                   max_lp_variables: int = 11,
+                                   max_lp_variables: Optional[int] = None,
                                    base_predictor_modes: Tuple[str, ...] = ('drop', 'split'),
                                    _presplit: bool = False, _exclude_targets: frozenset = frozenset()) -> List[Tuple[Tuple, "QmDAG"]]:
         """Fritz transitions certified by the entropic LP.
@@ -915,7 +918,7 @@ class QmDAG:
                 info['deleted'] = tuple((copy_label.get(a, a), copy_label.get(b, b)) for a, b in info['deleted'])
                 results.append(((params[0],) + tuple(info.items()), out))
             return results
-        if len(self.lp_structure[0]) > max_lp_variables:
+        if max_lp_variables is not None and len(self.lp_structure[0]) > max_lp_variables:
             return []
         admissible = self.fritz_entropic_admissible_targets(predictors, allow_childful_predictors)
         admissible = {t: v for t, v in admissible.items() if t not in _exclude_targets}
@@ -943,7 +946,7 @@ class QmDAG:
                         else:
                             predicted.append(s_node)
                     predicted = tuple(predicted)
-                    if len(work.lp_structure[0]) > max_lp_variables:
+                    if max_lp_variables is not None and len(work.lp_structure[0]) > max_lp_variables:
                         continue
                     adm_work = admissibility_memo.get(work.unique_id)
                     if adm_work is None:

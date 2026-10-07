@@ -71,6 +71,20 @@ def cmi_row(x: Iterable[int], y: Iterable[int], z: Iterable[int]) -> Row:
     return _finalize(terms)
 
 
+def sum_rows(rows: Sequence[Row]) -> Row:
+    """Coefficient-wise sum of sparse rows (duplicate columns combined)."""
+    cols = np.concatenate([np.asarray(c, dtype=np.int64) for c, _ in rows])
+    vals = np.concatenate([np.asarray(v, dtype=float) for _, v in rows])
+    uniq, inverse = np.unique(cols, return_inverse=True)
+    summed = np.zeros(len(uniq))
+    np.add.at(summed, inverse, vals)
+    keep = summed != 0
+    return uniq[keep], summed[keep]
+
+
+TIMEOUTS = [0]   # number of LP solves that hit the time limit, across all EntropicLP instances
+
+
 def rows_to_csr(rows: Sequence[Row], n_columns: int) -> sp.csr_matrix:
     if not rows:
         return sp.csr_matrix((0, n_columns))
@@ -185,7 +199,8 @@ class EntropicLP:
     inequalities (>= 0), hypothesis rows (<= 0), and, during a query, the target row (>= 1). Infeasible means the
     target is implied to vanish."""
 
-    def __init__(self, n: int, hypotheses: Sequence[Row] = (), optimizer: str = 'intpnt', presolve: bool = True) -> None:
+    def __init__(self, n: int, hypotheses: Sequence[Row] = (), optimizer: str = 'intpnt', presolve: bool = True,
+                 max_time: float = 60.0) -> None:
         import mosek
         self._mosek = mosek
         self.n = n
@@ -193,6 +208,8 @@ class EntropicLP:
         self.env = _shared_env()
         self.task = self.env.Task()
         self.task.putintparam(mosek.iparam.log, 0)
+        # Wall-clock limit per solve; a solve that hits it counts as undecided (the implication is not claimed).
+        self.task.putdouparam(mosek.dparam.optimizer_max_time, float(max_time))
         self.task.putintparam(mosek.iparam.optimizer, getattr(mosek.optimizertype, optimizer))
         if optimizer == 'intpnt':
             # Feasibility questions only: no basis identification needed. The interior-point method decides
@@ -209,6 +226,7 @@ class EntropicLP:
         self.n_rows = self.n_fixed_rows
         self.lp_count = 0
         self.undecided = 0
+        self.timeouts = 0
         self.push_hypotheses(hypotheses)
         self.n_fixed_rows = self.n_rows
 
@@ -246,8 +264,11 @@ class EntropicLP:
         handle = self.n_rows
         try:
             self._append_rows(rows_to_csr([row], self.n_columns), mosek.boundkey.lo, lower, 0.0)
-            self.task.optimize()
+            rescode = self.task.optimize()
             self.lp_count += 1
+            if rescode == mosek.rescode.trm_max_time:
+                self.timeouts += 1
+                TIMEOUTS[0] += 1
             soltype = mosek.soltype.bas if self.task.solutiondef(mosek.soltype.bas) else mosek.soltype.itr
             prosta = self.task.getprosta(soltype)
             y = np.array(self.task.gety(soltype)) if want_dual else None
@@ -286,7 +307,14 @@ class EntropicLP:
         return not self.is_feasible_with(row, 1.0)
 
     def implies_all(self, rows: Iterable[Row]) -> bool:
-        return all(self.implies(row) for row in rows)
+        """True iff every row is forced to zero. For functionals that are nonnegative on the Shannon cone (CMIs,
+        conditional entropies, and any sum of them) this is one LP, not one per row: the rows all vanish iff their
+        sum vanishes, since a sum of nonnegative quantities is zero iff each term is. The Farkas certificate of the
+        summed row therefore certifies every row at once."""
+        rows = list(rows)
+        if not rows:
+            return True
+        return self.implies(sum_rows(rows))
 
     def close(self) -> None:
         self.task.__exit__(None, None, None)

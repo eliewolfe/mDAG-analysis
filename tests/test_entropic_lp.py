@@ -79,3 +79,45 @@ def test_perfect_prediction_transfers_independences():
     with E.EntropicLP(3) as lp:
         lp.push_hypotheses([E.cond_entropy_row([s], [x]), E.cmi_row([x], [y], [])])
         assert lp.implies(E.cmi_row([s], [y], []))
+
+
+def test_implies_all_on_the_summed_row_agrees_with_the_per_row_loop():
+    # Local Markov rows of a random DAG are CMIs, nonnegative on the cone; under the Markov hypotheses of a second
+    # DAG they are all implied iff every d-separation of the second holds in the first. The summed row decides
+    # this in one LP and must agree with the row-by-row loop, in both directions.
+    import networkx as nx
+    rng = np.random.default_rng(11)
+    n = 6
+    seen = set()
+    with E.EntropicLP(n) as lp:
+        for _ in range(12):
+            hyp = {v: frozenset(u for u in range(v) if rng.random() < 0.5) for v in range(n)}
+            if rng.random() < 0.5:    # a target DAG with more edges asserts fewer independences: implied
+                tgt = {v: hyp[v] | frozenset(u for u in range(v) if rng.random() < 0.3) for v in range(n)}
+            else:
+                tgt = {v: frozenset(u for u in range(v) if rng.random() < 0.5) for v in range(n)}
+            rows = [row for _, row in E.local_markov_rows(tgt, range(n))]
+            h = lp.push_hypotheses([row for _, row in E.local_markov_rows(hyp, range(n))])
+            per_row = all(lp.implies(row) for row in rows)
+            assert lp.implies_all(rows) == per_row
+            seen.add(per_row)
+            lp.pop_to(h)
+        # Degenerate cases: no rows, and a target equal to the hypotheses.
+        assert lp.implies_all([])
+        h = lp.push_hypotheses([row for _, row in E.local_markov_rows(hyp, range(n))])
+        assert lp.implies_all(row for _, row in E.local_markov_rows(hyp, range(n)))
+        lp.pop_to(h)
+    assert seen == {True, False}, "the random DAGs should produce both outcomes"
+
+
+def test_sum_rows_combines_duplicate_columns():
+    cols, vals = E.sum_rows([E.cmi_row([0], [1], [2]), E.cmi_row([0], [1], [2]), E.cond_entropy_row([0], [1])])
+    # 2*I(0:1|2) + H(0|1): columns 4,5 -> 2; 6,3 -> -2; H(01)=col 2 -> +1; H(1)=col 1 -> -1
+    assert dict(zip(cols.tolist(), vals.tolist())) == {4: 2.0, 5: 2.0, 6: -2.0, 3: -2.0, 2: 1.0, 1: -1.0}
+
+
+def test_time_limit_is_passed_to_mosek_and_counted():
+    import mosek
+    with E.EntropicLP(4, max_time=7.5) as lp:
+        assert lp.task.getdouparam(mosek.dparam.optimizer_max_time) == 7.5
+        assert lp.timeouts == 0

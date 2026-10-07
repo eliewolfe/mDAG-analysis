@@ -46,9 +46,13 @@ def test_lost_graph_needs_fritz_and_marginalization():
     assert LOST.unique_unlabelled_id in report.proven
     tricks_used = [t.trick for t in report.proven[LOST.unique_unlabelled_id]]
     assert 'Fritz' in tricks_used
-    assert report.provable_with['Fritz (+ marginalization)'] == 1
     assert report.provable_with['PD'] == 0
-    assert report.only_via['Fritz (+ marginalization)'] == 1
+    # The expensive steps are assessed by the ladder and the step categories, never by "provable alone".
+    assert 'Fritz' not in ' '.join(report.provable_with)
+    assert S.fritz_breakdown(report)['all Fritz (dropped predictors) steps'] == 1
+    rungs = S.ladder(report)
+    assert rungs[0] == ('elementary reductions only', 0, 0)
+    assert rungs[-1][1] == 1
 
 
 def test_certificates_chain_through_intermediate_structures():
