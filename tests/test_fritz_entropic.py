@@ -140,3 +140,24 @@ def test_extra_deletions_never_remove_the_last_shared_facet_of_a_predicted_node(
                 predicted_label = s_node if mode == 'replace' else str(s_node) + '_copy'
                 if t == predicted_label:
                     assert not (isinstance(p, str) and p.startswith('L{') and '0' in p), (params,)
+
+
+def test_markov_and_relabel_certificates_are_logically_independent():
+    # relabel without markov: the KPC example (test above). markov without relabel: s=0 reads a visible parent 4 and a
+    # facet L={0,1,2,3} shared with the predictor 3. d-separation (hence 'markov') certifies deleting 4->0, but the
+    # relabelled targets need 2 ⊥ 1 | 0, which the model L=(L1,L2), 0=L1, 1=2=L2, 3=L violates (I(2:1|0) = 1 bit).
+    from entropic_lp import local_markov_rows
+    g = Q([(4, 0)], 5, [], [(0, 1, 2, 3)])
+    admissible = g.fritz_admissible_targets((3,))
+    kept = g._fritz_kept_parents(admissible, {0: 'replace'})
+    assert g._entropic_certificate(frozenset({3}), kept, (0,)) == 'markov'
+    nodes, _ = g.lp_structure
+    lam = min(kept[0])
+    relabelled = {v: (ps - {lam}) | {0} if lam in ps else ps for v, ps in kept.items() if v != lam}
+    relabelled[0] = frozenset()
+    lp = g._entropic_lp()
+    handle = lp.push_hypotheses(g._entropic_hypotheses(frozenset({3}), kept, (0,)))
+    try:
+        assert not lp.implies_all(row for _, row in local_markov_rows(relabelled, [v for v in nodes if v != lam]))
+    finally:
+        lp.pop_to(handle)
