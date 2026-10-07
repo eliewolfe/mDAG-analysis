@@ -575,7 +575,8 @@ class QmDAG:
                           keep_quantum_facets: bool = True, districts_check: bool = False,
                           allow_childful_predictors: bool = True,
                           apply_teleportation: bool = True,
-                          predictor_mode: str = 'drop', _presplit: bool = False) -> List[Tuple[Tuple[Tuple[int, str], ...], "QmDAG"]]:
+                          predictor_mode: str = 'drop', _presplit: bool = False,
+                          _exclude_targets: frozenset = frozenset()) -> List[Tuple[Tuple[Tuple[int, str], ...], "QmDAG"]]:
         """All structures obtainable by the Fritz piggyback with the given (jointly predicting) predictors.
         predictor_mode 'drop' (default, cheap): X1 itself is removed, deleted if childless, otherwise by the
         marginalization piggyback (every removal order, since teleportation is order-dependent).
@@ -598,11 +599,13 @@ class QmDAG:
                                           max_visible=max_visible, min_visible=min_visible,
                                           keep_quantum_facets=keep_quantum_facets, districts_check=districts_check,
                                           allow_childful_predictors=True, apply_teleportation=apply_teleportation,
-                                          predictor_mode='split', _presplit=True)
+                                          predictor_mode='split', _presplit=True, _exclude_targets=frozenset(childful))
         # Which predictors leave the structure: all of them in 'drop' mode; in 'split' mode only the childful ones
         # (the copies), which are marginalized; childless predictors are kept untouched.
         to_remove = predictors if predictor_mode == 'drop' else childful
         admissible = self.fritz_admissible_targets(predictors, allow_childful_predictors=allow_childful_predictors)
+        # The original of a split predictor shares every facet with its copy and would be a (pointless) target of it.
+        admissible = {t: v for t, v in admissible.items() if t not in _exclude_targets}
         targets = sorted(admissible)
         results = []
         for r in range(1, len(targets) + 1):
@@ -871,7 +874,7 @@ class QmDAG:
                                    only_beyond_dsep: bool = True, max_lps: int = 60,
                                    max_lp_variables: int = 11,
                                    base_predictor_modes: Tuple[str, ...] = ('drop', 'split'),
-                                   _presplit: bool = False) -> List[Tuple[Tuple, "QmDAG"]]:
+                                   _presplit: bool = False, _exclude_targets: frozenset = frozenset()) -> List[Tuple[Tuple, "QmDAG"]]:
         """Fritz transitions certified by the entropic LP.
         Copy mode is realised as node splitting followed by replace mode on the copy (so the LP sees the copy as a
         genuine node with its own shared noise). predictor_mode 'drop' removes the predictors as in fritz_transitions
@@ -900,17 +903,22 @@ class QmDAG:
                     apply_teleportation=apply_teleportation, only_beyond_dsep=only_beyond_dsep, max_lps=max_lps,
                     max_lp_variables=max_lp_variables, base_predictor_modes=base_predictor_modes)
             work, copies = self._split_predictors(childful)
-            results += work.fritz_entropic_transitions(
-                predictors.difference(childful).union(copies), modes=modes, predictor_modes=('split',),
-                extra_deletions=extra_deletions, max_visible=max_visible, min_visible=min_visible,
-                keep_quantum_facets=keep_quantum_facets, districts_check=districts_check,
-                allow_childful_predictors=True, apply_teleportation=apply_teleportation,
-                only_beyond_dsep=only_beyond_dsep, max_lps=max_lps, max_lp_variables=max_lp_variables,
-                base_predictor_modes=base_predictor_modes, _presplit=True)
+            copy_label = {c: f"{x}_predictor_copy" for c, x in zip(copies, sorted(childful))}
+            for params, out in work.fritz_entropic_transitions(
+                    predictors.difference(childful).union(copies), modes=modes, predictor_modes=('split',),
+                    extra_deletions=extra_deletions, max_visible=max_visible, min_visible=min_visible,
+                    keep_quantum_facets=keep_quantum_facets, districts_check=districts_check,
+                    allow_childful_predictors=True, apply_teleportation=apply_teleportation,
+                    only_beyond_dsep=only_beyond_dsep, max_lps=max_lps, max_lp_variables=max_lp_variables,
+                    base_predictor_modes=base_predictor_modes, _presplit=True, _exclude_targets=frozenset(childful)):
+                info = dict(params[1:])
+                info['deleted'] = tuple((copy_label.get(a, a), copy_label.get(b, b)) for a, b in info['deleted'])
+                results.append(((params[0],) + tuple(info.items()), out))
             return results
         if len(self.lp_structure[0]) > max_lp_variables:
             return []
         admissible = self.fritz_entropic_admissible_targets(predictors, allow_childful_predictors)
+        admissible = {t: v for t, v in admissible.items() if t not in _exclude_targets}
         targets = sorted(admissible)
         n = self.number_of_visible
         results = []
@@ -940,6 +948,7 @@ class QmDAG:
                     adm_work = admissibility_memo.get(work.unique_id)
                     if adm_work is None:
                         adm_work = work.fritz_entropic_admissible_targets(predictors, allow_childful_predictors)
+                        adm_work = {t: v for t, v in adm_work.items() if t not in _exclude_targets}
                         admissibility_memo[work.unique_id] = adm_work
                     if not set(predicted).issubset(adm_work):
                         continue
@@ -992,7 +1001,7 @@ class QmDAG:
                                 continue
                             if not (min_visible <= new_QmDAG.number_of_visible <= max_visible):
                                 continue
-                            removed = predictors if predictor_mode == 'drop' else frozenset()
+                            removed = predictors if predictor_mode == 'drop' else childful
                             if districts_check and not work._fritz_preserves_districts(removed, new_QmDAG, new_to_original):
                                 continue
                             seen_here.add(new_QmDAG.unique_id)

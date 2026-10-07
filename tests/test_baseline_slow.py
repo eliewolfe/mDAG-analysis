@@ -1,5 +1,5 @@
-"""Pins the 4-node QC-gap census (base closure plus the entropic rescue). Takes about 20 minutes; run with
-`pytest -m slow`. All counts are up to relabelling."""
+"""Pins the 4-node QC-gap census (the four default stages). Takes about an hour; run with `pytest -m slow`.
+All counts are up to relabelling."""
 import pytest
 
 pytest.importorskip("mosek")

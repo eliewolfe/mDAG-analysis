@@ -119,8 +119,9 @@ def entropic_tricks(max_visible: int = 5, keep_quantum_facets: bool = True, allo
                     max_predictors: int = 1, districts_check: bool = False,
                     predictor_modes: Tuple[str, ...] = ('drop',), extra_deletions: bool = True) -> Dict[str, Callable]:
     """The LP-certified Fritz trick (not part of default_tricks: every emitted step needed LP solves). Predictors
-    are dropped by default; predictor_modes=('split',) keeps them, which is the KPC construction (Section 7 of the
-    manuscript) and is not run by default for cost."""
+    are dropped by default; predictor_modes=('split',) keeps them (the KPC construction); default_stages runs both.
+    Steps that plain d-separation certifies are never emitted (base_predictor_modes covers both modes), so a search
+    that wants d-separation-certified kept-predictor steps must also run fritz_tricks(predictor_mode='split')."""
     return {'Fritz_entropic': _fritz_entropic(max_visible, keep_quantum_facets, allow_childful_predictors, max_predictors,
                                               districts_check, apply_teleportation=True,
                                               predictor_modes=predictor_modes, extra_deletions=extra_deletions)}
@@ -398,7 +399,7 @@ class GapReport:
         for transitions in self.explorer.edges.values():
             for t in transitions:
                 reverse.setdefault(t.target, []).append(t.source)
-        known = set(seed_ids) & (set(self.explorer.representatives) | seed_ids)
+        known = set(seed_ids)
         frontier = deque(known)
         while frontier:
             current = frontier.popleft()
@@ -406,7 +407,7 @@ class GapReport:
                 if source not in known:
                     known.add(source)
                     frontier.append(source)
-        return known
+        return known & set(self.explorer.representatives)
 
 
 def _fixpoint(explorer: ClosureExplorer, input_ids: List[UnlabelledId], seed_ids: Set[UnlabelledId],

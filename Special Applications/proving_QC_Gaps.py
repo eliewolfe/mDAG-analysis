@@ -8,9 +8,10 @@ RELABELLING (distinct unlabelled ids). Bell-scenario seeds are removed from the 
 
 The search runs in stages, cheapest first: (1) the elementary reductions (point distribution, interruption,
 conditioning, marginalization with and without teleportation), composed in any order over everything reachable;
-(2) the Fritz piggyback with the d-separation certificate; (3) the entropic Fritz piggyback, whose steps are
-LP-certified, applied to the inputs still unproven. Predictors are dropped throughout (kept predictors are an option
-of `default_stages`, off for cost). An input is proven to have a QC gap when some
+(2) the Fritz piggyback with the d-separation certificate and dropped predictors; (3) the same with kept predictors
+(childless ones untouched, childful ones split and their copies marginalized), applied once to each input still
+unproven, outputs reduced with the elementary tricks only; (4) the entropic Fritz piggyback, whose steps are
+LP-certified, in both predictor modes, applied once to each input still unproven. An input is proven to have a QC gap when some
 reachable structure is a known gap (a seed from known_QC_gaps.py, or an input already proven). The report lists the
 inputs proven after each stage, how many inputs each trick proves on its own, how many are provable only with it,
 and a certificate (the chain of tricks down to a seed) for every proven input.
@@ -61,7 +62,7 @@ def run_search(QmDAGs4_representatives=None, max_visible=5, verbose=True, with_e
     return prove_gaps(inputs, SEEDS, stages=stages, max_visible=max_visible, verbose=verbose)
 
 
-FRITZ_TRICKS = ('Fritz', 'Fritz_entropic')
+FRITZ_TRICKS = ('Fritz', 'Fritz_kept', 'Fritz_entropic')
 
 
 def proven_through_fritz(report: GapReport, tricks=FRITZ_TRICKS):

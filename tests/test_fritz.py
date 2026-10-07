@@ -183,5 +183,11 @@ def test_kept_predictors_are_split_and_marginalized_not_kept_untouched():
     # For a childless predictor the split realisation coincides with keeping it untouched.
     kpc = Q([(0, 1), (0, 2), (1, 2)], 4, [], [(2, 3), (1, 3)])
     split_outputs = dict(kpc.fritz_transitions((3,), predictor_mode='split', max_visible=5))
-    assert 3 in {v for v in split_outputs[((1, 'replace'),)].visible_nodes}
-    assert split_outputs[((1, 'replace'),)].number_of_visible == 4
+    out = split_outputs[((1, 'replace'),)]
+    admissible = kpc.fritz_admissible_targets((3,))
+    untouched, _ = kpc._fritz_build(frozenset({3}), {1: 'replace'}, kpc._fritz_kept_parents(admissible, {1: 'replace'}),
+                                    drop_predictors=False)
+    assert out.unique_id == untouched.unique_id
+    # The original of a split childful predictor is not offered as a target of its own copy.
+    g2 = Q([(0, 1)], 3, [], [(0, 1), (0, 2), (1, 2)])
+    assert all(0 not in dict(params) for params, _ in g2.fritz_transitions((0,), predictor_mode='split', max_visible=5))
