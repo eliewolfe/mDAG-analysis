@@ -250,12 +250,28 @@ class QmDAG:
         return False
 
     def conditioning_is_justified(self, node: int, strict_latents: bool = True) -> bool:
-        """Every visible grandparent of `node` is a parent of `node`, and (strict_latents) every latent facet of a
-        visible parent of `node` contains `node`: then the block of parents is closed under all its inputs and
-        post-selecting on `node` can be absorbed into one common cause of parents and latent siblings."""
+        """Three conditions. (1) Every visible grandparent of `node` is a parent of `node`. (2, strict_latents)
+        every facet containing a visible parent of `node` contains `node` or lies within the parents. (3) A visible
+        parent that shares no facet with `node` has to receive the post-selected common cause through its own
+        output (it guesses it, and `node` post-selects on the guess); its output is then fine-grained, which is
+        only harmless if every visible child of that parent is `node`, another parent, or a latent sibling of
+        `node` (nodes that can read the common cause from the new facet). Then the block of parents is closed
+        under all its inputs and post-selecting on `node` can be absorbed into one common cause of parents and
+        latent siblings."""
         if self.has_grandparents_that_are_not_parents(node):
             return False
-        return not (strict_latents and self.parents_have_external_latents(node))
+        if strict_latents and self.parents_have_external_latents(node):
+            return False
+        parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, node]))
+        siblings = set(self.latent_siblings_of(node))
+        allowed_children = parents | siblings | {node}
+        for p in parents:
+            if p in siblings:
+                continue
+            children = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[p]))
+            if not children.issubset(allowed_children):
+                return False
+        return True
 
     def condition(self, node: int) -> "QmDAG":
         #assume we already checked that conditioning is justified (conditioning_is_justified)
@@ -559,29 +575,43 @@ class QmDAG:
                           keep_quantum_facets: bool = True, districts_check: bool = False,
                           allow_childful_predictors: bool = True,
                           apply_teleportation: bool = True,
-                          predictor_mode: str = 'drop') -> List[Tuple[Tuple[Tuple[int, str], ...], "QmDAG"]]:
+                          predictor_mode: str = 'drop', _presplit: bool = False,
+                          _exclude_targets: frozenset = frozenset()) -> List[Tuple[Tuple[Tuple[int, str], ...], "QmDAG"]]:
         """All structures obtainable by the Fritz piggyback with the given (jointly predicting) predictors.
         predictor_mode 'drop' (default, cheap): X1 itself is removed, deleted if childless, otherwise by the
         marginalization piggyback (every removal order, since teleportation is order-dependent).
-        predictor_mode 'split' (expensive, used in the final pass): the predictor that is dropped is a split-off
-        childless copy of X1, so X1 itself stays in the output untouched and may be removed later by the ordinary
-        reductions.
+        predictor_mode 'split': every predictor is first split (node splitting, a copy with the same parents AND
+        the same children) and the copies are the predictors, dropped as above; the originals stay. For a
+        childless predictor this is the same as keeping it untouched. For a predictor with children it is NOT:
+        keeping a childful predictor untouched is unsound (its children could read the prediction through the
+        visible edge; e.g. 0->1 with quantum facets {0,1},{0,2},{1,2} is saturated, yet "0 predicts 2, 0 kept"
+        would yield the instrumental gap), whereas marginalizing the copy relays what the children could learn.
         Returns (params, QmDAG) pairs where params = ((s, mode), ...) sorted by s."""
         predictors = frozenset(predictors)
         if max_visible is None:
             max_visible = self.number_of_visible + 1
         childless = predictors.issubset(self.vis_nodes_with_no_children)
         assert childless or allow_childful_predictors, "Fritz predictors must be childless visible nodes."
-        if predictor_mode == 'split':
-            childless = False   # nothing is deleted; the predictor stays
+        childful = predictors.difference(self.vis_nodes_with_no_children)
+        if predictor_mode == 'split' and childful and not _presplit:
+            work, copies = self._split_predictors(childful)
+            return work.fritz_transitions(predictors.difference(childful).union(copies), modes=modes,
+                                          max_visible=max_visible, min_visible=min_visible,
+                                          keep_quantum_facets=keep_quantum_facets, districts_check=districts_check,
+                                          allow_childful_predictors=True, apply_teleportation=apply_teleportation,
+                                          predictor_mode='split', _presplit=True, _exclude_targets=frozenset(childful))
+        # Which predictors leave the structure: all of them in 'drop' mode; in 'split' mode only the childful ones
+        # (the copies), which are marginalized; childless predictors are kept untouched.
+        to_remove = predictors if predictor_mode == 'drop' else childful
         admissible = self.fritz_admissible_targets(predictors, allow_childful_predictors=allow_childful_predictors)
+        # The original of a split predictor shares every facet with its copy and would be a (pointless) target of it.
+        admissible = {t: v for t, v in admissible.items() if t not in _exclude_targets}
         targets = sorted(admissible)
         results = []
         for r in range(1, len(targets) + 1):
             for chosen in itertools.combinations(targets, r):
                 for mode_choice in itertools.product(modes, repeat=r):
-                    removed = len(predictors) if predictor_mode == 'drop' else 0
-                    new_size = self.number_of_visible - removed + mode_choice.count('copy')
+                    new_size = self.number_of_visible - len(to_remove) + mode_choice.count('copy')
                     if not (min_visible <= new_size <= max_visible):
                         continue
                     params = tuple(zip(chosen, mode_choice))
@@ -591,23 +621,34 @@ class QmDAG:
                                               keep_quantum_facets=keep_quantum_facets)
                     intermediate, to_nums = built
                     to_original = {num: self._fritz_original_of(name) for name, num in to_nums.items()}
-                    if predictor_mode == 'split' or childless:
+                    to_marginalize = to_remove.difference(self.vis_nodes_with_no_children) if predictor_mode == 'split' \
+                        else (frozenset() if childless else predictors)
+                    if not to_marginalize:
                         candidates = [(intermediate, to_original)]
                     else:
                         candidates = [self._marginalize_predictors(intermediate, to_original, order,
                                                                    districts_check=districts_check,
                                                                    apply_teleportation=apply_teleportation)
-                                      for order in itertools.permutations(sorted(predictors))]
+                                      for order in itertools.permutations(sorted(to_marginalize))]
                     seen_here = set()
                     for new_QmDAG, new_to_original in candidates:
                         if new_QmDAG is None or new_QmDAG.unique_id in seen_here:
                             continue
-                        removed_nodes = predictors if predictor_mode == 'drop' else frozenset()
-                        if districts_check and not self._fritz_preserves_districts(removed_nodes, new_QmDAG, new_to_original):
+                        if districts_check and not self._fritz_preserves_districts(to_remove, new_QmDAG, new_to_original):
                             continue
                         seen_here.add(new_QmDAG.unique_id)
                         results.append((params, new_QmDAG))
         return results
+
+    def _split_predictors(self, predictors: frozenset) -> Tuple["QmDAG", Tuple[int, ...]]:
+        """Splits every predictor into itself and a full copy (same parents, same children); returns the split
+        structure and the indices of the copies, which become the predictors to be dropped."""
+        work = self
+        copies = []
+        for x in sorted(predictors):
+            work = work.split_node(x)
+            copies.append(work.number_of_visible - 1)
+        return work, tuple(copies)
 
     @staticmethod
     def _fritz_original_of(name: Any) -> int:
@@ -832,23 +873,52 @@ class QmDAG:
                                    allow_childful_predictors: bool = True, apply_teleportation: bool = True,
                                    only_beyond_dsep: bool = True, max_lps: int = 60,
                                    max_lp_variables: int = 11,
-                                   base_predictor_modes: Tuple[str, ...] = ('drop',)) -> List[Tuple[Tuple, "QmDAG"]]:
+                                   base_predictor_modes: Tuple[str, ...] = ('drop', 'split'),
+                                   _presplit: bool = False, _exclude_targets: frozenset = frozenset()) -> List[Tuple[Tuple, "QmDAG"]]:
         """Fritz transitions certified by the entropic LP.
         Copy mode is realised as node splitting followed by replace mode on the copy (so the LP sees the copy as a
         genuine node with its own shared noise). predictor_mode 'drop' removes the predictors as in fritz_transitions
-        (deleted if childless, marginalized otherwise); 'split' keeps them untouched, modelling a predictor that is
-        the fine-graining (X1, s) of itself. With only_beyond_dsep, outputs in a base predictor mode (one that
-        fritz_transitions already explores) whose certificate is plain d-separation and that delete nothing extra
-        are skipped.
+        (deleted if childless, marginalized otherwise); 'split' splits each predictor into itself and a full copy
+        and drops the copies (identical to keeping a childless predictor; sound, unlike keeping a childful one
+        untouched, see fritz_transitions). With only_beyond_dsep, outputs in a predictor mode listed in
+        base_predictor_modes whose certificate is plain d-separation and that delete nothing extra are skipped:
+        by default every emitted step is LP-reliant, and d-separation-certified steps are left to fritz_transitions.
         params: (((s, mode), ...), ('predictor_mode', m), ('certificate', c), ('deleted', ((p, t), ...)))."""
         predictors = frozenset(predictors)
         if max_visible is None:
             max_visible = self.number_of_visible + 1
         childless = predictors.issubset(self.vis_nodes_with_no_children)
         assert childless or allow_childful_predictors, "Fritz predictors must be childless visible nodes."
+        childful = predictors.difference(self.vis_nodes_with_no_children)
+        if 'split' in predictor_modes and childful and not _presplit:
+            # Kept predictors: childless ones stay untouched (sound); a childful one is split into itself and a full
+            # copy (same children) and the copy, as predictor, is marginalized. Keeping a childful predictor
+            # untouched is unsound (see fritz_transitions). 'drop' outputs are computed on the original structure.
+            results = []
+            if 'drop' in predictor_modes:
+                results += self.fritz_entropic_transitions(
+                    predictors, modes=modes, predictor_modes=('drop',), extra_deletions=extra_deletions,
+                    max_visible=max_visible, min_visible=min_visible, keep_quantum_facets=keep_quantum_facets,
+                    districts_check=districts_check, allow_childful_predictors=allow_childful_predictors,
+                    apply_teleportation=apply_teleportation, only_beyond_dsep=only_beyond_dsep, max_lps=max_lps,
+                    max_lp_variables=max_lp_variables, base_predictor_modes=base_predictor_modes)
+            work, copies = self._split_predictors(childful)
+            copy_label = {c: f"{x}_predictor_copy" for c, x in zip(copies, sorted(childful))}
+            for params, out in work.fritz_entropic_transitions(
+                    predictors.difference(childful).union(copies), modes=modes, predictor_modes=('split',),
+                    extra_deletions=extra_deletions, max_visible=max_visible, min_visible=min_visible,
+                    keep_quantum_facets=keep_quantum_facets, districts_check=districts_check,
+                    allow_childful_predictors=True, apply_teleportation=apply_teleportation,
+                    only_beyond_dsep=only_beyond_dsep, max_lps=max_lps, max_lp_variables=max_lp_variables,
+                    base_predictor_modes=base_predictor_modes, _presplit=True, _exclude_targets=frozenset(childful)):
+                info = dict(params[1:])
+                info['deleted'] = tuple((copy_label.get(a, a), copy_label.get(b, b)) for a, b in info['deleted'])
+                results.append(((params[0],) + tuple(info.items()), out))
+            return results
         if len(self.lp_structure[0]) > max_lp_variables:
             return []
         admissible = self.fritz_entropic_admissible_targets(predictors, allow_childful_predictors)
+        admissible = {t: v for t, v in admissible.items() if t not in _exclude_targets}
         targets = sorted(admissible)
         n = self.number_of_visible
         results = []
@@ -857,7 +927,7 @@ class QmDAG:
             for chosen in itertools.combinations(targets, r):
                 for mode_choice in itertools.product(modes, repeat=r):
                     n_copies = mode_choice.count('copy')
-                    sizes = {pm: n - (len(predictors) if pm == 'drop' else 0) + n_copies for pm in predictor_modes}
+                    sizes = {pm: n - (len(predictors) if pm == 'drop' else len(childful)) + n_copies for pm in predictor_modes}
                     if not any(min_visible <= size <= max_visible for size in sizes.values()):
                         continue
                     # Realise copies by node splitting; the predicted nodes in the working structure are the
@@ -878,6 +948,7 @@ class QmDAG:
                     adm_work = admissibility_memo.get(work.unique_id)
                     if adm_work is None:
                         adm_work = work.fritz_entropic_admissible_targets(predictors, allow_childful_predictors)
+                        adm_work = {t: v for t, v in adm_work.items() if t not in _exclude_targets}
                         admissibility_memo[work.unique_id] = adm_work
                     if not set(predicted).issubset(adm_work):
                         continue
@@ -915,11 +986,13 @@ class QmDAG:
                                                                   drop_predictors=(predictor_mode == 'drop' and childless),
                                                                   keep_quantum_facets=keep_quantum_facets)
                         to_original = {num: work._fritz_original_of(name) for name, num in to_nums.items()}
-                        if predictor_mode == 'drop' and not childless:
+                        to_marginalize = predictors if (predictor_mode == 'drop' and not childless) \
+                            else (childful if predictor_mode == 'split' else frozenset())
+                        if to_marginalize:
                             candidates = [work._marginalize_predictors(intermediate, to_original, order,
                                                                        districts_check=districts_check,
                                                                        apply_teleportation=apply_teleportation)
-                                          for order in itertools.permutations(sorted(predictors))]
+                                          for order in itertools.permutations(sorted(to_marginalize))]
                         else:
                             candidates = [(intermediate, to_original)]
                         seen_here = set()
@@ -928,7 +1001,7 @@ class QmDAG:
                                 continue
                             if not (min_visible <= new_QmDAG.number_of_visible <= max_visible):
                                 continue
-                            removed = predictors if predictor_mode == 'drop' else frozenset()
+                            removed = predictors if predictor_mode == 'drop' else childful
                             if districts_check and not work._fritz_preserves_districts(removed, new_QmDAG, new_to_original):
                                 continue
                             seen_here.add(new_QmDAG.unique_id)

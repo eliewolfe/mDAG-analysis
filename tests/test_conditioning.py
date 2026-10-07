@@ -65,3 +65,16 @@ def test_facets_inside_the_parent_block_do_not_block_conditioning():
     # redistributes the block, which the new common cause over the parents reproduces.
     g = Q([(0, 2), (1, 2), (3, 2)], 4, [(0, 1)], [])
     assert g.conditioning_is_justified(2)
+
+
+def test_condition_three_guessing_parents_may_not_have_outside_children():
+    # Parent 0 of X=1 shares no facet with 1, so in the lift it must guess the post-selected common cause and
+    # output it; its other child 2 could read that output, which the pull-back cannot undo. Not justified.
+    g = Q([(0, 1), (0, 2)], 4, [], [(1, 3)])
+    assert not g.conditioning_is_justified(1)
+    # The same parent with its other child also a parent of X (2 -> 1) is fine: 2 reads the common cause itself.
+    g2 = Q([(0, 1), (0, 2), (2, 1)], 4, [], [(1, 3)])
+    assert g2.conditioning_is_justified(1)
+    # A parent that shares a facet with X reads the common cause from it and needs no guess.
+    g3 = Q([(0, 1), (0, 2)], 4, [], [(0, 1), (1, 3)])
+    assert g3.conditioning_is_justified(1)

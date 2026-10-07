@@ -72,7 +72,7 @@ def test_report_counts_are_consistent():
         assert counts['with ' + name] <= counts['proven']
 
 
-def test_extend_and_rescue_apply_extra_tricks_only_where_asked():
+def test_extend_and_add_stage_apply_extra_tricks_only_where_asked():
     base = {name: trick for name, trick in S.default_tricks(max_visible=4).items() if name in ('PD', 'conditioning')}
     calls = []
 
@@ -82,8 +82,9 @@ def test_extend_and_rescue_apply_extra_tricks_only_where_asked():
             yield (('fake',),), TRIANGLE
     report = S.prove_gaps([LOST], {'QG_Bell6': QG_Bell6}, tricks=base, max_visible=4, verbose=False)
     assert LOST.unique_unlabelled_id not in report.proven
-    rescued = S.rescue(report, {'fake': fake_expensive}, trick_groups=S.TRICK_GROUPS_FOR_REPORT, verbose=False)
+    rescued = S.add_stage(report, {'fake': fake_expensive}, trick_groups=S.TRICK_GROUPS_FOR_REPORT, verbose=False)
     explorer = rescued.explorer
+    assert [name for name, _ in rescued.stage_counts] == ['base', 'fake'] and rescued.stage_counts[-1][1] == 0
     assert 'fake' in explorer.applied[LOST.unique_unlabelled_id]
     assert calls == [LOST.unique_unlabelled_id]          # roots only
     assert explorer.base_tricks == frozenset(base)       # extra tricks are not promoted to base tricks
@@ -94,8 +95,8 @@ def test_extend_and_rescue_apply_extra_tricks_only_where_asked():
     assert TRIANGLE.unique_unlabelled_id in fresh.reachable(SQUARE.unique_unlabelled_id, frozenset({'fake'}))
 
 
-def test_rescue_params_are_stated_in_the_labels_of_the_stored_representative():
-    # Two labellings of one structure: the first expanded becomes the representative of the shared id; the rescue
+def test_stage_params_are_stated_in_the_labels_of_the_stored_representative():
+    # Two labellings of one structure: the first expanded becomes the representative of the shared id; a later stage
     # handed the other labelling must record params that replay on the representative (render_certificate prints it).
     pytest.importorskip("mosek")
     a = Q([(0, 2), (1, 2)], 4, [], [(0, 1), (1, 3), (2, 3)])
@@ -105,8 +106,8 @@ def test_rescue_params_are_stated_in_the_labels_of_the_stored_representative():
     explorer = S.ClosureExplorer(S.default_tricks(max_visible=5), max_visible=5)
     explorer.expand(a)
     explorer.extend(extra, [b])
-    rescue_transitions = [t for t in explorer.edges[a.unique_unlabelled_id] if t.trick in extra]
-    assert rescue_transitions
-    for t in rescue_transitions:
+    stage_transitions = [t for t in explorer.edges[a.unique_unlabelled_id] if t.trick in extra]
+    assert stage_transitions
+    for t in stage_transitions:
         replay = {params: child.unique_unlabelled_id for params, child in extra[t.trick](explorer.representatives[t.source])}
         assert replay.get(t.params) == t.target
