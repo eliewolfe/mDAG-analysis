@@ -218,12 +218,13 @@ class ClosureExplorer:
             for root in roots:
                 self.expand(root)   # no-op when already expanded; closes the root under the base tricks
                 gid = self.register(root)
+                representative = self.representatives[gid]   # params are stated in the representative's labels
                 new_children = []
                 for trick_name, trick in extra_tricks.items():
                     if trick_name in self.applied.get(gid, set()):
                         continue
                     transitions = []
-                    for params, child in trick(root):
+                    for params, child in trick(representative):
                         if not (self.min_visible <= child.number_of_visible <= self.max_visible):
                             continue
                         transitions.append(Transition(trick_name, params, gid, self.register(child)))

@@ -2,6 +2,8 @@
 from hypergraphs import Hypergraph
 from directed_structures import DirectedStructure
 from quantum_mDAG import QmDAG
+import pytest
+
 import qc_gap_search as S
 from known_QC_gaps import SEEDS, QG_Bell6
 
@@ -90,3 +92,21 @@ def test_extend_and_rescue_apply_extra_tricks_only_where_asked():
     fresh.extend({'fake': fake_expensive}, [SQUARE])
     assert {'PD', 'conditioning', 'fake'} <= fresh.applied[SQUARE.unique_unlabelled_id]
     assert TRIANGLE.unique_unlabelled_id in fresh.reachable(SQUARE.unique_unlabelled_id, frozenset({'fake'}))
+
+
+def test_rescue_params_are_stated_in_the_labels_of_the_stored_representative():
+    # Two labellings of one structure: the first expanded becomes the representative of the shared id; the rescue
+    # handed the other labelling must record params that replay on the representative (render_certificate prints it).
+    pytest.importorskip("mosek")
+    a = Q([(0, 2), (1, 2)], 4, [], [(0, 1), (1, 3), (2, 3)])
+    b = Q([(0, 3), (1, 3)], 4, [], [(0, 1), (1, 2), (2, 3)])
+    assert a.unique_unlabelled_id == b.unique_unlabelled_id
+    extra = S.entropic_tricks(max_visible=5)
+    explorer = S.ClosureExplorer(S.default_tricks(max_visible=5), max_visible=5)
+    explorer.expand(a)
+    explorer.extend(extra, [b])
+    rescue_transitions = [t for t in explorer.edges[a.unique_unlabelled_id] if t.trick in extra]
+    assert rescue_transitions
+    for t in rescue_transitions:
+        replay = {params: child.unique_unlabelled_id for params, child in extra[t.trick](explorer.representatives[t.source])}
+        assert replay.get(t.params) == t.target
