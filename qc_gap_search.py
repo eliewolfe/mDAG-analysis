@@ -450,7 +450,9 @@ class GapReport:
     def proven_structure_ids(self) -> Set[UnlabelledId]:
         """Every structure the search touched (inputs, intermediates, hybrids with classical facets) that reaches a
         seed: the known-gap database the search has established. A structure here is a QC gap by the chain of
-        piggybacks from it to a seed; nothing is inferred from a structure to a weaker variant of it."""
+        piggybacks from it to a seed; nothing is inferred from a structure to a weaker variant of it. Structures
+        registered only as lookup targets (degradations) are not counted: a non-seed among them never reaches a
+        seed, and a seed among them is a seed."""
         seed_ids = {g.unique_unlabelled_id for g in self.seeds.values()} | set(self.known.values())
         reverse: Dict[UnlabelledId, List[UnlabelledId]] = {}
         for transitions in self.explorer.edges.values():
@@ -464,7 +466,7 @@ class GapReport:
                 if source not in known:
                     known.add(source)
                     frontier.append(source)
-        return known & set(self.explorer.representatives)
+        return (known & set(self.explorer.representatives)) - self.explorer.lookup_only
 
 
 def _fixpoint(explorer: ClosureExplorer, input_ids: List[UnlabelledId], seed_ids: Set[UnlabelledId],
