@@ -434,7 +434,8 @@ class QmDAG:
     # private-noise node per visible node) split the parents of s into common(s), those also seen by X1 (parents of
     # some predictor, or predictors themselves), and others(s). If X1 is d-separated from others(s) given common(s),
     # then:
-    #   * classically, any model in which X1 perfectly predicts s can be rewritten so that s depends on common(s) only;
+    #   * classically, any model in which a subvariable of X1 is perfectly correlated with s (so that X1 perfectly
+    #     predicts s, H(s | X1) = 0) can be rewritten so that s depends on common(s) only;
     #   * quantumly, any strategy for the reduced structure in which s is a deterministic function of its (classical)
     #     parents extends to the original structure with X1 outputting a copy of s.
     # Hence the structure G' obtained by deleting X1 and restricting s to common(s) satisfies: a QC gap in G' implies a
@@ -700,7 +701,8 @@ class QmDAG:
     #
     # Same output shapes as above, but the classical direction is certified by an entropy-vector LP instead of a
     # d-separation test. Hypotheses: Shannon inequalities over all nodes of G (latent facets as variables, no
-    # explicit noise), the local Markov equalities of G, perfect prediction H(s | X1) = 0, and the elementary
+    # explicit noise), the local Markov equalities of G, perfect prediction H(s | X1) = 0 (the one direction of the
+    # perfect correlation between a subvariable of X1 and s that the lift arranges), and the elementary
     # conditional independences among visible nodes that hold by d-separation in the candidate G' (they hold for
     # free in the quantum lift, since the lifted distribution is Markov to G', yet are genuine extra hypotheses
     # classically). Two sound target sets are tried:
@@ -747,7 +749,8 @@ class QmDAG:
     def _entropic_certificate(self, predictors: frozenset, kept_parents: Dict[int, frozenset],
                               predicted: Tuple[int, ...], try_markov: bool = True):
         """Returns 'relabel', 'markov' or None: whether the LP certifies that a classical model of G in which the
-        predictors perfectly predict the predicted nodes yields a classical model of the candidate. Each target set
+        predictors perfectly predict the predicted nodes (H(s | X) = 0, the one direction of the perfect correlation
+        the lift arranges) yields a classical model of the candidate. Each target set
         is one LP (the sum of its Markov rows, see EntropicLP.implies_all). With try_markov=False only the
         `relabel` target set is tried (the census does this: `markov` never decided an input)."""
         from entropic_lp import local_markov_rows

@@ -6,7 +6,7 @@ pytest.importorskip("mosek")
 from hypergraphs import Hypergraph
 from directed_structures import DirectedStructure
 from quantum_mDAG import QmDAG
-from known_QC_gaps import SEEDS, QG_Bell5
+from known_QC_gaps import SEEDS, QG_Bell_C_Edge
 
 
 def Q(edges, n, C, Qf):
@@ -62,7 +62,7 @@ def test_kpc_example_reaches_bell_in_one_split_step():
     outputs = G1_KPC.fritz_entropic_transitions((3,), predictor_modes=('split',), extra_deletions=False, only_beyond_dsep=False)
     by_params = {params[0]: (dict(params[1:]), out) for params, out in outputs}
     info, out = by_params[((2, 'replace'),)]
-    assert out.unique_unlabelled_id == QG_Bell5.unique_unlabelled_id
+    assert out.unique_unlabelled_id == QG_Bell_C_Edge.unique_unlabelled_id
     assert info['certificate'] == 'relabel'
     assert by_params[((1, 'replace'),)][0]['certificate'] == 'dsep'
 

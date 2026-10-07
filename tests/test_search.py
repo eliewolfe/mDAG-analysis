@@ -5,7 +5,7 @@ from quantum_mDAG import QmDAG
 import pytest
 
 import qc_gap_search as S
-from known_QC_gaps import SEEDS, QG_Bell6
+from known_QC_gaps import SEEDS, QG_Bell_C_C
 
 
 def Q(edges, n, C, Qf):
@@ -60,10 +60,10 @@ def test_certificates_chain_through_intermediate_structures():
     # triangle: conditioning on a node of the square gives the triangle, and one Fritz step gives Bell6.
     tricks = {name: trick for name, trick in S.default_tricks(max_visible=4, max_predictors=1).items()
               if name in ('PD', 'conditioning', 'Fritz')}
-    report = S.prove_gaps([SQUARE], {'QG_Bell6': QG_Bell6}, tricks=tricks, max_visible=4, verbose=False)
+    report = S.prove_gaps([SQUARE], {'QG_Bell_C_C': QG_Bell_C_C}, tricks=tricks, max_visible=4, verbose=False)
     chain = report.proven[SQUARE.unique_unlabelled_id]
     assert [t.trick for t in chain] == ['conditioning', 'Fritz']
-    assert report.seed_hit[SQUARE.unique_unlabelled_id] == 'QG_Bell6'
+    assert report.seed_hit[SQUARE.unique_unlabelled_id] == 'QG_Bell_C_C'
     assert report.certificate(SQUARE).count('conditioning') == 1
 
 
@@ -84,7 +84,7 @@ def test_extend_and_add_stage_apply_extra_tricks_only_where_asked():
         calls.append(g.unique_unlabelled_id)
         if g.unique_unlabelled_id == SQUARE.unique_unlabelled_id:
             yield (('fake',),), TRIANGLE
-    report = S.prove_gaps([LOST], {'QG_Bell6': QG_Bell6}, tricks=base, max_visible=4, verbose=False)
+    report = S.prove_gaps([LOST], {'QG_Bell_C_C': QG_Bell_C_C}, tricks=base, max_visible=4, verbose=False)
     assert LOST.unique_unlabelled_id not in report.proven
     rescued = S.add_stage(report, {'fake': fake_expensive}, trick_groups=S.TRICK_GROUPS_FOR_REPORT, verbose=False)
     explorer = rescued.explorer

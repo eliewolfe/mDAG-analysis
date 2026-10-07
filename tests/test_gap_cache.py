@@ -15,7 +15,7 @@ def Q(edges, n, Cf, Qf):
 
 
 LOST = Q([(0, 2), (1, 2), (2, 3)], 4, [], [(0, 1), (0, 2), (1, 3)])
-TRIANGLE = Q([], 3, [], [(0, 1), (1, 2), (0, 2)])          # degrades to the seed QG_Triangle3 (one lookup step)
+TRIANGLE = Q([], 3, [], [(0, 1), (1, 2), (0, 2)])          # degrades to the seed QG_Triangle (one lookup step)
 SQUARE = Q([], 4, [], [(2, 3), (1, 3), (0, 1), (0, 2)])    # conditioning on a node gives the triangle
 BELL_SEEDS = {k: g for k, g in SEEDS.items() if g.number_of_visible == 4}
 
@@ -27,7 +27,7 @@ def test_round_trip_and_invalidation_by_piggyback_version(tmp_path, monkeypatch)
     added = cache.record(report)
     assert added == 3 and len(cache) == 3
     tri_entry = cache.entries[C.id_key(TRIANGLE.unique_unlabelled_id)]
-    assert [step['trick'] for step in tri_entry['chain']] == ['degradation'] and tri_entry['seed'] == 'QG_Triangle3'
+    assert [step['trick'] for step in tri_entry['chain']] == ['degradation'] and tri_entry['seed'] == 'QG_Triangle'
     cache.save()
     data = json.load(open(path))
     assert data['piggyback_versions'] == S.PIGGYBACK_VERSIONS

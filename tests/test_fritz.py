@@ -170,14 +170,14 @@ def test_replace_mode_keeps_quantum_facet_on_other_children():
 def test_kept_predictors_are_split_and_marginalized_not_kept_untouched():
     # 0->1 with quantum facets {0,1},{0,2},{1,2} is saturated (latent-free equivalent), so no sound piggyback may
     # turn it into a known gap. Keeping the childful predictor 0 untouched while 0 predicts 2 would give the
-    # instrumental gap QG_Instrumental3b: node 1 could read the prediction through the edge 0->1. The sound
+    # instrumental gap QG_Instrumental_C: node 1 could read the prediction through the edge 0->1. The sound
     # realisation splits 0 into itself and a full copy, lets the copy predict, and marginalizes the copy, which
     # relays what 1 could learn: the instrument then shares a facet with the outcome as well, and there is no gap.
-    from known_QC_gaps import QG_Instrumental3b
+    from known_QC_gaps import QG_Instrumental_C
     g = Q([(0, 1)], 3, [], [(0, 1), (0, 2), (1, 2)])
     outputs = dict(g.fritz_transitions((0,), predictor_mode='split', max_visible=5))
     out = outputs[((2, 'replace'),)]
-    assert out.unique_unlabelled_id != QG_Instrumental3b.unique_unlabelled_id
+    assert out.unique_unlabelled_id != QG_Instrumental_C.unique_unlabelled_id
     assert out.C_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({0, 1, 2})}
     assert out.Q_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({0, 1})}
     # For a childless predictor the split realisation coincides with keeping it untouched.
