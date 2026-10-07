@@ -1,4 +1,4 @@
-"""Pins the 4-node QC-gap census (both phases, cache disabled). Takes a few minutes; run with `pytest -m slow`.
+"""Pins the 4-node QC-gap census (both phases, cache disabled). Takes about five minutes; run with `pytest -m slow`.
 All counts are up to relabelling."""
 import pytest
 
@@ -26,10 +26,20 @@ EXPECTED_CHEAP = {
     'only via marginalization (either kind)': 24,
 }
 
-# Phase 2: the Bell variants are seeds (990 inputs), the cascade Fritz -> Fritz_kept -> Fritz_entropic on what phase 1
-# left (8.2, 8.3).
-EXPECTED_STAGES = [('elementary', 914), ('Fritz', 918), ('Fritz_kept', 919), ('Fritz_entropic', 924)]
-EXPECTED_LADDER = [914, 915, 918, 918, 919, 919, 924]
+# Phase 2: the Bell variants are seeds (990 inputs), the cascade of eight Fritz-type stages on what phase 1 left (7.8).
+# The cumulative stage counts (by the stage in which each transition was recorded) and the ladder (by the recorded
+# parameters) must agree.
+EXPECTED_STAGES = [
+    ('elementary', 914),
+    ('Fritz, dropped predictors, replace mode', 915),
+    ('Fritz, dropped predictors, copy mode', 918),
+    ('Fritz_kept, replace mode', 918),
+    ('Fritz_kept, copy mode', 919),
+    ('Fritz_entropic, dropped predictors, replace mode', 919),
+    ('Fritz_entropic, dropped predictors, copy mode', 919),
+    ('Fritz_entropic, kept predictors, replace mode', 924),
+    ('Fritz_entropic, kept predictors, copy mode', 924),
+]
 EXPECTED_LOST = {
     'Fritz (dropped predictors), copy mode': 3,
     'Fritz_kept, copy mode': 1,
@@ -56,7 +66,7 @@ def test_search_counts(proving_QC_Gaps):
     assert report.counts['inputs'] == 990 and report.counts['labelled_inputs'] == 2759
     assert report.counts['proven'] == 924 and report.counts['remaining'] == 66
     assert report.stage_counts == EXPECTED_STAGES
-    assert [proven for _, proven, _ in ladder(report)] == EXPECTED_LADDER
+    assert [proven for _, proven, _ in ladder(report)] == [count for _, count in EXPECTED_STAGES]
     assert fritz_breakdown(report) == EXPECTED_LOST
     assert entropic_lp.TIMEOUTS[0] == 0
     # Every proven input has a certificate ending at a named seed.

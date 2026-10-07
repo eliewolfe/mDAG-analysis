@@ -51,7 +51,7 @@ def test_lost_graph_needs_fritz_and_marginalization():
     assert 'Fritz' not in ' '.join(report.provable_with)
     assert S.fritz_breakdown(report)['all Fritz (dropped predictors) steps'] == 1
     rungs = S.ladder(report)
-    assert rungs[0] == ('elementary reductions only', 0, 0)
+    assert rungs[0] == ('elementary', 0, 0)
     assert rungs[-1][1] == 1
 
 
@@ -89,13 +89,13 @@ def test_extend_and_add_stage_apply_extra_tricks_only_where_asked():
     rescued = S.add_stage(report, {'fake': fake_expensive}, trick_groups=S.TRICK_GROUPS_FOR_REPORT, verbose=False)
     explorer = rescued.explorer
     assert [name for name, _ in rescued.stage_counts] == ['base', 'fake'] and rescued.stage_counts[-1][1] == 0
-    assert 'fake' in explorer.applied[LOST.unique_unlabelled_id]
+    assert 'fake:fake' in explorer.applied[LOST.unique_unlabelled_id]   # roots-only applications are remembered per stage
     assert calls == [LOST.unique_unlabelled_id]          # roots only
     assert explorer.base_tricks == frozenset(base)       # extra tricks are not promoted to base tricks
     # A fresh root handed to extend is closed under the base tricks before the extra trick runs.
     fresh = S.ClosureExplorer(dict(base), max_visible=4)
     fresh.extend({'fake': fake_expensive}, [SQUARE])
-    assert {'PD', 'conditioning', 'fake'} <= fresh.applied[SQUARE.unique_unlabelled_id]
+    assert {'PD', 'conditioning', 'fake:fake'} <= fresh.applied[SQUARE.unique_unlabelled_id]
     assert TRIANGLE.unique_unlabelled_id in fresh.reachable(SQUARE.unique_unlabelled_id, frozenset({'fake'}))
 
 
