@@ -78,6 +78,15 @@ def index_symbols() -> Dict[str, Tuple[str, int]]:
     for name, places in bare.items():
         if len(places) == 1:
             index.setdefault(name, places[0])
+    # A bare method or attribute name that belongs to exactly one class (e.g. `unique_unlabelled_id`).
+    members: Dict[str, List[Tuple[str, int]]] = {}
+    for qualified, place in list(index.items()):
+        parts = qualified.split(".")
+        if len(parts) == 2 and parts[0][:1].isupper():
+            members.setdefault(parts[1], []).append(place)
+    for name, places in members.items():
+        if len(set(places)) == 1:
+            index.setdefault(name, places[0])
     return index
 
 
@@ -236,7 +245,8 @@ def main(path: str = MANUSCRIPT) -> None:
     open(path, "w", encoding="utf-8").write(new)
     n_sec = len(re.findall(r"\]\(#", new))
     n_code = len(re.findall(r"\]\(\.\./", new))
-    unresolved = sorted({m.group(1) for m in re.finditer(r"(?<![\[`])`([^`]+)`(?![\]`])", new)
+    body = "\n".join(line for line in new.split("\n") if not re.match(r"^#{1,6} ", line))
+    unresolved = sorted({m.group(1) for m in re.finditer(r"(?<![\[`])`([^`]+)`(?![\]`])", body)
                          if re.fullmatch(r"[A-Za-z_][\w.]*(\(.*\))?", m.group(1).strip())})
     print(f"{n_sec} section links, {n_code} code links; backticked names without a target: {unresolved}")
 
