@@ -353,7 +353,7 @@ The Bell variants are seeds, so there are 990 inputs (2759 labelled), of which t
 
 Remaining 66; 1763 structures expanded. The whole census, both phases, takes under five minutes on one core (284 seconds in the pinned run), against about 45 minutes before the Fritz stages were made depth-one and the LP was reduced to one solve per target set; no LP solve reached the 60-second time limit.
 
-The search also established, in passing, the gap of every structure it touched that reaches a seed: 960 structures in all (9 with three visible nodes, 939 with four, 12 with five), 25 of them with at least one classical facet (`GapReport.proven_structure_ids`, Section 7). All 924 proven inputs are stored in `cache/known_gaps.json` with their certificates and piggyback versions; a second run loads them and finds nothing left for the expensive stages to do.
+The search also established, in passing, the gap of every structure it touched that reaches a seed: 960 structures in all (9 with three visible nodes, 939 with four, 12 with five), 25 of them with at least one classical facet (`GapReport.proven_structure_ids`, 7.5). All 924 proven inputs are stored in `cache/known_gaps.json` with their certificates and piggyback versions; a second run loads them and finds nothing left for the expensive stages to do.
 
 The four inputs first proven at the `Fritz` rungs are of course also within reach of `Fritz_kept` and `Fritz_entropic`, which subsume it (Sections 5.2, 6.4); they appear at the `Fritz` rungs because those ran first. One of them is the replace-mode example of 5.5; the other three need copy mode.
 
@@ -371,7 +371,7 @@ Per predictor–target candidate over the four LP stages, split structures inclu
 
 **Example** (only via teleportation marginalization). Input: 0→1→2; Q{0,1,3}, Q{0,2}. Node 0 is the setting of 1, holds a share of a tripartite state with 1 and 3, and a bipartite state with 2. Marginalizing 0 with teleportation relays its share of Q{0,1,3} and of Q{0,2} to its child 1: 1→2; Q{1,3}, Q{1,2}, which is `QG_Instrumental3`. Naive marginalization of 0 relays only a classical common cause to 1 and 2 and leaves 1→2; C{1,2}, Q{1,3}, not a known gap; conditioning on 0 gives 1→2; Q{1,2,3}, PD on 0 gives 1→2; Q{1,3}, neither a known gap; interruption needs an exogenous node, and 0 holds facets; and no reduction at 1, 2 or 3 reaches a seed either, since each either destroys the setting or isolates 3. A second example of the same shape, 0→1, 1→2, 1→3 with Q{0,1,2}, Q{0,3}, relays the shares of 0 to 1 and gives `QG_Evans`.
 
-**Example** (only via marginalization, either kind). Input: 2→3; Q{0,1}, Q{0,3}, Q{1,2}. Node 2 has no latent of its own: it relays nothing but its outcome to 3. Marginalizing 2 gives Q{0,1}, Q{0,3}, C{1,3} up to relabelling, which is `QG_Triangle2`; here teleportation has nothing to relay, so both marginalizations coincide, and the input counts in the "either kind" row but in neither single row.
+**Example** (only via marginalization, either kind). Input: 2→3; Q{0,1}, Q{0,3}, Q{1,2}. Node 2 holds one share, of Q{1,2}, and feeds 3. Marginalizing 2 relays that share to 3 as a classical facet: Q{0,1}, Q{0,3}, C{1,3}, which is `QG_Triangle2`. Teleportation has nothing to add here, because 3 shares no quantum facet with 2 and so there is no entangled pair to teleport through (Section 2); both marginalizations give the same structure, and the input counts in the "either kind" row but in neither single row. PD on 2 or conditioning on 2 leaves Q{0,1}, Q{0,3} without the third side of the triangle.
 
 ---
 
