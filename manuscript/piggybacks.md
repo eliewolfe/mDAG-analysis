@@ -181,7 +181,9 @@ What *does* decompose is the choice of several predicted nodes for one predictor
 
 **Replace mode** (the one census input that needs a `Fritz` step in replace mode and nothing more). Input: no edges; Q{0,1,2}, Q{0,1,3}, Q{0,2,3}, Q{1,2,3}, every triple entangled. Predictor 0, predicted 1. The parents of 1 are the three facets containing it; 0 sees Q{0,1,2} and Q{0,1,3}, so $\mathrm{common}(1)$ is those two facets and $\mathrm{others}(1)$ is Q{1,2,3} plus the noise of 1. The d-separation test asks whether 0 is separated from Q{1,2,3} given the two common facets: every path from 0 to Q{1,2,3} runs through 2 or 3 as a collider (0 ← Q{0,2,3} → 2 ← Q{1,2,3}), so it holds. Node 1 is restricted to its two common facets, which become classical for it, and the childless predictor 0 is deleted: the output is C{1,2}, C{1,3}, Q{2,3}, the triangle with one quantum and two classical sources, `QG_Triangle3`. In the lift, 1 is a function of its two shares and 0, which holds the same shares, announces that function; classically, any model in which 0 predicts 1 perfectly cannot let 1 depend on Q{1,2,3}, which 0 never sees.
 
-**Copy mode** (one of TODO-FRITZ-COPY-COUNT census inputs that need a copy-mode `Fritz` step). Input: 0→2, 1→2, 2→3; Q{0,1}, Q{0,2}, Q{1,3}. Predictor 0 (childful: it feeds 2), predicted 1 in copy mode. $\mathrm{common}(1)$ is Q{0,1}; $\mathrm{others}(1)$ is Q{1,3} plus noise; 0 is separated from Q{1,3} given Q{0,1} because the paths through 1 and through 2 both end in colliders. The copy 1' keeps Q{0,1}, classically, and the child 2 of 1; the original 1 keeps Q{1,3}. Dropping 0 marginalizes it with teleportation (its share of Q{0,2} goes to 2, its facets become classical for 2). Output: 1→2, 2→3, 1'→2; C{1,1',2}, Q{1,2}, Q{1,3}. Marginalizing 1 next, with teleportation of its share of Q{1,3} to 2, gives 1'→2→3; C{1',2}, Q{2,3}: `QG_Instrumental2b`. Replace mode cannot do this: it would strip Q{1,3} from 1, and that facet is the one that survives into the seed.
+**Copy mode** (one of three census inputs that need a copy-mode `Fritz` step; four need copy mode in some trick). Input: 0→2, 1→2, 2→3; Q{0,1}, Q{0,2}, Q{1,3}. Predictor 0 (childful: it feeds 2), predicted 1 in copy mode. $\mathrm{common}(1)$ is Q{0,1}; $\mathrm{others}(1)$ is Q{1,3} plus noise; 0 is separated from Q{1,3} given Q{0,1} because the paths through 1 and through 2 both end in colliders. The copy 1' keeps Q{0,1}, classically, and the child 2 of 1; the original 1 keeps Q{1,3}. Dropping 0 marginalizes it with teleportation (its share of Q{0,2} goes to 2, its facets become classical for 2). Output: 1→2, 2→3, 1'→2; C{1,1',2}, Q{1,2}, Q{1,3}. Marginalizing 1 next, with teleportation of its share of Q{1,3} to 2, gives 1'→2→3; C{1',2}, Q{2,3}: `QG_Instrumental2b`. Replace mode cannot do this: it would strip Q{1,3} from 1, and that facet is the one that survives into the seed.
+
+**Kept predictor, d-separation** (`Fritz_kept`; the one census input that needs it). Input: 0→1→2; Q{0,2}, Q{0,3}, Q{1,3}. Predictor 0, which feeds 1, predicts 3 in copy mode: $\mathrm{common}(3)$ is Q{0,3}, $\mathrm{others}(3)$ is Q{1,3} and noise, separated from 0 given Q{0,3} because 0→1←Q{1,3} is blocked at 1. Since 0 has a child, it is split into 0 and a full copy 0′ (both feeding 1); the copy predicts and is marginalized, which relays its facets to 1: the copy 3′ of 3 reads a classical facet shared by 0, 1, 3 and 3′, and 1 joins a classical facet with 0 and 2. Conditioning on 3 (no visible parents, so admissible) swaps entanglement onto 0 and 1, and marginalizing 0 with teleportation gives 1→2; C{1,3′}, Q{1,2}: `QG_Instrumental3b`. With 0 dropped instead of split, 0's facets land on 1 classically and the quantum link needed for the instrumental shape is lost.
 
 **Joint predictor sets.** The code supports a predictor *set* that predicts jointly: $\mathrm{common}(s)$ collects everything any member sees. In the four-node census such steps are never essential (9.3). Fritz's own construction for the tetrahedron (no edges; all four triples as quantum facets) is different: each of two nodes alone predicts a copy, so the copy keeps only what *both* see, the intersection. In the search this is two sequential single-predictor steps: predictor 2 makes copies 0' and 1' and keeps Q{0,1,2}, Q{0,2,3} for 0' and Q{0,1,2}, Q{1,2,3} for 1', then predictor 3 restricts 0' to Q{0,2,3} and 1' to Q{1,2,3}; dropping both predictors leaves Q{0,1}, C{0,0'}, C{1,1'}, which is `QG_Bell6`. The tetrahedron is also proven in one step by a single predictor (the replace-mode example above), so neither route is essential for it, and the two-step route is not even available in the cascade of Section 8, which never follows a Fritz step with another once the cheap exhaustive stages are over: the tetrahedron is captured in stage 2 by its one-step derivation of `QG_Triangle3`.
 
@@ -250,13 +252,13 @@ $G_1$: visible $C,D,E,F$; facets $A=\lbrace E,F\rbrace$, $B=\lbrace D,F\rbrace$;
 
 ### 7.8 Further examples from the census
 
-TODO-ENTROPIC-COUNT inputs are provable only with an LP-certified step (9.2). Three, with different certificates:
+Five inputs are provable only with an LP-certified step (9.2). All five use a childless predictor that is kept, the `relabel` target set, and no extra deletion, and each reaches a Bell seed in one step. Two of them:
 
-**`relabel`, one step.** Input: 0→1→2; Q{0,2}, Q{1,3}, Q{2,3}. Predictor 3, predicted 2: $\mathrm{common}(2)$ is Q{2,3}; $\mathrm{others}(2)$ is the visible parent 1, the facet Q{0,2} and noise. d-separation fails because 3 ← Q{1,3} → 1 is open. The candidate $G'$ has 2 reading Q{2,3} alone, and in $G'$ node 2 is separated from 0 and 1 (every path leaves 2 through Q{2,3} to 3, where it meets a collider), so $I(2{:}01)=0$ is a hypothesis. With it the LP derives the `relabel` targets: the joint is Markov to $G''$ in which 2 is a root and a parent of 3. Output, predictor kept: 0→1; C{2,3}, Q{1,3}, which is `QG_Bell9` in one step. The same input is the Bell6c example of 6.3 after relabelling.
+**One step to `QG_Bell9`.** Input: 0→1→2; Q{0,2}, Q{1,3}, Q{2,3}. Predictor 3 (childless, kept), predicted 2: $\mathrm{common}(2)$ is Q{2,3}; $\mathrm{others}(2)$ is the visible parent 1, the facet Q{0,2} and noise. d-separation fails because 3←Q{1,3}→1 is open. In the candidate $G'$, where 2 reads Q{2,3} alone, node 2 is separated from 0 and 1 (every path leaves 2 through Q{2,3} to 3, where it meets a collider), so $I(2{:}01)=0$ is a hypothesis. With it the LP derives the `relabel` targets: the joint is Markov to $G''$ in which 2 is a root and a parent of 3. Output: 0→1; C{2,3}, Q{1,3}, which is `QG_Bell9` (party 1 with setting 0, party 3 whose "setting" 2 is a classical copy correlated with it).
 
-**`relabel` where `markov` fails** (the one census input that is lost without `relabel`-certified steps). Input: 0→3, 1→2; Q{0,1}, Q{0,2}, Q{1,3}, Q{2,3}. Predictor 0, predicted 2: $\mathrm{common}(2)$ is Q{0,2}; $\mathrm{others}(2)$ is 1, Q{2,3} and noise; d-separation fails through 0 ← Q{0,1} → 1. In $G'$, 2 is separated from 1 (the paths 2 ← Q{0,2} → 0 ← Q{0,1} → 1 and 2 ← Q{0,2} → 0 → 3 ← Q{1,3} → 1 both contain colliders), giving the hypothesis $I(2{:}1)=0$. Output: 0→3; C{0,2}, Q{0,1}, Q{1,3}. Node 1 now has no visible parents, so conditioning on it is admissible and swaps entanglement onto its quantum siblings 0 and 3: 0→3; C{0,2}, Q{0,3}, which is `QG_Instrumental3b`.
+**One step to `QG_Bell6c`.** Input: 0→2, 1→2; Q{0,1}, Q{1,3}, Q{2,3}. Predictor 3 (childless, kept), predicted 2: both visible parents 0 and 1 are deleted at once (6.3), Q{2,3} is kept and becomes classical for 2. d-separation fails through 3←Q{1,3}→1→2. In $G'$ node 2 is separated from 0 and 1, and the LP certifies the `relabel` targets. Output: Q{0,1}, C{2,3}, Q{1,3}, which is `QG_Bell6c`.
 
-**`markov` with an extra deletion** (one of six inputs lost without extra deletions). Input: 0→2, 1→2, 2→3; Q{0,1}, Q{1,3}. Predictor 1, predicted 0: $\mathrm{common}(0)$ is Q{0,1} and $\mathrm{others}(0)$ is only the noise of 0, so the first step is trivial (d-separation). The greedy loop then deletes the edge 0→2: with $H(0\mid1)=0$ among the hypotheses, $I(2{:}0\mid1)\le I(0{:}2,3,\ldots\mid1)\le H(0\mid1)=0$, so 0 is redundant as a parent of 2 wherever 1 is also a parent. The final candidate is verified as a whole with the `markov` targets. Output: 1→2→3; C{0,1}, Q{1,3}. Marginalizing the middle node 2 relays 1→3: 1→3; C{0,1}, Q{1,3}, which is `QG_Instrumental3b`. This mechanism, a predicted node becoming redundant as a parent next to its predictor, is what every extra deletion in the census does.
+Dropping the predictor instead would delete 3 and with it the only facet 2 keeps, proving nothing, so these five inputs are exactly where kept predictors matter for the LP trick (9.3). The `markov` target set and the extra deletions, which are both exercised thousands of times during the search (9.5), are never decisive in four nodes.
 
 ---
 
@@ -289,9 +291,14 @@ The inputs are the four-node mDAGs whose edges respect the order $0\lt1\lt2\lt3$
 
 | stage | proven (cumulative) | new |
 |---|---|---|
-TODO-STAGE-TABLE
+| 1. elementary reductions | 914 | 914 |
+| 2. Fritz, dropped predictors, d-separation | 918 | 4 |
+| 3. Fritz, kept predictors, d-separation | 919 | 1 |
+| 4. entropic Fritz, LP-certified, both predictor modes | 924 | 5 |
 
-Labelled input structures 2759, distinct 990, remaining TODO-REMAINING-COUNT. TODO-WALLTIME
+Labelled input structures 2759, distinct 990, remaining 66. Stages 1 and 2 take about three minutes together; the whole search, dominated by stage 3 (node splitting of childful predictors, marginalization of the copies in every order, and the reductions of the resulting dense structures) and by the LP solves of stage 4, took about 1 h 50 min with two searches sharing the machine.
+
+The search also established, in passing, the gap of every structure it touched that reaches a seed: 1323 structures in all (9 with three visible nodes, 1044 with four, 270 with five), 394 of them with at least one classical facet (`GapReport.proven_structure_ids`, Section 8).
 
 ### 9.2 Per trick
 
@@ -303,9 +310,9 @@ TODO-PER-TRICK-TABLE
 
 Three remarks on reading the "only" column.
 
-* The inputs lost without `Fritz` are of course also within reach of `Fritz_kept` and `Fritz_entropic`, which subsume it (Section 5, 7.4). They count as `Fritz`-only because the later stages ran only on inputs the earlier stages had not proven (Section 8). One of them is the replace-mode example of 6.4; the others need copy mode.
-* The zeros for interruption and the marginalizations are not statements of uselessness. Interruption's exclusive product is pre-empted by the Bell seeds (Section 4). The two marginalizations coincide whenever the removed node has no quantum facet, so removing one of them alone loses nothing; removing both loses five inputs (Section 2 and 9.3).
-* "Only" counts are not additive. The `Fritz_entropic`-only inputs are exactly those the LP stage adds; the PD-only and conditioning-only sets are disjoint from each other.
+* The four inputs lost without `Fritz` are of course also within reach of `Fritz_kept` and `Fritz_entropic`, which subsume it (Section 5, 7.4). They count as `Fritz`-only because the later stages ran only on inputs the earlier stages had not proven (Section 8). One of them is the replace-mode example of 6.4; the other three need copy mode.
+* The zeros for interruption and the marginalizations are not statements of uselessness. Interruption's exclusive product is pre-empted by the Bell seeds (Section 4). The two marginalizations coincide whenever the removed node has no quantum facet, so removing one of them alone loses nothing; removing both loses TODO-MARGPAIR inputs (Section 2).
+* "Only" counts are not additive. The `Fritz_entropic`-only inputs are exactly those stage 4 adds; the PD-only and conditioning-only sets are disjoint from each other.
 
 ### 9.3 Fritz-type steps by mode and certificate
 
@@ -313,15 +320,35 @@ The provenance of each Fritz-type transition records its predictor set, the mode
 
 | category of step | lost when removed |
 |---|---|
-TODO-CATEGORY-TABLE
+| `Fritz` (dropped predictors) in copy mode | 3 |
+| `Fritz_kept` in copy mode | 1 |
+| any copy-mode step | 4 |
+| any step with a joint predictor set | 0 |
+| `Fritz_entropic` steps with kept predictors | 5 |
+| `Fritz_entropic` steps with dropped predictors | 0 |
+| steps certified by `relabel` | 5 |
+| steps certified by `markov` | 0 |
+| steps with extra deletions | 0 |
+| all `Fritz_kept` steps | 1 |
+| all kept-predictor steps (`Fritz_kept` and `Fritz_entropic` with kept predictors) | 6 |
+| all `Fritz` (dropped predictors) steps | 4 |
+| all `Fritz_entropic` steps | 5 |
+| all Fritz-type steps | 10 |
 
 Cheap to expensive, cumulatively:
 
 | tricks allowed | proven | new |
 |---|---|---|
-TODO-LADDER-TABLE
+| elementary reductions only | 914 | 914 |
+| + `Fritz`, dropped predictors, replace mode | 915 | 1 |
+| + `Fritz`, dropped predictors, copy mode | 918 | 3 |
+| + `Fritz_kept`, replace mode | 918 | 0 |
+| + `Fritz_kept`, copy mode | 919 | 1 |
+| + `Fritz_entropic`, dropped predictors | 919 | 0 |
+| + `Fritz_entropic`, kept predictors | 924 | 5 |
+| remaining | | 66 |
 
-TODO-MODE-SUMMARY
+**Where kept predictors prove something dropped predictors cannot.** Six inputs: one by d-separation (the `Fritz_kept` example of 6.4, where the childful predictor is split and its copy marginalized) and five by the LP (7.8), all five with a childless predictor kept, the `relabel` target set and no extra deletion. The LP trick with dropped predictors adds nothing beyond d-separation in four nodes, and neither the `markov` targets nor the extra deletions are ever decisive, although both certify thousands of candidate steps (9.5) whose outputs are also reached otherwise. Copy mode is decisive for four inputs, joint predictor sets for none. Provable with the Fritz-type tricks and marginalization alone: 571 inputs in replace mode only and 575 with copy mode using d-separation; 576 and 580 with the entropic trick added.
 
 ### 9.4 Three-node seeds only
 
@@ -329,13 +356,21 @@ Rerunning the staged search with the three-node seeds only (instrumental, triang
 
 | quantity | value |
 |---|---|
-TODO-THREESEEDS-TABLE
+| inputs up to relabelling (Bell variants with all facets quantum included) | 996 |
+| proven after stage 1 / 2 / 3 / 4 | 917 / 921 / 922 / 925 |
+| only via PD | 216 |
+| only via interruption | 6 |
+| only via conditioning | 21 |
+| only via either marginalization | 0 |
+| only via `Fritz` | 4 |
+| only via `Fritz_kept` | 1 |
+| only via `Fritz_entropic` | 3 |
 
-TODO-THREESEEDS-TEXT
+Of the Bell variants that are census inputs, three are proven, all by interruption from an instrumental variant (Section 4), and interruption is the sole route for three further inputs. The other Bell variants are not reached from the three-node seeds by any trick: deleting a facet is never a piggyback, so a structure such as `QG_Bell6d` (no edges; Q{0,2}, Q{1,3}, Q{2,3}) has no route to a three-node seed and has to be a seed itself, on the strength of the direct Bell argument.
 
 ### 9.5 Entropic certificates attempted
 
-TODO-ENTROPIC-STATS
+Per predictor–target candidate, both predictor modes, split structures included (`ENTROPIC_STATS`): admissible by d-separation 2472; beyond d-separation, `markov` 120, `relabel` 70, failed 1024; joint targets certified 149, failed 55; extra-deletion candidates verified 1203, none failed. Among candidates that d-separation rejects, the LP certifies roughly one in six. Success is common but far from universal, and a failure of the LP is not a proof that the implication is false (7.4). Almost none of these certified steps is decisive (9.3): their outputs are structures the cheaper tricks reach as well, or structures that are not gaps as far as the seeds know.
 
 ---
 
@@ -344,27 +379,79 @@ TODO-ENTROPIC-STATS
 * **Completeness of the entropic certificate.** The failures recorded in `ENTROPIC_STATS` are failures of the LP, not necessarily of the piggyback (7.4). Substituting other sets of variables for the latents of $G'$, beyond $\lbrace L\rbrace$ and $\lbrace s\rbrace$, is the natural next level: each substitution is expressible because the LP indexes joint entropies of sets, and the soundness proof is that of 7.4.
 * **The prediction-free edge-deletion piggyback** (KPC, Corollary 3): the same LP without the perfect-prediction hypothesis certifies deleting edges justified by the new graph's independences alone. The code can check it (`QmDAG._entropic_certificate(..., predicted=())`), but it is not exposed as a trick.
 * **Exact certificates.** Farkas multipliers are floating point; rationalising them and re-verifying the combination exactly is cheap and would make every entropic step a checkable proof.
-* **The remaining structures.** The 18 unproven inputs all contain the edge 0→1 with 0 entangled with later nodes, and most contain the chain 0→1→2→3:
+* **The remaining structures.** The 66 unproven inputs are listed below. Every one of them contains a visible edge out of a node that also holds quantum facets with later nodes, and most contain a chain of two or three visible edges.
+
+  <details><summary>The 66 remaining inputs (edges; quantum facets)</summary>
 
   | | edges | quantum facets |
   |---|---|---|
-  | 1 | 0→1, 1→2, 1→3 | {0,2}, {0,3} |
-  | 2 | 0→1, 2→3 | {0,2}, {1,3} |
-  | 3 | 0→1, 0→2, 2→3 | {1,3} |
-  | 4 | 0→1, 0→2, 2→3 | {0,2}, {1,3} |
-  | 5 | 0→1, 1→2, 2→3 | {0,2}, {1,3} |
-  | 6 | 0→1, 1→2, 2→3 | {0,2}, {0,3}, {1,2,3} |
-  | 7 | 0→1, 1→2, 2→3 | {0,2}, {0,3}, {1,3} |
-  | 8 | 0→1, 1→2, 2→3 | {0,2}, {0,3}, {1,2}, {1,3} |
-  | 9 | 0→1, 1→2, 2→3 | {0,1}, {0,2}, {0,3}, {1,3} |
-  | 10 | 0→1, 1→2, 2→3 | {0,2}, {0,3}, {1,3}, {2,3} |
-  | 11 | 0→1, 1→2, 2→3 | {0,2}, {0,3}, {1,2}, {1,3}, {2,3} |
-  | 12 | 0→1, 0→2, 1→2, 2→3 | {1,3} |
-  | 13 | 0→1, 0→2, 1→2, 2→3 | {0,2}, {1,3} |
-  | 14 | 0→1, 1→2, 1→3, 2→3 | {0,2}, {0,3} |
-  | 15 | 0→1, 1→2, 1→3, 2→3 | {0,2}, {0,3}, {1,3} |
-  | 16 | 0→1, 1→2, 1→3, 2→3 | {0,2}, {0,3}, {1,2,3} |
-  | 17 | 0→1, 1→2, 1→3, 2→3 | {0,2}, {0,3}, {2,3} |
-  | 18 | 0→1, 1→2, 1→3, 2→3 | {0,2}, {0,3}, {1,3}, {2,3} |
+  | 1 | 0→1 | {0,1,2}, {0,3}, {1,3} |
+  | 2 | 0→1 | {0,1}, {0,2}, {0,3}, {1,2}, {1,3} |
+  | 3 | 1→2, 2→3 | {0,1}, {0,3} |
+  | 4 | 0→1, 1→2 | {0,1,2}, {1,3}, {2,3} |
+  | 5 | 0→1, 1→2 | {0,1}, {0,2}, {1,3}, {2,3} |
+  | 6 | 0→1, 1→2 | {0,2}, {1,2}, {1,3}, {2,3} |
+  | 7 | 0→1, 1→2 | {0,1}, {0,2}, {1,2}, {1,3}, {2,3} |
+  | 8 | 0→1, 1→2, 1→3 | {0,2}, {0,3} |
+  | 9 | 0→1, 1→2, 1→3 | {0,2}, {0,3}, {1,2} |
+  | 10 | 0→2, 1→2 | {0,1,2}, {1,3}, {2,3} |
+  | 11 | 0→2, 1→2 | {0,1}, {0,2}, {1,3}, {2,3} |
+  | 12 | 0→2, 1→2 | {0,1}, {1,2}, {1,3}, {2,3} |
+  | 13 | 0→2, 1→2 | {0,1}, {0,2}, {1,2}, {1,3}, {2,3} |
+  | 14 | 0→1, 0→2, 1→2 | {1,2}, {1,3}, {2,3} |
+  | 15 | 0→1, 0→2, 1→2 | {0,1,2}, {1,3}, {2,3} |
+  | 16 | 0→1, 0→2, 1→2 | {0,1}, {0,2}, {1,3}, {2,3} |
+  | 17 | 0→1, 0→2, 1→2 | {0,1}, {1,2}, {1,3}, {2,3} |
+  | 18 | 0→1, 0→2, 1→2 | {0,2}, {1,2}, {1,3}, {2,3} |
+  | 19 | 0→1, 0→2, 1→2 | {0,1}, {0,2}, {1,2}, {1,3}, {2,3} |
+  | 20 | 0→1, 2→3 | {0,2}, {1,3} |
+  | 21 | 0→3, 1→2 | {0,1}, {0,2,3}, {1,3} |
+  | 22 | 0→1, 2→3 | {0,1,3}, {0,2}, {1,2,3} |
+  | 23 | 0→3, 1→2 | {0,1}, {0,2,3}, {1,2}, {1,3} |
+  | 24 | 0→3, 1→2 | {0,1}, {0,2}, {1,3}, {2,3} |
+  | 25 | 0→3, 1→2 | {0,1}, {0,2}, {1,2}, {1,3}, {2,3} |
+  | 26 | 0→3, 1→2 | {0,1}, {0,2}, {0,3}, {1,2}, {1,3}, {2,3} |
+  | 27 | 0→1, 0→2, 2→3 | {1,3} |
+  | 28 | 0→1, 0→2, 2→3 | {0,2}, {1,3} |
+  | 29 | 0→1, 0→2, 2→3 | {0,1}, {1,3} |
+  | 30 | 0→2, 1→2, 2→3 | {0,1}, {1,3} |
+  | 31 | 0→1, 1→2, 2→3 | {0,2}, {1,3} |
+  | 32 | 0→1, 1→2, 2→3 | {0,2}, {0,3}, {1,2,3} |
+  | 33 | 0→1, 1→2, 2→3 | {0,2}, {0,3}, {1,3} |
+  | 34 | 0→1, 1→2, 2→3 | {0,1}, {0,2}, {0,3}, {1,2,3} |
+  | 35 | 0→1, 1→2, 2→3 | {0,2}, {0,3}, {1,2}, {1,3} |
+  | 36 | 0→1, 1→2, 2→3 | {0,1}, {0,2}, {0,3}, {1,3} |
+  | 37 | 0→1, 1→2, 2→3 | {0,2}, {0,3}, {1,3}, {2,3} |
+  | 38 | 0→1, 1→2, 2→3 | {0,1}, {0,2}, {0,3}, {1,2}, {1,3} |
+  | 39 | 0→1, 1→2, 2→3 | {0,1}, {0,2}, {0,3}, {1,3}, {2,3} |
+  | 40 | 0→1, 1→2, 2→3 | {0,2}, {0,3}, {1,2}, {1,3}, {2,3} |
+  | 41 | 0→1, 1→2, 2→3 | {0,1}, {0,2}, {0,3}, {1,2}, {1,3}, {2,3} |
+  | 42 | 0→1, 0→2, 1→2, 2→3 | {1,3} |
+  | 43 | 0→1, 0→2, 1→2, 2→3 | {0,2}, {1,3} |
+  | 44 | 0→1, 0→2, 1→2, 2→3 | {0,1}, {1,3} |
+  | 45 | 0→2, 1→3, 2→3 | {0,1}, {0,2,3}, {1,2} |
+  | 46 | 0→3, 1→2, 2→3 | {0,1}, {0,2,3}, {1,2,3} |
+  | 47 | 0→2, 1→3, 2→3 | {0,1}, {0,3}, {1,2} |
+  | 48 | 0→3, 1→2, 2→3 | {0,1}, {0,2,3}, {1,3} |
+  | 49 | 0→2, 1→3, 2→3 | {0,1}, {0,2,3}, {1,2}, {1,3} |
+  | 50 | 0→2, 1→3, 2→3 | {0,1}, {0,2}, {0,3}, {1,2} |
+  | 51 | 0→1, 1→3, 2→3 | {0,1}, {0,2}, {0,3}, {1,2,3} |
+  | 52 | 0→1, 1→3, 2→3 | {0,2}, {0,3}, {1,2}, {1,3} |
+  | 53 | 0→3, 1→2, 2→3 | {0,1}, {0,2}, {0,3}, {1,3} |
+  | 54 | 0→1, 1→3, 2→3 | {0,1}, {0,2}, {0,3}, {1,2}, {1,3} |
+  | 55 | 0→2, 1→3, 2→3 | {0,1}, {0,2}, {0,3}, {1,2}, {1,3} |
+  | 56 | 0→3, 1→2, 2→3 | {0,1}, {0,2}, {0,3}, {1,3}, {2,3} |
+  | 57 | 0→2, 1→3, 2→3 | {0,1}, {0,2}, {0,3}, {1,2}, {1,3}, {2,3} |
+  | 58 | 0→1, 1→2, 1→3, 2→3 | {0,2}, {0,3} |
+  | 59 | 0→1, 1→2, 1→3, 2→3 | {0,2}, {0,3}, {1,2} |
+  | 60 | 0→1, 1→2, 1→3, 2→3 | {0,2}, {0,3}, {1,3} |
+  | 61 | 0→1, 1→2, 1→3, 2→3 | {0,2}, {0,3}, {1,2,3} |
+  | 62 | 0→1, 1→2, 1→3, 2→3 | {0,2}, {0,3}, {2,3} |
+  | 63 | 0→1, 1→2, 1→3, 2→3 | {0,2}, {0,3}, {1,2}, {1,3} |
+  | 64 | 0→1, 1→2, 1→3, 2→3 | {0,2}, {0,3}, {1,2}, {2,3} |
+  | 65 | 0→1, 1→2, 1→3, 2→3 | {0,2}, {0,3}, {1,3}, {2,3} |
+  | 66 | 0→1, 1→2, 1→3, 2→3 | {0,2}, {0,3}, {1,2}, {1,3}, {2,3} |
 
-  Several are Bell scenarios with extra structure among the settings. Number 2 is the Bell scenario with entangled settings (0 and 2 are the settings of 1 and 3, Q{1,3} the shared state); number 3 lets Alice's setting influence Bob's. Both have a QC gap by the usual argument, because the latents of the settings are independent of the latent of the outcomes, so any classical model is local for $P(a,b\mid x,y)$. No piggyback can reach them from the Bell seeds, since deleting a facet or an edge between settings is not a piggyback. Extending the seed list with such Bell variants, after checking each by the direct argument, is the cheapest next step.
+  </details>
+
+  Several are Bell scenarios with extra structure among the settings. The input 0→1, 2→3; Q{0,2}, Q{1,3} is the Bell scenario with entangled settings (0 and 2 are the settings of 1 and 3, Q{1,3} the shared state); 0→1, 0→2, 2→3; Q{1,3} lets Alice's setting influence Bob's. Both have a QC gap by the usual argument, because the latents of the settings are independent of the latent of the outcomes, so any classical model is local for $P(a,b\mid x,y)$. No piggyback can reach them from the Bell seeds, since deleting a facet or an edge between settings is not a piggyback. Extending the seed list with such Bell variants, after checking each by the direct argument, is the cheapest next step.
