@@ -59,6 +59,9 @@ def four_node_representatives():
     return QmDAGs4_representatives
 
 
+STAGE_SECONDS: Dict[str, float] = {}   # wall-clock seconds of each expensive stage in the last expensive_run
+
+
 def cheap_run(QmDAGs4_representatives, max_visible=5, verbose=True, strict_conditioning=True) -> GapReport:
     """Phase 1: the elementary reductions only, from the three-node seeds, over all inputs (Bell variants included)."""
     stages = default_stages(max_visible=max_visible, strict_conditioning=strict_conditioning)[:1]
@@ -78,7 +81,9 @@ def expensive_run(cheap: GapReport, max_visible=5, verbose=True, with_entropic=T
     # Re-base the report on the phase-2 inputs, seeds and known gaps; then run the cascade on what is left.
     report = build_report(cheap.explorer, inputs, SEEDS, TRICK_GROUPS_FOR_REPORT, known=known)
     for name, extra, roots_only, followup in stages[1:]:
+        t0 = time.time()
         report = add_stage(report, extra, verbose=verbose, roots_only=roots_only, name=name, followup=followup)
+        STAGE_SECONDS[name] = time.time() - t0
     return report
 
 
@@ -156,9 +161,10 @@ def print_report(report: GapReport, certificates_for=()) -> None:
     print("# still to be assessed: ", counts['remaining'])
     if report.known:
         print("# known gaps supplied by the cache: ", len(report.known))
-    print("Proven after each stage (cumulative, up to relabelling):")
+    print("Proven after each stage (cumulative, up to relabelling), and the stage's wall-clock time:")
     for name, count in report.stage_counts:
-        print(f"    {name:>35}: {count}")
+        seconds = STAGE_SECONDS.get(name)
+        print(f"    {name:>50}: {count}" + (f"   ({seconds:.0f}s)" if seconds is not None else ""))
     print("Cheap to expensive, cumulatively (which transitions are allowed):")
     for name, proven, new in ladder(report):
         print(f"    {name:>50}: proven {proven:4d}  (new {new:3d})")
