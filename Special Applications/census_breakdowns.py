@@ -2,9 +2,9 @@
 Worked examples for the manuscript (manuscript/piggybacks.md, Section 8): one certificate per category.
 
 Runs the two-phase census of proving_QC_Gaps (cache disabled, so every certificate ends at a named seed) and prints,
-for every elementary piggyback, inputs of phase 1 that are lost without it; for every category of expensive step
-(STEP_CATEGORIES of qc_gap_search), inputs of phase 2 that are lost without it, with the shortest certificate each;
-the proven-structure database by node count; and the still-unproven inputs.
+for every elementary piggyback, inputs of phase 1 that are lost without it; for every rung of the ladder (LADDER of
+qc_gap_search), the inputs it adds, with the shortest certificate each; the proven-structure database by node count;
+and the still-unproven inputs.
 
 Usage: python "Special Applications/census_breakdowns.py" [--no-entropic] [--only examples|lpclosure]
 """
@@ -19,7 +19,7 @@ sys.path.insert(0, _HERE)
 
 from known_QC_gaps import SEEDS  # noqa: E402
 from qc_gap_search import (ClosureExplorer, Transition, GapReport, fritz_tricks, add_stage, render_certificate,  # noqa: E402
-                           STEP_CATEGORIES, _fixpoint_if, is_fritz_type)
+                           LADDER, _fixpoint_if, is_fritz_type)
 from proving_QC_Gaps import run_search, print_cheap_report, print_report  # noqa: E402
 
 Predicate = Callable[[Transition], bool]
@@ -113,11 +113,12 @@ def examples(with_entropic: bool = True) -> None:
     lost = proven_cheap - _fixpoint_if(cheap, lambda t: elementary(t) and t.trick not in ('naive_marginalization', 'teleportation_marginalization'))
     show_examples(cheap, lost, elementary, "[phase 1] only via marginalization (either kind)", limit=4)
 
-    # Phase 2: categories of expensive step.
-    proven_all = _fixpoint_if(report, everything)
-    for name, pred in STEP_CATEGORIES.items():
-        lost = proven_all - _fixpoint_if(report, lambda t, pred=pred: not pred(t))
-        show_examples(report, lost, everything, f"[phase 2] lost without: {name}", limit=3)
+    # Phase 2: what each rung of the ladder adds (a certificate using that rung's transitions and cheaper ones).
+    previous = _fixpoint_if(report, LADDER[0][1])
+    for name, keep in LADDER[1:]:
+        proven = _fixpoint_if(report, keep)
+        show_examples(report, proven - previous, keep, f"[phase 2] new at rung {name}", limit=3)
+        previous = proven
 
     known = report.proven_structure_ids()
     reps_known = [report.explorer.representatives[i] for i in known if i in report.explorer.representatives]
@@ -140,7 +141,7 @@ def lp_closure() -> None:
     _, report, _ = run_search(verbose=False, use_cache=False)
     print("staged search:", report.stage_counts, f"({time.time()-t0:.0f}s)")
     before = set(report.proven)
-    report = add_stage(report, fritz_tricks(max_visible=5, max_predictors=1, predictor_mode='split'), roots_only=False, name='Fritz_closure', verbose=False)
+    report = add_stage(report, fritz_tricks(max_visible=5, max_predictors=1, predictor_mode='kept'), roots_only=False, name='Fritz_closure', verbose=False)
     print("after LP closure over everything reachable:", report.stage_counts, f"({time.time()-t0:.0f}s); structures {len(report.explorer.edges)}")
     new = set(report.proven) - before
     print("newly proven inputs:", len(new))

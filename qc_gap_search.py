@@ -9,7 +9,6 @@ each id is expanded exactly once (all tricks are label-equivariant).
 """
 from __future__ import annotations
 
-import itertools
 import warnings
 from collections import deque
 from dataclasses import dataclass, field
@@ -28,8 +27,10 @@ PIGGYBACK_VERSIONS: Dict[str, int] = {
     'naive_marginalization': 1,
     'teleportation_marginalization': 1,
     'degradation': 1,                  # quantum source to classical source (lookup only)
-    'Fritz': 4,                        # 1 original; 2 common/others; 3 predictors removed soundly; 4 unified trick:
-                                       #   d-separation first, LP (relabel targets) on failure, both predictor modes
+    'Fritz': 5,                        # 1 original; 2 common/others; 3 predictors removed soundly; 4 unified trick:
+                                       #   d-separation first, LP (relabel targets) on failure, both predictor modes;
+                                       #   5 edge-first (one target, one maximal deletion per predictor set; no joint
+                                       #   predicted sets, no noise-only deletions; redundant sub-facets cleaned)
 }
 
 
@@ -42,70 +43,39 @@ class Transition:
 
 
 # --------------------------------------------------------------------------------------------------
-# Per-trick transition functions: QmDAG -> iterable of (params, child QmDAG). Children may be any size;
-# the explorer applies the visible-node bounds.
+# The trick registry: name -> (QmDAG -> iterable of (params, child QmDAG)). Every piggyback is implemented as a
+# method of QmDAG (its "PIGGYBACKS AS THE SEARCH APPLIES THEM" section); this module only names them, groups them
+# into stages and searches. Children may be any size; the explorer applies the visible-node bounds.
 # --------------------------------------------------------------------------------------------------
 
-def pd_trick(g: QmDAG) -> Iterable[Tuple[Tuple, QmDAG]]:
-    """Fix one visible node to a point distribution (drop it)."""
-    if g.number_of_visible <= 3:
-        return
-    for node in g.visible_nodes:
-        yield (('drop', node),), g.fix_to_point_distribution_QmDAG(node)
-
-
-def node_stitching(g: QmDAG) -> Iterable[Tuple[Tuple, QmDAG]]:
-    """Stitch an exogenous node onto a sink (post-selecting on their equality); the inverse map interrupts a
-    node, hence the old name 'interruption'."""
-    if g.number_of_visible <= 3:
-        return
-    for node_with_no_children in sorted(g.vis_nodes_with_no_children):
-        for node_with_no_parents in sorted(g.exogenous_visible_nodes):
-            if node_with_no_children in g.directed_structure_instance.adjMat.descendantsplus_of(node_with_no_parents):
-                continue
-            yield ((('sink', node_with_no_children), ('source', node_with_no_parents)),
-                   g.node_stitching(node_with_no_children, node_with_no_parents))
+Trick = Callable[[QmDAG], Iterable[Tuple[Tuple, QmDAG]]]
 
 
 def degradation(g: QmDAG) -> Iterable[Tuple[Tuple, QmDAG]]:
     """Quantum source to classical source: a gap in any degradation of g is a gap in g. A *lookup* trick: the
     explorer registers the degradations of every structure it meets and never expands them (see ClosureExplorer)."""
-    return g.degradations()
+    return g.degradation_steps()
 
 
-def _conditioning(strict_latents: bool) -> Callable[[QmDAG], Iterable[Tuple[Tuple, QmDAG]]]:
-    def conditioning(g: QmDAG) -> Iterable[Tuple[Tuple, QmDAG]]:
-        if g.number_of_visible <= 3:
-            return
-        for node in g.visible_nodes:
-            if g.conditioning_is_justified(node, strict_latents=strict_latents):
-                yield (('condition', node),), g.condition(node)
-    return conditioning
+def elementary_tricks(max_visible: int = 5, districts_check: bool = False,
+                      strict_conditioning: bool = True) -> Dict[str, Trick]:
+    """The node-count-reducing piggybacks: point distribution, node stitching, conditioning, marginalization."""
+    return {
+        'PD': lambda g: g.pd_steps(),
+        'node_stitching': lambda g: g.node_stitching_steps(),
+        'conditioning': lambda g: g.conditioning_steps(strict_latents=strict_conditioning),
+        'naive_marginalization': lambda g: g.marginalization_steps(apply_teleportation=False, districts_check=districts_check),
+        'teleportation_marginalization': lambda g: g.marginalization_steps(apply_teleportation=True, districts_check=districts_check),
+    }
 
 
-conditioning = _conditioning(strict_latents=True)
-
-
-def _marginalization(apply_teleportation: bool, districts_check: bool) -> Callable[[QmDAG], Iterable[Tuple[Tuple, QmDAG]]]:
-    def marginalization(g: QmDAG) -> Iterable[Tuple[Tuple, QmDAG]]:
-        if g.number_of_visible <= 3:
-            return
-        for node in g.visible_nodes:
-            child = g.marginalize(node, districts_check=districts_check, apply_teleportation=apply_teleportation)
-            if child is not None:
-                yield (('marginalize', node),), child
-    return marginalization
-
-
-def _fritz(max_visible: int, keep_quantum_facets: bool, allow_childful_predictors: bool, max_predictors: int,
-           districts_check: bool, apply_teleportation: bool, predictor_mode: str = 'drop',
-           modes: Tuple[str, ...] = ('replace', 'copy'), use_lp: bool = True, lp_markov_target: bool = False,
-           lp_joint_targets: bool = False) -> Callable[[QmDAG], Iterable[Tuple[Tuple, QmDAG]]]:
-    """The Fritz piggyback as one trick. For every predictor and every admissible set of predicted nodes the
-    candidates are enumerated once; each is certified by d-separation where that suffices and by the entropic LP
-    otherwise (certificate 'dsep' or 'entropic'). predictor_mode 'drop' removes the predictors, 'split' keeps them
-    (childless untouched, childful split and the copy marginalized); modes are the predicted-node modes.
-    params: (('predictors', X), ('predicted', ((s, mode), ...)), ('predictor_mode', m), ('certificate', c))."""
+def fritz_tricks(max_visible: int = 5, predictor_mode: str = 'dropped', modes: Tuple[str, ...] = ('replace', 'copy'),
+                 use_lp: bool = True, pool: str = 'siblings', allow_descendants: bool = False,
+                 max_predictors: int = 1, lp_markov_target: bool = False) -> Dict[str, Trick]:
+    """The Fritz trick (name 'Fritz'): QmDAG.fritz_steps once per predicted-node mode in `modes`. predictor_mode
+    is 'dropped' or 'kept'; `pool` ('siblings' or 'siblings+parents') and `allow_descendants` widen the predictor
+    pool (manuscript 5.6); `max_predictors` allows joint predictor sets; lp_markov_target=True also tries the
+    `markov` LP target set after `relabel` fails (it never decided an input in the four-node census, 7.9)."""
     if use_lp:
         try:
             import mosek  # noqa: F401
@@ -114,90 +84,50 @@ def _fritz(max_visible: int, keep_quantum_facets: bool, allow_childful_predictor
             use_lp = False
 
     def fritz(g: QmDAG) -> Iterable[Tuple[Tuple, QmDAG]]:
-        pool = [y for y in g.visible_nodes
-                if g.latent_siblings_of(y) and (allow_childful_predictors or y in g.vis_nodes_with_no_children)]
-        for r in range(1, min(max_predictors, len(pool)) + 1):
-            for predictors in itertools.combinations(pool, r):
-                for params, child in g.fritz_entropic_transitions(
-                        predictors, modes=modes, predictor_modes=(predictor_mode,), extra_deletions=False,
-                        max_visible=max_visible, min_visible=3, keep_quantum_facets=keep_quantum_facets,
-                        districts_check=districts_check, allow_childful_predictors=allow_childful_predictors,
-                        apply_teleportation=apply_teleportation, only_beyond_dsep=False,
-                        use_lp=use_lp, try_markov=lp_markov_target, joint_lp=lp_joint_targets):
-                    info = dict(params[1:])
-                    certificate = 'dsep' if info['certificate'] == 'dsep' else 'entropic'
-                    out = (('predictors', predictors), ('predicted', params[0]),
-                           ('predictor_mode', info['predictor_mode']), ('certificate', certificate))
-                    if info.get('deleted'):
-                        out += (('deleted', info['deleted']),)
-                    yield out, child
-    return fritz
+        for mode in modes:
+            yield from g.fritz_steps(mode=mode, predictor_mode=predictor_mode, use_lp=use_lp, pool=pool,
+                                     allow_descendants=allow_descendants, max_predictors=max_predictors,
+                                     lp_markov_target=lp_markov_target, max_visible=max_visible)
+    return {'Fritz': fritz}
 
 
-def fritz_tricks(max_visible: int = 5, keep_quantum_facets: bool = True, allow_childful_predictors: bool = True,
-                 max_predictors: int = 1, districts_check: bool = False, predictor_mode: str = 'drop',
-                 modes: Tuple[str, ...] = ('replace', 'copy'), use_lp: bool = True,
-                 lp_markov_target: bool = False, lp_joint_targets: bool = False) -> Dict[str, Callable]:
-    """The unified Fritz trick (name 'Fritz'). The LP options are off in the census because they never decided an
-    input (manuscript 7.9): lp_markov_target=True also tries the `markov` target set after `relabel` fails;
-    lp_joint_targets=True runs the LP on joint predicted sets (several nodes predicted at once) that d-separation
-    does not certify. Set them here, or through default_stages, to turn them back on."""
-    return {'Fritz': _fritz(max_visible, keep_quantum_facets, allow_childful_predictors, max_predictors,
-                            districts_check, apply_teleportation=True, predictor_mode=predictor_mode, modes=modes,
-                            use_lp=use_lp, lp_markov_target=lp_markov_target, lp_joint_targets=lp_joint_targets)}
-
-
-def elementary_tricks(max_visible: int = 5, districts_check: bool = False,
-                      strict_conditioning: bool = True) -> Dict[str, Callable]:
-    """The node-count-reducing piggybacks: point distribution, node stitching, conditioning, marginalization."""
-    return {
-        'PD': pd_trick,
-        'node_stitching': node_stitching,
-        'conditioning': _conditioning(strict_latents=strict_conditioning),
-        'naive_marginalization': _marginalization(apply_teleportation=False, districts_check=districts_check),
-        'teleportation_marginalization': _marginalization(apply_teleportation=True, districts_check=districts_check),
-    }
-
-
-def default_tricks(max_visible: int = 5, keep_quantum_facets: bool = True, allow_childful_predictors: bool = True,
-                   max_predictors: int = 1, districts_check: bool = False,
-                   predictor_mode: str = 'drop', strict_conditioning: bool = True) -> Dict[str, Callable]:
+def default_tricks(max_visible: int = 5, max_predictors: int = 1, districts_check: bool = False,
+                   predictor_mode: str = 'dropped', strict_conditioning: bool = True) -> Dict[str, Trick]:
     """Elementary tricks plus the Fritz trick with dropped predictors and the d-separation certificate only (no
     LP): the tricks of a single exhaustive closure."""
     return {**elementary_tricks(max_visible, districts_check, strict_conditioning),
-            **fritz_tricks(max_visible, keep_quantum_facets, allow_childful_predictors, max_predictors,
-                           districts_check, predictor_mode, use_lp=False)}
+            **fritz_tricks(max_visible, predictor_mode=predictor_mode, max_predictors=max_predictors, use_lp=False)}
 
 
 Stage = Tuple[str, Dict[str, Callable], bool, Optional[FrozenSet[str]]]   # (name, tricks, roots_only, follow-up tricks)
 
 
 def default_stages(max_visible: int = 5, with_entropic: bool = True, with_kept: bool = True,
-                   keep_quantum_facets: bool = True, allow_childful_predictors: bool = True, max_predictors: int = 1,
-                   districts_check: bool = False, strict_conditioning: bool = True,
-                   lp_markov_target: bool = False, lp_joint_targets: bool = False) -> List[Stage]:
+                   max_predictors: int = 1, districts_check: bool = False, strict_conditioning: bool = True,
+                   pool: str = 'siblings', allow_descendants: bool = False,
+                   lp_markov_target: bool = False) -> List[Stage]:
     """A cascade of stages, cheapest first; each runs only on the inputs the earlier ones left unproven, and every
     structure proven in a stage is a known gap for the next.
     (1) The elementary reductions, closed over everything reachable from every input.
     Then four Fritz stages (the rungs of CASCADE), each applied once to each still-unproven input, its outputs
     reduced with the elementary tricks only ("depth one"): replace mode with dropped predictors, replace mode with
     kept predictors, copy mode with dropped predictors, copy mode with kept predictors. Within a stage every
-    candidate is certified by d-separation first and by the LP only where d-separation fails; with_entropic=False
-    disables the LP. The LP tries the `relabel` target set only and single predicted nodes only; pass
-    lp_markov_target=True or lp_joint_targets=True to turn the `markov` target set or the joint LP targets back on
-    (neither ever decided an input in the four-node census). Joint predictor sets are available (max_predictors)
-    but off."""
-    common = dict(max_visible=max_visible, keep_quantum_facets=keep_quantum_facets,
-                  allow_childful_predictors=allow_childful_predictors, districts_check=districts_check,
-                  max_predictors=max_predictors, use_lp=with_entropic,
-                  lp_markov_target=lp_markov_target, lp_joint_targets=lp_joint_targets)
+    candidate is certified by d-separation first and by the LP only where d-separation fails, and a root stops as
+    soon as one of its outputs reaches a known gap; with_entropic=False disables the LP. The LP tries the
+    `relabel` target set only (lp_markov_target=True turns the `markov` set back on; it never decided an input in
+    the four-node census). The predictor pool is the latent siblings of the target that are not its descendants;
+    pool='siblings+parents' adds the visible parents and allow_descendants=True keeps the descendants (the
+    experiments of manuscript 7.8). Joint predictor sets are available (max_predictors) but off."""
+    common = dict(max_visible=max_visible, use_lp=with_entropic, pool=pool, allow_descendants=allow_descendants,
+                  max_predictors=max_predictors, lp_markov_target=lp_markov_target)
     elementary = elementary_tricks(max_visible, districts_check, strict_conditioning)
     reductions = frozenset(elementary)
     names = [name for name, _ in CASCADE]
     stages: List[Stage] = [(names[0], elementary, False, None)]
-    plan = [(names[1], 'replace', 'drop'), (names[2], 'replace', 'split'), (names[3], 'copy', 'drop'), (names[4], 'copy', 'split')]
+    plan = [(names[1], 'replace', 'dropped'), (names[2], 'replace', 'kept'),
+            (names[3], 'copy', 'dropped'), (names[4], 'copy', 'kept')]
     for name, mode, predictor_mode in plan:
-        if predictor_mode == 'split' and not with_kept:
+        if predictor_mode == 'kept' and not with_kept:
             continue
         stages.append((name, fritz_tricks(predictor_mode=predictor_mode, modes=(mode,), **common), True, reductions))
     return stages
@@ -330,16 +260,25 @@ class ClosureExplorer:
         self.current_stage = self.stage_names.index(name)
 
     def extend(self, extra_tricks: Dict[str, Callable], roots: Iterable[QmDAG], roots_only: bool = True,
-               stage: Optional[str] = None, followup: Optional[FrozenSet[str]] = None) -> None:
+               stage: Optional[str] = None, followup: Optional[FrozenSet[str]] = None,
+               stop_when_known: Optional[Set[UnlabelledId]] = None) -> None:
         """Applies extra tricks. With roots_only, they are applied to the roots alone and the new children are
         expanded with the tricks already in the explorer, or only with those in `followup`; otherwise the extra
-        tricks join the trick set and are applied to everything reachable from the roots. `stage` names the stage."""
+        tricks join the trick set and are applied to everything reachable from the roots. `stage` names the stage.
+        With `stop_when_known` (roots_only), each trick's generator is consumed lazily: every child is recorded and
+        followed up as soon as it is emitted, and the root stops as soon as the child or its follow-up meets the
+        known gaps (a root proven by a cheap step never pays for the expensive candidates that come later in the
+        generator). Every recorded transition is a sound step, so the partial record is sound; the cumulative
+        counts and the ladder do not depend on it (an unproven root still records everything)."""
         self.begin_stage(stage or '+'.join(sorted(extra_tricks)), extra_tricks)
         if roots_only:
             for root in roots:
                 self.expand(root)   # no-op when already expanded; closes the root under the base tricks
                 gid = self.register(root)
                 representative = self.representatives[gid]   # params are stated in the representative's labels
+                if stop_when_known is not None:
+                    self._extend_root_lazily(gid, representative, extra_tricks, followup, stop_when_known)
+                    continue
                 new_children = []
                 for trick_name, trick in extra_tricks.items():
                     # The same trick name may return in a later stage with other parameters (e.g. copy mode after
@@ -361,6 +300,24 @@ class ClosureExplorer:
         self.tricks.update(extra_tricks)
         for root in roots:
             self.expand(root)
+
+    def _extend_root_lazily(self, gid: UnlabelledId, representative: QmDAG, extra_tricks: Dict[str, Callable],
+                            followup: Optional[FrozenSet[str]], goals: Set[UnlabelledId]) -> None:
+        """The roots-only application of `extend` with early exit (see there). Degradation lookups are recorded
+        transitions, so a child whose degradation is known counts as known through its recorded follow-up."""
+        for trick_name, trick in extra_tricks.items():
+            applied_key = f"{self.stage_names[self.current_stage]}:{trick_name}"
+            if applied_key in self.applied.get(gid, set()):
+                continue
+            for params, child in trick(representative):
+                if not (self.min_visible <= child.number_of_visible <= self.max_visible):
+                    continue
+                child_id = self.register(child)
+                self._record(gid, [Transition(trick_name, params, gid, child_id)])
+                self.expand(self.representatives[child_id], only=followup)
+                if not goals.isdisjoint(self.reachable(child_id)):   # the child's lookups and follow-up included
+                    return   # proven: the trick is left unfinished for this root (not marked as applied)
+            self.applied.setdefault(gid, set()).add(applied_key)
 
     def reachable(self, root_id: UnlabelledId, tricks: Optional[FrozenSet[str]] = None,
                   keep: Optional[Callable[[Transition], bool]] = None) -> Set[UnlabelledId]:
@@ -495,7 +452,7 @@ def prove_gaps(inputs: Iterable[QmDAG], seeds: Dict[str, QmDAG], tricks: Optiona
                max_visible: int = 5,
                trick_groups: Optional[Dict[str, Tuple[FrozenSet[str], FrozenSet[str]]]] = None,
                verbose: bool = True, stages: Optional[List[Stage]] = None, with_entropic: bool = True,
-               known: Optional[Dict[str, UnlabelledId]] = None) -> GapReport:
+               known: Optional[Dict[str, UnlabelledId]] = None, early_exit: bool = True) -> GapReport:
     """Proves QC gaps for `inputs` from the known gaps `seeds`. With `tricks`, a single closure stage under those
     tricks. Otherwise the stages of `default_stages` (or the given `stages`) are run in order, cheapest first;
     every structure proven in a stage counts as a known gap for the later ones (reachability is transitive, so
@@ -516,7 +473,7 @@ def prove_gaps(inputs: Iterable[QmDAG], seeds: Dict[str, QmDAG], tricks: Optiona
         name, extra, roots_only = stage[0], stage[1], stage[2]
         followup = stage[3] if len(stage) > 3 else None
         report = add_stage(report, extra, trick_groups=trick_groups, verbose=verbose, roots_only=roots_only, name=name,
-                           followup=followup)
+                           followup=followup, early_exit=early_exit)
     return report
 
 
@@ -524,10 +481,12 @@ def add_stage(report: GapReport, extra_tricks: Dict[str, Callable],
               trick_groups: Optional[Dict[str, Tuple[FrozenSet[str], FrozenSet[str]]]] = None,
               verbose: bool = True, roots_only: bool = True, name: Optional[str] = None,
               followup: Optional[FrozenSet[str]] = None, seeds: Optional[Dict[str, QmDAG]] = None,
-              inputs: Optional[List[QmDAG]] = None, known: Optional[Dict[str, UnlabelledId]] = None) -> GapReport:
+              inputs: Optional[List[QmDAG]] = None, known: Optional[Dict[str, UnlabelledId]] = None,
+              early_exit: bool = True) -> GapReport:
     """Applies further tricks to the explorer of `report` and rebuilds the report. With roots_only the tricks are
     applied to the still-unproven inputs only, and their children are expanded with the tricks already present
-    (or only with those in `followup`); otherwise to everything reachable from every input."""
+    (or only with those in `followup`); otherwise to everything reachable from every input. With early_exit (and
+    roots_only) a root stops as soon as one of its children, or that child's follow-up, is a known gap."""
     explorer = report.explorer
     name = name or '+'.join(sorted(extra_tricks))
     seeds = report.seeds if seeds is None else seeds
@@ -536,10 +495,14 @@ def add_stage(report: GapReport, extra_tricks: Dict[str, Callable],
     if seeds is not report.seeds or inputs is not report.inputs or known is not report.known:
         report = build_report(explorer, inputs, seeds, _trick_groups_for(explorer, trick_groups), known=known)
     roots = list(dict.fromkeys(report.remaining)) if roots_only else list({g.unique_unlabelled_id: g for g in inputs}.values())
+    explorer.begin_stage(name, extra_tricks)   # the stage is counted even when nothing is left to expand
+    # Early exit: a root stops as soon as it reaches a seed, a cached known gap or an input proven earlier (an input
+    # proven in this very stage is not yet a goal; the next build_report chains the certificates anyway).
+    goals = {g.unique_unlabelled_id for g in seeds.values()} | set(known.values()) | set(report.proven) if early_exit else None
     for i, g in enumerate(roots):
         if verbose and i % 250 == 0:
             print(f"[{name}] expanding {i} of {len(roots)} roots; {len(explorer.edges)} structures")
-        explorer.extend(extra_tricks, [g], roots_only=roots_only, stage=name, followup=followup)
+        explorer.extend(extra_tricks, [g], roots_only=roots_only, stage=name, followup=followup, stop_when_known=goals)
     return build_report(explorer, inputs, seeds, _trick_groups_for(explorer, trick_groups), known=known)
 
 
@@ -605,15 +568,16 @@ def build_report(explorer: ClosureExplorer, inputs: List[QmDAG], seeds: Dict[str
 
 
 # --------------------------------------------------------------------------------------------------
-# Assessing the expensive (Fritz-type) steps: categories lost when removed, and the cumulative ladder
+# Assessing the expensive (Fritz-type) steps: the cumulative ladder
 # --------------------------------------------------------------------------------------------------
 
-def predicted_modes(t: Transition) -> Tuple:
-    """((s, mode), ...) of a Fritz transition, () otherwise."""
-    return dict(t.params)['predicted'] if t.trick == 'Fritz' else ()
+def mode_of(t: Transition) -> Optional[str]:
+    """'replace' or 'copy' (the predicted-node mode) of a Fritz transition, None otherwise."""
+    return dict(t.params).get('mode') if t.trick == 'Fritz' else None
 
 
 def predictor_mode_of(t: Transition) -> Optional[str]:
+    """'dropped' or 'kept' for a Fritz transition, None otherwise."""
     return dict(t.params).get('predictor_mode') if t.trick == 'Fritz' else None
 
 
@@ -623,7 +587,7 @@ def certificate_of(t: Transition) -> Optional[str]:
 
 
 def uses_copy(t: Transition) -> bool:
-    return any(mode == 'copy' for _, mode in predicted_modes(t))
+    return mode_of(t) == 'copy'
 
 
 def is_fritz_type(t: Transition) -> bool:
@@ -631,20 +595,12 @@ def is_fritz_type(t: Transition) -> bool:
 
 
 def is_kept(t: Transition) -> bool:
-    return predictor_mode_of(t) == 'split'
+    return predictor_mode_of(t) == 'kept'
 
 
 def is_lp(t: Transition) -> bool:
     return certificate_of(t) == 'entropic'
 
-
-STEP_CATEGORIES: Dict[str, Callable[[Transition], bool]] = {   # name -> predicate "this transition belongs to it"
-    'copy-mode steps': lambda t: is_fritz_type(t) and uses_copy(t),
-    'kept-predictor steps': is_kept,
-    'LP-certified steps': is_lp,
-    'LP-certified steps with kept predictors': lambda t: is_lp(t) and is_kept(t),
-    'all Fritz steps': is_fritz_type,
-}
 
 # The cascade, cheapest first: (stage name, predicate "this transition belongs to this rung or an earlier one").
 # `default_stages` runs exactly these stages. Each Fritz stage certifies by d-separation first and by the LP only
@@ -702,13 +658,6 @@ def _fixpoint_if(report: GapReport, keep: Callable[[Transition], bool]) -> Set[U
                 unproven.discard(gid)
                 changed = True
     return proven.intersection(input_ids)
-
-
-def fritz_breakdown(report: GapReport) -> Dict[str, int]:
-    """For each category of Fritz-type step, the number of inputs no longer proven when every transition of that
-    category is removed (all other transitions kept)."""
-    everything = len(_fixpoint_if(report, lambda t: True))
-    return {name: everything - len(_fixpoint_if(report, lambda t, pred=pred: not pred(t))) for name, pred in STEP_CATEGORIES.items()}
 
 
 def ladder(report: GapReport) -> List[Tuple[str, int, int]]:

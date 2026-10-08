@@ -2,7 +2,7 @@
 Quantum causal structures with a known quantum-classical (QC) gap: the seeds of the piggyback search.
 
 Only the WEAKEST structures are defined: every seed has a gap by a direct argument, no seed is a degradation of
-another (some quantum facets made classical, QmDAG.degradations), and there is one seed per relabelling class.
+another (some quantum facets made classical, QmDAG.degradation_steps), and there is one seed per relabelling class.
 Everything above a seed in the upgrade order (quantum facets added inside its classical facets, classical facets
 made quantum) is a gap by the degradation piggyback, which the search applies as a lookup, so such structures are
 never listed here. `weakest_and_distinct` checks the two properties at import time.
@@ -94,7 +94,7 @@ def weakest_and_distinct(named: Dict[str, QmDAG]) -> None:
         assert gid not in ids, f"{name} is a relabelling of {ids[gid]}"
         ids[gid] = name
     for name, g in named.items():
-        for _, d in g.degradations():
+        for _, d in g.degradation_steps():
             assert d.unique_unlabelled_id not in ids, f"{name} is an upgrade of {ids[d.unique_unlabelled_id]}"
 
 

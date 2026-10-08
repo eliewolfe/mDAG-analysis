@@ -1,7 +1,10 @@
-"""Tests for the corrected Fritz piggyback and the composition of piggybacks."""
+"""Tests for the edge-first Fritz piggyback (d-separation certificate) and the composition of piggybacks."""
+import pytest
+
 from hypergraphs import Hypergraph
 from directed_structures import DirectedStructure
 from quantum_mDAG import QmDAG
+from known_QC_gaps import QG_Triangle, QG_Bell_C_Edge, QG_Instrumental_C
 
 
 def Q(edges, n, C, Qf):
@@ -9,13 +12,16 @@ def Q(edges, n, C, Qf):
 
 
 TRIANGLE = Q([], 3, [], [(0, 1), (1, 2), (0, 2)])
+TETRAHEDRON = Q([], 4, [], [(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)])
 SQUARE = Q([], 4, [], [(2, 3), (1, 3), (0, 1), (0, 2)])
 BELL6 = Q([], 4, [(1, 3), (0, 2)], [(2, 3)])
 IV3 = Q([(1, 2)], 3, [], [(0, 1), (1, 2)])
 IV3b = Q([(1, 2)], 3, [(0, 1)], [(1, 2)])
-# Counterexample from the review: node 0 shares a classical latent with 3 but also a quantum latent with 1,
-# and 1 -> 3 makes that quantum latent d-connected to 3. The old code produced IV3b from it.
+# Counterexample from the review of the first implementation: node 0 shares a classical latent with 3 but also a
+# quantum latent with 1, and 1 -> 3 makes that quantum latent d-connected to 3. The old code produced IV3b from it.
 G2 = Q([(1, 2), (1, 3)], 4, [(0, 3), (0, 2)], [(0, 1), (1, 2)])
+# The lead's example: deleting the visible edge 0 -> 1 (manuscript 5.5, "deleting a visible edge").
+EDGE_EXAMPLE = Q([(0, 1), (0, 3)], 4, [], [(1, 2), (2, 3)])
 
 
 def latent_index(qmdag, kind, facet):
@@ -25,6 +31,12 @@ def latent_index(qmdag, kind, facet):
     return matches[0]
 
 
+def steps(g, **kwargs):
+    """{params: child} of fritz_steps (params are unique per child)."""
+    out = dict(g.fritz_steps(use_lp=False, **kwargs))
+    return out
+
+
 def test_effective_DAG_has_one_noise_node_per_visible_node():
     g, latents = TRIANGLE.effective_DAG_data
     kinds = [kind for kind, _ in latents.values()]
@@ -32,139 +44,168 @@ def test_effective_DAG_has_one_noise_node_per_visible_node():
     assert g.number_of_nodes() == 9
 
 
-def test_triangle_admissibility():
-    admissible = TRIANGLE.fritz_admissible_targets((2,))
-    assert set(admissible) == {0, 1}
-    common, others = admissible[0]
-    assert common == {latent_index(TRIANGLE, 'Q', {0, 2})}
-    assert others == {latent_index(TRIANGLE, 'Q', {0, 1}), latent_index(TRIANGLE, 'noise', {0})}
+# ---------------------------------------------------------------- the five layers
+
+def test_pool_is_latent_siblings_then_visible_parents_ordered_by_shared_facets():
+    g = Q([(0, 1), (3, 1)], 4, [], [(1, 2), (1, 3), (2, 3)])
+    # Siblings of 1: 2 (one facet) and 3 (one facet); 3 is also a parent. 0 is a parent only.
+    assert g.fritz_pool(1) == [2, 3]
+    assert g.fritz_pool(1, pool='siblings+parents') == [2, 3, 0]
+    g = Q([], 4, [], [(0, 1, 2), (0, 1, 3), (1, 2)])
+    assert g.fritz_pool(1) == [0, 2, 3]            # 0 shares two facets with 1, 2 shares two, 3 shares one
+    # A node that is neither a sibling nor a parent never appears.
+    chain = Q([(0, 1), (1, 2)], 3, [], [])
+    assert chain.fritz_pool(2, pool='siblings+parents') == [1]
+    assert chain.fritz_pool(0, pool='siblings+parents') == []
 
 
-def test_triangle_copy_mode_reaches_bell():
-    outputs = dict(TRIANGLE.fritz_transitions((2,)))
-    bell = outputs[((0, 'copy'), (1, 'copy'))]
-    assert bell.unique_unlabelled_id == BELL6.unique_unlabelled_id
-    assert bell.restricted_perfect_predictions_numeric == tuple()
-    assert len(bell.unique_id) == 5  # (n, ds, C, Q, pp)
-    assert not hasattr(bell, 'Fritz_trick_has_been_applied_already')
+def test_descendants_are_excluded_from_the_pool_by_default():
+    g = Q([(0, 1), (1, 2)], 4, [], [(0, 2), (0, 3)])
+    assert g.fritz_pool(0) == [3]
+    assert g.fritz_pool(0, allow_descendants=True) == [2, 3]
+    assert g.fritz_pool(2) == [0]
+    # The d-separation test always fails for a descendant: the noise of 0 reaches 2 through 0 -> 1 -> 2.
+    K, D = g.fritz_deletion(0, {2})
+    assert K == {latent_index(g, 'Q', {0, 2})} and D == {latent_index(g, 'Q', {0, 3}), latent_index(g, 'noise', {0})}
+    assert g.fritz_certificate(0, K, {2}, use_lp=False) is None
 
 
-def test_fritz_outputs_are_deterministic():
-    first = TRIANGLE.fritz_transitions((2,))
-    second = TRIANGLE.fritz_transitions((2,))
-    assert [params for params, _ in first] == [params for params, _ in second]
-    assert [g.unique_id for _, g in first] == [g.unique_id for _, g in second]
+def test_deletion_is_maximal_and_requires_a_channel():
+    K, D = TRIANGLE.fritz_deletion(0, {2})
+    assert K == {latent_index(TRIANGLE, 'Q', {0, 2})}
+    assert D == {latent_index(TRIANGLE, 'Q', {0, 1}), latent_index(TRIANGLE, 'noise', {0})}
+    # No channel: 2 shares nothing with 0 and is not its parent.
+    g = Q([(0, 1)], 3, [], [(1, 2)])
+    assert g.fritz_deletion(0, {2}) is None
+    # A joint predictor set sees the union of what its members see (in the triangle, {0, 2} sees every parent of
+    # 1 but its noise: a noise-only deletion, None).
+    assert TRIANGLE.fritz_deletion(1, {0, 2}) is None
+    g = Q([], 4, [], [(0, 1), (1, 2), (1, 3)])
+    K, D = g.fritz_deletion(1, {0, 2})
+    assert K == {latent_index(g, 'Q', {0, 1}), latent_index(g, 'Q', {1, 2})}
+    assert D == {latent_index(g, 'Q', {1, 3}), latent_index(g, 'noise', {1})}
 
 
-def test_counterexample_G2_is_inadmissible_and_unreachable():
-    for predictor in (2, 3):
-        assert G2.fritz_admissible_targets((predictor,)) == {}
-    ids = G2.unique_unlabelled_ids_obtainable_by_Fritz_for_QC()
-    assert IV3.unique_unlabelled_id not in ids
-    assert IV3b.unique_unlabelled_id not in ids
+def test_noise_only_deletions_are_not_emitted():
+    g = Q([], 3, [], [(0, 1, 2)])
+    assert g.fritz_deletion(0, {1}) is None
+    assert steps(g) == {} and steps(g, mode='copy') == {} and steps(g, predictor_mode='kept') == {}
 
 
-def test_childful_predictor_requires_opt_in():
-    chain = Q([(0, 1)], 3, [], [(0, 2), (1, 2)])
-    import pytest
-    with pytest.raises(AssertionError):
-        chain.fritz_admissible_targets((0,), allow_childful_predictors=False)
-    with pytest.raises(AssertionError):
-        chain.fritz_transitions((0,), allow_childful_predictors=False)
-    # With the opt-in, 2 is predicted by 0 through their shared latent; 1 is downstream of 0 and never admissible.
-    assert set(chain.fritz_admissible_targets((0,))) == {2}
-
-
-def test_copy_feeds_only_children_that_still_see_the_original():
-    # Facet {0,1,2}, edge 0->1, predictor 2: 1 in replace mode keeps only the facet, so neither 0 nor 0_copy feeds it.
-    g = Q([(0, 1)], 3, [], [(0, 1, 2)])
-    outputs = dict(g.fritz_transitions((2,)))
-    out = outputs[((0, 'copy'), (1, 'replace'))]
-    assert out.directed_structure_instance.edge_list == []
-    out = outputs[((0, 'copy'), (1, 'copy'))]
-    names = out.directed_structure_instance.variable_names
-    edges = {(names[a], names[b]) for a, b in out.directed_structure_instance.edge_list}
-    assert edges == {(0, 1), ('0_copy', 1)}
+def test_parent_predictor_is_certified_vacuously():
+    g = Q([(0, 1)], 3, [], [(1, 2)])
+    K, D = g.fritz_deletion(1, {0})
+    assert K == {0} and latent_index(g, 'Q', {1, 2}) in D
+    assert g.fritz_certificate(1, K, {0}, use_lp=False) == 'dsep'
 
 
 def test_private_noise_blocks_prediction_of_a_parent():
     # 0 shares a latent with 2 but also feeds 2 directly: 2 cannot predict 0 (private noise of 0 reaches 2).
     g = Q([(0, 2)], 3, [(0, 2)], [(0, 1)])
-    assert 0 not in g.fritz_admissible_targets((2,))
+    K, D = g.fritz_deletion(0, {2})
+    assert g.fritz_certificate(0, K, {2}, use_lp=False) is None
 
 
-def test_pp_intermediate_keeps_predictor_and_records_restrictions():
-    intermediate = TRIANGLE.fritz_intermediate_with_pp((2,), {0: 'copy', 1: 'copy'})
-    assert intermediate.number_of_visible == 5
-    predicted = {i for i, _ in intermediate.restricted_perfect_predictions_numeric}
-    assert len(predicted) == 2
-    assert all(preds == (2,) for _, preds in intermediate.restricted_perfect_predictions_numeric)
-
-
-def test_closure_composes_in_both_directions():
-    ids = SQUARE.unique_unlabelled_ids_obtainable_by_Fritz_for_QC()
-    assert BELL6.unique_unlabelled_id in ids
-    single_pass = {g.unique_unlabelled_id for y in SQUARE.vis_nodes_with_no_children
-                   for _, g in SQUARE.fritz_transitions((y,))}
-    assert single_pass.issubset(ids)
-    assert SQUARE.unique_unlabelled_id not in ids
-    assert ids.issuperset(SQUARE.unique_unlabelled_ids_obtainable_by_reduction(districts_check=False,
-                                                                                 apply_teleportation=True))
-
-
-# ---------------------------------------------------------------- stage 3: extensions
-
-LOST_FOUR = [Q([(0, 2), (1, 2), (2, 3)], 4, [], [(0, 1), (0, 2), (1, 3)]),
-             Q([(0, 1), (1, 2), (2, 3)], 4, [], [(0, 1), (0, 2), (1, 3)]),
-             Q([(0, 2), (1, 2), (2, 3)], 4, [], [(0, 1), (0, 3), (1, 2)]),
-             Q([(0, 1), (0, 2), (1, 2), (2, 3)], 4, [], [(0, 1), (0, 2), (1, 3)])]
-IV2b = Q([(0, 1), (1, 2)], 3, [(0, 1)], [(1, 2)])
-
-
-def test_joint_predictors_keep_every_shared_latent():
-    # The old code stripped both latents of node 1 here; joint prediction by {0, 2} keeps both.
-    admissible = TRIANGLE.fritz_admissible_targets((0, 2))
-    common, others = admissible[1]
-    assert common == {latent_index(TRIANGLE, 'Q', {0, 1}), latent_index(TRIANGLE, 'Q', {1, 2})}
-    assert others == {latent_index(TRIANGLE, 'noise', {1})}
-
-
-def test_marginalizing_a_childless_predictor_equals_dropping_it():
-    predictors = frozenset({3})
-    admissible = SQUARE.fritz_admissible_targets(predictors)
-    for params, direct in SQUARE.fritz_transitions(predictors):
-        kept = SQUARE._fritz_kept_parents(admissible, dict(params))
-        intermediate, to_nums = SQUARE._fritz_build(predictors, dict(params), kept, drop_predictors=False)
-        to_original = {num: SQUARE._fritz_original_of(name) for name, num in to_nums.items()}
-        marginalized, _ = SQUARE._marginalize_predictors(intermediate, to_original, (3,),
-                                                         districts_check=False, apply_teleportation=True)
-        assert marginalized.unique_unlabelled_id == direct.unique_unlabelled_id
-
-
-def test_joint_childful_predictors_enumerate_every_removal_order():
-    # Teleportation makes marginalization order-dependent; both orders must be produced (found by brute force).
-    g = Q([(0, 2), (0, 3), (0, 4), (1, 3), (3, 4)], 5, [(2, 4)], [(0, 1), (1, 4), (0, 3)])
-    outputs = [out.unique_unlabelled_id for params, out in g.fritz_transitions((0, 1), max_visible=5)
-               if params == ((3, 'copy'),)]
-    assert len(outputs) == 2 and len(set(outputs)) == 2
-
-
-def test_childful_predictor_recovers_the_four_graphs_lost_in_stage_2():
-    for g in LOST_FOUR:
-        strict = g.unique_unlabelled_ids_obtainable_by_Fritz_for_QC(allow_childful_predictors=False)
-        assert IV2b.unique_unlabelled_id not in strict
-        assert IV2b.unique_unlabelled_id in g.unique_unlabelled_ids_obtainable_by_Fritz_for_QC()
-
-
-def test_replace_mode_keeps_quantum_facet_on_other_children():
-    # Facet {0,1,2,3}; predictor 3 predicts 0 (replace): 1 and 2 keep a quantum facet, 0 joins them classically.
+def test_restrict_target_keeps_the_facet_quantum_for_the_other_members():
+    # Facet {0,1,2,3}; 0 restricted to it: 1, 2, 3 keep a quantum facet, 0 joins them classically.
     g = Q([], 4, [], [(0, 1, 2, 3)])
-    outputs = dict(g.fritz_transitions((3,), keep_quantum_facets=True))
-    out = outputs[((0, 'replace'),)]
-    assert out.Q_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({1, 2})}
-    assert out.C_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({0, 1, 2})}
-    legacy = dict(g.fritz_transitions((3,), keep_quantum_facets=False))[((0, 'replace'),)]
-    assert legacy.Q_simplicial_complex_instance.simplicial_complex_as_sets == set()
+    out = g._restrict_target(0, frozenset({latent_index(g, 'Q', {0, 1, 2, 3})}))
+    assert out.Q_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({1, 2, 3})}
+    assert out.C_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({0, 1, 2, 3})}
+    # Redundant sub-facets left by the restriction are cleaned (canonical ids).
+    tetra_out = steps(TETRAHEDRON)[(('target', 0), ('mode', 'replace'), ('deleted', ('Q{0,2,3}',)), ('predictor', (1,)),
+                                    ('predictor_mode', 'dropped'), ('certificate', 'dsep'))]
+    assert tetra_out.unique_unlabelled_id == QG_Triangle.unique_unlabelled_id
+
+
+def test_realise_marginalizes_in_every_order_and_records_it():
+    # Teleportation makes marginalization order-dependent; both orders are produced (found by brute force).
+    g = Q([(0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)], 5, [(2, 3)],
+          [(0, 2), (0, 3), (1, 2), (1, 4), (2, 4), (3, 4)])
+    K, D = g.fritz_deletion(4, {0, 2})
+    assert g.fritz_certificate(4, K, {0, 2}, use_lp=False) == 'dsep'
+    results = g.fritz_realise(4, K, {0, 2})
+    assert len(results) == 2 and len({c.unique_unlabelled_id for _, c in results}) == 2
+    assert {params for params, _ in results} == {(('order', (0, 2)),), (('order', (2, 0)),)}
+    # A single removal carries no order parameter.
+    K, D = TRIANGLE.fritz_deletion(0, {2})
+    assert TRIANGLE.fritz_realise(0, K, {2}) == [((), TRIANGLE.fritz_realise(0, K, {2})[0][1])]
+
+
+# ---------------------------------------------------------------- fritz_steps
+
+def test_tetrahedron_reaches_the_triangle_by_dropping_one_facet():
+    out = steps(TETRAHEDRON)
+    assert len(out) == 12 and all(c.unique_unlabelled_id == QG_Triangle.unique_unlabelled_id for c in out.values())
+    assert all(dict(p)['certificate'] == 'dsep' and dict(p)['predictor_mode'] == 'dropped' for p in out)
+
+
+def test_fritz_steps_are_deterministic():
+    first = list(TETRAHEDRON.fritz_steps(use_lp=False))
+    second = list(TETRAHEDRON.fritz_steps(use_lp=False))
+    assert [params for params, _ in first] == [params for params, _ in second]
+    assert [g.unique_id for _, g in first] == [g.unique_id for _, g in second]
+
+
+def test_deleting_a_visible_edge_is_proven_both_ways():
+    # Route 1 (replace mode, kept predictor): 2 predicts 1 through Q{1,2} and deletes 0 -> 1; 2 is childless, so it
+    # stays untouched; the output is 0 -> 3; C{1,2}, Q{2,3} = QG_Bell_C_Edge.
+    kept = steps(EDGE_EXAMPLE, predictor_mode='kept')
+    params = (('target', 1), ('mode', 'replace'), ('deleted', (0,)), ('predictor', (2,)), ('predictor_mode', 'kept'),
+              ('certificate', 'dsep'))
+    assert kept[params].unique_unlabelled_id == QG_Bell_C_Edge.unique_unlabelled_id
+    assert kept[params].directed_structure_instance.edge_list == [(0, 3)]
+    # Route 2 (copy mode, dropped predictor): 2 is split, 1 predicts the copy 2' through Q{1,2,2'} and deletes the
+    # copy's share of Q{2,2',3}; 1 is childless and is dropped: 0 -> 3; C{2,2'}, Q{2,3} (relabelled 0 -> 2;
+    # C{1,3}, Q{1,2}), the same seed with the roles of the parties exchanged.
+    copy = steps(EDGE_EXAMPLE, mode='copy')
+    params = (('target', 2), ('mode', 'copy'), ('deleted', ("Q{2,3,2'}",)), ('predictor', (1,)), ('predictor_mode', 'dropped'),
+              ('certificate', 'dsep'))
+    assert copy[params].unique_unlabelled_id == QG_Bell_C_Edge.unique_unlabelled_id
+    assert copy[params].directed_structure_instance.edge_list == [(0, 2)]
+    assert copy[params].C_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({1, 3})}
+    assert copy[params].Q_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({1, 2})}
+
+
+def test_parent_predictor_edge_is_re_supplied_by_the_kept_copy():
+    # With the parents in the pool, 0 (parent of 1, no shared facet) predicts 1 vacuously: the copy 0' is 1's
+    # twin parent, so 0 -> 1 and Q{1,2} are deleted and 1 keeps 0' alone; marginalizing 0' (childful) re-supplies
+    # 0 -> 1 as a classical facet C{0,1,3} by teleportation. Nothing new is reached here, but the step is sound.
+    out = steps(EDGE_EXAMPLE, predictor_mode='kept', pool='siblings+parents')
+    params = (('target', 1), ('mode', 'replace'), ('deleted', (0, 'Q{1,2}')), ('predictor', (0,)), ('predictor_mode', 'kept'),
+              ('certificate', 'dsep'))
+    child = out[params]
+    assert child.C_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({0, 1, 3})}
+    assert child.Q_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({2, 3})}
+    assert child.directed_structure_instance.edge_list == [(0, 3)]
+    # Without the parents in the pool, 0 is not offered for 1 (it shares no facet with 1).
+    assert all(dict(p)['predictor'] != (0,) or dict(p)['target'] != 1 for p in steps(EDGE_EXAMPLE, predictor_mode='kept'))
+
+
+def test_counterexample_G2_is_unreachable_by_d_separation():
+    for pm in ('dropped', 'kept'):
+        for mode in ('replace', 'copy'):
+            for params, child in steps(G2, mode=mode, predictor_mode=pm).items():
+                assert child.unique_unlabelled_id not in (IV3.unique_unlabelled_id, IV3b.unique_unlabelled_id), params
+    ids = G2.unique_unlabelled_ids_obtainable_by_Fritz_for_QC()
+    assert IV3.unique_unlabelled_id not in ids and IV3b.unique_unlabelled_id not in ids
+
+
+def test_copy_mode_keeps_the_children_of_the_target():
+    # The copy is a faithful duplicate (split_node): it keeps the children of the target as well as its parents, and
+    # the restriction then removes the parents the predictor cannot see from the copy only.
+    g = Q([(0, 1)], 3, [], [(0, 1, 2)])
+    out = steps(g, mode='copy', predictor_mode='kept')
+    params = (('target', 0), ('mode', 'copy'), ('deleted', ()), ('predictor', (2,)), ('predictor_mode', 'kept'), ('certificate', 'dsep'))
+    assert params not in out       # the copy sees the whole facet: noise-only deletion, not emitted
+    g = Q([(0, 1)], 3, [], [(0, 2), (1, 2), (0, 1)])
+    out = steps(g, mode='copy', predictor_mode='kept')
+    params = (('target', 0), ('mode', 'copy'), ('deleted', ("Q{0,1,0'}",)), ('predictor', (2,)), ('predictor_mode', 'kept'),
+              ('certificate', 'dsep'))
+    child = out[params]
+    assert child.directed_structure_instance.edge_list == [(0, 1), (3, 1)]       # 0 and the copy 0' = 3 both feed 1
+    assert child.C_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({0, 2, 3})}
+    assert child.Q_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({0, 1}), frozenset({0, 2}), frozenset({1, 2})}
 
 
 def test_kept_predictors_are_split_and_marginalized_not_kept_untouched():
@@ -173,21 +214,76 @@ def test_kept_predictors_are_split_and_marginalized_not_kept_untouched():
     # instrumental gap QG_Instrumental_C: node 1 could read the prediction through the edge 0->1. The sound
     # realisation splits 0 into itself and a full copy, lets the copy predict, and marginalizes the copy, which
     # relays what 1 could learn: the instrument then shares a facet with the outcome as well, and there is no gap.
-    from known_QC_gaps import QG_Instrumental_C
     g = Q([(0, 1)], 3, [], [(0, 1), (0, 2), (1, 2)])
-    outputs = dict(g.fritz_transitions((0,), predictor_mode='split', max_visible=5))
-    out = outputs[((2, 'replace'),)]
-    assert out.unique_unlabelled_id != QG_Instrumental_C.unique_unlabelled_id
-    assert out.C_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({0, 1, 2})}
-    assert out.Q_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({0, 1})}
-    # For a childless predictor the split realisation coincides with keeping it untouched.
+    out = steps(g, predictor_mode='kept')
+    params = (('target', 2), ('mode', 'replace'), ('deleted', ('Q{1,2}',)), ('predictor', (0,)), ('predictor_mode', 'kept'),
+              ('certificate', 'dsep'))
+    assert out[params].unique_unlabelled_id != QG_Instrumental_C.unique_unlabelled_id
+    assert out[params].C_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({0, 1, 2})}
+    assert out[params].Q_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({0, 1})}
+    assert all(c.unique_unlabelled_id != QG_Instrumental_C.unique_unlabelled_id for c in out.values())
+    # For a childless predictor, kept means untouched: the output is the restricted structure itself.
     kpc = Q([(0, 1), (0, 2), (1, 2)], 4, [], [(2, 3), (1, 3)])
-    split_outputs = dict(kpc.fritz_transitions((3,), predictor_mode='split', max_visible=5))
-    out = split_outputs[((1, 'replace'),)]
-    admissible = kpc.fritz_admissible_targets((3,))
-    untouched, _ = kpc._fritz_build(frozenset({3}), {1: 'replace'}, kpc._fritz_kept_parents(admissible, {1: 'replace'}),
-                                    drop_predictors=False)
-    assert out.unique_id == untouched.unique_id
-    # The original of a split childful predictor is not offered as a target of its own copy.
-    g2 = Q([(0, 1)], 3, [], [(0, 1), (0, 2), (1, 2)])
-    assert all(0 not in dict(params) for params, _ in g2.fritz_transitions((0,), predictor_mode='split', max_visible=5))
+    out = steps(kpc, predictor_mode='kept')
+    params = (('target', 1), ('mode', 'replace'), ('deleted', (0,)), ('predictor', (3,)), ('predictor_mode', 'kept'),
+              ('certificate', 'dsep'))
+    K, _ = kpc.fritz_deletion(1, {3})
+    assert out[params].unique_id == kpc._restrict_target(1, K).unique_id
+
+
+def test_dropped_childless_predictor_equals_deleting_it():
+    for params, child in steps(SQUARE).items():
+        s, X = dict(params)['target'], dict(params)['predictor']
+        K, _ = SQUARE.fritz_deletion(s, X)
+        direct = SQUARE._restrict_target(s, K).fix_to_point_distribution_QmDAG(X[0])
+        assert child.unique_unlabelled_id == direct.unique_unlabelled_id
+
+
+def test_joint_predictors_are_available_but_off_by_default():
+    assert all(len(dict(p)['predictor']) == 1 for p in steps(TRIANGLE))
+    joint = [p for p in steps(TRIANGLE, max_predictors=2) if len(dict(p)['predictor']) == 2]
+    assert joint == []            # the joint set sees every facet of the target: noise-only deletion
+    g = Q([(0, 1), (0, 4), (2, 4), (3, 4)], 5, [], [(0, 4), (1, 4), (3, 4)])
+    joint = [p for p in steps(g, max_predictors=2, max_visible=5) if len(dict(p)['predictor']) == 2]
+    assert joint and all(any(k == 'order' for k, _ in p) for p in joint)      # several removals: the order is recorded
+
+
+# ---------------------------------------------------------------- composition
+
+def test_closure_composes_in_both_directions():
+    ids = SQUARE.unique_unlabelled_ids_obtainable_by_Fritz_for_QC()
+    assert BELL6.unique_unlabelled_id in ids
+    single_pass = {g.unique_unlabelled_id for mode in ('replace', 'copy') for _, g in SQUARE.fritz_steps(mode=mode, use_lp=False)}
+    assert single_pass.issubset(ids)
+    assert SQUARE.unique_unlabelled_id not in ids
+    assert ids.issuperset(SQUARE.unique_unlabelled_ids_obtainable_by_reduction(districts_check=False,
+                                                                                 apply_teleportation=True))
+
+
+def test_triangle_reaches_bell_through_two_kept_copy_steps():
+    # Fritz's original argument: copy 0 predicted by 2, copy 1 predicted by 2, then fix 2. One target per step, so
+    # it takes two Fritz steps with the predictor kept; with dropped predictors the second step has no predictor.
+    assert BELL6.unique_unlabelled_id in TRIANGLE.piggyback_closure(max_visible=4, include_Fritz=True, max_predictors=1,
+                                                                    predictor_modes=('kept',))
+    assert BELL6.unique_unlabelled_id not in TRIANGLE.piggyback_closure(max_visible=5, include_Fritz=True, max_predictors=1,
+                                                                        predictor_modes=('dropped',))
+    assert BELL6.unique_unlabelled_id in TRIANGLE.unique_unlabelled_ids_obtainable_by_Fritz_for_QC()
+
+
+LOST_FOUR = [Q([(0, 2), (1, 2), (2, 3)], 4, [], [(0, 1), (0, 2), (1, 3)]),
+             Q([(0, 1), (1, 2), (2, 3)], 4, [], [(0, 1), (0, 2), (1, 3)]),
+             Q([(0, 2), (1, 2), (2, 3)], 4, [], [(0, 1), (0, 3), (1, 2)]),
+             Q([(0, 1), (0, 2), (1, 2), (2, 3)], 4, [], [(0, 1), (0, 2), (1, 3)])]
+IV2b = Q([(0, 1), (1, 2)], 3, [(0, 1)], [(1, 2)])
+
+
+def test_childful_predictors_recover_the_four_graphs_lost_in_stage_2():
+    for g in LOST_FOUR:
+        assert IV2b.unique_unlabelled_id in g.unique_unlabelled_ids_obtainable_by_Fritz_for_QC()
+
+
+def test_unique_id_has_no_prediction_component():
+    assert len(TRIANGLE.unique_id) == 4
+    with pytest.raises(TypeError):
+        QmDAG(TRIANGLE.directed_structure_instance, TRIANGLE.C_simplicial_complex_instance,
+              TRIANGLE.Q_simplicial_complex_instance, pp_restrictions=())

@@ -51,9 +51,9 @@ _PIGGYBACK_CHILDREN_MEMO: Dict[Tuple, List["QmDAG"]] = dict()
 # Entropic LPs (Shannon cone + local Markov equalities) per labelled structure; each holds a solver task.
 _ENTROPIC_LP_CACHE: Dict[Tuple, Any] = dict()
 _ENTROPIC_LP_CACHE_SIZE = 64
-# Outcome tally of entropic certificates, keyed by ('single', outcome) for the per-target admissibility test
-# (outcome in 'dsep', 'markov', 'relabel', 'fail'), ('joint', outcome) for multi-target candidates and
-# ('deletions', outcome) for the greedy extra-deletion verification. Read it to see how often the LP fails.
+# Outcome tally of the Fritz certificates (QmDAG.fritz_certificate), keyed by ('certificate', outcome) with outcome
+# 'vacuous' (every predictor a parent of the target), 'dsep', 'relabel', 'markov' or 'failed' (the LP certified
+# nothing). Read it to see how often the LP fails.
 ENTROPIC_STATS: Dict[Tuple[str, str], int] = dict()
 
 
@@ -64,9 +64,8 @@ def _tally(kind: str, outcome: str) -> None:
 # This class does NOT represent every possible quantum causal structure. It only represents the causal structures where every quantum latent is exogenized. This is the case, for example, of the known QC Gaps.
 @total_ordering
 class QmDAG:
-    def __init__(self, directed_structure_instance: DirectedStructure, C_simplicial_complex_instance: Hypergraph, Q_simplicial_complex_instance: Hypergraph,
-                 pp_restrictions: Tuple[int, ...] = tuple()) -> None:
-        self.restricted_perfect_predictions_numeric = pp_restrictions
+    def __init__(self, directed_structure_instance: DirectedStructure, C_simplicial_complex_instance: Hypergraph,
+                 Q_simplicial_complex_instance: Hypergraph) -> None:
         self.directed_structure_instance = directed_structure_instance
         self.number_of_visible = self.directed_structure_instance.number_of_visible
         assert directed_structure_instance.number_of_visible == C_simplicial_complex_instance.number_of_visible, 'Different number of nodes in directed structure vs classical simplicial complex.'
@@ -132,14 +131,13 @@ class QmDAG:
 
     #@cached_property
     @property
-    def unique_id(self) -> Tuple[int, int, int, int, Tuple[int, ...]]:
+    def unique_id(self) -> Tuple[int, int, int, int]:
         # Returns a unique identification tuple.
         return (
             self.number_of_visible,
             self.directed_structure_instance.as_integer,
             self.C_simplicial_complex_instance.as_integer,
-            self.Q_simplicial_complex_instance.as_integer,
-            tuple(self.restricted_perfect_predictions_numeric,))
+            self.Q_simplicial_complex_instance.as_integer)
     def __hash__(self) -> int:
         return hash(self.unique_id)
 
@@ -215,8 +213,7 @@ class QmDAG:
                 self.Q_simplicial_complex_instance.simplicial_complex_as_sets
             ).union(
                 self.Q_simplicial_complex_instance.simplicial_complex_as_sets
-            ), self.number_of_visible),
-            pp_restrictions=self.restricted_perfect_predictions_numeric
+            ), self.number_of_visible)
         )
 
     @cached_property
@@ -471,248 +468,19 @@ class QmDAG:
         g.add_edges_from(edges)
         return g, latent_nodes
 
-    def fritz_admissible_targets(self, predictors: Iterable[int],
-                                 allow_childful_predictors: bool = True) -> Dict[int, Tuple[frozenset, frozenset]]:
-        """Maps each admissible predicted node s to (common(s), others(s)) in effective-DAG indices.
-        The predictors jointly predict s: common(s) are the parents of s seen by at least one predictor."""
-        predictors = frozenset(predictors)
-        if not allow_childful_predictors:
-            assert predictors.issubset(self.vis_nodes_with_no_children), "Fritz predictors must be childless visible nodes."
-        g, latent_nodes = self.effective_DAG_data
-        seen_by_predictors = set(predictors)
-        for y in predictors:
-            seen_by_predictors.update(g.predecessors(y))
-        candidates = set()
-        for y in predictors:
-            candidates.update(self.latent_siblings_of(y))
-        candidates.difference_update(predictors)
-        admissible = dict()
-        for s in sorted(candidates):
-            parents = set(g.predecessors(s))
-            common = parents.intersection(seen_by_predictors)
-            others = parents.difference(common)
-            # `others` always contains the private noise of s, so a predictor downstream of s is never admissible.
-            # A predictor that is itself a parent of s sits in common(s) and is conditioned on rather than tested
-            # (networkx treats an empty first set as d-separated: conditioning on the predictors fixes s outright).
-            if nx.is_d_separator(g, predictors.difference(common), others, common):
-                admissible[s] = (frozenset(common), frozenset(others))
-        return admissible
-
-    def _fritz_kept_parents(self, admissible: Dict[int, Tuple[frozenset, ...]],
-                            choices: Dict[int, str]) -> Dict[int, frozenset]:
-        """The candidate reduced structure: predicted nodes keep common(s), every other node keeps all its parents.
-        Keys are effective-DAG indices of visible nodes and latent facets (noise sources excluded)."""
-        nodes, parents = self.lp_structure
-        kept = dict(parents)
-        for s in choices:
-            kept[s] = frozenset(admissible[s][0])
-        return kept
-
-    def _fritz_build(self, predictors: frozenset, choices: Dict[int, str],
-                     kept_parents: Dict[int, frozenset],
-                     drop_predictors: bool = True, keep_quantum_facets: bool = False) -> Tuple["QmDAG", Dict[Any, int]]:
-        """Builds the post-Fritz QmDAG. `choices` gives the mode per predicted node ('replace' or 'copy');
-        `kept_parents` gives, for every visible node, the parents (visible nodes and latent facets, as effective-DAG
-        indices) it keeps: common(s) for predicted nodes, possibly fewer for others after LP-certified deletions.
-        In copy mode the original keeps all its parents and the copy gets kept_parents[s].
-        Returns the QmDAG and the name -> index translation."""
-        g, latent_nodes = self.effective_DAG_data
-        copies = {s: str(s) + '_copy' for s, mode in choices.items() if mode == 'copy'}
-        kept_originals = [v for v in self.visible_nodes if drop_predictors is False or v not in predictors]
-        names = tuple(kept_originals) + tuple(copies[s] for s in sorted(copies))
-        name_set = set(names)
-
-        edges = set()
-        for (a, b) in self.directed_structure_instance.as_set_of_tuples:
-            if choices.get(b) == 'copy':
-                edges.add((a, b))
-                if a in kept_parents[b]:
-                    edges.add((a, copies[b]))
-            elif a in kept_parents[b]:
-                edges.add((a, b))
-        # A copy is a sub-output of s, so it feeds exactly the children that still see s.
-        for s, s_copy in copies.items():
-            for c in self.directed_structure_instance.adjMat.children_of(s):
-                if choices.get(c) == 'copy':
-                    edges.add((s_copy, c))
-                    if s in kept_parents[c]:
-                        edges.add((s_copy, copies[c]))
-                elif s in kept_parents[c]:
-                    edges.add((s_copy, c))
-        edges = [(a, b) for (a, b) in edges if a in name_set and b in name_set]
-
-        C_facets = set()
-        Q_facets = set()
-        for idx, (kind, facet) in latent_nodes.items():
-            if kind == 'noise':
-                continue
-            quantum_readers = set()
-            classical_readers = set()
-            replaced_reader_present = False
-            for v in facet:
-                if drop_predictors and v in predictors:
-                    continue
-                keeps = idx in kept_parents[v]
-                if choices.get(v) == 'copy':
-                    quantum_readers.add(v)
-                    if keeps:
-                        classical_readers.add(copies[v])
-                elif v in choices:
-                    if keeps:
-                        classical_readers.add(v)
-                        replaced_reader_present = True
-                elif keeps:
-                    quantum_readers.add(v)
-            if kind == 'C':
-                C_facets.add(frozenset(quantum_readers.union(classical_readers)))
-            else:
-                if classical_readers:
-                    C_facets.add(frozenset(quantum_readers.union(classical_readers)))
-                if keep_quantum_facets or not replaced_reader_present:
-                    Q_facets.add(frozenset(quantum_readers))
-        new_ds = LabelledDirectedStructure(names, edges)
-        new_QmDAG = QmDAG(new_ds, LabelledHypergraph(names, C_facets), LabelledHypergraph(names, Q_facets))
-        return new_QmDAG, new_ds.translation_dict
-
-    def fritz_transitions(self, predictors: Iterable[int], modes: Tuple[str, ...] = ('replace', 'copy'),
-                          max_visible: int = None, min_visible: int = 3,
-                          keep_quantum_facets: bool = True, districts_check: bool = False,
-                          allow_childful_predictors: bool = True,
-                          apply_teleportation: bool = True,
-                          predictor_mode: str = 'drop', _presplit: bool = False,
-                          _exclude_targets: frozenset = frozenset()) -> List[Tuple[Tuple[Tuple[int, str], ...], "QmDAG"]]:
-        """All structures obtainable by the Fritz piggyback with the given (jointly predicting) predictors.
-        predictor_mode 'drop' (default, cheap): X1 itself is removed, deleted if childless, otherwise by the
-        marginalization piggyback (every removal order, since teleportation is order-dependent).
-        predictor_mode 'split': every predictor is first split (node splitting, a copy with the same parents AND
-        the same children) and the copies are the predictors, dropped as above; the originals stay. For a
-        childless predictor this is the same as keeping it untouched. For a predictor with children it is NOT:
-        keeping a childful predictor untouched is unsound (its children could read the prediction through the
-        visible edge; e.g. 0->1 with quantum facets {0,1},{0,2},{1,2} is saturated, yet "0 predicts 2, 0 kept"
-        would yield the instrumental gap), whereas marginalizing the copy relays what the children could learn.
-        Returns (params, QmDAG) pairs where params = ((s, mode), ...) sorted by s."""
-        predictors = frozenset(predictors)
-        if max_visible is None:
-            max_visible = self.number_of_visible + 1
-        childless = predictors.issubset(self.vis_nodes_with_no_children)
-        assert childless or allow_childful_predictors, "Fritz predictors must be childless visible nodes."
-        childful = predictors.difference(self.vis_nodes_with_no_children)
-        if predictor_mode == 'split' and childful and not _presplit:
-            work, copies = self._split_predictors(childful)
-            return work.fritz_transitions(predictors.difference(childful).union(copies), modes=modes,
-                                          max_visible=max_visible, min_visible=min_visible,
-                                          keep_quantum_facets=keep_quantum_facets, districts_check=districts_check,
-                                          allow_childful_predictors=True, apply_teleportation=apply_teleportation,
-                                          predictor_mode='split', _presplit=True, _exclude_targets=frozenset(childful))
-        # Which predictors leave the structure: all of them in 'drop' mode; in 'split' mode only the childful ones
-        # (the copies), which are marginalized; childless predictors are kept untouched.
-        to_remove = predictors if predictor_mode == 'drop' else childful
-        admissible = self.fritz_admissible_targets(predictors, allow_childful_predictors=allow_childful_predictors)
-        # The original of a split predictor shares every facet with its copy and would be a (pointless) target of it.
-        admissible = {t: v for t, v in admissible.items() if t not in _exclude_targets}
-        targets = sorted(admissible)
-        results = []
-        for r in range(1, len(targets) + 1):
-            for chosen in itertools.combinations(targets, r):
-                for mode_choice in itertools.product(modes, repeat=r):
-                    new_size = self.number_of_visible - len(to_remove) + mode_choice.count('copy')
-                    if not (min_visible <= new_size <= max_visible):
-                        continue
-                    params = tuple(zip(chosen, mode_choice))
-                    kept_parents = self._fritz_kept_parents(admissible, dict(params))
-                    built = self._fritz_build(predictors, dict(params), kept_parents,
-                                              drop_predictors=(predictor_mode == 'drop' and childless),
-                                              keep_quantum_facets=keep_quantum_facets)
-                    intermediate, to_nums = built
-                    to_original = {num: self._fritz_original_of(name) for name, num in to_nums.items()}
-                    to_marginalize = to_remove.difference(self.vis_nodes_with_no_children) if predictor_mode == 'split' \
-                        else (frozenset() if childless else predictors)
-                    if not to_marginalize:
-                        candidates = [(intermediate, to_original)]
-                    else:
-                        candidates = [self._marginalize_predictors(intermediate, to_original, order,
-                                                                   districts_check=districts_check,
-                                                                   apply_teleportation=apply_teleportation)
-                                      for order in itertools.permutations(sorted(to_marginalize))]
-                    seen_here = set()
-                    for new_QmDAG, new_to_original in candidates:
-                        if new_QmDAG is None or new_QmDAG.unique_id in seen_here:
-                            continue
-                        if districts_check and not self._fritz_preserves_districts(to_remove, new_QmDAG, new_to_original):
-                            continue
-                        seen_here.add(new_QmDAG.unique_id)
-                        results.append((params, new_QmDAG))
-        return results
-
-    def _split_predictors(self, predictors: frozenset) -> Tuple["QmDAG", Tuple[int, ...]]:
-        """Splits every predictor into itself and a full copy (same parents, same children); returns the split
-        structure and the indices of the copies, which become the predictors to be dropped."""
-        work = self
-        copies = []
-        for x in sorted(predictors):
-            work = work.split_node(x)
-            copies.append(work.number_of_visible - 1)
-        return work, tuple(copies)
-
-    @staticmethod
-    def _fritz_original_of(name: Any) -> int:
-        return int(str(name).split('_copy')[0]) if isinstance(name, str) else name
-
-    @staticmethod
-    def _marginalize_predictors(qmdag: "QmDAG", to_original: Dict[int, int], order: Iterable[int],
-                                districts_check: bool, apply_teleportation: bool):
-        """Marginalizes the given original nodes out of qmdag in the given order, tracking which original node each
-        remaining index refers to. Returns (QmDAG, to_original) or (None, None) if a marginalization is refused."""
-        labels = [to_original[i] for i in range(qmdag.number_of_visible)]
-        for y in order:
-            idx = labels.index(y)
-            qmdag = qmdag.marginalize(idx, districts_check=districts_check, apply_teleportation=apply_teleportation)
-            if qmdag is None:
-                return None, None
-            labels.pop(idx)
-        return qmdag, dict(enumerate(labels))
-
-    def _fritz_preserves_districts(self, predictors: frozenset, new_QmDAG: "QmDAG", to_original: Dict[int, int]) -> bool:
-        """Districts of the output (copies identified with their originals) equal the old districts minus predictors."""
-        old_districts = set(frozenset(d.difference(predictors)) for d in self.as_mDAG.numerical_districts)
-        old_districts.discard(frozenset())
-        new_districts = set(frozenset(to_original[v] for v in d) for d in new_QmDAG.as_mDAG.numerical_districts)
-        return old_districts == new_districts
-
-    def fritz_intermediate_with_pp(self, predictors: Iterable[int], choices: Dict[int, str],
-                                   keep_quantum_facets: bool = True, allow_childful_predictors: bool = True) -> "QmDAG":
-        """The Fritz-reduced structure with the predictors retained, carrying perfect-prediction restrictions
-        (each predicted node, or its copy, is a function of the predictors) for supports-based inference."""
-        predictors = frozenset(predictors)
-        admissible = self.fritz_admissible_targets(predictors, allow_childful_predictors=allow_childful_predictors)
-        assert set(choices).issubset(admissible), "Some chosen node is not an admissible Fritz target."
-        new_QmDAG, to_nums = self._fritz_build(predictors, choices, self._fritz_kept_parents(admissible, choices),
-                                               drop_predictors=False, keep_quantum_facets=keep_quantum_facets)
-        predictor_nums = tuple(sorted(to_nums[y] for y in predictors))
-        pp = []
-        for s, mode in sorted(choices.items()):
-            predicted = to_nums[str(s) + '_copy'] if mode == 'copy' else to_nums[s]
-            pp.append((predicted, predictor_nums))
-        return QmDAG(new_QmDAG.directed_structure_instance, new_QmDAG.C_simplicial_complex_instance,
-                     new_QmDAG.Q_simplicial_complex_instance, pp_restrictions=tuple(pp))
-
     # ------------------------------------------------------------------
-    # THE ENTROPIC FRITZ PIGGYBACK (LP-certified edge deletion; Khanna, Pusey and Colbeck)
+    # THE ENTROPIC CERTIFICATE (Khanna, Pusey and Colbeck; manuscript Section 6)
     #
-    # Same output shapes as above, but the classical direction is certified by an entropy-vector LP instead of a
-    # d-separation test. Hypotheses: Shannon inequalities over all nodes of G (latent facets as variables, no
-    # explicit noise), the local Markov equalities of G, perfect prediction H(s | X1) = 0 (the one direction of the
-    # perfect correlation between a subvariable of X1 and s that the lift arranges), and the elementary
-    # conditional independences among visible nodes that hold by d-separation in the candidate G' (they hold for
-    # free in the quantum lift, since the lifted distribution is Markov to G', yet are genuine extra hypotheses
-    # classically). Two sound target sets are tried:
-    #   'markov'  : the local Markov equalities of G' over G's own latents;
-    #   'relabel' : when s keeps a single latent facet L, the Markov equalities of G'' = G' with L deleted and
-    #               s made a parent of L's other children (a G''-model gives a G'-model by setting L := s).
-    # The LP subsumes the d-separation test, so it is used as a rescue where d-separation fails. Because the
-    # same hypotheses can certify deletions anywhere, a greedy loop may delete further parents of any node
-    # (never of a predictor), re-deriving the d-separation hypotheses from the current candidate and verifying
-    # the final structure as a whole.
+    # Used by fritz_certificate where d-separation fails. Hypotheses: Shannon inequalities over all nodes of G
+    # (latent facets as variables, no explicit noise), the local Markov equalities of G, perfect prediction
+    # H(s | X) = 0 (the one direction of the perfect correlation between a subvariable of X and s that the lift
+    # arranges), and the elementary conditional independences among visible nodes that hold by d-separation in the
+    # candidate (they hold for free in the quantum lift, since the lifted distribution is Markov to the candidate,
+    # yet are genuine extra hypotheses classically). Two sound target sets:
+    #   'relabel' : when s keeps a single latent facet L, the Markov equalities of G'' = candidate with L deleted
+    #               and s made a parent of L's other children (a G''-model gives a candidate model by L := s);
+    #   'markov'  : the local Markov equalities of the candidate over G's own latents (off by default: it never
+    #               decided a census input).
     # ------------------------------------------------------------------
 
     @cached_property
@@ -777,110 +545,6 @@ class QmDAG:
         finally:
             lp.pop_to(handle)
 
-    def fritz_entropic_admissible_targets(self, predictors: Iterable[int],
-                                          allow_childful_predictors: bool = True, use_lp: bool = True,
-                                          try_markov: bool = True) -> Dict[int, Tuple[frozenset, frozenset, str]]:
-        """Like fritz_admissible_targets, certified by the entropic LP. Maps s -> (common(s), others(s), certificate)
-        where certificate is 'dsep' (already admissible by d-separation), 'markov' or 'relabel'. With use_lp=False
-        only the d-separation-admissible targets are returned (no LP is solved)."""
-        predictors = frozenset(predictors)
-        if not allow_childful_predictors:
-            assert predictors.issubset(self.vis_nodes_with_no_children), "Fritz predictors must be childless visible nodes."
-        by_dsep = self.fritz_admissible_targets(predictors, allow_childful_predictors=allow_childful_predictors)
-        nodes, parents = self.lp_structure
-        g, latent_nodes = self.effective_DAG_data
-        noise_of = {next(iter(children)): idx for idx, (kind, children) in latent_nodes.items() if kind == 'noise'}
-        seen_by_predictors = set(predictors)
-        for y in predictors:
-            seen_by_predictors.update(parents[y])
-        candidates = set()
-        for y in predictors:
-            candidates.update(self.latent_siblings_of(y))
-        candidates.difference_update(predictors)
-        admissible = dict()
-        for s in sorted(candidates):
-            if s in by_dsep:
-                admissible[s] = by_dsep[s] + ('dsep',)
-                _tally('single', 'dsep')
-                continue
-            if not use_lp:
-                continue
-            common = parents[s].intersection(seen_by_predictors)
-            others = parents[s].difference(common) | {noise_of[s]}
-            kept = dict(parents)
-            kept[s] = frozenset(common)
-            certificate = self._entropic_certificate(predictors, kept, (s,), try_markov=try_markov)
-            _tally('single', certificate or 'fail')
-            if certificate is not None:
-                admissible[s] = (frozenset(common), frozenset(others), certificate)
-        return admissible
-
-    def _entropic_extra_deletions(self, predictors: frozenset, kept_parents: Dict[int, frozenset],
-                                  predicted: Tuple[int, ...], max_lps: int = 400):
-        """Greedy LP-certified deletion of further parents (of any non-predictor node), re-deriving the
-        d-separation hypotheses from the current candidate after every deletion. Returns (kept_parents,
-        certificate, deleted edges); on failure of the final verification the input candidate is returned."""
-        from entropic_lp import cmi_row
-        nodes, parents = self.lp_structure
-        lp = self._entropic_lp()
-        start = lp.lp_count
-        kept = dict(kept_parents)
-        deleted = []
-        n = self.number_of_visible
-        shared_facets = {y: {f for f in parents[y] if f >= n} for y in predictors}
-        all_shared = set().union(*shared_facets.values()) if shared_facets else set()
-        changed = True
-        while changed and lp.lp_count - start < max_lps:
-            changed = False
-            handle = lp.push_hypotheses(self._entropic_hypotheses(predictors, kept, predicted))
-            try:
-                for t in self.visible_nodes:
-                    if t in predictors:
-                        continue
-                    for p in sorted(kept[t]):
-                        # A predicted node must keep a facet shared with a predictor: it carries the node's private
-                        # randomness in the lift, otherwise the predictor could not predict it. Deleting the last
-                        # shared facet would make the hypotheses (s = f(X1) and s ⊥ X1) contradictory, and the
-                        # resulting "certificate" vacuous.
-                        if t in predicted and p in all_shared and len(kept[t] & all_shared) == 1:
-                            continue
-                        if lp.implies(cmi_row([t], [p], kept[t] - {p})):
-                            kept[t] = kept[t] - {p}
-                            deleted.append((p, t))
-                            changed = True
-                            break
-                    if changed:
-                        break
-            finally:
-                lp.pop_to(handle)
-        if not deleted:
-            return kept_parents, None, []
-        certificate = self._entropic_certificate(predictors, kept, predicted)
-        _tally('deletions', certificate or 'fail')
-        if certificate is None:
-            return kept_parents, None, []
-        return kept, certificate, deleted
-
-    def degradations(self) -> List[Tuple[Tuple, "QmDAG"]]:
-        """The degradation piggyback (quantum source to classical source): every structure obtained by making a
-        nonempty set of quantum facets classical. A QC gap in any of them implies a QC gap here, since the
-        classical model sets coincide and the quantum set only shrinks. A quantum facet made classical inside a
-        classical facet is absorbed by it. params: (('classical', (facet, ...)),)."""
-        Q_facets = sorted(sorted(f) for f in self.Q_simplicial_complex_instance.simplicial_complex_as_sets)
-        C_facets = [tuple(sorted(f)) for f in self.C_simplicial_complex_instance.simplicial_complex_as_sets]
-        n = self.number_of_visible
-        results = []
-        for r in range(1, len(Q_facets) + 1):
-            for chosen in itertools.combinations(Q_facets, r):
-                chosen = tuple(tuple(f) for f in chosen)
-                new_C = Hypergraph(hypergraph_full_cleanup(set(map(frozenset, C_facets + list(chosen)))), n)
-                remaining_Q = [f for f in Q_facets if tuple(f) not in chosen]
-                if not remaining_Q:
-                    continue   # a structure without quantum facets has no QC gap: useless as a lookup target
-                new_Q = Hypergraph(remaining_Q, n)
-                results.append(((('classical', chosen),), QmDAG(self.directed_structure_instance, new_C, new_Q)))
-        return results
-
     def split_node(self, node: int) -> "QmDAG":
         """Node splitting piggyback: `node` is replaced by itself and a copy (appended as the last visible node)
         with the same parents and children and a shared classical two-party latent (their common private noise).
@@ -899,169 +563,292 @@ class QmDAG:
         return QmDAG(DirectedStructure(sorted(edges), n + 1), Hypergraph(hypergraph_full_cleanup(C_facets), n + 1),
                      Hypergraph(hypergraph_full_cleanup(Q_facets), n + 1))
 
-    def fritz_entropic_transitions(self, predictors: Iterable[int], modes: Tuple[str, ...] = ('replace', 'copy'),
-                                   predictor_modes: Tuple[str, ...] = ('split',), extra_deletions: bool = False,
-                                   max_visible: int = None, min_visible: int = 3,
-                                   keep_quantum_facets: bool = True, districts_check: bool = False,
-                                   allow_childful_predictors: bool = True, apply_teleportation: bool = True,
-                                   only_beyond_dsep: bool = True, max_lps: int = 60,
-                                   max_lp_variables: Optional[int] = None,
-                                   base_predictor_modes: Tuple[str, ...] = ('drop', 'split'),
-                                   use_lp: bool = True, try_markov: bool = True, joint_lp: bool = True,
-                                   _presplit: bool = False, _exclude_targets: frozenset = frozenset()) -> List[Tuple[Tuple, "QmDAG"]]:
-        """Fritz transitions, each certified by d-separation where that suffices and by the entropic LP otherwise.
-        With only_beyond_dsep=False this is the complete Fritz piggyback (the unified trick of the search); with
-        use_lp=False it is the plain d-separation trick. try_markov=False restricts the LP to the `relabel` target
-        set; joint_lp=False restricts the LP to single predicted nodes (joint predicted sets are then admitted by
-        d-separation only).
-        Copy mode is realised as node splitting followed by replace mode on the copy (so the LP sees the copy as a
-        genuine node with its own shared noise). predictor_mode 'drop' removes the predictors as in fritz_transitions
-        (deleted if childless, marginalized otherwise); 'split' splits each predictor into itself and a full copy
-        and drops the copies (identical to keeping a childless predictor; sound, unlike keeping a childful one
-        untouched, see fritz_transitions). With only_beyond_dsep, outputs in a predictor mode listed in
-        base_predictor_modes whose certificate is plain d-separation and that delete nothing extra are skipped:
-        by default every emitted step is LP-reliant, and d-separation-certified steps are left to fritz_transitions.
-        params: (((s, mode), ...), ('predictor_mode', m), ('certificate', c), ('deleted', ((p, t), ...)))."""
-        predictors = frozenset(predictors)
-        if max_visible is None:
-            max_visible = self.number_of_visible + 1
-        childless = predictors.issubset(self.vis_nodes_with_no_children)
-        assert childless or allow_childful_predictors, "Fritz predictors must be childless visible nodes."
-        childful = predictors.difference(self.vis_nodes_with_no_children)
-        if 'split' in predictor_modes and childful and not _presplit:
-            # Kept predictors: childless ones stay untouched (sound); a childful one is split into itself and a full
-            # copy (same children) and the copy, as predictor, is marginalized. Keeping a childful predictor
-            # untouched is unsound (see fritz_transitions). 'drop' outputs are computed on the original structure.
-            results = []
-            if 'drop' in predictor_modes:
-                results += self.fritz_entropic_transitions(
-                    predictors, modes=modes, predictor_modes=('drop',), extra_deletions=extra_deletions,
-                    max_visible=max_visible, min_visible=min_visible, keep_quantum_facets=keep_quantum_facets,
-                    districts_check=districts_check, allow_childful_predictors=allow_childful_predictors,
-                    apply_teleportation=apply_teleportation, only_beyond_dsep=only_beyond_dsep, max_lps=max_lps,
-                    max_lp_variables=max_lp_variables, base_predictor_modes=base_predictor_modes,
-                    use_lp=use_lp, try_markov=try_markov, joint_lp=joint_lp)
-            work, copies = self._split_predictors(childful)
-            copy_label = {c: f"{x}_predictor_copy" for c, x in zip(copies, sorted(childful))}
-            for params, out in work.fritz_entropic_transitions(
-                    predictors.difference(childful).union(copies), modes=modes, predictor_modes=('split',),
-                    extra_deletions=extra_deletions, max_visible=max_visible, min_visible=min_visible,
-                    keep_quantum_facets=keep_quantum_facets, districts_check=districts_check,
-                    allow_childful_predictors=True, apply_teleportation=apply_teleportation,
-                    only_beyond_dsep=only_beyond_dsep, max_lps=max_lps, max_lp_variables=max_lp_variables,
-                    base_predictor_modes=base_predictor_modes, use_lp=use_lp, try_markov=try_markov, joint_lp=joint_lp,
-                    _presplit=True, _exclude_targets=frozenset(childful)):
-                info = dict(params[1:])
-                info['deleted'] = tuple((copy_label.get(a, a), copy_label.get(b, b)) for a, b in info['deleted'])
-                results.append(((params[0],) + tuple(info.items()), out))
-            return results
-        if max_lp_variables is not None and len(self.lp_structure[0]) > max_lp_variables:
-            return []
-        admissible = self.fritz_entropic_admissible_targets(predictors, allow_childful_predictors, use_lp=use_lp,
-                                                            try_markov=try_markov)
-        admissible = {t: v for t, v in admissible.items() if t not in _exclude_targets}
-        targets = sorted(admissible)
+    # ------------------------------------------------------------------
+    # PIGGYBACKS AS THE SEARCH APPLIES THEM
+    #
+    # Every transformation of the search is a generator of (params, child) pairs on this class, so that a piggyback
+    # can be read, and debugged, in one place. The elementary reductions wrap the primitives above; the Fritz
+    # piggyback is written edge-first in five short methods (fritz_pool, fritz_deletion, fritz_certificate,
+    # fritz_realise, fritz_steps): the unit of search is a target node s and the deletion D of the parents of s that
+    # a chosen predictor X cannot see, justified by d-separation or by the entropic LP, then realised by surgery.
+    # Indices are effective-DAG indices (effective_DAG_data): visible nodes, then facets, then noise sources.
+    # ------------------------------------------------------------------
+
+    def pd_steps(self) -> Iterable[Tuple[Tuple, "QmDAG"]]:
+        """Point distribution: fix one visible node and drop it (Section 1 of the manuscript)."""
+        if self.number_of_visible <= 3:
+            return
+        for node in self.visible_nodes:
+            yield (('drop', node),), self.fix_to_point_distribution_QmDAG(node)
+
+    def node_stitching_steps(self) -> Iterable[Tuple[Tuple, "QmDAG"]]:
+        """Stitch an exogenous node onto a childless sink by post-selecting on their equality (Section 4); the
+        inverse map interrupts a node, hence the old name 'interruption'."""
+        if self.number_of_visible <= 3:
+            return
+        for sink in sorted(self.vis_nodes_with_no_children):
+            for source in sorted(self.exogenous_visible_nodes):
+                if sink in self.directed_structure_instance.adjMat.descendantsplus_of(source):
+                    continue
+                yield ((('sink', int(sink)), ('source', int(source))),), self.node_stitching(sink, source)
+
+    def conditioning_steps(self, strict_latents: bool = True) -> Iterable[Tuple[Tuple, "QmDAG"]]:
+        """Condition on one visible node where conditioning_is_justified (Section 3)."""
+        if self.number_of_visible <= 3:
+            return
+        for node in self.visible_nodes:
+            if self.conditioning_is_justified(node, strict_latents=strict_latents):
+                yield (('condition', node),), self.condition(node)
+
+    def marginalization_steps(self, apply_teleportation: bool = True,
+                              districts_check: bool = False) -> Iterable[Tuple[Tuple, "QmDAG"]]:
+        """Marginalize one visible node, naively or with teleportation (Section 2)."""
+        if self.number_of_visible <= 3:
+            return
+        for node in self.visible_nodes:
+            child = self.marginalize(node, districts_check=districts_check, apply_teleportation=apply_teleportation)
+            if child is not None:
+                yield (('marginalize', node),), child
+
+    def degradation_steps(self) -> List[Tuple[Tuple, "QmDAG"]]:
+        """Quantum source to classical source (manuscript 0.4): every structure obtained by making a nonempty set
+        of quantum facets classical. A gap in any of them is a gap here, since the classical model sets coincide
+        and the quantum set only shrinks; a quantum facet made classical inside a classical facet is absorbed. The
+        search applies this as a lookup: the results are registered but never expanded. params:
+        (('classical', (facet, ...)),)."""
+        Q_facets = sorted(sorted(f) for f in self.Q_simplicial_complex_instance.simplicial_complex_as_sets)
+        C_facets = [tuple(sorted(f)) for f in self.C_simplicial_complex_instance.simplicial_complex_as_sets]
         n = self.number_of_visible
         results = []
-        admissibility_memo = {self.unique_id: admissible}
-        for r in range(1, len(targets) + 1):
-            for chosen in itertools.combinations(targets, r):
-                for mode_choice in itertools.product(modes, repeat=r):
-                    n_copies = mode_choice.count('copy')
-                    sizes = {pm: n - (len(predictors) if pm == 'drop' else len(childful)) + n_copies for pm in predictor_modes}
-                    if not any(min_visible <= size <= max_visible for size in sizes.values()):
-                        continue
-                    # Realise copies by node splitting; the predicted nodes in the working structure are the
-                    # replace-mode originals and the copies (indices n, n+1, ... in order of splitting).
-                    work = self
-                    predicted = []
-                    labels = {v: v for v in range(n)}
-                    for s_node, mode in zip(chosen, mode_choice):
-                        if mode == 'copy':
-                            work = work.split_node(s_node)
-                            predicted.append(work.number_of_visible - 1)
-                            labels[predicted[-1]] = str(s_node) + '_copy'
-                        else:
-                            predicted.append(s_node)
-                    predicted = tuple(predicted)
-                    if max_lp_variables is not None and len(work.lp_structure[0]) > max_lp_variables:
-                        continue
-                    adm_work = admissibility_memo.get(work.unique_id)
-                    if adm_work is None:
-                        adm_work = work.fritz_entropic_admissible_targets(predictors, allow_childful_predictors,
-                                                                          use_lp=use_lp, try_markov=try_markov)
-                        adm_work = {t: v for t, v in adm_work.items() if t not in _exclude_targets}
-                        admissibility_memo[work.unique_id] = adm_work
-                    if not set(predicted).issubset(adm_work):
-                        continue
-                    kept = work._fritz_kept_parents(adm_work, {t: 'replace' for t in predicted})
-                    certificates = {adm_work[t][2] for t in predicted}
-                    if certificates == {'dsep'}:
-                        certificate = 'dsep'
-                    elif len(predicted) == 1:
-                        certificate = adm_work[predicted[0]][2]
-                    elif not (use_lp and joint_lp):
-                        continue   # joint predicted sets are admitted by d-separation only
-                    else:
-                        certificate = work._entropic_certificate(predictors, kept, predicted, try_markov=try_markov)
-                        _tally('joint', certificate or 'fail')
-                        if certificate is None:
-                            continue
-                    deleted = []
-                    if extra_deletions:
-                        kept2, certificate2, deleted = work._entropic_extra_deletions(predictors, kept, predicted, max_lps)
-                        if deleted:
-                            kept, certificate = kept2, certificate2
-                    facet_label = {idx: 'L' + stringify(members) for idx, (kind, members) in work.effective_DAG_data[1].items()
-                                   if kind != 'noise'}
-                    def label(v):
-                        return labels.get(v, v) if v < work.number_of_visible else facet_label.get(v, v)
-                    deleted_labels = tuple((label(p_), label(t_)) for p_, t_ in deleted)
-                    choices = {t: 'replace' for t in predicted}
-                    for predictor_mode in predictor_modes:
-                        if not (min_visible <= sizes[predictor_mode] <= max_visible):
-                            continue
-                        if only_beyond_dsep and certificate == 'dsep' and not deleted \
-                                and predictor_mode in base_predictor_modes:
-                            continue   # fritz_transitions already produces this output
-                        params = (tuple(zip(chosen, mode_choice)), ('predictor_mode', predictor_mode),
-                                  ('certificate', certificate), ('deleted', deleted_labels))
-                        intermediate, to_nums = work._fritz_build(predictors, choices, kept,
-                                                                  drop_predictors=(predictor_mode == 'drop' and childless),
-                                                                  keep_quantum_facets=keep_quantum_facets)
-                        to_original = {num: work._fritz_original_of(name) for name, num in to_nums.items()}
-                        to_marginalize = predictors if (predictor_mode == 'drop' and not childless) \
-                            else (childful if predictor_mode == 'split' else frozenset())
-                        if to_marginalize:
-                            candidates = [work._marginalize_predictors(intermediate, to_original, order,
-                                                                       districts_check=districts_check,
-                                                                       apply_teleportation=apply_teleportation)
-                                          for order in itertools.permutations(sorted(to_marginalize))]
-                        else:
-                            candidates = [(intermediate, to_original)]
-                        seen_here = set()
-                        for new_QmDAG, new_to_original in candidates:
-                            if new_QmDAG is None or new_QmDAG.unique_id in seen_here:
-                                continue
-                            if not (min_visible <= new_QmDAG.number_of_visible <= max_visible):
-                                continue
-                            removed = predictors if predictor_mode == 'drop' else childful
-                            if districts_check and not work._fritz_preserves_districts(removed, new_QmDAG, new_to_original):
-                                continue
-                            seen_here.add(new_QmDAG.unique_id)
-                            results.append((params, new_QmDAG))
+        for r in range(1, len(Q_facets) + 1):
+            for chosen in itertools.combinations(Q_facets, r):
+                chosen = tuple(tuple(f) for f in chosen)
+                remaining_Q = [f for f in Q_facets if tuple(f) not in chosen]
+                if not remaining_Q:
+                    continue   # a structure without quantum facets has no QC gap: useless as a lookup target
+                new_C = Hypergraph(hypergraph_full_cleanup(set(map(frozenset, C_facets + list(chosen)))), n)
+                results.append(((('classical', chosen),), QmDAG(self.directed_structure_instance, new_C, Hypergraph(remaining_Q, n))))
         return results
+
+    # -- the Fritz piggyback, edge-first (manuscript Sections 5 and 6) --------------------------------------------
+
+    def fritz_pool(self, s: int, pool: str = 'siblings', allow_descendants: bool = False) -> List[int]:
+        """Candidate predictors of the target s, in the order the search tries them. The lift must hand s its private
+        randomness through a channel the predictor also sees: a facet shared with s (latent sibling) or the edge
+        X -> s (visible parent, pool='siblings+parents'); nothing else is sound. Descendants of s are removed unless
+        allow_descendants (the d-separation test always fails for them, since s's noise reaches them through s; the LP
+        is sound either way). Within each group, nodes sharing more facets with s come first."""
+        assert pool in ('siblings', 'siblings+parents'), pool
+        g, latent_nodes = self.effective_DAG_data
+        n = self.number_of_visible
+        descendants = set(nx.descendants(g, s))
+        facets_with_s = [members for idx, (kind, members) in latent_nodes.items() if kind != 'noise' and s in members]
+
+        def shared(x: int) -> int:
+            return sum(1 for members in facets_with_s if x in members)
+
+        def ordered(nodes: Iterable[int]) -> List[int]:
+            return sorted((x for x in nodes if x != s and (allow_descendants or x not in descendants)),
+                          key=lambda x: (-shared(x), x))
+        siblings = ordered(self.latent_siblings_of(s))
+        if pool == 'siblings':
+            return siblings
+        parents = ordered(p for p in g.predecessors(s) if p < n and p not in siblings)
+        return siblings + parents
+
+    def fritz_deletion(self, s: int, X: Iterable[int]) -> Optional[Tuple[frozenset, frozenset]]:
+        """The maximal deletion justified by the predictor set X at the target s: K = Pa(s) ∩ seen(X) (what X sees:
+        the predictors and their parents), D = Pa(s) minus K. Returns (K, D), or None when the pair is useless: K holds
+        no channel (a facet containing a predictor, or a predictor itself), or D contains nothing but s's own noise.
+        Only the maximal deletion is sound: with a smaller D the kept set would contain a parent X cannot see, and
+        the lifted X could not compute s (manuscript 5.6)."""
+        g, latent_nodes = self.effective_DAG_data
+        X = frozenset(X)
+        seen = set(X)
+        for x in X:
+            seen.update(g.predecessors(x))
+        parents = set(g.predecessors(s))
+        K = frozenset(parents & seen)
+        D = frozenset(parents - K)
+        channel = any(k in X for k in K) or any(latent_nodes[k][0] != 'noise' and latent_nodes[k][1] & X
+                                                for k in K if k >= self.number_of_visible)
+        noise_only = all(k >= self.number_of_visible and latent_nodes[k][0] == 'noise' for k in D)
+        if not channel or noise_only:
+            return None
+        return K, D
+
+    def fritz_certificate(self, s: int, K: frozenset, X: Iterable[int], use_lp: bool = True,
+                          lp_markov_target: bool = False) -> Optional[str]:
+        """Is restricting s to K justified by the predictors X? 'dsep' when every predictor is a parent of s (then
+        s = g(X) is a function of K outright) or when X minus K is d-separated from Pa(s) minus K given K in the effective
+        DAG (Theorem 5.3); 'entropic' when the entropic LP certifies it (Theorem 6.5; the `relabel` target set, and
+        `markov` too if lp_markov_target); None otherwise."""
+        g, latent_nodes = self.effective_DAG_data
+        X = frozenset(X)
+        if X <= K:
+            _tally('certificate', 'vacuous')
+            return 'dsep'
+        others = set(g.predecessors(s)) - K
+        if nx.is_d_separator(g, X - K, others, set(K)):
+            _tally('certificate', 'dsep')
+            return 'dsep'
+        if use_lp:
+            nodes, parents = self.lp_structure
+            kept = dict(parents)
+            kept[s] = frozenset(k for k in K if k in parents)
+            outcome = self._entropic_certificate(X, kept, (s,), try_markov=lp_markov_target)
+            _tally('certificate', outcome or 'failed')
+            if outcome is not None:
+                return 'entropic'
+        return None
+
+    def _restrict_target(self, s: int, K: frozenset) -> "QmDAG":
+        """The candidate structure: s keeps exactly the parents K (visible nodes and facets); a facet in K stays
+        quantum for its other members and becomes classical for s (a classical facet over all its members is added);
+        every other node is untouched. Plain integer labels."""
+        g, latent_nodes = self.effective_DAG_data
+        n = self.number_of_visible
+        edges = sorted((a, b) for (a, b) in self.directed_structure_instance.as_set_of_tuples if b != s or a in K)
+        C_facets, Q_facets = set(), set()
+        for idx, (kind, members) in latent_nodes.items():
+            if kind == 'noise':
+                continue
+            if s not in members:
+                (C_facets if kind == 'C' else Q_facets).add(members)
+            elif idx in K:
+                C_facets.add(members)
+                if kind == 'Q':
+                    Q_facets.add(members - {s})
+            else:
+                (C_facets if kind == 'C' else Q_facets).add(members - {s})
+        C_facets = {f for f in C_facets if len(f) >= 2}
+        Q_facets = {f for f in Q_facets if len(f) >= 2}
+        return QmDAG(DirectedStructure(edges, n), Hypergraph(hypergraph_full_cleanup(C_facets), n),
+                     Hypergraph(hypergraph_full_cleanup(Q_facets), n))
+
+    def _marginalize_nodes(self, order: Iterable[int]) -> Optional["QmDAG"]:
+        """Marginalizes the given nodes (indices of self) in the given order, with teleportation; indices shift
+        after each removal, which is tracked. A childless node is thereby simply deleted."""
+        labels = list(range(self.number_of_visible))
+        work = self
+        for y in order:
+            idx = labels.index(y)
+            work = work.marginalize(idx, districts_check=False, apply_teleportation=True)
+            if work is None:
+                return None
+            labels.pop(idx)
+        return work
+
+    def fritz_realise(self, s: int, K: frozenset, remove: Iterable[int]) -> List[Tuple[Tuple, "QmDAG"]]:
+        """The surgery of one Fritz step, with no certificate logic: restrict s to K, then remove the nodes in
+        `remove` (the dropped predictors, or the copies of kept predictors) by marginalization in every order
+        (teleportation is order-dependent). Returns (order params, child) pairs; the params are empty when there is
+        one order."""
+        candidate = self._restrict_target(s, K)
+        remove = sorted(remove)
+        if not remove:
+            return [((), candidate)]
+        results, seen = [], set()
+        for order in itertools.permutations(remove):
+            child = candidate._marginalize_nodes(order)
+            if child is None or child.unique_id in seen:
+                continue
+            seen.add(child.unique_id)
+            results.append(((('order', order),) if len(remove) > 1 else (), child))
+        return results
+
+    def fritz_steps(self, mode: str = 'replace', predictor_mode: str = 'dropped', use_lp: bool = True,
+                    pool: str = 'siblings', allow_descendants: bool = False, max_predictors: int = 1,
+                    lp_markov_target: bool = False, max_visible: Optional[int] = None) -> Iterable[Tuple[Tuple, "QmDAG"]]:
+        """The Fritz piggyback as the search applies it: for every target s, every predictor set X of the pool and
+        the maximal deletion X justifies, the realised output, certified by d-separation first and by the LP only
+        where d-separation fails (all d-separation steps are emitted before any LP step, so a search that stops
+        at the first success never pays for an LP it does not need).
+        mode 'copy' splits the target first and restricts the copy (5.2); predictor_mode 'kept' splits each childful
+        predictor and removes the copy, 'dropped' removes the predictors themselves. Justification and surgery run
+        on the structure that carries the splits; copies are the indices >= self.number_of_visible, target copy
+        first, and params are stated in self's indices with a prime for a copy.
+        params: (('target', s), ('mode', m), ('deleted', labels of D), ('predictor', X), ('predictor_mode', pm),
+        ('certificate', 'dsep' | 'entropic')) [+ ('order', ...) when several predictors are marginalized]."""
+        assert mode in ('replace', 'copy') and predictor_mode in ('dropped', 'kept')
+        n = self.number_of_visible
+        if max_visible is None:
+            max_visible = n + 1
+        deferred = []
+
+        def labels_of(work: "QmDAG", D: frozenset, copy_of: Dict[int, int]) -> Tuple:
+            _, latent_nodes = work.effective_DAG_data
+            m = work.number_of_visible
+
+            def node_label(v: int):
+                return f"{copy_of[v]}'" if v >= n else v
+            out = []
+            for d in sorted(D):
+                if d < m:
+                    out.append(node_label(d))
+                else:
+                    kind, members = latent_nodes[d]
+                    if kind != 'noise':
+                        out.append(kind + '{' + ','.join(str(node_label(v)) for v in sorted(members)) + '}')
+            return tuple(out)
+
+        for s in self.visible_nodes:
+            if mode == 'copy':
+                work0, target, copy_of0 = self.split_node(s), n, {n: s}
+            else:
+                work0, target, copy_of0 = self, s, {}
+            candidates = work0.fritz_pool(target, pool=pool, allow_descendants=allow_descendants)
+            for r in range(1, min(max_predictors, len(candidates)) + 1):
+                for X in itertools.combinations(candidates, r):
+                    work, copy_of, X_eff = work0, dict(copy_of0), list(X)
+                    if predictor_mode == 'kept':
+                        for i, x in enumerate(X):
+                            if x not in work0.vis_nodes_with_no_children:
+                                work = work.split_node(x)
+                                X_eff[i] = work.number_of_visible - 1
+                                copy_of[X_eff[i]] = x
+                        remove = frozenset(x for x in X_eff if x >= work0.number_of_visible)
+                    else:
+                        remove = frozenset(X_eff)
+                    X_eff = frozenset(X_eff)
+                    deletion = work.fritz_deletion(target, X_eff)
+                    if deletion is None:
+                        continue
+                    K, D = deletion
+                    if not (3 <= work.number_of_visible - len(remove) <= max_visible):
+                        continue
+                    item = (s, X, work, target, K, D, X_eff, remove, copy_of)
+                    certificate = work.fritz_certificate(target, K, X_eff, use_lp=False)
+                    if certificate is None:
+                        if use_lp:
+                            deferred.append(item)
+                        continue
+                    yield from self._fritz_emit(item, mode, predictor_mode, certificate, labels_of)
+        for item in deferred:
+            s, X, work, target, K, D, X_eff, remove, copy_of = item
+            certificate = work.fritz_certificate(target, K, X_eff, use_lp=True, lp_markov_target=lp_markov_target)
+            if certificate is not None:
+                yield from self._fritz_emit(item, mode, predictor_mode, certificate, labels_of)
+
+    @staticmethod
+    def _fritz_emit(item, mode: str, predictor_mode: str, certificate: str, labels_of) -> Iterable[Tuple[Tuple, "QmDAG"]]:
+        s, X, work, target, K, D, X_eff, remove, copy_of = item
+        base = (('target', s), ('mode', mode), ('deleted', labels_of(work, D, copy_of)), ('predictor', tuple(X)),
+                ('predictor_mode', predictor_mode), ('certificate', certificate))
+        for order_params, child in work.fritz_realise(target, K, remove):
+            yield base + order_params, child
 
     # ------------------------------------------------------------------
     # COMPOSITION OF PIGGYBACKS
     # ------------------------------------------------------------------
 
     def piggyback_children(self, max_visible: int, min_visible: int = 3, districts_check: bool = False,
-                           apply_teleportation: bool = True, include_Fritz: bool = True,
-                           keep_quantum_facets: bool = True, allow_childful_predictors: bool = True,
-                           max_predictors: int = 2, predictor_mode: str = 'drop',
+                           apply_teleportation: bool = True, include_Fritz: bool = True, max_predictors: int = 2,
+                           predictor_modes: Tuple[str, ...] = ('dropped', 'kept'),
                            strict_conditioning: bool = True) -> Iterable["QmDAG"]:
-        """One application of every piggyback (PD, conditioning, marginalization, interruption, Fritz)."""
+        """One application of every piggyback (PD, conditioning, marginalization, node stitching, Fritz by
+        d-separation in both predicted-node modes and the given predictor modes): the old composition API behind
+        unique_unlabelled_ids_obtainable_by_*, a closure of any depth (unlike the census cascade)."""
         n = self.number_of_visible
         if n > min_visible:
             yield from self.subgraphs
@@ -1072,21 +859,13 @@ class QmDAG:
                                                 apply_teleportation=apply_teleportation)
                 if marginalized is not None:
                     yield marginalized
-        if n > min_visible:
             yield from self.subinterruptions
         if include_Fritz:
-            predictor_pool = [y for y in self.visible_nodes
-                              if self.latent_siblings_of(y) and (allow_childful_predictors or y in self.vis_nodes_with_no_children)]
-            for r in range(1, min(max_predictors, len(predictor_pool)) + 1):
-                for predictors in itertools.combinations(predictor_pool, r):
-                    for params, new_QmDAG in self.fritz_transitions(predictors, max_visible=max_visible,
-                                                                    min_visible=min_visible,
-                                                                    keep_quantum_facets=keep_quantum_facets,
-                                                                    districts_check=districts_check,
-                                                                    allow_childful_predictors=allow_childful_predictors,
-                                                                    apply_teleportation=apply_teleportation,
-                                                                    predictor_mode=predictor_mode):
-                        yield new_QmDAG
+            for mode in ('replace', 'copy'):
+                for predictor_mode in predictor_modes:
+                    for _, child in self.fritz_steps(mode=mode, predictor_mode=predictor_mode, use_lp=False,
+                                                     max_predictors=max_predictors, max_visible=max_visible):
+                        yield child
 
     def piggyback_closure(self, max_visible: int = None, min_visible: int = 3, max_states: int = 50000,
                           **kwargs) -> Dict[Tuple[int, int, int, int], "QmDAG"]:
@@ -1120,34 +899,26 @@ class QmDAG:
 
     @lru_cache(maxsize=None)
     def unique_unlabelled_ids_obtainable_by_Fritz_for_QC(self, max_visible: int = None,
-                                                         keep_quantum_facets: bool = True,
-                                                         allow_childful_predictors: bool = True,
                                                          max_predictors: int = 2) -> Set[Tuple[int, int, int, int]]:
         """Unlabelled ids reachable from self by any composition of the piggybacks including Fritz (self excluded)."""
         reached = self.piggyback_closure(max_visible=max_visible, districts_check=False, apply_teleportation=True,
-                                         include_Fritz=True, keep_quantum_facets=keep_quantum_facets,
-                                         allow_childful_predictors=allow_childful_predictors,
-                                         max_predictors=max_predictors)
+                                         include_Fritz=True, max_predictors=max_predictors)
         return set(reached).difference({self.unique_unlabelled_id})
 
     @lru_cache(maxsize=None)
     def unique_unlabelled_ids_obtainable_by_Fritz_for_IC(self, max_visible: int = None,
-                                                         keep_quantum_facets: bool = True,
-                                                         allow_childful_predictors: bool = True,
                                                          max_predictors: int = 2) -> Set[Tuple[int, int, int, int]]:
         reached = self.piggyback_closure(max_visible=max_visible, districts_check=True, apply_teleportation=False,
-                                         include_Fritz=True, keep_quantum_facets=keep_quantum_facets,
-                                         allow_childful_predictors=allow_childful_predictors,
-                                         max_predictors=max_predictors)
+                                         include_Fritz=True, max_predictors=max_predictors)
         return set(reached).difference({self.unique_unlabelled_id})
 
 
 if __name__ == '__main__':
     ghost = QmDAG(DirectedStructure([(1, 2), (1, 3)], 4), Hypergraph([], 4), Hypergraph([(0, 2), (0, 3)], 4))
-    print("All graphs obtainable from the Ghost by Interruption (should be Evans)")
+    print("All graphs obtainable from the Ghost by node stitching (should be Evans)")
     print(ghost.subinterruptions)
-    print("Now assessing Fritz trick on the triangle (should reach Bell):")
+    print("Now assessing the Fritz piggyback on the triangle (should reach Bell):")
     triangle = QmDAG(DirectedStructure([], 3), Hypergraph([], 3), Hypergraph([(0, 1), (1, 2), (0, 2)], 3))
-    for params, post_Fritz in triangle.fritz_transitions((2,)):
+    for params, post_Fritz in triangle.fritz_steps(mode='copy', use_lp=False):
         print(params)
         print(post_Fritz)

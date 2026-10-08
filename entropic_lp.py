@@ -83,6 +83,7 @@ def sum_rows(rows: Sequence[Row]) -> Row:
 
 
 TIMEOUTS = [0]   # number of LP solves that hit the time limit, across all EntropicLP instances
+SOLVES = [0]     # number of LP solves, across all EntropicLP instances
 
 
 def rows_to_csr(rows: Sequence[Row], n_columns: int) -> sp.csr_matrix:
@@ -266,6 +267,7 @@ class EntropicLP:
             self._append_rows(rows_to_csr([row], self.n_columns), mosek.boundkey.lo, lower, 0.0)
             rescode = self.task.optimize()
             self.lp_count += 1
+            SOLVES[0] += 1
             if rescode == mosek.rescode.trm_max_time:
                 self.timeouts += 1
                 TIMEOUTS[0] += 1

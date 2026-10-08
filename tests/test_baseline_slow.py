@@ -38,19 +38,12 @@ EXPECTED_STAGES = [
     ('Fritz, copy mode, kept predictors', 931),
 ]
 EXPECTED_LADDER = [921, 922, 922, 922, 928, 931, 931, 931, 931]
-EXPECTED_LOST = {
-    'copy-mode steps': 3,
-    'kept-predictor steps': 6,
-    'LP-certified steps': 6,
-    'LP-certified steps with kept predictors': 6,
-    'all Fritz steps': 10,
-}
 
 
 @pytest.mark.slow
 def test_search_counts(proving_QC_Gaps):
     import entropic_lp
-    from qc_gap_search import fritz_breakdown, ladder
+    from qc_gap_search import ladder
     cheap, report, cache = proving_QC_Gaps.run_search(verbose=False, with_entropic=True, use_cache=False)
     assert cache is None
     assert cheap.counts == EXPECTED_CHEAP
@@ -60,7 +53,6 @@ def test_search_counts(proving_QC_Gaps):
     rungs = [proven for _, proven, _ in ladder(report)]
     assert rungs == EXPECTED_LADDER
     assert rungs[0::2] == [count for _, count in EXPECTED_STAGES]
-    assert fritz_breakdown(report) == EXPECTED_LOST
     assert entropic_lp.TIMEOUTS[0] == 0
     # Every proven input has a certificate ending at a named seed.
     for gid in report.proven:

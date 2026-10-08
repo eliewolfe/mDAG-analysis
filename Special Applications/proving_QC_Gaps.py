@@ -24,9 +24,14 @@ Throughout, a structure counts as known as soon as one of its degradations (some
 known: the degradation piggyback is applied as a lookup to every structure the search meets. The seeds are therefore
 kept in their weakest form only (known_QC_gaps.SEEDS).
 
-LP options (see qc_gap_search.default_stages): the LP tries the `relabel` target set only and single predicted
-nodes only, because the `markov` target set and the joint LP targets never decided an input. To turn them back on,
-pass lp_markov_target=True and/or lp_joint_targets=True to default_stages in `expensive_run` below.
+Within a stage, a root stops as soon as one of its outputs (or that output's elementary follow-up) is a known
+gap; the d-separation candidates of a root are all emitted before its LP candidates, so a root proven cheaply never
+pays for an LP.
+
+Options (see qc_gap_search.default_stages): the LP tries the `relabel` target set only, because the `markov` target
+set never decided an input (lp_markov_target=True turns it back on). The predictor pool of a target is its latent
+siblings that are not its descendants; `--parents` adds the visible parents of the target to the pool and
+`--descendants` keeps the descendants (the experiments of manuscript 7.8; neither proves a further input).
 
 Proven gaps are cached on disk (cache/known_gaps.json) with the version of every piggyback their proof relies on;
 cached gaps count as known, so after the first run the expensive stages only touch inputs that are not yet proven.
@@ -48,7 +53,7 @@ from quantum_mDAG import upgrade_to_QmDAG, ENTROPIC_STATS
 from metagraph_temporally_ordered import Metagraph_temporally_ordered_mDAGs
 from known_QC_gaps import SEEDS, SEEDS_3_NODES, SEEDS_4_NODES
 from qc_gap_search import (prove_gaps, add_stage, build_report, default_stages, GapReport, FRITZ_TRICKS_ALL,
-                           TRICK_GROUPS_FOR_REPORT, fritz_breakdown, ladder)
+                           TRICK_GROUPS_FOR_REPORT, ladder)
 from gap_cache import GapCache, CACHE_PATH
 import entropic_lp
 
@@ -77,28 +82,32 @@ def cheap_run(QmDAGs4_representatives, max_visible=5, verbose=True, strict_condi
 
 
 def expensive_run(cheap: GapReport, max_visible=5, verbose=True, with_entropic=True, with_kept=True,
-                  strict_conditioning=True, cache: Optional[GapCache] = None) -> GapReport:
+                  strict_conditioning=True, cache: Optional[GapCache] = None, pool: str = 'siblings',
+                  allow_descendants: bool = False, early_exit: bool = True) -> GapReport:
     """Phase 2: the staged cascade on the inputs phase 1 left unproven. The Bell variants become seeds (so they are
     no longer inputs), and the cached gaps count as known. Shares the explorer of `cheap`, so the elementary
     transitions are not recomputed."""
     bell_ids = {g.unique_unlabelled_id for g in SEEDS_4_NODES.values()}
     inputs = [g for g in cheap.inputs if g.unique_unlabelled_id not in bell_ids]
     known = cache.known() if cache is not None else {}
-    # LP options: lp_markov_target=True also tries the `markov` target set after `relabel` fails; lp_joint_targets=True
-    # runs the LP on joint predicted sets. Both are off: in the four-node census neither ever decided an input.
+    # lp_markov_target=True would also try the `markov` LP target set after `relabel` fails; it is off because in the
+    # four-node census it never decided an input.
     stages = default_stages(max_visible=max_visible, with_entropic=with_entropic, with_kept=with_kept,
-                            strict_conditioning=strict_conditioning, lp_markov_target=False, lp_joint_targets=False)
+                            strict_conditioning=strict_conditioning, pool=pool, allow_descendants=allow_descendants,
+                            lp_markov_target=False)
     # Re-base the report on the phase-2 inputs, seeds and known gaps; then run the cascade on what is left.
     report = build_report(cheap.explorer, inputs, SEEDS, TRICK_GROUPS_FOR_REPORT, known=known)
     for name, extra, roots_only, followup in stages[1:]:
         t0 = time.time()
-        report = add_stage(report, extra, verbose=verbose, roots_only=roots_only, name=name, followup=followup)
+        report = add_stage(report, extra, verbose=verbose, roots_only=roots_only, name=name, followup=followup,
+                           early_exit=early_exit)
         STAGE_SECONDS[name] = time.time() - t0
     return report
 
 
 def run_search(QmDAGs4_representatives=None, max_visible=5, verbose=True, with_entropic=True, with_kept=True,
-               strict_conditioning=True, use_cache=True, cache_path: str = CACHE_PATH) -> Tuple[GapReport, GapReport, Optional[GapCache]]:
+               strict_conditioning=True, use_cache=True, cache_path: str = CACHE_PATH, pool: str = 'siblings',
+               allow_descendants: bool = False, early_exit: bool = True) -> Tuple[GapReport, GapReport, Optional[GapCache]]:
     """Both phases. Returns (phase-1 report, phase-2 report, cache). The cache is loaded before phase 2 (entries whose
     piggyback versions are stale are dropped), updated with every newly proven input, and saved."""
     if QmDAGs4_representatives is None:
@@ -113,7 +122,8 @@ def run_search(QmDAGs4_representatives=None, max_visible=5, verbose=True, with_e
     if cache is not None and verbose:
         print(f"Cache: {len(cache)} valid entries loaded, {cache.dropped} dropped (stale piggyback version or seed)")
     report = expensive_run(cheap, max_visible=max_visible, verbose=verbose, with_entropic=with_entropic,
-                           with_kept=with_kept, strict_conditioning=strict_conditioning, cache=cache)
+                           with_kept=with_kept, strict_conditioning=strict_conditioning, cache=cache, pool=pool,
+                           allow_descendants=allow_descendants, early_exit=early_exit)
     if cache is not None:
         added = cache.record(report)
         cache.save()
@@ -178,9 +188,6 @@ def print_report(report: GapReport, certificates_for=()) -> None:
     print("Cheap to expensive, cumulatively (which transitions are allowed):")
     for name, proven, new in ladder(report):
         print(f"    {name:>50}: proven {proven:4d}  (new {new:3d})")
-    print("Inputs lost when a category of Fritz step is removed (everything else kept):")
-    for name, lost in fritz_breakdown(report).items():
-        print(f"    {name:>50}: {lost}")
     print("Structures expanded by the search: ", len(report.explorer.edges))
     if ENTROPIC_STATS:
         print("Entropic certificates (kind, outcome) -> count: ", dict(sorted(ENTROPIC_STATS.items())))
@@ -196,6 +203,10 @@ if __name__ == '__main__':
     with_entropic = '--no-entropic' not in sys.argv
     with_kept = '--no-kept' not in sys.argv
     use_cache = '--no-cache' not in sys.argv
-    cheap, report, cache = run_search(with_entropic=with_entropic, with_kept=with_kept, use_cache=use_cache)
+    pool = 'siblings+parents' if '--parents' in sys.argv else 'siblings'
+    allow_descendants = '--descendants' in sys.argv
+    early_exit = '--no-early-exit' not in sys.argv
+    cheap, report, cache = run_search(with_entropic=with_entropic, with_kept=with_kept, use_cache=use_cache, pool=pool,
+                                      allow_descendants=allow_descendants, early_exit=early_exit)
     print_cheap_report(cheap)
     print_report(report, certificates_for=proven_through_fritz(report))

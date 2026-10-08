@@ -31,14 +31,20 @@ def test_explorer_expands_each_id_once_and_reachability_is_monotone():
     assert sum(map(len, explorer.edges.values())) == n_edges_before
 
 
-def test_triangle_certificate_is_a_single_fritz_step_to_bell():
+EDGE_EXAMPLE = Q([(0, 1), (0, 3)], 4, [], [(1, 2), (2, 3)])   # 0 -> 1 is deleted by the prediction of 1 from 2
+
+
+def test_edge_example_certificate_is_a_single_fritz_step_to_bell():
     seeds = {name: g for name, g in SEEDS.items() if g.number_of_visible == 4}
-    report = S.prove_gaps([TRIANGLE], seeds, max_visible=4, verbose=False)
-    chain = report.proven[TRIANGLE.unique_unlabelled_id]
+    report = S.prove_gaps([EDGE_EXAMPLE], seeds, max_visible=5, verbose=False)
+    chain = report.proven[EDGE_EXAMPLE.unique_unlabelled_id]
     assert [t.trick for t in chain] == ['Fritz']
-    assert report.seed_hit[TRIANGLE.unique_unlabelled_id].startswith('QG_Bell')
-    text = report.certificate(TRIANGLE)
+    assert report.seed_hit[EDGE_EXAMPLE.unique_unlabelled_id] == 'QG_Bell_C_Edge'
+    assert dict(chain[0].params)['deleted'] == (0,) and dict(chain[0].params)['certificate'] == 'dsep'
+    text = report.certificate(EDGE_EXAMPLE)
     assert 'Fritz' in text and '== known gap' in text
+    # The cheapest stage that proves it is replace mode with kept predictors (stage 3 of the cascade).
+    assert [count for _, count in report.stage_counts] == [0, 0, 1, 1, 1]
 
 
 def test_lost_graph_needs_fritz_and_marginalization():
@@ -47,24 +53,37 @@ def test_lost_graph_needs_fritz_and_marginalization():
     tricks_used = [t.trick for t in report.proven[LOST.unique_unlabelled_id]]
     assert 'Fritz' in tricks_used
     assert report.provable_with['PD'] == 0
-    # The expensive steps are assessed by the ladder and the step categories, never by "provable alone".
+    # The expensive steps are assessed by the ladder, never by "provable alone".
     assert 'Fritz' not in ' '.join(report.provable_with)
-    assert S.fritz_breakdown(report)['all Fritz steps'] == 1
     rungs = S.ladder(report)
     assert rungs[0] == ('elementary', 0, 0)
     assert rungs[-1][1] == 1
 
 
 def test_certificates_chain_through_intermediate_structures():
-    # With the node cap at 4, single predictors and no marginalization, the square reaches Bell6 only through the
-    # triangle: conditioning on a node of the square gives the triangle, and one Fritz step gives Bell6.
+    # With the node cap at 4, the five-node input (the square with an exogenous parent 4 of node 0) has no Fritz
+    # output small enough: it reaches Bell only through the square, by conditioning on 4 first.
+    g = Q([(4, 0)], 5, [], [(2, 3), (1, 3), (0, 1), (0, 2)])
     tricks = {name: trick for name, trick in S.default_tricks(max_visible=4, max_predictors=1).items()
-              if name in ('PD', 'conditioning', 'Fritz')}
-    report = S.prove_gaps([SQUARE], {'QG_Bell_C_C': QG_Bell_C_C}, tricks=tricks, max_visible=4, verbose=False)
-    chain = report.proven[SQUARE.unique_unlabelled_id]
+              if name in ('conditioning', 'Fritz')}
+    report = S.prove_gaps([g], {'QG_Bell_C_C': QG_Bell_C_C}, tricks=tricks, max_visible=4, verbose=False)
+    chain = report.proven[g.unique_unlabelled_id]
     assert [t.trick for t in chain] == ['conditioning', 'Fritz']
-    assert report.seed_hit[SQUARE.unique_unlabelled_id] == 'QG_Bell_C_C'
-    assert report.certificate(SQUARE).count('conditioning') == 1
+    assert chain[0].target != g.unique_unlabelled_id and chain[1].source == chain[0].target
+    assert report.seed_hit[g.unique_unlabelled_id] == 'QG_Bell_C_C'
+    assert report.certificate(g).count('conditioning') == 1
+
+
+def test_early_exit_changes_neither_the_stage_counts_nor_the_ladder():
+    # Early exit records fewer alternative routes for a proven root; an unproven root still records everything, so
+    # the cumulative counts and the ladder (computed from the recorded transitions) are the same.
+    inputs = [LOST, EDGE_EXAMPLE, Q([(0, 1), (1, 2)], 4, [], [(0, 2), (1, 3), (2, 3)]), Q([(0, 1), (0, 2), (1, 2)], 4, [], [(2, 3), (1, 3)])]
+    seeds = {name: g for name, g in SEEDS.items() if g.number_of_visible == 4}
+    lazy = S.prove_gaps(inputs, seeds, verbose=False, with_entropic=False, early_exit=True)
+    full = S.prove_gaps(inputs, seeds, verbose=False, with_entropic=False, early_exit=False)
+    assert lazy.stage_counts == full.stage_counts and S.ladder(lazy) == S.ladder(full)
+    assert set(lazy.proven) == set(full.proven) and lazy.seed_hit == full.seed_hit
+    assert sum(map(len, lazy.explorer.edges.values())) <= sum(map(len, full.explorer.edges.values()))
 
 
 def test_report_counts_are_consistent():
