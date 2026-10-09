@@ -1,0 +1,193 @@
+# Comments for Marina on the QC-gaps draft (`main.tex`)
+
+*What has to change in the draft to make it a complete account of the current method, with the semigraphoid-closure version of the Fritz piggyback; and the errors in the present text. Everything referred to as "piggybacks.md" is `manuscript/piggybacks.md` in this repository, whose section numbers are quoted as 6.3, 7.9 and so on. Line numbers refer to the draft as received.*
+
+The draft is a good skeleton: the examples are well chosen, the pDAG/semantics notation is sound, and the appendix proofs for point distribution, marginalization and postselection are essentially right. What it describes, however, is the method as it stood two code rewrites ago. Since then the Fritz piggyback was made self-contained, the search was rebuilt around hybrid (classical and quantum) known gaps with a degradation piggyback, the certificate beyond d-separation (semigraphoid closure, with an entropic LP as the alternative engine) was added, and the census numbers changed. Part A lists the narrative changes that are needed; Part B lists the errors in the present statements and proofs; Part C says where in piggybacks.md the replacement material lives; Part D answers the question about condition 3 of the conditioning piggyback, which turns out to cut the other way: the draft's construction shows that *our* condition 3 is unnecessary.
+
+---
+
+## A. Narrative changes that are needed
+
+### A1. The Fritz piggyback must be self-contained: the predicting node is marginalized as part of the transformation
+
+**What the draft does.** Proposition 3 (`prop_piggyback_Fritz`, line 1145) maps $\mathcal G_\text{new}$ to a $\mathcal G_\text{pig}$ with *two more* visible nodes, $a'$ and $b'$, and concludes a gap in $\mathcal G_\text{new}$ only if $\mathcal G_\text{pig}$ "has a QC gap that includes distributions where $X_{a'}$ and $X_{b'}$ are perfectly correlated". The text after it (lines 1150-1158) admits the consequence: the hypothesis cannot be read off a list of known gaps, it is only verifiable by hand when $a'$ is childless, and the footnote on line 1313 says that marginalizing $a'$ "can give problems if the node $a$ has children" and "was taken into account in our implementation". So the piggyback as stated is not a piggyback in the sense of the rest of the paper (gap in output $\Rightarrow$ gap in input, no side condition), it does not compose, and the thing the code actually does is not what the proposition says.
+
+**What it must say.** The transformation itself removes the predicting node, and the output is an ordinary structure whose gap, with no side condition, implies the gap of the input. Concretely (piggybacks.md 6.1-6.3, Theorem 6.3):
+
+* Pick a predictor set $\mathbf X$ (one node in the census) and a target $s$ with a **channel** from a predictor to $s$ (a shared latent facet, or the edge $x\to s$). The predictor sees $\mathrm{seen}(\mathbf X)=\mathbf X\cup\mathrm{Pa}(\mathbf X)$. The target keeps $K=\mathrm{Pa}(s)\cap\mathrm{seen}(\mathbf X)$ and loses $D=\mathrm{Pa}(s)\setminus K$, all of it (including its private noise), never one edge at a time; see A1(c) below.
+* The kept facets of $s$ become **classical for $s$** (the facet $F$ keeps its quantum part on $F\setminus s$ and a classical facet over $F$ is added). This is what lets the quantum construction make $s$ a deterministic function of what the predictor sees; see A2.
+* The deletion is justified either by d-separation, $\mathbf X\setminus K\perp_d D\mid K$ in the effective DAG with noise nodes (Theorem 6.3), or by the semigraphoid closure of Section 7 (Theorem 7.6).
+* Then the predicting node **leaves**: deleted if childless, marginalized (with teleportation, Section 3) otherwise. That is the whole content of the old "dropped predictor". The old "kept predictor" is *not* keeping anything: the predictor $x$ is first **split** into $x$ and a full copy $x'$ (same parents, same children, shared pair facet), the copy $x'$ does the predicting, and the copy is marginalized; the non-predicting twin $x$ stays. Both are one transformation, and in both the predicting variable is gone from the output. This is the only sound way to keep a childful predictor: coarse-graining the fine-grained output of a node with children is unsound (6.2 gives the example 0→1; Q{0,1}, Q{0,2}, Q{1,2}, saturated, which "0 predicts 2, 0 kept untouched" would turn into the instrumental gap).
+* The current vocabulary is **unsplit/split target** (formerly replace/copy: whether $s$ itself or a copy $s'$ is restricted) and **unsplit/split predictor** (formerly dropped/kept). The code's parameters are `target_mode` and `predictor_mode`, each `'unsplit'` or `'split'`.
+
+**Why the perfect-correlation hypothesis disappears.** In Theorem 6.3 the lift builds the correlation for *every* $P'\in\mathcal Q(G')$: since $s$'s kept parents are classical for $s$ and there is a channel, $s$ can be realised as a deterministic function of $K$ with its randomness drawn from the channel, and the predictor announces that function. The hypothesis the classical argument then uses is only the one direction $H(s\mid\mathbf X)=0$ (perfect prediction), and the predicting copy of a split predictor is treated as a predictor, not as a twin of the target: it keeps all of its parents, including facets $s$ does not share, and is marginalized under the same theorem (6.2, 6.9 and Section 10 discuss exactly this point). The footnote on line 797 that insists the correlated variables be "statistically dependent" is unnecessary: a constant $s$ satisfies every hypothesis and the deleted edges are then trivially idle.
+
+**Several targets at once.** Fritz's own triangle argument is one step with *two* targets of the same predictor (6.4, 6.5): $c$ predicts the copies $a'$ and $b'$ together and is then deleted, giving the Bell structure with classical settings, C{a,a′}, C{b,b′}, Q{a,b}. The draft reconstructs this as two applications of Proposition 3 with a conjoined correlation hypothesis (lines 1153-1155); in the new formulation it is a single joint step, Theorem 6.3 is stated for a set of targets, and the search emits every d-separation-certified joint set (8.6). With the predictor unsplit there is no sequential route at all, since after the first target the predictor is gone.
+
+**(a) Cardinality.** The draft reads the splitting as "cardinality 4 = two binary variables". In the new formulation the output's cardinalities are whatever the known gap needs, and the lift sets the input's cardinalities accordingly; the paper should state that the QC gap is asserted for *some* cardinality vector, as the draft already does for the point-distribution piggyback (line 385).
+
+**(b) What a piggyback is.** Please state once (piggybacks.md 0.2) that every piggyback is "$\mathcal Q(G')\not\subseteq\mathcal C(G')\Rightarrow\mathcal Q(G)\not\subseteq\mathcal C(G)$" with the two halves "quantum construction" (build $P\in\mathcal Q(G)$ from $P'$, recovered by a fixed operation $\pi$) and "classical argument" (every classical model of $G$ for such a $P$ gives a classical model of $G'$ for $\pi(P)$), and that there are no side conditions. The Fritz piggyback then fits the template like every other one.
+
+**(c) One deletion per pair, all of $D$.** The draft deletes a single parent $p$ of $b$. Once the hypothesis has to be constructed rather than assumed, the predictor must be able to compute $b'$ from what it sees, so every parent of $b$ it cannot see has to go at once. The census shows that this matters: for 0→2, 1→2; Q{0,1}, Q{1,3}, Q{2,3}, predictor 3 deletes 0→2 and 1→2 together and reaches `QG_Bell_C_C`, whereas neither single-edge intermediate is reachable from the input by any trick (6.4). A pair whose deletion would be the noise alone is skipped; a pair without a channel is unsound and skipped (8.2).
+
+### A2. Known gaps are hybrid structures, and the Fritz step degrades the target first
+
+**What the draft does.** The search compares outputs against "mDAGs with known QC gaps", always with every latent quantum (lines 1312-1313), and handles the hybrid cases that arise (marginalization leaves $d$ classical; the Fritz candidate's kept parents are classical) one at a time through the observational-dominance lemmas of Section 5.
+
+**What it must say.** The structures of the paper are **QmDAGs**: visible nodes, a directed structure, and two simplicial complexes of latent facets, classical $\mathcal C$ and quantum $\mathcal Q$ (piggybacks.md 0.1). Three things follow and all three need to be in the narrative:
+
+1. **The degradation piggyback** (0.4): making quantum facets classical is itself a piggyback ($\mathcal C$ unchanged, $\mathcal Q$ shrinks), so a gap is monotone under upgrading sources. The known gaps are stored in **weakest form** (as many facets classical as the gap allows), and every structure above them in the upgrade order is a gap for free. The search applies degradation as a lookup, never as an expansion. The seed list (`known_QC_gaps.SEEDS`) is weakest-form: `QG_Instrumental_C` stands for all its quantum upgrades, `QG_Bell_C_C` for the Bell variants with classical settings, and so on.
+2. **The Fritz step relies on the target being predictable, so it degrades the target first.** The cleanest presentation, which I recommend: *step 1, make the target's kept facets classical for the target* (sound by the inclusion $\mathcal Q(G_1)\subseteq\mathcal Q(G)$, $\mathcal C(G_1)=\mathcal C(G)$, a partial degradation: the facet $F$ becomes $\mathrm Q(F\setminus s)$ plus $\mathrm C(F)$); *step 2, delete the parents the predictor cannot see*, justified by the certificate; *step 3, marginalize the predicting node*. Without step 1 the predictor cannot announce the target's value: if the target measured a quantum share, no other node could know the outcome. So **the Fritz output always has a classical facet**, and no Fritz step can ever be matched against an all-quantum seed list. This is why the hybrid database is not a convenience but a precondition for the Fritz trick to get off the ground. Note that in the draft's own triangle proof the latents shared by the correlated pairs ($\beta$, $\gamma$) are classical: that is step 1 in disguise.
+3. **Marginalization is a map on QmDAGs, not a semantics change.** Section 3 of piggybacks.md gives the map (latent projection plus a classical facet per facet of the removed node over its other members and the children, a classical facet over the children, and with teleportation the quantum facet extended to the children sharing a quantum facet) and proves both halves. The draft's Proposition 2 ("gap between $\mathcal G_\text{pig}$ all-classical and $\mathcal G_\text{pig}$ with $d$ classical") is the same fact stated with $d$ as a latent-with-parents, and then needs Lemma 3 (teleportation) and the exogenization lemmas to compare with an mDAG. With facets, teleportation is part of the map and the comparison is immediate. The same holds for conditioning (Section 4) and node stitching (Section 5): each is one map on QmDAGs with one theorem.
+
+**Consequence for the results.** Phase 1 of the census is run with the three-node seeds only (so the Bell variants are inputs and the elementary piggybacks get credit for the three they reach); phase 2 adds the weakest Bell variants as seeds. The search also proves, in passing, 956 structures of which 18 are hybrid (9.5), and 9.5 explains why the hybrid database is far from complete (hybrid inputs are listed as an open direction). The sentence in the draft's introduction "previously, only 48 of these mDAGs were known to present QC gaps" should be rephrased: structures with a three-node seed plus an unconnected node were also trivially known, and the point is better made with the unlabelled counts (6 Bell classes known; 996 inputs; 931 proven).
+
+### A3. The semigraphoid closure certificate is missing entirely
+
+The draft's only justification for a Fritz deletion is the d-separation $a\perp p\mid\mathrm{pa}(b)\setminus\{p\}$. The current method has a second certificate, used when d-separation fails, and five of the ten census inputs that need a Fritz step are proven only by it (1.2, 8.9). It needs its own section; piggybacks.md Section 7 is written to be lifted:
+
+* **Why it exists (7.1).** The lifted distribution lies in $\mathcal Q(G_1)$, so every observable d-separation of the *candidate* $G_1$ holds for it and hence in every classical model of $G$ producing it. These independences are hypotheses for free, and the d-separation test ignores them. Khanna, Pusey and Colbeck's six-node structure (7.7) is a case where only they work.
+* **The proof system (7.2).** Conditional independence statements and the four semigraphoid rules (symmetry, decomposition, weak union, contraction); elementary triplets $\langle i,j\mid K\rangle$; the single exchange rule whose fixpoint is the semigraphoid closure; d-separation models as the closure of the local Markov triplets (Geiger, Verma and Pearl). Valid for every distribution, no positivity needed.
+* **The hypotheses (7.3)**: Markov($G$) as a d-separation model; the perfect prediction $H(s\mid\mathbf X)=0$ entered as the sufficiency statement $\langle s,\ V\setminus(\mathbf X\cup s)\mid\mathbf X\rangle$ (and the explicit account of what half of $H(s\mid\mathbf X)=0$ this drops and why it is sound); the observable d-separations of $G_1$.
+* **The target sets (7.4, 7.5)**: `relabel` (the target replaces its single kept facet) and `markov`, each a containment of a d-separation model in the closure; why `relabel` is justified (three steps); why `markov` cannot do KPC; neither implies the other.
+* **Theorem 7.6**, the worked KPC example (7.7), the six census examples with their "decisive" independence (7.8), and the agreement with the entropic LP on all 722 candidates (7.9).
+* **The entropic LP goes to an appendix** (piggybacks.md Appendix B): Shannon cone, hypotheses and targets as rows, one LP per target set via the summed row, Farkas certificates, size and time, and the relation to the closure (stronger in principle, identical on the census).
+
+The draft's placeholder "Alternative formulation of the Fritz piggyback" (line 1711, inflation) can be dropped or kept as outlook; the semigraphoid certificate is the generalization that was actually built, and the relation to KPC's Lemma 1 (they, too, use a semigraphoid closure) belongs in 7.7.
+
+### A4. The search and the results have to be rewritten from the current census
+
+Everything in Section 6 of the draft (the algorithm, Table 1, the 2807/2587/220 numbers, the 926 unlabelled classes, the 70 remaining) is superseded. The current facts (piggybacks.md Section 1, Section 9; pinned by `tests/test_baseline_slow.py`):
+
+* Inputs: the four-node mDAGs respecting the order $0<1<2<3$ that are not provably algebraic, every facet quantum: 2807 labelled, **996 up to relabelling**. All counts should be given up to relabelling; the code works that way.
+* **Phase 1** (elementary reductions only, three-node seeds): 917 of 996 proven; per-trick "via / only via" table (1.1): PD 860/246, node stitching 10/3, conditioning 289/20, naive marginalization 515/0, teleportation marginalization 540/16, either marginalization 540/24.
+* **Phase 2** (weakest Bell variants as seeds, 994 inputs): elementary 921; then eight Fritz stages, four by d-separation (922, 922, 925, 926) and four by the semigraphoid closure (926, 931, 931, 931), in the order unsplit/unsplit, unsplit target/split predictor, split target/unsplit predictor, split/split. **931 proven, 63 remaining**, all 63 listed in piggybacks.md Section 10. Five inputs by d-separation, five by the closure (table in 8.9 with each step and seed). The tetrahedron is still the one input settled at the cheapest Fritz stage; the first Fritz example in the draft (line 1336) stays valid.
+* Times: two phases 15 s, about 30 s with the enumeration of the inputs; with the LP as engine 110 s.
+* Design points that must be explained: two phases; eight stages of increasing cost, each applied once to the still-unproven inputs, elementary follow-up only ("depth one"); d-separation stages breadth-first, closure stages with early exit (8.8); the predictor pool is the latent siblings (parents and descendants as experiments that prove nothing more, 1.2, 8.4-8.5); joint target sets (8.6); the cache with piggyback versions (9.4).
+
+The remaining-structures discussion in the draft's conclusion (220 labelled, 70 classes, the flag result of Khanna et al.) should be replaced by the 63 and the observation of Section 10 that several of them are Bell scenarios with extra structure among the settings, provable by the direct Bell argument and worth adding as seeds.
+
+### A5. Terminology to align with the code and piggybacks.md
+
+* "Interruption" is now **node stitching** (Section 5): the forward map stitches the exogenous node onto the sink by post-selecting equality; its inverse is the operation that deserves the name interruption (Appendix A.5).
+* "Postselection piggyback" is **conditioning** (Section 4).
+* The trick names in the code: `PD`, `node_stitching`, `conditioning`, `naive_marginalization`, `teleportation_marginalization`, `degradation`, `Fritz`; certificates `dsep`, `semigraphoid`, `entropic`.
+* "Perfect correlation" should be reserved for the symmetric relation the lift can arrange; the hypothesis the certificates use is **perfect prediction**, $H(s\mid\mathbf X)=0$ (6.1, 6.2).
+
+---
+
+## B. Errors in the present statements and proofs
+
+Ordered by severity, then by position in the file.
+
+### B1. Proposition 4 (interruption, line 1162): parents and children are swapped, and the acyclicity condition is the wrong one
+
+As stated, $c$ has no parents and $p$ has no children, and $b$ gets $\mathrm{pa}(b)=\mathrm{pa}(c)=\emptyset$ and $\mathrm{ch}(b)=\mathrm{ch}(p)=\emptyset$: $b$ is isolated. The Ghost example shows the intended map: the Evans node $b$ has the *parents* of the childless node ($b$ in Ghost, parents $\alpha,\beta$) and the *children* of the parentless node ($d$ in Ghost, children $a,c$). So $\mathrm{pa}(b)=\mathrm{pa}(p)$ and $\mathrm{ch}(b)=\mathrm{ch}(c)$. The condition "p is not an ancestor of c" is then automatic (c has no parents) and is not the one needed: the output must be acyclic, which requires that the childless node is **not a descendant of the parentless one** ($c$ is not an ancestor of $p$). Also, "no parents" must include latent parents, as in the Ghost example ($d$ has no facet): the stitched node must be exogenous. The proof in the appendix inherits the confusion (it uses $\mathrm{ch}_\text{pig}(b)=\mathrm{ch}_\text{new}(p)$ and gives $c$ the parameter of $b$), and its classical direction is marked "maybe this is still not very clear" by the author; piggybacks.md Section 5 has both halves written out (the classical argument needs exactly $y\notin\mathrm{desc}(x)$ so that $Y(\lambda)$ does not depend on $x$ and the re-wired model is acyclic). Note also that the search restricts the sink to childless nodes while the proof does not need it (Section 5 says so).
+
+### B2. Proposition 3 (Fritz) and its proof (lines 1145-1148, 1656-1678)
+
+Beyond the structural change of A1:
+
+* **(i)** When $a$ is a parent of $b$, the proposition defines $\mathrm{pa}(b')=\mathrm{pa}(b)\setminus\{p\}$, which contains $a$ but not $a'$, and $\mathrm{ch}(a')=\mathrm{ch}(a)$, which contains $b$ but not $b'$. So in $\mathcal G_\text{pig}$ the predicting copy $a'$ has no channel to $b'$ at all unless they also share a latent, and the "a is a parent of b" case of the proposition is dead: the required perfectly correlated distributions do not exist. The copy of a predictor must be a parent of the copy of the target (split the predictors first, then the targets; the code does this, 8.7).
+* **(ii)** The proof asserts "since $\mathcal G_\text{new}$ has $a\perp p\mid\mathrm{pa}(b)\setminus p$, $\mathcal G_\text{new}'$ has $a'\perp p\mid\mathrm{pa}(b')\setminus p$" without argument. It is true, but it needs the twin argument: every path from $a'$ either enters through a parent of $a'$, which is a parent of $a$, or runs $a'\leftarrow\lambda_{aa'}\to a$ and continues from $a$ along an outgoing edge; in both cases it is a path from $a$; and the new pair latents $\lambda_{bb'}$, $\lambda_{aa'}$ open nothing because $\lambda_{bb'}$ is conditioned on and $b$ is an unconditioned collider on $p\to b\leftarrow\lambda_{bb'}$.
+* **(iii)** The private noise of $b'$ is silently part of the hypothesis: for $X_{a'}=X_{b'}$ to be realisable, $b'$'s randomness has to come from something $a'$ sees. In the self-contained version this is the channel requirement, and the noise node of $s$ is always in the deletion set $D$ (8.2).
+* **(iv)** The derivation on lines 1667-1675 is correct but only uses $P(X_{b'}\mid K,p)=P(X_{a'}\mid K,p)$, i.e. one direction of the correlation; say so, since it is the reason the final formulation can hypothesise perfect prediction only.
+* **(v)** The step "this distribution can also be classically realized by the pDAG obtained by removing $p\to b'$" uses that a classical model whose kernel for $b'$ satisfies $P(b'\mid\mathrm{pa}(b'))=P(b'\mid\mathrm{pa}(b')\setminus p)$ can have that kernel replaced without changing the joint; fine, but the equality has to be stated for the joint with the latents, not for the observed distribution.
+* **(vi)** Line 1153: "noting that $\mathcal G_\text{pig}$ has the d-separation relation $a\perp\beta\mid\gamma$" is about the structure *after* the first application, which has the extra nodes; it holds, but the sentence should say which graph.
+
+### B3. Lemma 4 (`lemma_entanglement_swapping`, line 1259) claims an equivalence it cannot have, and its hypothesis is both too strong and (in one respect) too weak-looking; see Part D
+
+Summary here, details in Part D: the "$\Leftarrow$" direction (every post-selected distribution of $\mathcal G$ under $\mathscr T$ is realisable by $\mathcal G'$ with $\alpha$ quantum, $\beta$ classical, no post-selection) is the direction the piggyback needs only for **classical** semantics, where it is our classical argument (piggybacks.md Section 4) and holds under conditions 1 and 2. For quantum semantics it is very likely false: in $\mathcal G$ the post-selection can correlate the *kind* of entanglement swapped to the quantum siblings with the values of the classical parents (choose the POVM element at $s$ according to $X_p$), while in $\mathcal G'$ the swapped state $\alpha$ is independent of $\beta$ and the siblings can only process it locally. The draft's attempt (lines 2083-2199) indeed prepares a single state $\tilde\rho_\alpha$ summed over $x_{B'}$, which loses that correlation. Recommendation: state and prove only what is needed, quantum dominance in the "$\Rightarrow$" direction and the classical argument in the "$\Leftarrow$" direction, as Theorem/Section 4 of piggybacks.md does. The margin note "[in the thesis we only showed dominance, but here I think we should show equivalence]" should be resolved the other way.
+
+### B4. Lemma 7 (`obseq_mDAG_quantum`, line 1294)
+
+* The last sentence of the proof says "$\mathcal G$ observationally dominates $\mathcal G={\tt RemoveRedund}\circ{\tt Exog}(\mathcal G')$"; it should say $\mathcal G'$ dominates $\mathcal G$.
+* The argument "send these quantum systems to $\mathrm{ch}(\alpha)$ indirectly, by passing through $\alpha$" requires $\alpha$ to be quantum. Under a hybrid semantics in which $\alpha$ is classical and some parent of $\alpha$ is quantum it fails, so the lemma must say "under the all-quantum semantics" (or "when every latent with parents is quantum"). This matters because the paper is now about hybrid structures.
+
+### B5. Lemma 3 (teleportation, line 1235) and its proof (line 1722)
+
+* "The fact that the arrows described in 2 can be added is a simple consequence of the classical exogenization rule": that rule (Lemma 2) requires *all* parents of $\lambda$ to be classical, which is exactly not the case here. The correct reason is forwarding: $\lambda$ is classical and can relay the values of its classical parents to its children, and $\mathcal G'\supseteq\mathcal G$ gives the other inclusion.
+* The proof treats one $\beta_q$ and one $c$; the general case needs one entangled pair per $(\beta_q,c)$ and a separate Bell measurement for each, which is "tedious but straightforward" and should at least be said.
+* After the arrows are added, $\lambda$ still has quantum parents, so none of the exogenization lemmas applies to it in general; in the Pike example it has a single child (Lemma 5). The facet formulation of Section 3 avoids the issue: the relayed classical information becomes a classical facet over the other members of each facet and the children, and the theorem is proven once.
+
+### B6. The Fritz triangle section (lines 727-863)
+
+* Line 834: "its marginal $P(X_{a_1}X_{a_2}X_{b_1}X_{c_2})$ is classically realizable by the Bell pDAG": the Bell variables are $a_1,b_2$ (outcomes) and $c_1,c_2$ (settings); should read $P(X_{a_1}X_{b_2}X_{c_1}X_{c_2})$, as on lines 861 and 863.
+* The footnote on line 797 ("perfect correlation" requires statistical dependence) is unnecessary; see A1.
+* Line 800 uses the d-separation $c_2\perp\alpha\mid\gamma$ and the equality to conclude $P(a_2\mid\alpha\gamma)=P(a_2\mid\gamma)$: correct, but it is the kernel of $a_2$ given its parents $(\alpha,\gamma)$ that is being replaced, which should be said for the Markov factorisation argument to be explicit.
+* The proof is for the all-quantum triangle with only $\alpha$ quantum; in the new framework the output is `QG_Bell_C_C` in weakest form and the triangle gap follows for every colouring by degradation (0.4). Say so.
+
+### B7. The marginalization proposition and examples (lines 399-725, 1136-1143)
+
+* Line 441: "must be classically realizable by $\mathcal G_\text{EqToInstr1}$" should be $\mathcal G_\text{EqToBell1}$, and "its marginal over $X_a$, $X_b$, $X_c$ and $X_d$" should be the marginal over $X_b,X_c,X_d,X_e$ (marginalizing *out* $X_a$).
+* Line 1143 switches from $d$ to $\lambda$ for the marginalized node.
+* Eq. (`eq_maximally_entangled`) and the two $|\Phi^+\rangle$ states of the Flag section (lines 1085-1086), eq. (`eq_phiplus`) and line 2014 sum over $i=1,\dots,\dim-1$ with normalisation $1/\sqrt{\dim}$: the index range should have $\dim$ terms.
+* Flag section, line 1083: $\mathcal H_\alpha$ should have dimension $\dim(\mathcal H_C)^2$, not $2\dim(\mathcal H_C)$ (likewise $\beta$); line 1097: $\rho_{\beta_1\alpha_1}\in\mathcal H_{\beta_1}\otimes\mathcal H_{\beta_2}$ should be $\mathcal H_{\beta_1}\otimes\mathcal H_{\alpha_1}$.
+* The commented-out Grazer section carries the note "[But $\lambda$ does not have access to $a$!!!]"; if the Grazer example comes back, the Pike construction (teleportation) is the fix.
+
+### B8. The realizability formula (line 94)
+
+Classical *latent* nodes with quantum parents (the $U_C$ of the appendix) have no factor: the product over $A$ covers classical nodes with classical parents, the trace covers $B$ "classical nodes that have quantum parents" and the quantum nodes, and the sum over $X_{\Clat}$ runs over all classical latents. If "classical nodes" in $B$ is meant to include latents, say so; otherwise add them.
+
+### B9. Lemma 1 (HLP edge-adding, line 1213)
+
+Correct as stated (the shared latent is among the parents of $a$, hence classical, and can carry $E_a$), but the proof should say that the shared latent is classical by hypothesis, since the sentence "this error variable can be absorbed into one of the latent parents" reads as if any shared latent would do.
+
+### B10. Loose ends and typos
+
+* Empty references: "Definition~\ref{}" (line 1195), "Appendix~\ref{}" (lines 480, 834); "(Appendix)" on line 480 and 861 without a target.
+* Line 1163: "in $\mathcal G_\text{new}$.." (double period).
+* The caption of Fig. 2 says "Observe\&Do equivalent"; the text says observationally equivalent.
+* "thesis", "this chapter" throughout the introduction and Section 1.
+* Section 1, line 305 and Section 6: all numbers (2807, 2587, 220, 48, 926, 70) are superseded; see A4.
+* Section 6, line 1310: "the Fritz piggyback can use a $\mathcal G_\text{pig}$ that has a larger number of visible nodes": in the new formulation the output has $n-1$, $n$ or $n+1$ visible nodes depending on the modes, and the search reduces it with the elementary tricks only (depth one, 9.2); the footnote on line 1313 about marginalizing perfectly correlated variables is resolved by Theorem 6.3 and should go.
+* Ghost section, line 906: "look at the subset of realizable distributions where $b_2=c$": in the new formulation the step is "$c$ predicts the split target $b$ through $\beta$: the copy $b'$ loses $\alpha$ and keeps $\beta$, classical for it; $c$ is childless and is deleted", with output $d\to a$; Q{a,b}, C{b,b′}, which is `QG_Bell_C_Edge`. The three routes are a nice illustration and should stay, with the cardinality remarks.
+* Line 1353 onward (Fig. 7): fine, but the figure of "the six classes known before" should be replaced or complemented by the seed list in weakest form (`known_QC_gaps.SEEDS`).
+* Data availability: the entry point is `Special Applications/proving_QC_Gaps.py`, with `--engine semigraphoid|lp|both`; the manuscript `manuscript/piggybacks.md` and the pinned census `tests/test_baseline_slow.py` should be cited.
+
+---
+
+## C. Where the replacement material is
+
+| draft section | piggybacks.md |
+|---|---|
+| 1 Introduction (QC gap, realizability, mDAG vs pDAG) | 0.1 structures and model sets, 0.2 piggybacks, 0.3 (F1) edge monotonicity and (F2) observable d-separation |
+| 3.1 point distribution | Section 2 |
+| 3.2 marginalization (three examples) | Section 3 (map with teleportation, both halves, order dependence, example) |
+| 3.3 Fritz / triangle | 6.1 mechanism, 6.2 split and unsplit predictors and targets, 6.3 theorem, 6.4 the unit and joint targets, 6.5 the triangle, 6.6 tetrahedron, 6.7 visible edge, 6.8 split target, 6.9 split predictor worked out |
+| 3.4 interruption / Ghost | Section 5 node stitching |
+| 3.5 postselection / Flag | Section 4 conditioning (idea, three conditions, classical argument, counterexample for condition 2, quantum construction, condition 3; see Part D) |
+| 4 formalization | the theorems inside Sections 2-7 and 0.4 (degradation) |
+| 5 observational dominance in the quantum case | absorbed into the maps of Sections 3-5; Appendix A for the reverse direction |
+| (missing) certificate beyond d-separation | Section 7 (semigraphoid closure), Appendix B (entropic LP) |
+| (missing) search procedure | Section 8 |
+| 6 census | Section 1 (results), Section 9 (infrastructure) |
+| 7 conclusion | Section 10 open questions |
+
+---
+
+## D. On condition 3 of the conditioning piggyback (Lemma 4 of the draft)
+
+**The question.** Our conditioning piggyback (piggybacks.md Section 4) requires, for the node $X$ being conditioned on, with $B$ its visible parents and $S$ its latent siblings: (1) every visible grandparent of $X$ is a parent; (2) every facet containing a node of $B$ contains $X$ or lies inside $B$; (3) every visible child of a parent $p\in B\setminus S$ (a parent sharing no facet with $X$) lies in $B\cup S\cup\{X\}$. The draft's Lemma 4 has a single hypothesis, "$s$ has no ancestors that are not its parents", and no analogue of condition 3. Is condition 3 needed?
+
+**Comparing the hypotheses.** "No ancestors that are not parents" is *stronger* than our conditions 1 and 2 taken together: it forces every visible grandparent to be a parent (our 1) and every latent parent of a parent to be a parent of $s$, i.e. every facet touching $B$ to contain $X$. Our condition 2 also allows facets inside $B$ (latents whose children all lie in the parent block, our $\Lambda_B$), which the classical argument absorbs into the new facet and which the lemma's hypothesis excludes. So on conditions 1 and 2 the draft is more restrictive than necessary. Condition 2 cannot be dropped for the classical argument: the counterexample in Section 4 ($X=[p_1=p_2]$, each $p_i$ sharing a classical facet with an outsider $o_i$) gives a classical model of $G$ whose post-selected distribution violates a d-separation of $G'$.
+
+**Condition 3 is not needed, and the draft's construction shows why.** Condition 3 exists in our write-up because our quantum construction lets a parent $p\in B\setminus S$, which has no facet with $X$ and so cannot read the new latent $\mu$, *guess* $\mu$ and announce the guess in its output, $(p,\hat\mu_p)$, for $X$ to check. That fine-grains $p$'s output, and coarse-graining it back is only safe when every child of $p$ reads $\mu$ anyway, which is condition 3. The draft's proof of Lemma 4 (lines 1841-1884, items 2 and 5) does something better: the parents $a$ and $b$ of $s$ output **uniformly random values and nothing else**, and $s$ recomputes internally what they should have output, drawing their private randomness itself and performing $b$'s measurement itself on the system $\gamma$ sends to $s$ instead of to $b$, and post-selects on agreement. Conditioned on $X_s=0$ the parents' outputs have exactly the right joint distribution with everything upstream, and no output is fine-grained. The children of such a parent read a correctly distributed value, and since a child of a parent is never an ancestor of $X$ (by condition 1 it would be a parent), the post-selection event does not depend on it, so its kernel is unaffected. The only inputs $X$ needs to recompute $p$ are $p$'s visible parents (in $B$ by condition 1, so $X$ sees them), $p$'s facets containing $X$ (none, by the definition of $B\setminus S$) and $p$'s facets inside $B$ (condition 2), whose values $X$ can draw internally since they influence nothing outside the block; a quantum facet inside $B$ is handled by $X$ sampling the joint outcome distribution of the block members that measure it. So under conditions 1 and 2 alone the quantum construction goes through with this "recompute and check" device, the classical argument already needs only 1 and 2, and **condition 3 can be dropped**. I will say this plainly: the draft's explanation convinces me that piggybacks.md Section 4 and `QmDAG.conditioning_is_justified` are more restrictive than necessary, and the code should be relaxed (and the census rerun; see the numbers below). Please keep the recompute-and-check construction in the paper; it is the right one.
+
+**What the lemma still gets wrong.** The equivalence claim (B3): the direction "post-selected distributions of $\mathcal G$ are realisable by $\mathcal G'$" is only needed, and only provable by the argument given, for classical semantics; for quantum semantics the correlation between the swapped state and the classical parents' values is lost, and the draft's attempted proof prepares a single $\tilde\rho_\alpha$ averaged over $x_{B'}$. The hypothesis excludes latents inside the parent block, which conditions 1 and 2 admit. And the general proof is only sketched through one example ("[BLABLABLA]", "tedious but straightforward"); with the recompute-and-check device the general proof is short and should be written in the facet language: every facet $F\ni X$ carries a uniform copy of $\mu$ and, if quantum, an entangled pair per quantum sibling; siblings and parents in $B\cap S$ read $\mu$ from a shared facet; parents in $B\setminus S$ output uniform values; $X$ teleports $\rho$, checks the copies of $\mu$, recomputes and checks the parents in $B\setminus S$, and outputs $x_0$ iff everything agrees.
+
+**Effect on the census.** Running the current census with condition 3 removed from `conditioning_is_justified` (nothing else changed):
+
+| | with condition 3 (current) | without condition 3 |
+|---|---|---|
+| conditioning applications admitted | | 33 more |
+| phase 1, inputs provable via conditioning alone | 289 | 292 |
+| phase 1, inputs provable only via PD | 246 | 244 |
+| phase 1, proven of 996 | 917 | 917 |
+| phase 2, inputs provable via conditioning alone | 296 | 299 |
+| phase 2, proven / remaining | 931 / 63 | 931 / 63 |
+| cascade ladder | [921, 922, 922, 925, 926, 926, 931, 931, 931] | identical |
+
+The relaxation admits 33 more conditioning steps and gives three inputs a conditioning route they did not have (two of them lose their "only via PD" status), but every input it reaches was already proven another way: no new four-node gap, the ladder is unchanged. It may matter for larger inputs or for hybrid inputs.
+
+So the relaxation is sound and is worth adopting; I have not changed the code in this commit, since it is a change to a theorem and not a documentation fix, but it is a one-line change (`quantum_mDAG.py`, `conditioning_is_justified`: drop the loop over the parents' children) plus a rewrite of the condition-3 paragraph of piggybacks.md Section 4 and a cache version bump for `conditioning`.
