@@ -156,7 +156,7 @@ Correct as stated (the shared latent is among the parents of $a$, hence classica
 | 3.2 marginalization (three examples) | Section 3 (map with teleportation, both halves, order dependence, example) |
 | 3.3 Fritz / triangle | 6.1 mechanism, 6.2 split and unsplit predictors and targets, 6.3 theorem, 6.4 the unit and joint targets, 6.5 the triangle, 6.6 tetrahedron, 6.7 visible edge, 6.8 split target, 6.9 split predictor worked out |
 | 3.4 interruption / Ghost | Section 5 node stitching |
-| 3.5 postselection / Flag | Section 4 postselection (idea, two conditions, classical argument, counterexample for condition 2, quantum construction by recomputing the parents, why no post-select on the parents' children is needed; see Part D) |
+| 3.5 postselection / Flag | Section 4 postselection (idea, two conditions, classical argument, counterexample for condition 2, quantum construction by recomputing the parents, why no condition on the parents' children is needed; see Part D) |
 | 4 formalization | the theorems inside Sections 2-7 and 0.4 (degradation) |
 | 5 observational dominance in the quantum case | absorbed into the maps of Sections 3-5; Appendix A for the reverse direction |
 | (missing) certificate beyond d-separation | Section 7 (semigraphoid closure), Appendix B (entropic LP) |
