@@ -14,10 +14,10 @@ THREE-node known gaps only. The 4-node Bell variants are inputs here, not seeds,
 elementary piggyback contributes: how many inputs it proves alone and how many are lost without it.
 
 Phase 2 (expensive): the inputs that phase 1 left unproven, minus the Bell variants (which are known gaps and are
-now seeds), are attacked by the staged cascade of the Fritz piggyback: four d-separation stages (replace mode with
-dropped predictors, replace mode with kept predictors, copy mode with dropped predictors, copy mode with kept
-predictors; joint target sets included, every root recorded in full), then the same four modes with the entropic
-LP (single targets, each root stopping at its first success). Each stage is applied once to the still-unproven
+now seeds), are attacked by the staged cascade of the Fritz piggyback: four d-separation stages (unsplit target and
+unsplit predictor, unsplit target and split predictor, split target and unsplit predictor, split target and split
+predictor; joint target sets included, every root recorded in full), then the same four modes with the semigraphoid
+closure (single targets, each root stopping at its first success; the entropic LP with --engine lp). Each stage is applied once to the still-unproven
 inputs with elementary follow-up. The report gives the cumulative counts after each stage, which are the rungs of
 the cheap-to-expensive ladder.
 
@@ -84,7 +84,7 @@ def cheap_run(QmDAGs4_representatives, max_visible=5, verbose=True, strict_condi
     return prove_gaps(QmDAGs4_representatives, SEEDS_3_NODES, stages=stages, max_visible=max_visible, verbose=verbose)
 
 
-def expensive_run(cheap: GapReport, max_visible=5, verbose=True, with_entropic=True, with_kept=True,
+def expensive_run(cheap: GapReport, max_visible=5, verbose=True, with_entropic=True, with_split_predictors=True,
                   strict_conditioning=True, cache: Optional[GapCache] = None, pool: str = 'siblings',
                   allow_descendants: bool = False, early_exit: bool = True, engine: Optional[str] = None) -> GapReport:
     """Phase 2: the staged cascade on the inputs phase 1 left unproven. The Bell variants become seeds (so they are
@@ -95,7 +95,7 @@ def expensive_run(cheap: GapReport, max_visible=5, verbose=True, with_entropic=T
     known = cache.known() if cache is not None else {}
     # lp_markov_target=True would also try the `markov` LP target set after `relabel` fails; it is off because in the
     # four-node census it never decided an input.
-    stages = default_stages(max_visible=max_visible, with_entropic=with_entropic, with_kept=with_kept,
+    stages = default_stages(max_visible=max_visible, with_entropic=with_entropic, with_split_predictors=with_split_predictors,
                             strict_conditioning=strict_conditioning, pool=pool, allow_descendants=allow_descendants,
                             lp_markov_target=False, engine=engine)
     # Re-base the report on the phase-2 inputs, seeds and known gaps; then run the cascade on what is left.
@@ -108,7 +108,7 @@ def expensive_run(cheap: GapReport, max_visible=5, verbose=True, with_entropic=T
     return report
 
 
-def run_search(QmDAGs4_representatives=None, max_visible=5, verbose=True, with_entropic=True, with_kept=True,
+def run_search(QmDAGs4_representatives=None, max_visible=5, verbose=True, with_entropic=True, with_split_predictors=True,
                strict_conditioning=True, use_cache=True, cache_path: str = CACHE_PATH, pool: str = 'siblings',
                allow_descendants: bool = False, early_exit: bool = True,
                engine: Optional[str] = None) -> Tuple[GapReport, GapReport, Optional[GapCache]]:
@@ -130,7 +130,7 @@ def run_search(QmDAGs4_representatives=None, max_visible=5, verbose=True, with_e
     if cache is not None and verbose:
         print(f"Cache: {len(cache)} valid entries loaded, {cache.dropped} dropped (stale piggyback version or seed)")
     report = expensive_run(cheap, max_visible=max_visible, verbose=verbose, with_entropic=with_entropic,
-                           with_kept=with_kept, strict_conditioning=strict_conditioning, cache=cache, pool=pool,
+                           with_split_predictors=with_split_predictors, strict_conditioning=strict_conditioning, cache=cache, pool=pool,
                            allow_descendants=allow_descendants, early_exit=early_exit, engine=engine)
     if cache is not None:
         added = cache.record(report)
@@ -215,13 +215,13 @@ def print_report(report: GapReport, certificates_for=()) -> None:
 
 if __name__ == '__main__':
     with_entropic = '--no-entropic' not in sys.argv
-    with_kept = '--no-kept' not in sys.argv
+    with_split_predictors = '--no-split-predictors' not in sys.argv
     use_cache = '--no-cache' not in sys.argv
     pool = 'siblings+parents' if '--parents' in sys.argv else 'siblings'
     allow_descendants = '--descendants' in sys.argv
     early_exit = '--no-early-exit' not in sys.argv
     engine = sys.argv[sys.argv.index('--engine') + 1] if '--engine' in sys.argv and sys.argv.index('--engine') + 1 < len(sys.argv) else None
-    cheap, report, cache = run_search(with_entropic=with_entropic, with_kept=with_kept, use_cache=use_cache, pool=pool,
+    cheap, report, cache = run_search(with_entropic=with_entropic, with_split_predictors=with_split_predictors, use_cache=use_cache, pool=pool,
                                       allow_descendants=allow_descendants, early_exit=early_exit, engine=engine)
     print_cheap_report(cheap)
     print_report(report, certificates_for=proven_through_fritz(report))

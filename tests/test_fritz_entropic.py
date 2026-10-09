@@ -101,19 +101,19 @@ def test_kpc_example_is_rescued_by_the_relabelled_target_set(engine):
 
 @pytest.mark.parametrize('engine', ENGINES)
 def test_kpc_example_reaches_bell_in_one_kept_step(engine):
-    outputs = {dict(p)['targets'][0]: (dict(p), c) for p, c in G1_KPC.fritz_steps(predictor_mode='kept', engine=engine)
+    outputs = {dict(p)['targets'][0]: (dict(p), c) for p, c in G1_KPC.fritz_steps(predictor_mode='split', engine=engine)
                if dict(p)['predictor'] == (3,)}
     info, out = outputs[2]
     assert out.unique_unlabelled_id == QG_Bell_C_Edge.unique_unlabelled_id
     assert info['certificate'] == ('entropic' if engine == 'lp' else 'semigraphoid') and info['deleted'] == ((0, 1),)
     assert outputs[1][0]['certificate'] == 'dsep'
     # Without the LP the step is absent.
-    assert 2 not in {dict(p)['targets'][0] for p, _ in G1_KPC.fritz_steps(predictor_mode='kept', use_lp=False)
+    assert 2 not in {dict(p)['targets'][0] for p, _ in G1_KPC.fritz_steps(predictor_mode='split', use_lp=False)
                      if dict(p)['predictor'] == (3,)}
 
 
 def test_entropic_steps_are_emitted_after_every_d_separation_step():
-    certificates = [dict(p)['certificate'] for p, _ in G1_KPC.fritz_steps(predictor_mode='kept')]
+    certificates = [dict(p)['certificate'] for p, _ in G1_KPC.fritz_steps(predictor_mode='split')]
     assert 'semigraphoid' in certificates and 'dsep' in certificates
     assert certificates == sorted(certificates, key=lambda c: c in BEYOND)   # all 'dsep' first
 
@@ -132,11 +132,11 @@ def test_split_node_is_a_faithful_duplication():
 
 
 @pytest.mark.parametrize('engine', ENGINES)
-def test_copy_mode_runs_the_engine_on_the_split_structure(engine):
-    # Copy mode = split the target, then restrict the copy. For G1 the copy of E is NOT certified: the original E
+def test_split_target_runs_the_engine_on_the_split_structure(engine):
+    # Split target = split the target, then restrict the copy. For G1 the copy of E is NOT certified: the original E
     # keeps reading A, so neither target set can identify A with the copy (a classical model may encode A
     # differently for E and for the copy). The copy of D is certified by plain d-separation.
-    by_target = {dict(p)['targets'][0]: dict(p)['certificate'] for p, _ in G1_KPC.fritz_steps(mode='copy', predictor_mode='kept', engine=engine)
+    by_target = {dict(p)['targets'][0]: dict(p)['certificate'] for p, _ in G1_KPC.fritz_steps(target_mode='split', predictor_mode='split', engine=engine)
                  if dict(p)['predictor'] == (3,)}
     assert by_target == {1: 'dsep'}
     split = G1_KPC.split_node(2)
@@ -158,9 +158,9 @@ def test_g2_is_proven_through_the_relabelled_certificate(engine):
     assert K == set(facet_03)
     assert G2.fritz_certificate(0, K, {3}, use_lp=False) is None
     assert certificate(G2, {3}, kept_parents(G2, 0, K), (0,), engine) == 'relabel'
-    outputs = dict(G2.fritz_steps(predictor_mode='kept', engine=engine))
-    out = outputs[(('targets', (0,)), ('mode', 'replace'), ('deleted', (('C{0,2}', 'Q{0,1}'),)), ('predictor', (3,)),
-                   ('predictor_mode', 'kept'), ('certificate', 'entropic' if engine == 'lp' else 'semigraphoid'))]
+    outputs = dict(G2.fritz_steps(predictor_mode='split', engine=engine))
+    out = outputs[(('targets', (0,)), ('target_mode', 'unsplit'), ('deleted', (('C{0,2}', 'Q{0,1}'),)), ('predictor', (3,)),
+                   ('predictor_mode', 'split'), ('certificate', 'entropic' if engine == 'lp' else 'semigraphoid'))]
     assert out.directed_structure_instance.edge_list == [(1, 2), (1, 3)]
     assert out.C_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({0, 3})}
     assert out.Q_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({1, 2})}
@@ -177,8 +177,8 @@ def test_descendant_predictor_is_certifiable_beyond_d_separation_only_when_allow
     K, D = g.fritz_deletion(1, {3})
     assert g.fritz_certificate(1, K, {3}, use_lp=False) is None
     assert g.fritz_certificate(1, K, {3}, use_lp=True, engine=engine) == label
-    assert (1, (3,)) not in pairs(g, predictor_mode='kept', engine=engine)
-    assert pairs(g, predictor_mode='kept', allow_descendants=True, engine=engine)[(1, (3,))] == label
+    assert (1, (3,)) not in pairs(g, predictor_mode='split', engine=engine)
+    assert pairs(g, predictor_mode='split', allow_descendants=True, engine=engine)[(1, (3,))] == label
 
 
 @pytest.mark.parametrize('engine', ENGINES)
@@ -212,11 +212,11 @@ def test_both_engines_agree_on_the_examples():
     import quantum_mDAG as QM
     before = len(QM.ENGINE_DISAGREEMENTS)
     for g in (TRIANGLE, SQUARE, G1_KPC, G2, Q([(0, 1), (1, 2), (2, 3)], 4, [], [(0, 2), (1, 3)])):
-        for mode in ('replace', 'copy'):
-            for pm in ('dropped', 'kept'):
+        for target_mode in ('unsplit', 'split'):
+            for pm in ('unsplit', 'split'):
                 both = {p[:-1] + (('certificate', 'x'),) if dict(p)['certificate'] in BEYOND else p: c.unique_unlabelled_id
-                        for p, c in g.fritz_steps(mode=mode, predictor_mode=pm, engine='both', allow_descendants=True)}
+                        for p, c in g.fritz_steps(target_mode=target_mode, predictor_mode=pm, engine='both', allow_descendants=True)}
                 lp = {p[:-1] + (('certificate', 'x'),) if dict(p)['certificate'] in BEYOND else p: c.unique_unlabelled_id
-                      for p, c in g.fritz_steps(mode=mode, predictor_mode=pm, engine='lp', allow_descendants=True)}
+                      for p, c in g.fritz_steps(target_mode=target_mode, predictor_mode=pm, engine='lp', allow_descendants=True)}
                 assert both == lp
     assert len(QM.ENGINE_DISAGREEMENTS) == before

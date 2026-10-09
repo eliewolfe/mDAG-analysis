@@ -63,7 +63,7 @@ def test_lookup_applies_to_every_structure_the_search_reaches():
 def test_unified_fritz_records_the_certificate():
     tetra = Q([], 4, [], [(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)])
     outs = dict(S.fritz_tricks(max_visible=5, use_lp=False)['Fritz'](tetra))
-    params = (('targets', (1,)), ('mode', 'replace'), ('deleted', (('Q{1,2,3}',),)), ('predictor', (0,)), ('predictor_mode', 'dropped'),
+    params = (('targets', (1,)), ('target_mode', 'unsplit'), ('deleted', (('Q{1,2,3}',),)), ('predictor', (0,)), ('predictor_mode', 'unsplit'),
               ('certificate', 'dsep'))
     assert params in outs and outs[params].unique_unlabelled_id == K.QG_Triangle.unique_unlabelled_id
     assert all(dict(p)['certificate'] == 'dsep' for p in outs)
@@ -72,16 +72,17 @@ def test_unified_fritz_records_the_certificate():
 def test_unified_fritz_lp_certificate_is_named_entropic():
     import pytest
     pytest.importorskip("mosek")
-    # The first LP example of the manuscript (output a relabelling of QG_Bell_C_Edge): predictor 3 kept, predicted 2, certified by the LP (relabel targets).
+    # The first closure example of the manuscript (output a relabelling of QG_Bell_C_Edge): predictor 3 split,
+    # predicted 2, certified here by the LP engine (relabel targets).
     g = Q([(0, 1), (1, 2)], 4, [], [(0, 2), (1, 3), (2, 3)])
-    outs = dict(S.fritz_tricks(max_visible=5, predictor_mode='kept', modes=('replace',), engine='lp')['Fritz'](g))
-    params = (('targets', (2,)), ('mode', 'replace'), ('deleted', ((1, 'Q{0,2}'),)), ('predictor', (3,)), ('predictor_mode', 'kept'),
+    outs = dict(S.fritz_tricks(max_visible=5, predictor_mode='split', target_modes=('unsplit',), engine='lp')['Fritz'](g))
+    params = (('targets', (2,)), ('target_mode', 'unsplit'), ('deleted', ((1, 'Q{0,2}'),)), ('predictor', (3,)), ('predictor_mode', 'split'),
               ('certificate', 'entropic'))
     assert params in outs
     assert outs[params].unique_unlabelled_id == K.QG_Bell_C_Edge.unique_unlabelled_id
     # The semigraphoid engine certifies the same step and labels it so.
-    outs_sg = dict(S.fritz_tricks(max_visible=5, predictor_mode='kept', modes=('replace',), engine='semigraphoid')['Fritz'](g))
+    outs_sg = dict(S.fritz_tricks(max_visible=5, predictor_mode='split', target_modes=('unsplit',), engine='semigraphoid')['Fritz'](g))
     assert params[:-1] + (('certificate', 'semigraphoid'),) in outs_sg
     # Without the entropic certificate the same step is absent.
-    outs_dsep = dict(S.fritz_tricks(max_visible=5, predictor_mode='kept', modes=('replace',), use_lp=False)['Fritz'](g))
+    outs_dsep = dict(S.fritz_tricks(max_visible=5, predictor_mode='split', target_modes=('unsplit',), use_lp=False)['Fritz'](g))
     assert params not in outs_dsep

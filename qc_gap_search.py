@@ -27,11 +27,12 @@ PIGGYBACK_VERSIONS: Dict[str, int] = {
     'naive_marginalization': 1,
     'teleportation_marginalization': 1,
     'degradation': 1,                  # quantum source to classical source (lookup only)
-    'Fritz': 6,                        # 1 original; 2 common/others; 3 predictors removed soundly; 4 unified trick:
+    'Fritz': 7,                        # 1 original; 2 common/others; 3 predictors removed soundly; 4 unified trick:
                                        #   d-separation first, LP (relabel targets) on failure, both predictor modes;
                                        #   5 one deletion per (target, predictor set), no noise-only deletions,
                                        #   redundant sub-facets cleaned; 6 predictor-first with joint target sets
-                                       #   (d-separation) and uniform params
+                                       #   (d-separation) and uniform params; 7 params name split/unsplit targets and
+                                       #   predictors (the same steps)
 }
 
 
@@ -70,12 +71,12 @@ def elementary_tricks(max_visible: int = 5, districts_check: bool = False,
     }
 
 
-def fritz_tricks(max_visible: int = 5, predictor_mode: str = 'dropped', modes: Tuple[str, ...] = ('replace', 'copy'),
+def fritz_tricks(max_visible: int = 5, predictor_mode: str = 'unsplit', target_modes: Tuple[str, ...] = ('unsplit', 'split'),
                  use_lp: bool = True, pool: str = 'siblings', allow_descendants: bool = False,
                  max_predictors: int = 1, max_targets: Optional[int] = None, lp_markov_target: bool = False,
                  lp_only: bool = False, engine: Optional[str] = None) -> Dict[str, Trick]:
-    """The Fritz trick (name 'Fritz'): QmDAG.fritz_steps once per predicted-node mode in `modes`. predictor_mode
-    is 'dropped' or 'kept'; `pool` ('siblings' or 'siblings+parents') and `allow_descendants` widen the predictor
+    """The Fritz trick (name 'Fritz'): QmDAG.fritz_steps once per target mode in `target_modes` ('unsplit', 'split').
+    predictor_mode is 'unsplit' or 'split'; `pool` ('siblings' or 'siblings+parents') and `allow_descendants` widen the predictor
     pool (manuscript 8.4); `max_predictors` allows joint predictor sets; `max_targets` bounds the joint target sets of
     one predictor (all by default; 1 disables them); lp_markov_target=True also tries the
     `markov` target set after `relabel` fails (it never decided an input in the four-node census, 9.7);
@@ -96,8 +97,8 @@ def fritz_tricks(max_visible: int = 5, predictor_mode: str = 'dropped', modes: T
             engine = 'semigraphoid'
 
     def fritz(g: QmDAG) -> Iterable[Tuple[Tuple, QmDAG]]:
-        for mode in modes:
-            yield from g.fritz_steps(mode=mode, predictor_mode=predictor_mode, use_lp=use_lp, pool=pool,
+        for target_mode in target_modes:
+            yield from g.fritz_steps(target_mode=target_mode, predictor_mode=predictor_mode, use_lp=use_lp, pool=pool,
                                      allow_descendants=allow_descendants, max_predictors=max_predictors,
                                      max_targets=max_targets, lp_markov_target=lp_markov_target, max_visible=max_visible,
                                      lp_only=lp_only, engine=engine)
@@ -105,8 +106,8 @@ def fritz_tricks(max_visible: int = 5, predictor_mode: str = 'dropped', modes: T
 
 
 def default_tricks(max_visible: int = 5, max_predictors: int = 1, districts_check: bool = False,
-                   predictor_mode: str = 'dropped', strict_conditioning: bool = True) -> Dict[str, Trick]:
-    """Elementary tricks plus the Fritz trick with dropped predictors and the d-separation certificate only (no
+                   predictor_mode: str = 'unsplit', strict_conditioning: bool = True) -> Dict[str, Trick]:
+    """Elementary tricks plus the Fritz trick with unsplit predictors and the d-separation certificate only (no
     LP): the tricks of a single exhaustive closure."""
     return {**elementary_tricks(max_visible, districts_check, strict_conditioning),
             **fritz_tricks(max_visible, predictor_mode=predictor_mode, max_predictors=max_predictors, use_lp=False)}
@@ -115,15 +116,15 @@ def default_tricks(max_visible: int = 5, max_predictors: int = 1, districts_chec
 Stage = Tuple[str, Dict[str, Callable], bool, Optional[FrozenSet[str]], bool]   # (name, tricks, roots_only, follow-up tricks, early exit)
 
 
-def default_stages(max_visible: int = 5, with_entropic: bool = True, with_kept: bool = True,
+def default_stages(max_visible: int = 5, with_entropic: bool = True, with_split_predictors: bool = True,
                    max_predictors: int = 1, districts_check: bool = False, strict_conditioning: bool = True,
                    pool: str = 'siblings', allow_descendants: bool = False, max_targets: Optional[int] = None,
                    lp_markov_target: bool = False, engine: Optional[str] = None) -> List[Stage]:
     """The cascade (manuscript 9.2), cheapest first; each stage runs only on the inputs the earlier ones left
     unproven, and every structure proven in a stage is a known gap for the next.
     (1) The elementary reductions, closed over everything reachable from every input.
-    (2-5) Four d-separation Fritz stages, one per pair of modes (replace/dropped, replace/kept, copy/dropped,
-    copy/kept), each applied once to each still-unproven input with elementary follow-up ("depth one"); within a
+    (2-5) Four d-separation Fritz stages, one per pair of modes (unsplit target & unsplit predictor, unsplit target &
+    split predictor, split target & unsplit predictor, split target & split predictor), each applied once to each still-unproven input with elementary follow-up ("depth one"); within a
     root everything is recorded, breadth-first (no early exit): the test is cheap, and recording every
     d-separation route keeps the recorded routes, and the database of proven structures, independent of the order
     in which a root's predictors are tried.
@@ -140,18 +141,19 @@ def default_stages(max_visible: int = 5, with_entropic: bool = True, with_kept: 
     reductions = frozenset(elementary)
     names = [name for name, _ in CASCADE]
     stages: List[Stage] = [(names[0], elementary, False, None, False)]
-    plan = [('replace', 'dropped'), ('replace', 'kept'), ('copy', 'dropped'), ('copy', 'kept')]
-    for i, (mode, predictor_mode) in enumerate(plan):
-        if predictor_mode == 'kept' and not with_kept:
+    plan = [('unsplit', 'unsplit'), ('unsplit', 'split'), ('split', 'unsplit'), ('split', 'split')]
+    for i, (target_mode, predictor_mode) in enumerate(plan):
+        if predictor_mode == 'split' and not with_split_predictors:
             continue
-        stages.append((names[1 + i], fritz_tricks(predictor_mode=predictor_mode, modes=(mode,), use_lp=False,
+        stages.append((names[1 + i], fritz_tricks(predictor_mode=predictor_mode, target_modes=(target_mode,), use_lp=False,
                                                   max_targets=max_targets, **common), True, reductions, False))
     if with_entropic:
-        for i, (mode, predictor_mode) in enumerate(plan):
-            if predictor_mode == 'kept' and not with_kept:
+        for i, (target_mode, predictor_mode) in enumerate(plan):
+            if predictor_mode == 'split' and not with_split_predictors:
                 continue
-            stages.append((names[5 + i], fritz_tricks(predictor_mode=predictor_mode, modes=(mode,), lp_only=True,
-                                                      **common), True, reductions, True))
+            stages.append((_rung_name(True, target_mode, predictor_mode, engine),
+                           fritz_tricks(predictor_mode=predictor_mode, target_modes=(target_mode,), lp_only=True, **common),
+                           True, reductions, True))
     return stages
 
 
@@ -303,8 +305,8 @@ class ClosureExplorer:
                     continue
                 new_children = []
                 for trick_name, trick in extra_tricks.items():
-                    # The same trick name may return in a later stage with other parameters (e.g. copy mode after
-                    # replace mode), so roots-only applications are remembered per stage.
+                    # The same trick name may return in a later stage with other parameters (e.g. split targets after
+                    # unsplit targets), so roots-only applications are remembered per stage.
                     applied_key = f"{self.stage_names[self.current_stage]}:{trick_name}"
                     if applied_key in self.applied.get(gid, set()):
                         continue
@@ -594,13 +596,13 @@ def build_report(explorer: ClosureExplorer, inputs: List[QmDAG], seeds: Dict[str
 # Assessing the expensive (Fritz-type) steps: the cumulative ladder
 # --------------------------------------------------------------------------------------------------
 
-def mode_of(t: Transition) -> Optional[str]:
-    """'replace' or 'copy' (the predicted-node mode) of a Fritz transition, None otherwise."""
-    return dict(t.params).get('mode') if t.trick == 'Fritz' else None
+def target_mode_of(t: Transition) -> Optional[str]:
+    """'unsplit' or 'split' (is the predicted node split?) for a Fritz transition, None otherwise."""
+    return dict(t.params).get('target_mode') if t.trick == 'Fritz' else None
 
 
 def predictor_mode_of(t: Transition) -> Optional[str]:
-    """'dropped' or 'kept' for a Fritz transition, None otherwise."""
+    """'unsplit' or 'split' (is the predictor split?) for a Fritz transition, None otherwise."""
     return dict(t.params).get('predictor_mode') if t.trick == 'Fritz' else None
 
 
@@ -609,16 +611,16 @@ def certificate_of(t: Transition) -> Optional[str]:
     return dict(t.params).get('certificate') if t.trick == 'Fritz' else None
 
 
-def uses_copy(t: Transition) -> bool:
-    return mode_of(t) == 'copy'
+def split_target(t: Transition) -> bool:
+    return target_mode_of(t) == 'split'
 
 
 def is_fritz_type(t: Transition) -> bool:
     return t.trick in FRITZ_TRICKS_ALL
 
 
-def is_kept(t: Transition) -> bool:
-    return predictor_mode_of(t) == 'kept'
+def split_predictor(t: Transition) -> bool:
+    return predictor_mode_of(t) == 'split'
 
 
 def beyond_dsep(t: Transition) -> bool:
@@ -626,32 +628,36 @@ def beyond_dsep(t: Transition) -> bool:
     return certificate_of(t) in ('semigraphoid', 'entropic')
 
 
-is_lp = beyond_dsep   # older name
-
-
 # The cascade, cheapest first: (stage name, predicate "this transition belongs to this rung or an earlier one").
-# `default_stages` runs exactly these stages: the four d-separation stages, then the four entropic stages (closure
-# or LP), so a stage's cumulative count coincides with its rung of the ladder (the slow test checks it).
-_RUNGS = [(lp, mode, kept) for lp in (False, True) for mode, kept in
-          (('replace', False), ('replace', True), ('copy', False), ('copy', True))]
+# `default_stages` runs exactly these stages: the four d-separation stages, then the four semigraphoid-closure stages
+# (the LP with engine='lp'), so a stage's cumulative count coincides with its rung of the ladder (the slow test checks it).
+_RUNGS = [(closure, target_mode, predictor_mode) for closure in (False, True) for target_mode, predictor_mode in
+          (('unsplit', 'unsplit'), ('unsplit', 'split'), ('split', 'unsplit'), ('split', 'split'))]
 
 
-def _rung(mode: str, kept: bool, lp: bool) -> Callable[[Transition], bool]:
-    rank = _RUNGS.index((lp, mode, kept))
+def _rung(target_mode: str, predictor_mode: str, closure: bool) -> Callable[[Transition], bool]:
+    rank = _RUNGS.index((closure, target_mode, predictor_mode))
 
     def keep(t: Transition) -> bool:
         if not is_fritz_type(t):
             return True
-        return _RUNGS.index((beyond_dsep(t), 'copy' if uses_copy(t) else 'replace', is_kept(t))) <= rank
+        # A Fritz transition without the mode params (an older record) sits on the cheapest rung of its certificate.
+        return _RUNGS.index((beyond_dsep(t), target_mode_of(t) or 'unsplit', predictor_mode_of(t) or 'unsplit')) <= rank
     return keep
 
 
-def _rung_name(lp: bool, mode: str, kept: bool) -> str:
-    return f"Fritz, {mode} mode, {'kept' if kept else 'dropped'} predictors, {'entropic' if lp else 'd-separation'}"
+_ENGINE_LABEL = {None: 'semigraphoid closure', 'semigraphoid': 'semigraphoid closure', 'lp': 'entropic LP',
+                 'both': 'semigraphoid closure and LP'}
+
+
+def _rung_name(closure: bool, target_mode: str, predictor_mode: str, engine: Optional[str] = None) -> str:
+    """Stage name; the beyond-d-separation stages name the engine that runs them (the closure by default)."""
+    beyond = _ENGINE_LABEL.get(engine, 'beyond d-separation')
+    return f"Fritz, {target_mode} target, {predictor_mode} predictor, {beyond if closure else 'd-separation'}"
 
 
 CASCADE: List[Tuple[str, Callable[[Transition], bool]]] = [('elementary', lambda t: not is_fritz_type(t))] + \
-    [(_rung_name(lp, mode, kept), _rung(mode, kept, lp)) for lp, mode, kept in _RUNGS]
+    [(_rung_name(closure, tm, pm), _rung(tm, pm, closure)) for closure, tm, pm in _RUNGS]
 LADDER: List[Tuple[str, Callable[[Transition], bool]]] = [('elementary', CASCADE[0][1])] + \
     [('+ ' + name, keep) for name, keep in CASCADE[1:]]
 

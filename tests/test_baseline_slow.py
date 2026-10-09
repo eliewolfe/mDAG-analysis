@@ -35,14 +35,14 @@ EXPECTED_CHEAP = {
 # recorded) must agree with the rungs of the ladder (by the recorded parameters).
 EXPECTED_STAGES = [
     ('elementary', 921),
-    ('Fritz, replace mode, dropped predictors, d-separation', 922),
-    ('Fritz, replace mode, kept predictors, d-separation', 922),
-    ('Fritz, copy mode, dropped predictors, d-separation', 925),
-    ('Fritz, copy mode, kept predictors, d-separation', 926),
-    ('Fritz, replace mode, dropped predictors, entropic', 926),
-    ('Fritz, replace mode, kept predictors, entropic', 931),
-    ('Fritz, copy mode, dropped predictors, entropic', 931),
-    ('Fritz, copy mode, kept predictors, entropic', 931),
+    ('Fritz, unsplit target, unsplit predictor, d-separation', 922),
+    ('Fritz, unsplit target, split predictor, d-separation', 922),
+    ('Fritz, split target, unsplit predictor, d-separation', 925),
+    ('Fritz, split target, split predictor, d-separation', 926),
+    ('Fritz, unsplit target, unsplit predictor, semigraphoid closure', 926),
+    ('Fritz, unsplit target, split predictor, semigraphoid closure', 931),
+    ('Fritz, split target, unsplit predictor, semigraphoid closure', 931),
+    ('Fritz, split target, split predictor, semigraphoid closure', 931),
 ]
 EXPECTED_LADDER = [921, 922, 922, 925, 926, 926, 931, 931, 931]
 
