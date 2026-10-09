@@ -1012,7 +1012,7 @@ class QmDAG:
                            predictor_modes: Tuple[str, ...] = ('unsplit', 'split'),
                            strict_conditioning: bool = True) -> Iterable["QmDAG"]:
         """One application of every piggyback (PD, conditioning, marginalization, node stitching, Fritz by
-        d-separation in both predicted-node modes and the given predictor modes): the old composition API behind
+        d-separation in both target modes and the given predictor modes): the old composition API behind
         unique_unlabelled_ids_obtainable_by_*, a closure of any depth (unlike the census cascade)."""
         n = self.number_of_visible
         if n > min_visible:

@@ -151,8 +151,9 @@ def default_stages(max_visible: int = 5, with_entropic: bool = True, with_split_
         for i, (target_mode, predictor_mode) in enumerate(plan):
             if predictor_mode == 'split' and not with_split_predictors:
                 continue
-            stages.append((names[5 + i], fritz_tricks(predictor_mode=predictor_mode, target_modes=(target_mode,), lp_only=True,
-                                                      **common), True, reductions, True))
+            stages.append((_rung_name(True, target_mode, predictor_mode, engine),
+                           fritz_tricks(predictor_mode=predictor_mode, target_modes=(target_mode,), lp_only=True, **common),
+                           True, reductions, True))
     return stages
 
 
@@ -627,9 +628,6 @@ def beyond_dsep(t: Transition) -> bool:
     return certificate_of(t) in ('semigraphoid', 'entropic')
 
 
-is_lp = beyond_dsep   # older name
-
-
 # The cascade, cheapest first: (stage name, predicate "this transition belongs to this rung or an earlier one").
 # `default_stages` runs exactly these stages: the four d-separation stages, then the four semigraphoid-closure stages
 # (the LP with engine='lp'), so a stage's cumulative count coincides with its rung of the ladder (the slow test checks it).
@@ -643,12 +641,19 @@ def _rung(target_mode: str, predictor_mode: str, closure: bool) -> Callable[[Tra
     def keep(t: Transition) -> bool:
         if not is_fritz_type(t):
             return True
-        return _RUNGS.index((beyond_dsep(t), target_mode_of(t), predictor_mode_of(t))) <= rank
+        # A Fritz transition without the mode params (an older record) sits on the cheapest rung of its certificate.
+        return _RUNGS.index((beyond_dsep(t), target_mode_of(t) or 'unsplit', predictor_mode_of(t) or 'unsplit')) <= rank
     return keep
 
 
-def _rung_name(closure: bool, target_mode: str, predictor_mode: str) -> str:
-    return f"Fritz, {target_mode} target, {predictor_mode} predictor, {'semigraphoid closure' if closure else 'd-separation'}"
+_ENGINE_LABEL = {None: 'semigraphoid closure', 'semigraphoid': 'semigraphoid closure', 'lp': 'entropic LP',
+                 'both': 'semigraphoid closure and LP'}
+
+
+def _rung_name(closure: bool, target_mode: str, predictor_mode: str, engine: Optional[str] = None) -> str:
+    """Stage name; the beyond-d-separation stages name the engine that runs them (the closure by default)."""
+    beyond = _ENGINE_LABEL.get(engine, 'beyond d-separation')
+    return f"Fritz, {target_mode} target, {predictor_mode} predictor, {beyond if closure else 'd-separation'}"
 
 
 CASCADE: List[Tuple[str, Callable[[Transition], bool]]] = [('elementary', lambda t: not is_fritz_type(t))] + \

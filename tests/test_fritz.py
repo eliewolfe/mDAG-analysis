@@ -283,10 +283,12 @@ def test_joint_targets_require_every_member_certified_by_d_separation():
     # d-separation and 2 by the closure only, so the only step with two targets is absent.
     kpc = Q([(0, 1), (0, 2), (1, 2)], 4, [], [(2, 3), (1, 3)])
     assert all(len(dict(p)['targets']) == 1 for p, _ in kpc.fritz_steps(predictor_mode='split', use_lp=True))
-    # Every d-separation step (single or joint) is emitted before any closure step.
+    # Every d-separation step (single or joint) is emitted before any closure step, with the target split or not.
     certificates = [dict(p)['certificate'] for p, _ in kpc.fritz_steps(predictor_mode='split')]
     assert set(certificates) == {'dsep', 'semigraphoid'}
     assert certificates == sorted(certificates, key=lambda c: c != 'dsep')
+    certificates = [dict(p)['certificate'] for p, _ in kpc.fritz_steps(target_mode='split', predictor_mode='split')]
+    assert certificates and certificates == sorted(certificates, key=lambda c: c != 'dsep')
 
 
 LOST_FOUR = [Q([(0, 2), (1, 2), (2, 3)], 4, [], [(0, 1), (0, 2), (1, 3)]),

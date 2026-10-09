@@ -13,6 +13,7 @@ stripped and rebuilt, so re-running after the code or the headings change refres
 Headings, fenced code blocks and inline math are never touched.
 """
 import ast
+import builtins
 import os
 import re
 import sys
@@ -97,7 +98,7 @@ def resolve_code(span: str, index: Dict[str, Tuple[str, int]]) -> Optional[str]:
     if re.fullmatch(r"[\w./ -]+\.(py|json|md|txt|nb)", text) and os.path.exists(os.path.join(ROOT, text)):
         return "../" + quote(text)
     name = re.split(r"[(\[]", text, maxsplit=1)[0].strip()
-    if not re.fullmatch(r"[A-Za-z_][\w.]*", name) or name in dir(__builtins__):
+    if not re.fullmatch(r"[A-Za-z_][\w.]*", name) or name in dir(builtins):
         return None
     candidates = [name]
     parts = name.split(".")
@@ -143,7 +144,7 @@ def heading_anchors(lines: List[str]) -> Dict[str, str]:
         mm = re.match(r"^(\d+)\.\s", title)          # "## 7. Search ..."
         if mm and m.group(1) == "##":
             key = mm.group(1)
-        mm = re.match(r"^(\d{1,2}\.\d{1,2}|[A-Z]\.\d)\s", title)   # "### 9.8 ...", "### B.2 ..."
+        mm = re.match(r"^(\d{1,2}\.\d{1,2}|[A-Z]\.\d{1,2})\s", title)   # "### 9.8 ...", "### B.2 ..."
         if mm:
             key = mm.group(1)
         mm = re.match(r"^Appendix ([A-Z])\b", title)
@@ -159,7 +160,7 @@ def heading_anchors(lines: List[str]) -> Dict[str, str]:
 # --------------------------------------------------------------------------------------------------
 
 def strip_links(text: str) -> str:
-    text = re.sub(r"\[((?:Sections? )?(?:\d{1,2}(?:\.\d{1,2})?|[A-Z]\.\d|Appendix [A-Z]))\]\(#[^)]*\)", r"\1", text)
+    text = re.sub(r"\[((?:Sections? )?(?:\d{1,2}(?:\.\d{1,2})?|[A-Z]\.\d{1,2}|Appendix [A-Z]))\]\(#[^)]*\)", r"\1", text)
     text = re.sub(r"\[(`[^`]*`)\]\(\.\./[^)]*\)", r"\1", text)
     return text
 
@@ -179,7 +180,7 @@ def link_sections(line: str, anchors: Dict[str, str]) -> str:
     spans = protected_spans(line)
     out = []
     i = 0
-    pattern = re.compile(r"Sections (\d{1,2}) and (\d{1,2})\b|Section (\d{1,2})\b|Appendix ([A-Z])\b|(?<![\w$.\\#/])(\d{1,2}\.\d{1,2}|[A-Z]\.\d)(?![\d])")
+    pattern = re.compile(r"Sections (\d{1,2}) and (\d{1,2})\b|Section (\d{1,2})\b|Appendix ([A-Z])\b|(?<![\w$.\\#/])(\d{1,2}\.\d{1,2}|[A-Z]\.\d{1,2})(?![\d])")
     for m in pattern.finditer(line):
         if inside(m.start(), spans):
             continue
