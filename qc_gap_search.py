@@ -23,7 +23,8 @@ UnlabelledId = Tuple[int, int, int, int]
 PIGGYBACK_VERSIONS: Dict[str, int] = {
     'PD': 1,
     'node_stitching': 1,               # formerly 'interruption'
-    'conditioning': 3,                 # 1 visible grandparents; 2 latent grandparents; 3 guessing parents' children
+    'conditioning': 4,                 # 1 visible grandparents; 2 latent grandparents; 3 guessing parents' children;
+                                       #   4 condition 3 dropped (the conditioned node recomputes its parents)
     'naive_marginalization': 1,
     'teleportation_marginalization': 1,
     'degradation': 1,                  # quantum source to classical source (lookup only)

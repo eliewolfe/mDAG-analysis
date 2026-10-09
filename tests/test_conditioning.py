@@ -67,14 +67,18 @@ def test_facets_inside_the_parent_block_do_not_block_conditioning():
     assert g.conditioning_is_justified(2)
 
 
-def test_condition_three_guessing_parents_may_not_have_outside_children():
-    # Parent 0 of X=1 shares no facet with 1, so in the lift it must guess the post-selected common cause and
-    # output it; its other child 2 could read that output, which the pull-back cannot undo. Not justified.
+def test_parents_may_have_children_outside_the_block():
+    # Parent 0 of X=1 shares no facet with 1 and has another child 2 outside the parents and siblings of 1. In
+    # the quantum construction 0 outputs a uniform value and 1 recomputes it, so nothing is fine-grained and the
+    # step is justified (a former condition 3 forbade it). Conditions 1 and 2 still decide.
     g = Q([(0, 1), (0, 2)], 4, [], [(1, 3)])
-    assert not g.conditioning_is_justified(1)
-    # The same parent with its other child also a parent of X (2 -> 1) is fine: 2 reads the common cause itself.
+    assert g.conditioning_is_justified(1)
+    out = g.condition(1)       # nodes 2, 3 become 1, 2
+    assert out.C_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({0, 2})}   # the parent and the sibling
+    assert out.Q_simplicial_complex_instance.simplicial_complex_as_sets == set()                 # no quantum sibling pair
+    assert out.directed_structure_instance.edge_list == [(0, 1)]
     g2 = Q([(0, 1), (0, 2), (2, 1)], 4, [], [(1, 3)])
     assert g2.conditioning_is_justified(1)
-    # A parent that shares a facet with X reads the common cause from it and needs no guess.
-    g3 = Q([(0, 1), (0, 2)], 4, [], [(0, 1), (1, 3)])
-    assert g3.conditioning_is_justified(1)
+    # Condition 1 still bites: 0 is a grandparent of 2 (through 1) and not a parent.
+    g3 = Q([(0, 1), (1, 2)], 4, [], [(2, 3)])
+    assert not g3.conditioning_is_justified(2)
