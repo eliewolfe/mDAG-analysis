@@ -51,9 +51,18 @@ _PIGGYBACK_CHILDREN_MEMO: Dict[Tuple, List["QmDAG"]] = dict()
 # Entropic LPs (Shannon cone + local Markov equalities) per labelled structure; each holds a solver task.
 _ENTROPIC_LP_CACHE: Dict[Tuple, Any] = dict()
 _ENTROPIC_LP_CACHE_SIZE = 64
+# Elementary d-separation models (semigraphoid.dsep_all of lp_structure) per labelled structure.
+_SEMIGRAPHOID_CACHE: Dict[Tuple, Any] = dict()
+_SEMIGRAPHOID_CACHE_SIZE = 64
+# The certificate engine for Fritz steps that d-separation does not certify: 'semigraphoid' (the closure of
+# semigraphoid.py, fast and always available), 'lp' (the entropic LP, needs mosek) or 'both' (both are run on every
+# candidate and every disagreement, in either direction, is recorded in ENGINE_DISAGREEMENTS). Manuscript 7.9.
+ENGINES = ('semigraphoid', 'lp', 'both')
+DEFAULT_ENGINE = 'semigraphoid'
+ENGINE_DISAGREEMENTS: List[Tuple] = []   # (unique_id, predictors, target, kept parents of the target, lp, closure)
 # Outcome tally of the Fritz certificates (QmDAG.fritz_certificate), keyed by ('certificate', outcome) with outcome
-# 'vacuous' (every predictor a parent of the target), 'dsep', 'relabel', 'markov' or 'failed' (the LP certified
-# nothing). Read it to see how often the LP fails.
+# 'vacuous' (every predictor a parent of the target), 'dsep', 'relabel', 'markov' or 'failed' (the engine certified
+# nothing); ('engine', name) counts which engine certified, ('disagreement', kind) the engine='both' disagreements.
 ENTROPIC_STATS: Dict[Tuple[str, str], int] = dict()
 
 
@@ -545,6 +554,56 @@ class QmDAG:
         finally:
             lp.pop_to(handle)
 
+    def _semigraphoid_model(self):
+        """The elementary d-separation model of lp_structure (noise excluded), cached per labelled structure."""
+        import semigraphoid as sg
+        key = self.unique_id
+        model = _SEMIGRAPHOID_CACHE.get(key)
+        if model is None:
+            nodes, parents = self.lp_structure
+            n = len(nodes)
+            assert nodes == tuple(range(n)), "lp_structure indices are 0..n-1"
+            model = sg.dsep_all(n, sg.parents_to_masks(parents, n))
+            if len(_SEMIGRAPHOID_CACHE) >= _SEMIGRAPHOID_CACHE_SIZE:
+                _SEMIGRAPHOID_CACHE.pop(next(iter(_SEMIGRAPHOID_CACHE)))
+            _SEMIGRAPHOID_CACHE[key] = model
+        return model
+
+    def _semigraphoid_certificate(self, predictors: frozenset, kept_parents: Dict[int, frozenset],
+                                  predicted: Tuple[int, ...], try_markov: bool = True):
+        """The semigraphoid counterpart of _entropic_certificate (manuscript 7.9): the same hypotheses (the
+        d-separations of G, the perfect predictions H(s|X) = 0 as elementary triplets, the observable d-separations
+        of the candidate) closed under the exchange rule, and the same target sets, each checked as the containment
+        of a d-separation model: `relabel` is the d-separation model of the relabelled candidate (the kept facet
+        replaced by s) restricted to the remaining variables, `markov` that of the candidate itself. Returns
+        'relabel', 'markov' or None. Sound because every semigraphoid step is a Shannon-type identity."""
+        import semigraphoid as sg
+        nodes, parents = self.lp_structure
+        n = len(nodes)
+        nv = self.number_of_visible
+        E = self._semigraphoid_model().copy()
+        X = sg.mask_of(predictors)
+        for s in predicted:
+            sg.add_functional_dependence(E, s, X)
+        kept_masks = sg.parents_to_masks(kept_parents, n)
+        E[:nv, :nv, :1 << nv] |= sg.dsep_all(n, kept_masks, m=nv)   # the observable d-separations of the candidate
+        sg.close(E)
+        if len(predicted) == 1:
+            s = predicted[0]
+            common = kept_parents[s]
+            if len(common) == 1 and min(common) >= nv:
+                lam = min(common)
+                relabelled = {v: (ps - {lam}) | {s} if lam in ps else ps
+                              for v, ps in kept_parents.items() if v != lam}
+                relabelled[s] = frozenset()
+                relabelled[lam] = frozenset()   # lam is isolated and then ignored
+                target = sg.restrict(sg.dsep_all(n, sg.parents_to_masks(relabelled, n)), ((1 << n) - 1) & ~(1 << lam))
+                if sg.contains(E, target):
+                    return 'relabel'
+        if try_markov and sg.contains(E, sg.dsep_all(n, kept_masks)):
+            return 'markov'
+        return None
+
     def split_node(self, node: int) -> "QmDAG":
         """Node splitting piggyback: `node` is replaced by itself and a copy (appended as the last visible node)
         with the same parents and children and a shared classical two-party latent (their common private noise).
@@ -681,11 +740,14 @@ class QmDAG:
         return K, D
 
     def fritz_certificate(self, s: int, K: frozenset, X: Iterable[int], use_lp: bool = True,
-                          lp_markov_target: bool = False, tally: bool = True) -> Optional[str]:
+                          lp_markov_target: bool = False, tally: bool = True,
+                          engine: Optional[str] = None) -> Optional[str]:
         """Is restricting s to K justified by the predictors X? 'dsep' when every predictor is a parent of s (then
         s = g(X) is a function of K outright, manuscript 8.5) or when X minus K is d-separated from Pa(s) minus K given
-        K in the effective DAG (Theorem 6.3); 'entropic' when the entropic LP certifies the same deletion (Theorem 7.5;
-        the `relabel` target set, and `markov` too if lp_markov_target); None otherwise (manuscript 8.3)."""
+        K in the effective DAG (Theorem 6.3); otherwise, with use_lp, the engine ('semigraphoid', 'lp' or 'both', default
+        DEFAULT_ENGINE) is asked to certify the same deletion with the `relabel` target set (and `markov` too if
+        lp_markov_target): 'semigraphoid' when the closure certifies it, 'entropic' when the LP does (Theorem 7.5);
+        None otherwise (manuscript 8.3, 7.9)."""
         g, latent_nodes = self.effective_DAG_data
         X = frozenset(X)
         count = _tally if tally else (lambda kind, outcome: None)   # joint re-checks are not counted (ENTROPIC_STATS)
@@ -697,12 +759,26 @@ class QmDAG:
             count('certificate', 'dsep')
             return 'dsep'
         if use_lp:
+            engine = engine or DEFAULT_ENGINE
+            assert engine in ENGINES, engine
             nodes, parents = self.lp_structure
             kept = dict(parents)
             kept[s] = frozenset(k for k in K if k in parents)
-            outcome = self._entropic_certificate(X, kept, (s,), try_markov=lp_markov_target)
+            closure = lp = None
+            if engine in ('semigraphoid', 'both'):
+                closure = self._semigraphoid_certificate(X, kept, (s,), try_markov=lp_markov_target)
+            if engine in ('lp', 'both'):   # in 'both' the LP always runs: the cross-check covers both directions
+                lp = self._entropic_certificate(X, kept, (s,), try_markov=lp_markov_target)
+            if engine == 'both' and (closure is None) != (lp is None):
+                count('disagreement', 'lp_only' if closure is None else 'closure_only')
+                ENGINE_DISAGREEMENTS.append((self.unique_id, tuple(sorted(X)), s, tuple(sorted(kept[s])), lp, closure))
+            outcome = closure or lp
             count('certificate', outcome or 'failed')
-            if outcome is not None:
+            if closure is not None:
+                count('engine', 'semigraphoid')
+                return 'semigraphoid'
+            if lp is not None:
+                count('engine', 'entropic')
                 return 'entropic'
         return None
 
@@ -787,7 +863,8 @@ class QmDAG:
     def fritz_steps(self, mode: str = 'replace', predictor_mode: str = 'dropped', use_lp: bool = True,
                     pool: str = 'siblings', allow_descendants: bool = False, max_predictors: int = 1,
                     max_targets: Optional[int] = None, lp_markov_target: bool = False,
-                    max_visible: Optional[int] = None, lp_only: bool = False) -> Iterable[Tuple[Tuple, "QmDAG"]]:
+                    max_visible: Optional[int] = None, lp_only: bool = False,
+                    engine: Optional[str] = None) -> Iterable[Tuple[Tuple, "QmDAG"]]:
         """The Fritz piggyback as the search applies it (manuscript Section 8): for every predictor set X, every
         candidate target s of X and the deletion X dictates at s, the realised output, certified by d-separation
         first and by the LP only where d-separation fails. Besides single targets, every set of two or more targets
@@ -801,13 +878,14 @@ class QmDAG:
         predictor and removes the copy, 'dropped' removes the predictors themselves. Justification and surgery run
         on the structure that carries the splits; copies are the indices >= self.number_of_visible, in splitting
         order (predictor copies first), and params are stated in self's indices with a prime for a copy.
+        `engine` names the beyond-d-separation certificate engine (DEFAULT_ENGINE: 'semigraphoid', 'lp' or 'both').
         params: (('targets', (s, ...)), ('mode', m), ('deleted', (labels of D_s, ...)), ('predictor', X),
-        ('predictor_mode', pm), ('certificate', 'dsep' | 'entropic')) [+ ('order', ...) when several predictors are
-        marginalized]."""
+        ('predictor_mode', pm), ('certificate', 'dsep' | 'semigraphoid' | 'entropic')) [+ ('order', ...) when several
+        predictors are marginalized]."""
         assert mode in ('replace', 'copy') and predictor_mode in ('dropped', 'kept')
         if lp_only:
             if not use_lp:
-                return   # an LP stage without the LP (mosek missing) has nothing to emit
+                return   # an entropic stage with the certificate switched off has nothing to emit
             max_targets = 1
         n = self.number_of_visible
         if max_visible is None:
@@ -909,7 +987,8 @@ class QmDAG:
         for item in deferred:
             X, T, work, kept, deleted, X_eff, remove, copy_of = item
             (target,) = kept
-            certificate = work.fritz_certificate(target, kept[target], X_eff, use_lp=True, lp_markov_target=lp_markov_target)
+            certificate = work.fritz_certificate(target, kept[target], X_eff, use_lp=True, lp_markov_target=lp_markov_target,
+                                                 engine=engine)
             if certificate is not None:
                 yield from self._fritz_emit(item, mode, predictor_mode, certificate, labels_of)
 

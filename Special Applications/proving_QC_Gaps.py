@@ -32,6 +32,8 @@ Options (see qc_gap_search.default_stages): the LP tries the `relabel` target se
 set never decided an input (lp_markov_target=True turns it back on). The predictor pool of a target is its latent
 siblings that are not its descendants; `--parents` adds the visible parents of the target to the pool and
 `--descendants` keeps the descendants (the experiments of manuscript 1.2; neither proves a further input).
+`--engine semigraphoid|lp|both` chooses the certificate engine of the entropic stages (manuscript 7.9): the
+semigraphoid closure (default, fast), the entropic LP (needs mosek), or both with every disagreement reported.
 
 Proven gaps are cached on disk (cache/known_gaps.json) with the version of every piggyback their proof relies on;
 cached gaps count as known, so after the first run the expensive stages only touch inputs that are not yet proven.
@@ -49,7 +51,8 @@ if str(PROJECT_ROOT) not in sys.path:
 from itertools import chain
 from typing import Dict, List, Optional, Tuple
 
-from quantum_mDAG import upgrade_to_QmDAG, ENTROPIC_STATS
+from quantum_mDAG import upgrade_to_QmDAG, ENTROPIC_STATS, ENGINE_DISAGREEMENTS
+import semigraphoid
 from metagraph_temporally_ordered import Metagraph_temporally_ordered_mDAGs
 from known_QC_gaps import SEEDS, SEEDS_3_NODES, SEEDS_4_NODES
 from qc_gap_search import (prove_gaps, add_stage, build_report, default_stages, GapReport, FRITZ_TRICKS_ALL,
@@ -83,7 +86,7 @@ def cheap_run(QmDAGs4_representatives, max_visible=5, verbose=True, strict_condi
 
 def expensive_run(cheap: GapReport, max_visible=5, verbose=True, with_entropic=True, with_kept=True,
                   strict_conditioning=True, cache: Optional[GapCache] = None, pool: str = 'siblings',
-                  allow_descendants: bool = False, early_exit: bool = True) -> GapReport:
+                  allow_descendants: bool = False, early_exit: bool = True, engine: Optional[str] = None) -> GapReport:
     """Phase 2: the staged cascade on the inputs phase 1 left unproven. The Bell variants become seeds (so they are
     no longer inputs), and the cached gaps count as known. Shares the explorer of `cheap`, so the elementary
     transitions are not recomputed."""
@@ -94,7 +97,7 @@ def expensive_run(cheap: GapReport, max_visible=5, verbose=True, with_entropic=T
     # four-node census it never decided an input.
     stages = default_stages(max_visible=max_visible, with_entropic=with_entropic, with_kept=with_kept,
                             strict_conditioning=strict_conditioning, pool=pool, allow_descendants=allow_descendants,
-                            lp_markov_target=False)
+                            lp_markov_target=False, engine=engine)
     # Re-base the report on the phase-2 inputs, seeds and known gaps; then run the cascade on what is left.
     report = build_report(cheap.explorer, inputs, SEEDS, TRICK_GROUPS_FOR_REPORT, known=known)
     for name, extra, roots_only, followup, stage_exit in stages[1:]:
@@ -107,9 +110,14 @@ def expensive_run(cheap: GapReport, max_visible=5, verbose=True, with_entropic=T
 
 def run_search(QmDAGs4_representatives=None, max_visible=5, verbose=True, with_entropic=True, with_kept=True,
                strict_conditioning=True, use_cache=True, cache_path: str = CACHE_PATH, pool: str = 'siblings',
-               allow_descendants: bool = False, early_exit: bool = True) -> Tuple[GapReport, GapReport, Optional[GapCache]]:
+               allow_descendants: bool = False, early_exit: bool = True,
+               engine: Optional[str] = None) -> Tuple[GapReport, GapReport, Optional[GapCache]]:
     """Both phases. Returns (phase-1 report, phase-2 report, cache). The cache is loaded before phase 2 (entries whose
     piggyback versions are stale are dropped), updated with every newly proven input, and saved."""
+    from quantum_mDAG import ENGINES
+    if engine is not None and engine not in ENGINES:
+        raise ValueError(f"unknown certificate engine {engine!r}; choose one of {ENGINES}")
+    ENGINE_DISAGREEMENTS.clear()
     if QmDAGs4_representatives is None:
         QmDAGs4_representatives = four_node_representatives()
     distinct = len(set(g.unique_unlabelled_id for g in QmDAGs4_representatives))
@@ -123,7 +131,7 @@ def run_search(QmDAGs4_representatives=None, max_visible=5, verbose=True, with_e
         print(f"Cache: {len(cache)} valid entries loaded, {cache.dropped} dropped (stale piggyback version or seed)")
     report = expensive_run(cheap, max_visible=max_visible, verbose=verbose, with_entropic=with_entropic,
                            with_kept=with_kept, strict_conditioning=strict_conditioning, cache=cache, pool=pool,
-                           allow_descendants=allow_descendants, early_exit=early_exit)
+                           allow_descendants=allow_descendants, early_exit=early_exit, engine=engine)
     if cache is not None:
         added = cache.record(report)
         cache.save()
@@ -190,8 +198,14 @@ def print_report(report: GapReport, certificates_for=()) -> None:
         print(f"    {name:>50}: proven {proven:4d}  (new {new:3d})")
     print("Structures expanded by the search: ", len(report.explorer.edges))
     if ENTROPIC_STATS:
-        print("Entropic certificates (kind, outcome) -> count: ", dict(sorted(ENTROPIC_STATS.items())))
-    print("LP solves that hit the time limit: ", entropic_lp.TIMEOUTS[0])
+        print("Certificates (kind, outcome) -> count: ", dict(sorted(ENTROPIC_STATS.items())))
+    print("Semigraphoid closures: ", int(semigraphoid.STATS['closures']), f"({semigraphoid.STATS['seconds']:.1f}s incl. d-separation models;"
+          f" numba {'on' if semigraphoid.HAVE_NUMBA else 'off'})")
+    print("LP solves: ", entropic_lp.SOLVES[0], "; hit the time limit: ", entropic_lp.TIMEOUTS[0])
+    if ENGINE_DISAGREEMENTS:
+        print("ENGINE DISAGREEMENTS (closure vs LP): ", len(ENGINE_DISAGREEMENTS))
+        for item in ENGINE_DISAGREEMENTS:
+            print("    ", item)
     for g in certificates_for:
         print("-" * 60)
         print(g.as_string.rstrip())
@@ -206,7 +220,8 @@ if __name__ == '__main__':
     pool = 'siblings+parents' if '--parents' in sys.argv else 'siblings'
     allow_descendants = '--descendants' in sys.argv
     early_exit = '--no-early-exit' not in sys.argv
+    engine = sys.argv[sys.argv.index('--engine') + 1] if '--engine' in sys.argv and sys.argv.index('--engine') + 1 < len(sys.argv) else None
     cheap, report, cache = run_search(with_entropic=with_entropic, with_kept=with_kept, use_cache=use_cache, pool=pool,
-                                      allow_descendants=allow_descendants, early_exit=early_exit)
+                                      allow_descendants=allow_descendants, early_exit=early_exit, engine=engine)
     print_cheap_report(cheap)
     print_report(report, certificates_for=proven_through_fritz(report))

@@ -24,6 +24,12 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
 
+[tool.poetry.group.jit]
+optional = true
+
+[tool.poetry.group.jit.dependencies]
+numba = "^0.68"   # compiles the semigraphoid closure and the d-separation enumerator (semigraphoid.py); numpy fallback without it
+
 [tool.poetry.group.lp]
 optional = true
 

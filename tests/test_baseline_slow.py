@@ -1,8 +1,11 @@
-"""Pins the 4-node QC-gap census (both phases, cache disabled). Takes about three minutes; run with `pytest -m slow`.
+"""Pins the 4-node QC-gap census (both phases, cache disabled); run with `pytest -m slow`. The default engine
+(semigraphoid closure) takes about half a minute; the cross-check against the LP needs mosek and about two minutes.
 All counts are up to relabelling."""
+import importlib.util
+
 import pytest
 
-pytest.importorskip("mosek")
+HAVE_MOSEK = importlib.util.find_spec("mosek") is not None
 
 # Phase 1: the 2807 labelled 4-node mDAGs that respect the order 0 < 1 < 2 < 3 and are not provably algebraic, with
 # every latent quantum (996 distinct up to relabelling, Bell variants included), elementary reductions only, three-node
@@ -36,19 +39,20 @@ EXPECTED_STAGES = [
     ('Fritz, replace mode, kept predictors, d-separation', 922),
     ('Fritz, copy mode, dropped predictors, d-separation', 925),
     ('Fritz, copy mode, kept predictors, d-separation', 926),
-    ('Fritz, replace mode, dropped predictors, LP', 926),
-    ('Fritz, replace mode, kept predictors, LP', 931),
-    ('Fritz, copy mode, dropped predictors, LP', 931),
-    ('Fritz, copy mode, kept predictors, LP', 931),
+    ('Fritz, replace mode, dropped predictors, entropic', 926),
+    ('Fritz, replace mode, kept predictors, entropic', 931),
+    ('Fritz, copy mode, dropped predictors, entropic', 931),
+    ('Fritz, copy mode, kept predictors, entropic', 931),
 ]
 EXPECTED_LADDER = [921, 922, 922, 925, 926, 926, 931, 931, 931]
 
 
-@pytest.mark.slow
-def test_search_counts(proving_QC_Gaps):
-    import entropic_lp
+EXPECTED_CERTIFICATES = {('certificate', 'vacuous'): 404, ('certificate', 'dsep'): 398, ('certificate', 'relabel'): 54,
+                         ('certificate', 'failed'): 668}
+
+
+def _check(cheap, report, cache, proving_QC_Gaps):
     from qc_gap_search import ladder
-    cheap, report, cache = proving_QC_Gaps.run_search(verbose=False, with_entropic=True, use_cache=False)
     assert cache is None
     assert cheap.counts == EXPECTED_CHEAP
     assert report.counts['inputs'] == 994 and report.counts['labelled_inputs'] == 2801
@@ -57,7 +61,33 @@ def test_search_counts(proving_QC_Gaps):
     rungs = [proven for _, proven, _ in ladder(report)]
     assert rungs == EXPECTED_LADDER
     assert rungs == [count for _, count in EXPECTED_STAGES]
-    assert entropic_lp.TIMEOUTS[0] == 0
     # Every proven input has a certificate ending at a named seed.
     for gid in report.proven:
         assert report.seed_hit[gid] in report.seeds
+
+
+@pytest.mark.slow
+def test_search_counts(proving_QC_Gaps):
+    """The census with the default engine, the semigraphoid closure."""
+    import quantum_mDAG as QM
+    QM.ENTROPIC_STATS.clear()
+    cheap, report, cache = proving_QC_Gaps.run_search(verbose=False, with_entropic=True, use_cache=False, engine='semigraphoid')
+    _check(cheap, report, cache, proving_QC_Gaps)
+    stats = {k: v for k, v in QM.ENTROPIC_STATS.items() if k[0] == 'certificate'}
+    assert stats == EXPECTED_CERTIFICATES
+    assert QM.ENTROPIC_STATS[('engine', 'semigraphoid')] == 54
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(not HAVE_MOSEK, reason="mosek not installed")
+def test_search_counts_with_both_engines_agree(proving_QC_Gaps):
+    """The closure and the LP certify exactly the same candidate steps on the whole census."""
+    import entropic_lp
+    import quantum_mDAG as QM
+    QM.ENTROPIC_STATS.clear()
+    QM.ENGINE_DISAGREEMENTS.clear()
+    cheap, report, cache = proving_QC_Gaps.run_search(verbose=False, with_entropic=True, use_cache=False, engine='both')
+    _check(cheap, report, cache, proving_QC_Gaps)
+    assert QM.ENGINE_DISAGREEMENTS == []
+    assert ('engine', 'entropic') not in QM.ENTROPIC_STATS     # the LP never certified what the closure had not
+    assert entropic_lp.TIMEOUTS[0] == 0

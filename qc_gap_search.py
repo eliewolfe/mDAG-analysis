@@ -73,27 +73,34 @@ def elementary_tricks(max_visible: int = 5, districts_check: bool = False,
 def fritz_tricks(max_visible: int = 5, predictor_mode: str = 'dropped', modes: Tuple[str, ...] = ('replace', 'copy'),
                  use_lp: bool = True, pool: str = 'siblings', allow_descendants: bool = False,
                  max_predictors: int = 1, max_targets: Optional[int] = None, lp_markov_target: bool = False,
-                 lp_only: bool = False) -> Dict[str, Trick]:
+                 lp_only: bool = False, engine: Optional[str] = None) -> Dict[str, Trick]:
     """The Fritz trick (name 'Fritz'): QmDAG.fritz_steps once per predicted-node mode in `modes`. predictor_mode
     is 'dropped' or 'kept'; `pool` ('siblings' or 'siblings+parents') and `allow_descendants` widen the predictor
     pool (manuscript 8.4); `max_predictors` allows joint predictor sets; `max_targets` bounds the joint target sets of
     one predictor (all by default; 1 disables them); lp_markov_target=True also tries the
-    `markov` LP target set after `relabel` fails (it never decided an input in the four-node census, 9.7);
-    lp_only=True emits the LP-certified single steps only (the LP stages of the cascade)."""
-    if use_lp or lp_only:
+    `markov` target set after `relabel` fails (it never decided an input in the four-node census, 9.7);
+    lp_only=True emits only the single steps the beyond-d-separation engine certifies (the entropic stages of the
+    cascade); `engine` is 'semigraphoid' (default), 'lp' or 'both' (quantum_mDAG.DEFAULT_ENGINE, manuscript 7.9)."""
+    from quantum_mDAG import DEFAULT_ENGINE, ENGINES
+    engine = engine or DEFAULT_ENGINE
+    if engine not in ENGINES:
+        raise ValueError(f"unknown certificate engine {engine!r}; choose one of {ENGINES}")
+    if (use_lp or lp_only) and engine in ('lp', 'both'):
         try:
             import mosek  # noqa: F401
         except ImportError:
-            warnings.warn("mosek is not installed; the Fritz trick certifies by d-separation only"
-                          + (" (an LP-only stage then emits nothing)." if lp_only else "."))
-            use_lp = False
+            if engine == 'lp':
+                raise ImportError("engine 'lp' needs mosek; install it (poetry install --with lp) or use the "
+                                  "semigraphoid engine") from None
+            warnings.warn("mosek is not installed; engine 'both' runs the semigraphoid closure alone.")
+            engine = 'semigraphoid'
 
     def fritz(g: QmDAG) -> Iterable[Tuple[Tuple, QmDAG]]:
         for mode in modes:
             yield from g.fritz_steps(mode=mode, predictor_mode=predictor_mode, use_lp=use_lp, pool=pool,
                                      allow_descendants=allow_descendants, max_predictors=max_predictors,
                                      max_targets=max_targets, lp_markov_target=lp_markov_target, max_visible=max_visible,
-                                     lp_only=lp_only)
+                                     lp_only=lp_only, engine=engine)
     return {'Fritz': fritz}
 
 
@@ -111,7 +118,7 @@ Stage = Tuple[str, Dict[str, Callable], bool, Optional[FrozenSet[str]], bool]   
 def default_stages(max_visible: int = 5, with_entropic: bool = True, with_kept: bool = True,
                    max_predictors: int = 1, districts_check: bool = False, strict_conditioning: bool = True,
                    pool: str = 'siblings', allow_descendants: bool = False, max_targets: Optional[int] = None,
-                   lp_markov_target: bool = False) -> List[Stage]:
+                   lp_markov_target: bool = False, engine: Optional[str] = None) -> List[Stage]:
     """The cascade (manuscript 9.2), cheapest first; each stage runs only on the inputs the earlier ones left
     unproven, and every structure proven in a stage is a known gap for the next.
     (1) The elementary reductions, closed over everything reachable from every input.
@@ -120,14 +127,15 @@ def default_stages(max_visible: int = 5, with_entropic: bool = True, with_kept: 
     root everything is recorded, breadth-first (no early exit): the test is cheap, and recording every
     d-separation route keeps the recorded routes, and the database of proven structures, independent of the order
     in which a root's predictors are tried.
-    (6-9) The same four modes with the entropic LP, single targets only, each root stopping at its first success
-    (early exit); with_entropic=False omits them. The LP tries the `relabel` target set only (lp_markov_target=True
+    (6-9) The same four modes with the entropic certificate (the semigraphoid closure by default, the LP with
+    engine='lp', both with engine='both'), single targets only, each root stopping at its first success (early
+    exit); with_entropic=False omits them. The engine tries the `relabel` target set only (lp_markov_target=True
     turns the `markov` set back on; it never decided an input in the four-node census).
     The predictor pool is the latent siblings of the target that are not its descendants; pool='siblings+parents'
     adds the visible parents and allow_descendants=True keeps the descendants (the experiments of manuscript 1.2).
     Joint predictor sets are available (max_predictors) but off; max_targets bounds the joint target sets."""
     common = dict(max_visible=max_visible, pool=pool, allow_descendants=allow_descendants,
-                  max_predictors=max_predictors, lp_markov_target=lp_markov_target)
+                  max_predictors=max_predictors, lp_markov_target=lp_markov_target, engine=engine)
     elementary = elementary_tricks(max_visible, districts_check, strict_conditioning)
     reductions = frozenset(elementary)
     names = [name for name, _ in CASCADE]
@@ -597,7 +605,7 @@ def predictor_mode_of(t: Transition) -> Optional[str]:
 
 
 def certificate_of(t: Transition) -> Optional[str]:
-    """'dsep' or 'entropic' for a Fritz transition, None otherwise."""
+    """'dsep', 'semigraphoid' or 'entropic' for a Fritz transition, None otherwise."""
     return dict(t.params).get('certificate') if t.trick == 'Fritz' else None
 
 
@@ -613,13 +621,17 @@ def is_kept(t: Transition) -> bool:
     return predictor_mode_of(t) == 'kept'
 
 
-def is_lp(t: Transition) -> bool:
-    return certificate_of(t) == 'entropic'
+def beyond_dsep(t: Transition) -> bool:
+    """A Fritz step certified beyond d-separation (semigraphoid closure or LP)."""
+    return certificate_of(t) in ('semigraphoid', 'entropic')
+
+
+is_lp = beyond_dsep   # older name
 
 
 # The cascade, cheapest first: (stage name, predicate "this transition belongs to this rung or an earlier one").
-# `default_stages` runs exactly these stages: the four d-separation stages, then the four LP stages, so a stage's
-# cumulative count coincides with its rung of the ladder (the slow test checks it).
+# `default_stages` runs exactly these stages: the four d-separation stages, then the four entropic stages (closure
+# or LP), so a stage's cumulative count coincides with its rung of the ladder (the slow test checks it).
 _RUNGS = [(lp, mode, kept) for lp in (False, True) for mode, kept in
           (('replace', False), ('replace', True), ('copy', False), ('copy', True))]
 
@@ -630,12 +642,12 @@ def _rung(mode: str, kept: bool, lp: bool) -> Callable[[Transition], bool]:
     def keep(t: Transition) -> bool:
         if not is_fritz_type(t):
             return True
-        return _RUNGS.index((is_lp(t), 'copy' if uses_copy(t) else 'replace', is_kept(t))) <= rank
+        return _RUNGS.index((beyond_dsep(t), 'copy' if uses_copy(t) else 'replace', is_kept(t))) <= rank
     return keep
 
 
 def _rung_name(lp: bool, mode: str, kept: bool) -> str:
-    return f"Fritz, {mode} mode, {'kept' if kept else 'dropped'} predictors, {'LP' if lp else 'd-separation'}"
+    return f"Fritz, {mode} mode, {'kept' if kept else 'dropped'} predictors, {'entropic' if lp else 'd-separation'}"
 
 
 CASCADE: List[Tuple[str, Callable[[Transition], bool]]] = [('elementary', lambda t: not is_fritz_type(t))] + \

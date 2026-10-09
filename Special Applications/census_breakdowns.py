@@ -6,7 +6,7 @@ for every elementary piggyback, inputs of phase 1 that are lost without it; for 
 qc_gap_search), the inputs it adds, with the shortest certificate each; the proven-structure database by node count;
 and the still-unproven inputs.
 
-Usage: python "Special Applications/census_breakdowns.py" [--no-entropic] [--only examples|lpclosure]
+Usage: python "Special Applications/census_breakdowns.py" [--no-entropic] [--engine semigraphoid|lp|both] [--only examples|lpclosure]
 """
 import os
 import sys
@@ -93,9 +93,9 @@ def show_examples(report: GapReport, lost: Set, keep: Predicate, title: str, lim
         print(render_certificate(report.explorer, chain, goals[chain[-1].target]))
 
 
-def examples(with_entropic: bool = True) -> None:
+def examples(with_entropic: bool = True, engine=None) -> None:
     t0 = time.time()
-    cheap, report, _ = run_search(verbose=False, with_entropic=with_entropic, use_cache=False)
+    cheap, report, _ = run_search(verbose=False, with_entropic=with_entropic, use_cache=False, engine=engine)
     print(f"[census in {time.time() - t0:.0f}s]")
     print_cheap_report(cheap)
     print_report(report)
@@ -152,8 +152,9 @@ def lp_closure() -> None:
 
 if __name__ == '__main__':
     with_entropic = '--no-entropic' not in sys.argv
+    engine = sys.argv[sys.argv.index('--engine') + 1] if '--engine' in sys.argv and sys.argv.index('--engine') + 1 < len(sys.argv) else None
     only = sys.argv[sys.argv.index('--only') + 1] if '--only' in sys.argv else None
     if only in (None, 'examples'):
-        examples(with_entropic=with_entropic)
+        examples(with_entropic=with_entropic, engine=engine)
     if only == 'lpclosure':
         lp_closure()
