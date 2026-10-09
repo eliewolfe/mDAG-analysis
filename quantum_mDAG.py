@@ -982,17 +982,20 @@ class QmDAG:
                         if prepared is None:
                             continue
                         work, X_eff, eff_targets, remove, copy_of = prepared
-                        kept, deleted = {}, {}
+                        kept, deleted, labels = {}, {}, set()
                         for target in eff_targets:
                             deletion = work.fritz_deletion(target, X_eff)
-                            if deletion is None or work.fritz_certificate(target, deletion[0], X_eff, use_lp=False, tally=False) is None:
+                            label = None if deletion is None else work.fritz_certificate(target, deletion[0], X_eff, use_lp=False, tally=False)
+                            if label is None:
                                 kept = None
                                 break
                             kept[target], deleted[target] = deletion
+                            labels.add(label)
                         if kept is None:
                             continue
                         item = (X, T, work, kept, deleted, X_eff, remove, copy_of)
-                        yield from self._fritz_emit(item, target_mode, predictor_mode, 'dsep', labels_of)
+                        # 'parent' when every member is a parent step (6.3), 'dsep' otherwise (Theorem 6.4 for the set)
+                        yield from self._fritz_emit(item, target_mode, predictor_mode, 'parent' if labels == {'parent'} else 'dsep', labels_of)
         for item in deferred:
             X, T, work, kept, deleted, X_eff, remove, copy_of = item
             (target,) = kept

@@ -218,6 +218,8 @@ if __name__ == '__main__':
     with_entropic = '--no-entropic' not in sys.argv
     with_split_predictors = '--no-split-predictors' not in sys.argv
     use_cache = '--no-cache' not in sys.argv
+    if '--parents' in sys.argv:
+        raise SystemExit("--parents was removed: the parent piggyback is now the first Fritz stage of the cascade")
     pool = 'siblings'
     allow_descendants = '--descendants' in sys.argv
     early_exit = '--no-early-exit' not in sys.argv

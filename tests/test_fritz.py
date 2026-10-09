@@ -111,6 +111,11 @@ def test_parent_predictor_needs_no_certificate_and_deletes_maximally():
     # The certified stages never see a parent: with the default pool, 0 is not offered for 1.
     assert all(dict(p)['predictor'] != (0,) or 1 not in dict(p)['targets'] for p in steps(g))
     assert all(dict(p)['certificate'] == 'parent' for p in steps(g, pool='parents'))
+    # A parent of several targets: the joint steps carry the label 'parent' as well (no d-separation test ran).
+    g = Q([(0, 1), (0, 2), (0, 3), (3, 1)], 4, [], [(1, 2), (2, 3)])
+    out = steps(g, pool='parents')
+    joint = [p for p in out if len(dict(p)['targets']) > 1 and dict(p)['predictor'] == (0,)]
+    assert joint and all(dict(p)['certificate'] == 'parent' for p in out)
 
 
 def test_private_noise_blocks_prediction_of_a_parent():

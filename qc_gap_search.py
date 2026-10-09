@@ -146,6 +146,9 @@ def default_stages(max_visible: int = 5, with_entropic: bool = True, with_split_
     The predictor pool of the certified stages is the latent siblings of the target that are not its visible parents
     nor its descendants (`pool`); allow_descendants=True keeps the descendants (the experiment of manuscript 1.2).
     Joint predictor sets are available (max_predictors) but off; max_targets bounds the joint target sets."""
+    if pool != 'siblings':
+        raise ValueError("the certified stages draw on the latent siblings only (pool='siblings'); the visible parents "
+                         "are the parent stage, which the cascade always runs")
     common = dict(max_visible=max_visible, allow_descendants=allow_descendants,
                   max_predictors=max_predictors, lp_markov_target=lp_markov_target, engine=engine)
     elementary = elementary_tricks(max_visible, districts_check, strict_conditioning)
