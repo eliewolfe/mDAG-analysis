@@ -710,7 +710,7 @@ class QmDAG:
         (fritz_pool) contains a member of X, none of X being a descendant of s unless allow_descendants. Nodes
         sharing more facets with X come first, then by index."""
         X = frozenset(X)
-        _, latent_nodes = self.effective_DAG_data
+        g, latent_nodes = self.effective_DAG_data
         facets = [members for kind, members in latent_nodes.values() if kind != 'noise']
 
         def shared(s: int) -> int:
@@ -719,9 +719,12 @@ class QmDAG:
         for s in self.visible_nodes:
             if s in X:
                 continue
-            candidates = self.fritz_pool(s, pool=pool, allow_descendants=allow_descendants)
-            if X & set(candidates) and all(x in candidates or allow_descendants or x not in nx.descendants(self.effective_DAG_data[0], s) for x in X):
-                out.append(s)
+            candidates = set(self.fritz_pool(s, pool=pool, allow_descendants=allow_descendants))
+            if not X & candidates:
+                continue   # no member of X has a channel to s
+            if not allow_descendants and X & nx.descendants(g, s):
+                continue   # a member of X that cannot see s and is downstream of it
+            out.append(s)
         return sorted(out, key=lambda s: (-shared(s), s))
 
     def _restrict_targets(self, kept: Dict[int, frozenset]) -> "QmDAG":
@@ -789,14 +792,16 @@ class QmDAG:
     def fritz_steps(self, mode: str = 'replace', predictor_mode: str = 'dropped', use_lp: bool = True,
                     pool: str = 'siblings', allow_descendants: bool = False, max_predictors: int = 1,
                     max_targets: Optional[int] = None, lp_markov_target: bool = False,
-                    max_visible: Optional[int] = None) -> Iterable[Tuple[Tuple, "QmDAG"]]:
+                    max_visible: Optional[int] = None, lp_only: bool = False) -> Iterable[Tuple[Tuple, "QmDAG"]]:
         """The Fritz piggyback as the search applies it (manuscript Section 8): for every predictor set X, every
         candidate target s of X and the deletion X dictates at s, the realised output, certified by d-separation
         first and by the LP only where d-separation fails. Besides single targets, every set of two or more targets
         of the same X that d-separation certifies (on the structure carrying all their splits) is emitted as one
         joint step, up to max_targets members (all by default): Fritz's derivation of Bell from the triangle is one
         such step. All d-separation steps, single and joint, are emitted before any LP step, so a search that stops at
-        the first success never pays for an LP it does not need; the LP certifies single targets only.
+        the first success never pays for an LP it does not need; the LP certifies single targets only. With lp_only
+        the d-separation steps are not emitted at all (the census records them in its d-separation stages first,
+        manuscript 9.2) and no joint sets are formed: only the single targets the LP certifies come out.
         mode 'copy' splits each target first and restricts the copy (6.2); predictor_mode 'kept' splits each childful
         predictor and removes the copy, 'dropped' removes the predictors themselves. Justification and surgery run
         on the structure that carries the splits; copies are the indices >= self.number_of_visible, in splitting
@@ -805,10 +810,12 @@ class QmDAG:
         ('predictor_mode', pm), ('certificate', 'dsep' | 'entropic')) [+ ('order', ...) when several predictors are
         marginalized]."""
         assert mode in ('replace', 'copy') and predictor_mode in ('dropped', 'kept')
+        if lp_only:
+            use_lp, max_targets = True, 1
         n = self.number_of_visible
         if max_visible is None:
             max_visible = n + 1
-        g0, latent0 = self.effective_DAG_data
+        g0, _ = self.effective_DAG_data
         predictor_candidates = [x for x in self.visible_nodes
                                 if self.latent_siblings_of(x) or (pool == 'siblings+parents' and set(g0.successors(x)) & set(self.visible_nodes))]
         deferred = []
@@ -867,11 +874,13 @@ class QmDAG:
                         continue
                     K, D = deletion
                     item = (X, (s,), work, {target: K}, {target: D}, X_eff, remove, copy_of)
-                    certificate = work.fritz_certificate(target, K, X_eff, use_lp=False)
+                    certificate = work.fritz_certificate(target, K, X_eff, use_lp=False, tally=not lp_only)
                     if certificate is None:
                         if use_lp:
                             deferred.append(item)
                         continue
+                    if lp_only:
+                        continue   # recorded by the d-separation stage
                     certified.append(s)
                     yield from self._fritz_emit(item, mode, predictor_mode, certificate, labels_of)
                 top = len(certified) if max_targets is None else min(max_targets, len(certified))
