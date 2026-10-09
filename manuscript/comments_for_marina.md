@@ -60,7 +60,7 @@ The draft's placeholder "Alternative formulation of the Fritz piggyback" (line 1
 Everything in Section 6 of the draft (the algorithm, Table 1, the 2807/2587/220 numbers, the 926 unlabelled classes, the 70 remaining) is superseded. The current facts (piggybacks.md Section 1, Section 9; pinned by `tests/test_baseline_slow.py`):
 
 * Inputs: the four-node mDAGs respecting the order $0<1<2<3$ that are not provably algebraic, every facet quantum: 2807 labelled, **996 up to relabelling**. All counts should be given up to relabelling; the code works that way.
-* **Phase 1** (elementary reductions only, three-node seeds): 917 of 996 proven; per-trick "via / only via" table (1.1): PD 860/246, node stitching 10/3, conditioning 289/20, naive marginalization 515/0, teleportation marginalization 540/16, either marginalization 540/24.
+* **Phase 1** (elementary reductions only, three-node seeds): 917 of 996 proven; per-trick "via / only via" table (1.1): PD 860/244, node stitching 10/3, conditioning 292/20, naive marginalization 515/0, teleportation marginalization 540/16, either marginalization 540/24.
 * **Phase 2** (weakest Bell variants as seeds, 994 inputs): elementary 921; then eight Fritz stages, four by d-separation (922, 922, 925, 926) and four by the semigraphoid closure (926, 931, 931, 931), in the order unsplit/unsplit, unsplit target/split predictor, split target/unsplit predictor, split/split. **931 proven, 63 remaining**, all 63 listed in piggybacks.md Section 10. Five inputs by d-separation, five by the closure (table in 8.9 with each step and seed). The tetrahedron is still the one input settled at the cheapest Fritz stage; the first Fritz example in the draft (line 1336) stays valid.
 * Times: two phases 15 s, about 30 s with the enumeration of the inputs; with the LP as engine 110 s.
 * Design points that must be explained: two phases; eight stages of increasing cost, each applied once to the still-unproven inputs, elementary follow-up only ("depth one"); d-separation stages breadth-first, closure stages with early exit (8.8); the predictor pool is the latent siblings (parents and descendants as experiments that prove nothing more, 1.2, 8.4-8.5); joint target sets (8.6); the cache with piggyback versions (9.4).
@@ -156,7 +156,7 @@ Correct as stated (the shared latent is among the parents of $a$, hence classica
 | 3.2 marginalization (three examples) | Section 3 (map with teleportation, both halves, order dependence, example) |
 | 3.3 Fritz / triangle | 6.1 mechanism, 6.2 split and unsplit predictors and targets, 6.3 theorem, 6.4 the unit and joint targets, 6.5 the triangle, 6.6 tetrahedron, 6.7 visible edge, 6.8 split target, 6.9 split predictor worked out |
 | 3.4 interruption / Ghost | Section 5 node stitching |
-| 3.5 postselection / Flag | Section 4 conditioning (idea, three conditions, classical argument, counterexample for condition 2, quantum construction, condition 3; see Part D) |
+| 3.5 postselection / Flag | Section 4 conditioning (idea, two conditions, classical argument, counterexample for condition 2, quantum construction by recomputing the parents, why no condition on the parents' children is needed; see Part D) |
 | 4 formalization | the theorems inside Sections 2-7 and 0.4 (degradation) |
 | 5 observational dominance in the quantum case | absorbed into the maps of Sections 3-5; Appendix A for the reverse direction |
 | (missing) certificate beyond d-separation | Section 7 (semigraphoid closure), Appendix B (entropic LP) |
@@ -180,7 +180,7 @@ Correct as stated (the shared latent is among the parents of $a$, hence classica
 
 **Effect on the census.** Running the current census with condition 3 removed from `conditioning_is_justified` (nothing else changed):
 
-| | with condition 3 (current) | without condition 3 |
+| | with condition 3 (before this change) | without condition 3 (now) |
 |---|---|---|
 | recorded conditioning transitions (shared explorer, both phases) | 3503 | 3539 |
 | phase 1, inputs provable via conditioning alone | 289 | 292 |

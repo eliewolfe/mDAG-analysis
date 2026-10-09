@@ -77,8 +77,9 @@ def test_parents_may_have_children_outside_the_block():
     assert out.C_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({0, 2})}   # the parent and the sibling
     assert out.Q_simplicial_complex_instance.simplicial_complex_as_sets == set()                 # no quantum sibling pair
     assert out.directed_structure_instance.edge_list == [(0, 1)]
-    g2 = Q([(0, 1), (0, 2), (2, 1)], 4, [], [(1, 3)])
-    assert g2.conditioning_is_justified(1)
+    # Condition 2 still bites: the same parent 0 now shares a facet with the sibling 3 that does not contain 1.
+    g2 = Q([(0, 1), (0, 2)], 4, [(0, 3)], [(1, 3)])
+    assert not g2.conditioning_is_justified(1)
     # Condition 1 still bites: 0 is a grandparent of 2 (through 1) and not a parent.
     g3 = Q([(0, 1), (1, 2)], 4, [], [(2, 3)])
     assert not g3.conditioning_is_justified(2)
