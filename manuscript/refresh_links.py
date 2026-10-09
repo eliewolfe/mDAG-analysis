@@ -185,6 +185,9 @@ def link_sections(line: str, anchors: Dict[str, str]) -> str:
         # "about 0.2, 0.5, 2 and 9 seconds" (6.6) is a measurement, not a reference.
         if m.group(4) in ("0.2", "0.5") and re.search(r"about 0\.2, 0\.5, 2 and 9", line):
             continue
+        # A number that fills a table cell on its own ("| 0.3 |") is a measurement, not a reference.
+        if m.group(4) and line[:m.start()].endswith("| ") and line[m.end():].startswith(" |"):
+            continue
         repl = None
         if m.group(1):
             a, b = m.group(1), m.group(2)

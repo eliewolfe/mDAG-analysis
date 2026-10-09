@@ -286,12 +286,31 @@ class mDAG:
         return tuple(sorted(stuff))
 
     # We do not cache iterators, only their output, as iterators are consumed!
+    def _dsep_model(self, deleted: Tuple[int, ...] = ()) -> Tuple[int, "np.ndarray"]:
+        """The elementary d-separation model (semigraphoid.dsep_all) of as_graph with the visible nodes `deleted`
+        removed: visible nodes keep their indices, latent nodes follow them."""
+        import semigraphoid as sg
+        g = self.as_graph
+        n = self.total_number_of_nodes
+        parents = {v: [p for p in g.predecessors(v) if p not in deleted] for v in range(n) if v not in deleted}
+        return n, sg.dsep_model_of(n, parents)
+
     @property
     def _all_CI_generator_numeric(self) -> Iterable[Tuple[Tuple[int, ...], Tuple[int, ...]]]:
-        for x, y, Z in self._all_2_vs_any_partitions(self.visible_nodes):
-            if not self.skeleton_adj_mat[x, y]:
-                if nx.is_d_separator(self.as_graph, {x}, {y}, set(Z)):
-                    yield (self.fake_frozenset([x, y]), self.fake_frozenset(Z))
+        yield from self._ci_from_model(())
+
+    def _ci_from_model(self, deleted: Tuple[int, ...]) -> Iterable[Tuple[Tuple[int, ...], Tuple[int, ...]]]:
+        import semigraphoid as sg
+        n, E = self._dsep_model(deleted)
+        remaining = [v for v in self.visible_nodes if v not in deleted]
+        rest_mask = sg.mask_of(remaining)
+        for a, x in enumerate(remaining):
+            for y in remaining[a + 1:]:
+                if self.skeleton_adj_mat[x, y]:
+                    continue
+                Zs = sg.submasks(rest_mask & ~((1 << x) | (1 << y)))
+                for Z in Zs[E[x, y, Zs]]:
+                    yield (self.fake_frozenset([x, y]), self.fake_frozenset(sg.bits_of(int(Z))))
 
     @cached_property
     def all_CI_numeric(self) -> Set[Tuple[Tuple[int, ...], Tuple[int, ...]]]:
@@ -373,13 +392,9 @@ class mDAG:
     def _all_e_sep_generator_numeric(self) -> Iterable[Tuple[Tuple[int, ...], Tuple[int, ...], Tuple[int, ...]]]:
         for r in range(self.number_of_visible - 1):
             for to_delete in itertools.combinations(self.visible_nodes, r):
-                graph_copy = self.as_graph.copy()  # Don't forget to copy!
-                graph_copy.remove_nodes_from(to_delete)
-                remaining = set(self.visible_nodes).difference(to_delete)
-                for x, y, Z in self._all_2_vs_any_partitions(tuple(remaining)):
-                    if not self.skeleton_adj_mat[x, y]:
-                        if nx.is_d_separator(graph_copy, {x}, {y}, set(Z)):
-                            yield (self.fake_frozenset([x, y]), self.fake_frozenset(Z), self.fake_frozenset(to_delete))
+                for pair, Z in self._ci_from_model(to_delete):
+                    yield (pair, Z, self.fake_frozenset(to_delete))
+
     @cached_property
     def all_esep_numeric(self) -> Set[Tuple[Tuple[int, ...], Tuple[int, ...], Tuple[int, ...]]]:
         return set(self._all_e_sep_generator_numeric)

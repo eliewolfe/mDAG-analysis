@@ -9146,7 +9146,7 @@
    "via_cache": null
   },
   "4,20,0,3177": {
-   "certificate": "Fritz(('targets', (2,)), ('mode', 'replace'), ('deleted', ((1, 'Q{0,2}'),)), ('predictor', (3,)), ('predictor_mode', 'kept'), ('certificate', 'entropic')):\n    Children  : {0:[1],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(1,3),(2,3)]\n== known gap QG_Bell_C_Edge:\n    Children  : {0:[],1:[],2:[3],3:[]}\n    Classical : [(0,1)]\n    Quantum   : [(0,3)]",
+   "certificate": "Fritz(('targets', (2,)), ('mode', 'replace'), ('deleted', ((1, 'Q{0,2}'),)), ('predictor', (3,)), ('predictor_mode', 'kept'), ('certificate', 'semigraphoid')):\n    Children  : {0:[1],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(1,3),(2,3)]\n== known gap QG_Bell_C_Edge:\n    Children  : {0:[],1:[],2:[3],3:[]}\n    Classical : [(0,1)]\n    Quantum   : [(0,3)]",
    "chain": [
     {
      "params": [
@@ -9181,7 +9181,7 @@
       ],
       [
        "certificate",
-       "entropic"
+       "semigraphoid"
       ]
      ],
      "source": [
@@ -59819,7 +59819,7 @@
    "via_cache": null
   },
   "4,68,0,3219": {
-   "certificate": "Fritz(('targets', (2,)), ('mode', 'replace'), ('deleted', ((0, 1),)), ('predictor', (3,)), ('predictor_mode', 'kept'), ('certificate', 'entropic')):\n    Children  : {0:[2],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,3),(2,3)]\ndegradation(('classical', ((2, 3),)),):\n    Children  : {0:[],1:[],2:[],3:[]}\n    Classical : [(0,1)]\n    Quantum   : [(0,2),(2,3)]\n== known gap QG_Bell_C_C:\n    Children  : {0:[],1:[],2:[],3:[]}\n    Classical : [(0,1),(2,3)]\n    Quantum   : [(0,2)]",
+   "certificate": "Fritz(('targets', (2,)), ('mode', 'replace'), ('deleted', ((0, 1),)), ('predictor', (3,)), ('predictor_mode', 'kept'), ('certificate', 'semigraphoid')):\n    Children  : {0:[2],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,3),(2,3)]\ndegradation(('classical', ((2, 3),)),):\n    Children  : {0:[],1:[],2:[],3:[]}\n    Classical : [(0,1)]\n    Quantum   : [(0,2),(2,3)]\n== known gap QG_Bell_C_C:\n    Children  : {0:[],1:[],2:[],3:[]}\n    Classical : [(0,1),(2,3)]\n    Quantum   : [(0,2)]",
    "chain": [
     {
      "params": [
@@ -59854,7 +59854,7 @@
       ],
       [
        "certificate",
-       "entropic"
+       "semigraphoid"
       ]
      ],
      "source": [
@@ -62069,7 +62069,7 @@
    "via_cache": null
   },
   "4,70,0,202": {
-   "certificate": "Fritz(('targets', (2,)), ('mode', 'replace'), ('deleted', ((0, 1),)), ('predictor', (3,)), ('predictor_mode', 'kept'), ('certificate', 'entropic')):\n    Children  : {0:[1,2],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3)]\n== known gap QG_Bell_C_Edge:\n    Children  : {0:[],1:[],2:[3],3:[]}\n    Classical : [(0,1)]\n    Quantum   : [(0,3)]",
+   "certificate": "Fritz(('targets', (2,)), ('mode', 'replace'), ('deleted', ((0, 1),)), ('predictor', (3,)), ('predictor_mode', 'kept'), ('certificate', 'semigraphoid')):\n    Children  : {0:[1,2],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3)]\n== known gap QG_Bell_C_Edge:\n    Children  : {0:[],1:[],2:[3],3:[]}\n    Classical : [(0,1)]\n    Quantum   : [(0,3)]",
    "chain": [
     {
      "params": [
@@ -62104,7 +62104,7 @@
       ],
       [
        "certificate",
-       "entropic"
+       "semigraphoid"
       ]
      ],
      "source": [
@@ -63381,7 +63381,7 @@
    "via_cache": null
   },
   "4,70,0,3235": {
-   "certificate": "Fritz(('targets', (2,)), ('mode', 'replace'), ('deleted', ((0, 1),)), ('predictor', (3,)), ('predictor_mode', 'kept'), ('certificate', 'entropic')):\n    Children  : {0:[1,2],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,3),(2,3)]\ndegradation(('classical', ((2, 3),)),):\n    Children  : {0:[],1:[],2:[3],3:[]}\n    Classical : [(0,1)]\n    Quantum   : [(0,3),(2,3)]\n== known gap QG_Bell_C_EdgeC:\n    Children  : {0:[],1:[],2:[3],3:[]}\n    Classical : [(0,1),(2,3)]\n    Quantum   : [(0,3)]",
+   "certificate": "Fritz(('targets', (2,)), ('mode', 'replace'), ('deleted', ((0, 1),)), ('predictor', (3,)), ('predictor_mode', 'kept'), ('certificate', 'semigraphoid')):\n    Children  : {0:[1,2],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,3),(2,3)]\ndegradation(('classical', ((2, 3),)),):\n    Children  : {0:[],1:[],2:[3],3:[]}\n    Classical : [(0,1)]\n    Quantum   : [(0,3),(2,3)]\n== known gap QG_Bell_C_EdgeC:\n    Children  : {0:[],1:[],2:[3],3:[]}\n    Classical : [(0,1),(2,3)]\n    Quantum   : [(0,3)]",
    "chain": [
     {
      "params": [
@@ -63416,7 +63416,7 @@
       ],
       [
        "certificate",
-       "entropic"
+       "semigraphoid"
       ]
      ],
      "source": [
@@ -63511,7 +63511,7 @@
    "via_cache": null
   },
   "4,70,0,3237": {
-   "certificate": "Fritz(('targets', (2,)), ('mode', 'replace'), ('deleted', ((0, 1, 'Q{0,2}'),)), ('predictor', (3,)), ('predictor_mode', 'kept'), ('certificate', 'entropic')):\n    Children  : {0:[1,2],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(1,3),(2,3)]\n== known gap QG_Bell_C_Edge:\n    Children  : {0:[],1:[],2:[3],3:[]}\n    Classical : [(0,1)]\n    Quantum   : [(0,3)]",
+   "certificate": "Fritz(('targets', (2,)), ('mode', 'replace'), ('deleted', ((0, 1, 'Q{0,2}'),)), ('predictor', (3,)), ('predictor_mode', 'kept'), ('certificate', 'semigraphoid')):\n    Children  : {0:[1,2],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(1,3),(2,3)]\n== known gap QG_Bell_C_Edge:\n    Children  : {0:[],1:[],2:[3],3:[]}\n    Classical : [(0,1)]\n    Quantum   : [(0,3)]",
    "chain": [
     {
      "params": [
@@ -63547,7 +63547,7 @@
       ],
       [
        "certificate",
-       "entropic"
+       "semigraphoid"
       ]
      ],
      "source": [

@@ -158,7 +158,27 @@ def local_markov_rows(parents: Dict[int, FrozenSet[int]], nodes: Iterable[int]) 
 
 def observable_dseparation_rows(parents: Dict[int, FrozenSet[int]], nodes: Iterable[int],
                                 observed: Sequence[int]) -> List[Row]:
-    """Elementary conditional independences I(x : y | Z) = 0 among observed nodes that hold by d-separation."""
+    """Elementary conditional independences I(x : y | Z) = 0 among observed nodes that hold by d-separation,
+    enumerated with the bit-parallel walk of semigraphoid.dsep_all (the networkx version below is the oracle)."""
+    import semigraphoid as sg
+    nodes = sorted(nodes)
+    n = len(nodes)
+    assert nodes == list(range(n)), "lp_structure indices are 0..n-1"
+    E = sg.dsep_all(n, sg.parents_to_masks(parents, n))
+    observed = sorted(observed)
+    obs_mask = sg.mask_of(observed)
+    rows = []
+    for a, x in enumerate(observed):
+        for y in observed[a + 1:]:
+            Zs = sg.submasks(obs_mask & ~((1 << x) | (1 << y)))
+            for Z in Zs[E[x, y, Zs]]:
+                rows.append(cmi_row([x], [y], sg.bits_of(int(Z))))
+    return rows
+
+
+def _observable_dseparation_rows_nx(parents: Dict[int, FrozenSet[int]], nodes: Iterable[int],
+                                    observed: Sequence[int]) -> List[Row]:
+    """The brute-force networkx enumeration, kept as the test oracle for observable_dseparation_rows."""
     import networkx as nx
     g = nx.DiGraph()
     nodes = list(nodes)
