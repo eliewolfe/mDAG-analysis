@@ -256,27 +256,18 @@ class QmDAG:
         return False
 
     def conditioning_is_justified(self, node: int, strict_latents: bool = True) -> bool:
-        """Three conditions. (1) Every visible grandparent of `node` is a parent of `node`. (2, strict_latents)
-        every facet containing a visible parent of `node` contains `node` or lies within the parents. (3) A visible
-        parent that shares no facet with `node` has to receive the post-selected common cause through its own
-        output (it guesses it, and `node` post-selects on the guess); its output is then fine-grained, which is
-        only harmless if every visible child of that parent is `node`, another parent, or a latent sibling of
-        `node` (nodes that can read the common cause from the new facet). Then the block of parents is closed
-        under all its inputs and post-selecting on `node` can be absorbed into one common cause of parents and
-        latent siblings."""
+        """Two conditions (manuscript Section 4). (1) Every visible grandparent of `node` is a parent of `node`.
+        (2, strict_latents) every facet containing a visible parent of `node` contains `node` or lies within the
+        parents. Then the block of parents is closed under all its inputs and post-selecting on `node` can be
+        absorbed into one common cause of the parents and the latent siblings. No condition on the children of
+        the parents is needed: in the quantum construction every visible parent outputs a uniformly random value
+        and `node` recomputes all of them and post-selects on agreement, so no output is fine-grained (an earlier
+        version required the children of a parent without a facet shared with `node` to lie among the parents and
+        siblings; that condition came from a construction in which such a parent announced a guess)."""
         if self.has_grandparents_that_are_not_parents(node):
             return False
         if strict_latents and self.parents_have_external_latents(node):
             return False
-        parents = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[:, node]))
-        siblings = set(self.latent_siblings_of(node))
-        allowed_children = parents | siblings | {node}
-        for p in parents:
-            if p in siblings:
-                continue
-            children = set(np.flatnonzero(self.directed_structure_instance.as_bit_square_matrix[p]))
-            if not children.issubset(allowed_children):
-                return False
         return True
 
     def condition(self, node: int) -> "QmDAG":

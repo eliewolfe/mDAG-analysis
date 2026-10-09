@@ -735,7 +735,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3,
+    "conditioning": 4,
     "degradation": 1
    },
    "via_cache": null
@@ -2873,7 +2873,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3,
+    "conditioning": 4,
     "degradation": 1
    },
    "via_cache": null
@@ -4815,7 +4815,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3,
+    "conditioning": 4,
     "degradation": 1
    },
    "via_cache": null
@@ -7025,7 +7025,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3,
+    "conditioning": 4,
     "degradation": 1
    },
    "via_cache": null
@@ -7520,7 +7520,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3
+    "conditioning": 4
    },
    "via_cache": null
   },
@@ -8373,7 +8373,7 @@
    },
    "versions": {
     "Fritz": 7,
-    "conditioning": 3,
+    "conditioning": 4,
     "teleportation_marginalization": 1
    },
    "via_cache": null
@@ -9438,7 +9438,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3,
+    "conditioning": 4,
     "degradation": 1
    },
    "via_cache": null
@@ -12487,7 +12487,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3
+    "conditioning": 4
    },
    "via_cache": null
   },
@@ -13444,7 +13444,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3
+    "conditioning": 4
    },
    "via_cache": null
   },
@@ -20111,7 +20111,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3
+    "conditioning": 4
    },
    "via_cache": null
   },
@@ -24040,7 +24040,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3
+    "conditioning": 4
    },
    "via_cache": null
   },
@@ -24689,7 +24689,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3,
+    "conditioning": 4,
     "degradation": 1
    },
    "via_cache": null
@@ -28152,7 +28152,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3
+    "conditioning": 4
    },
    "via_cache": null
   },
@@ -29837,7 +29837,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3,
+    "conditioning": 4,
     "degradation": 1
    },
    "via_cache": null
@@ -33746,7 +33746,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3
+    "conditioning": 4
    },
    "via_cache": null
   },
@@ -35052,7 +35052,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3,
+    "conditioning": 4,
     "degradation": 1
    },
    "via_cache": null
@@ -38500,7 +38500,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3
+    "conditioning": 4
    },
    "via_cache": null
   },
@@ -39437,7 +39437,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3,
+    "conditioning": 4,
     "degradation": 1
    },
    "via_cache": null
@@ -46304,7 +46304,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3
+    "conditioning": 4
    },
    "via_cache": null
   },
@@ -47076,7 +47076,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3,
+    "conditioning": 4,
     "degradation": 1
    },
    "via_cache": null
@@ -49354,7 +49354,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3
+    "conditioning": 4
    },
    "via_cache": null
   },
@@ -50473,7 +50473,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3,
+    "conditioning": 4,
     "degradation": 1
    },
    "via_cache": null
@@ -53303,7 +53303,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3
+    "conditioning": 4
    },
    "via_cache": null
   },
@@ -54026,7 +54026,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3,
+    "conditioning": 4,
     "degradation": 1
    },
    "via_cache": null
@@ -56547,7 +56547,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3
+    "conditioning": 4
    },
    "via_cache": null
   },
@@ -58922,7 +58922,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3,
+    "conditioning": 4,
     "degradation": 1
    },
    "via_cache": null
@@ -62561,7 +62561,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3,
+    "conditioning": 4,
     "degradation": 1
    },
    "via_cache": null
@@ -64716,7 +64716,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3
+    "conditioning": 4
    },
    "via_cache": null
   },
@@ -65698,7 +65698,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3,
+    "conditioning": 4,
     "degradation": 1
    },
    "via_cache": null
@@ -68713,7 +68713,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3,
+    "conditioning": 4,
     "degradation": 1
    },
    "via_cache": null
@@ -71846,7 +71846,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3
+    "conditioning": 4
    },
    "via_cache": null
   },
@@ -72439,7 +72439,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3
+    "conditioning": 4
    },
    "via_cache": null
   },
@@ -75261,7 +75261,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3,
+    "conditioning": 4,
     "degradation": 1
    },
    "via_cache": null
@@ -83001,7 +83001,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3
+    "conditioning": 4
    },
    "via_cache": null
   },
@@ -83696,7 +83696,7 @@
     ]
    },
    "versions": {
-    "conditioning": 3
+    "conditioning": 4
    },
    "via_cache": null
   },
@@ -85651,7 +85651,7 @@
  "piggyback_versions": {
   "Fritz": 7,
   "PD": 1,
-  "conditioning": 3,
+  "conditioning": 4,
   "degradation": 1,
   "naive_marginalization": 1,
   "node_stitching": 1,
