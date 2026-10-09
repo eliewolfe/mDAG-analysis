@@ -447,7 +447,7 @@ class QmDAG:
     # Hence the structure G' obtained by deleting X1 and restricting s to common(s) satisfies: a QC gap in G' implies a
     # QC gap in G, with no caveat about perfect correlations in G'. Quantum facets read by s become classical for s
     # (the other children of the facet keep its quantum part).
-    # In "copy" mode s is left untouched and a fresh node s_copy carrying the common (classical) part is added; this is
+    # With a split target s is left untouched and a fresh node s_copy carrying the common (classical) part is added; this is
     # the node-splitting version of the trick (e.g. triangle -> Bell).
     # Predictors with children cannot simply be deleted: they are removed by the marginalization piggyback instead
     # (relaying their parents to their children, teleporting quantum shares when allowed) while still outputting the
@@ -630,7 +630,8 @@ class QmDAG:
     # piggyback is written predictor-first in six short methods (fritz_pool, fritz_targets, fritz_deletion,
     # fritz_certificate, fritz_realise, fritz_steps): pick a predictor set X, try its candidate targets s in order;
     # at each target X dictates the deletion D (the parents of s that X cannot see), which is justified by
-    # d-separation or by the entropic LP, then realised by surgery, singly or for several targets of X at once
+    # d-separation or by the semigraphoid closure (or the entropic LP), then realised by surgery, singly or for
+    # several targets of X at once
     # (manuscript Section 8).
     # Indices are effective-DAG indices (effective_DAG_data): visible nodes, then facets, then noise sources.
     # ------------------------------------------------------------------
@@ -697,8 +698,8 @@ class QmDAG:
         """Candidate predictors of the target s, in the order the search tries them. The lift must hand s its private
         randomness through a channel the predictor also sees: a facet shared with s (latent sibling) or the edge
         X -> s (visible parent, pool='siblings+parents'); nothing else is sound. Descendants of s are removed unless
-        allow_descendants (the d-separation test always fails for them, since s's noise reaches them through s; the LP
-        is sound either way). Within each group, nodes sharing more facets with s come first."""
+        allow_descendants (the d-separation test always fails for them, since s's noise reaches them through s; the
+        closure is sound either way). Within each group, nodes sharing more facets with s come first."""
         assert pool in ('siblings', 'siblings+parents'), pool
         g, latent_nodes = self.effective_DAG_data
         n = self.number_of_visible
@@ -844,7 +845,7 @@ class QmDAG:
 
     def fritz_realise(self, kept: Dict[int, frozenset], remove: Iterable[int]) -> List[Tuple[Tuple, "QmDAG"]]:
         """The surgery of one Fritz step, with no certificate logic: restrict every target in `kept` to its kept
-        parents, then remove the nodes in `remove` (the dropped predictors, or the copies of kept predictors) by
+        parents, then remove the nodes in `remove` (the unsplit predictors, or the copies of split predictors) by
         marginalization in every order (teleportation is order-dependent). Returns (order params, child) pairs; the
         params are empty when there is one order."""
         candidate = self._restrict_targets(kept)
@@ -860,29 +861,30 @@ class QmDAG:
             results.append(((('order', order),) if len(remove) > 1 else (), child))
         return results
 
-    def fritz_steps(self, mode: str = 'replace', predictor_mode: str = 'dropped', use_lp: bool = True,
+    def fritz_steps(self, target_mode: str = 'unsplit', predictor_mode: str = 'unsplit', use_lp: bool = True,
                     pool: str = 'siblings', allow_descendants: bool = False, max_predictors: int = 1,
                     max_targets: Optional[int] = None, lp_markov_target: bool = False,
                     max_visible: Optional[int] = None, lp_only: bool = False,
                     engine: Optional[str] = None) -> Iterable[Tuple[Tuple, "QmDAG"]]:
         """The Fritz piggyback as the search applies it (manuscript Section 8): for every predictor set X, every
         candidate target s of X and the deletion X dictates at s, the realised output, certified by d-separation
-        first and by the LP only where d-separation fails. Besides single targets, every set of two or more targets
-        of the same X that d-separation certifies (on the structure carrying all their splits) is emitted as one
-        joint step, up to max_targets members (all by default): Fritz's derivation of Bell from the triangle is one
-        such step. All d-separation steps, single and joint, are emitted before any LP step, so a search that stops at
-        the first success never pays for an LP it does not need; the LP certifies single targets only. With lp_only
-        the d-separation steps are not emitted at all (the census records them in its d-separation stages first,
-        manuscript 9.2) and no joint sets are formed: only the single targets the LP certifies come out.
-        mode 'copy' splits each target first and restricts the copy (6.2); predictor_mode 'kept' splits each childful
-        predictor and removes the copy, 'dropped' removes the predictors themselves. Justification and surgery run
+        first and by the semigraphoid closure (or the LP) only where d-separation fails. Besides single targets,
+        every set of two or more targets of the same X that d-separation certifies (on the structure carrying all
+        their splits) is emitted as one joint step, up to max_targets members (all by default): Fritz's derivation
+        of Bell from the triangle is one such step. All d-separation steps, single and joint, are emitted before any
+        closure step, so a search that stops at the first success never pays for a closure it does not need; the
+        closure certifies single targets only. With lp_only the d-separation steps are not emitted at all (the census
+        records them in its d-separation stages first, manuscript 9.2) and no joint sets are formed: only the single
+        targets the closure certifies come out.
+        target_mode 'split' splits each target first and restricts the copy (6.2); predictor_mode 'split' splits each
+        childful predictor and removes the copy, 'unsplit' removes the predictors themselves. Justification and surgery run
         on the structure that carries the splits; copies are the indices >= self.number_of_visible, in splitting
         order (predictor copies first), and params are stated in self's indices with a prime for a copy.
         `engine` names the beyond-d-separation certificate engine (DEFAULT_ENGINE: 'semigraphoid', 'lp' or 'both').
-        params: (('targets', (s, ...)), ('mode', m), ('deleted', (labels of D_s, ...)), ('predictor', X),
-        ('predictor_mode', pm), ('certificate', 'dsep' | 'semigraphoid' | 'entropic')) [+ ('order', ...) when several
-        predictors are marginalized]."""
-        assert mode in ('replace', 'copy') and predictor_mode in ('dropped', 'kept')
+        params: (('targets', (s, ...)), ('target_mode', 'unsplit' | 'split'), ('deleted', (labels of D_s, ...)),
+        ('predictor', X), ('predictor_mode', 'unsplit' | 'split'), ('certificate', 'dsep' | 'semigraphoid' | 'entropic'))
+        [+ ('order', ...) when several predictors are marginalized]."""
+        assert target_mode in ('unsplit', 'split') and predictor_mode in ('unsplit', 'split')
         if lp_only:
             if not use_lp:
                 return   # an entropic stage with the certificate switched off has nothing to emit
@@ -911,10 +913,10 @@ class QmDAG:
             return tuple(out)
 
         def split_predictors(X: Tuple[int, ...]):
-            """The structure with the childful predictors split (kept mode), the predictors' effective indices, the
-            nodes to remove and the copy map; computed once per predictor set."""
+            """The structure with the childful predictors split (split-predictor mode), the predictors' effective
+            indices, the nodes to remove and the copy map; computed once per predictor set."""
             work, copy_of, X_eff = self, {}, list(X)
-            if predictor_mode == 'kept':
+            if predictor_mode == 'split':
                 for i, x in enumerate(X):
                     if x not in self.vis_nodes_with_no_children:
                         work = work.split_node(x)
@@ -931,7 +933,7 @@ class QmDAG:
             output would be too small or too large."""
             work, X_eff, remove, copy_of = base
             copy_of, targets = dict(copy_of), list(T)
-            if mode == 'copy':
+            if target_mode == 'split':
                 for i, s in enumerate(T):
                     work = work.split_node(s)
                     targets[i] = work.number_of_visible - 1
@@ -965,7 +967,7 @@ class QmDAG:
                     if lp_only:
                         continue   # recorded by the d-separation stage
                     certified.append(s)
-                    yield from self._fritz_emit(item, mode, predictor_mode, certificate, labels_of)
+                    yield from self._fritz_emit(item, target_mode, predictor_mode, certificate, labels_of)
                 top = len(certified) if max_targets is None else min(max_targets, len(certified))
                 for k in range(2, top + 1):
                     for T in itertools.combinations(certified, k):
@@ -983,19 +985,19 @@ class QmDAG:
                         if kept is None:
                             continue
                         item = (X, T, work, kept, deleted, X_eff, remove, copy_of)
-                        yield from self._fritz_emit(item, mode, predictor_mode, 'dsep', labels_of)
+                        yield from self._fritz_emit(item, target_mode, predictor_mode, 'dsep', labels_of)
         for item in deferred:
             X, T, work, kept, deleted, X_eff, remove, copy_of = item
             (target,) = kept
             certificate = work.fritz_certificate(target, kept[target], X_eff, use_lp=True, lp_markov_target=lp_markov_target,
                                                  engine=engine)
             if certificate is not None:
-                yield from self._fritz_emit(item, mode, predictor_mode, certificate, labels_of)
+                yield from self._fritz_emit(item, target_mode, predictor_mode, certificate, labels_of)
 
     @staticmethod
-    def _fritz_emit(item, mode: str, predictor_mode: str, certificate: str, labels_of) -> Iterable[Tuple[Tuple, "QmDAG"]]:
+    def _fritz_emit(item, target_mode: str, predictor_mode: str, certificate: str, labels_of) -> Iterable[Tuple[Tuple, "QmDAG"]]:
         X, T, work, kept, deleted, X_eff, remove, copy_of = item
-        base = (('targets', tuple(T)), ('mode', mode),
+        base = (('targets', tuple(T)), ('target_mode', target_mode),
                 ('deleted', tuple(labels_of(work, deleted[t], copy_of) for t in kept)), ('predictor', tuple(X)),
                 ('predictor_mode', predictor_mode), ('certificate', certificate))
         for order_params, child in work.fritz_realise(kept, remove):
@@ -1007,7 +1009,7 @@ class QmDAG:
 
     def piggyback_children(self, max_visible: int, min_visible: int = 3, districts_check: bool = False,
                            apply_teleportation: bool = True, include_Fritz: bool = True, max_predictors: int = 2,
-                           predictor_modes: Tuple[str, ...] = ('dropped', 'kept'),
+                           predictor_modes: Tuple[str, ...] = ('unsplit', 'split'),
                            strict_conditioning: bool = True) -> Iterable["QmDAG"]:
         """One application of every piggyback (PD, conditioning, marginalization, node stitching, Fritz by
         d-separation in both predicted-node modes and the given predictor modes): the old composition API behind
@@ -1024,9 +1026,9 @@ class QmDAG:
                     yield marginalized
             yield from self.subinterruptions
         if include_Fritz:
-            for mode in ('replace', 'copy'):
+            for target_mode in ('unsplit', 'split'):
                 for predictor_mode in predictor_modes:
-                    for _, child in self.fritz_steps(mode=mode, predictor_mode=predictor_mode, use_lp=False,
+                    for _, child in self.fritz_steps(target_mode=target_mode, predictor_mode=predictor_mode, use_lp=False,
                                                      max_predictors=max_predictors, max_visible=max_visible):
                         yield child
 
@@ -1082,6 +1084,6 @@ if __name__ == '__main__':
     print(ghost.subinterruptions)
     print("Now assessing the Fritz piggyback on the triangle (should reach Bell):")
     triangle = QmDAG(DirectedStructure([], 3), Hypergraph([], 3), Hypergraph([(0, 1), (1, 2), (0, 2)], 3))
-    for params, post_Fritz in triangle.fritz_steps(mode='copy', use_lp=False):
+    for params, post_Fritz in triangle.fritz_steps(target_mode='split', use_lp=False):
         print(params)
         print(post_Fritz)

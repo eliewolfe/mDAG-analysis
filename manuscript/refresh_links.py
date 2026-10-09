@@ -4,7 +4,7 @@ Make the manuscript's cross-references clickable.
 Run from anywhere: `python manuscript/refresh_links.py`. Idempotent: existing links of the two kinds below are
 stripped and rebuilt, so re-running after the code or the headings change refreshes them.
 
-1. Section references ("5.3", "Section 7", "Sections 5 and 6", "Appendix A", "A.3") become links to the heading
+1. Section references ("5.3", "Section 7", "Sections 5 and 6", "Appendix A", "A.3", "B.2") become links to the heading
    anchors GitHub generates (lower case, punctuation removed, spaces to hyphens).
 2. Backticked code references (`QmDAG.split_node`, `default_stages`, `known_QC_gaps.SEEDS`, `qc_gap_search.py`,
    `tests/test_fritz_entropic.py`) become links to the file in the repository, at the line where the symbol is
@@ -97,7 +97,7 @@ def resolve_code(span: str, index: Dict[str, Tuple[str, int]]) -> Optional[str]:
     if re.fullmatch(r"[\w./ -]+\.(py|json|md|txt|nb)", text) and os.path.exists(os.path.join(ROOT, text)):
         return "../" + quote(text)
     name = re.split(r"[(\[]", text, maxsplit=1)[0].strip()
-    if not re.fullmatch(r"[A-Za-z_][\w.]*", name):
+    if not re.fullmatch(r"[A-Za-z_][\w.]*", name) or name in dir(__builtins__):
         return None
     candidates = [name]
     parts = name.split(".")
@@ -125,7 +125,7 @@ def github_slug(heading: str) -> str:
 
 
 def heading_anchors(lines: List[str]) -> Dict[str, str]:
-    """Reference key -> anchor. Keys: '0.4', '7.10', 'A.3' (subsections), '5' (sections), 'A' (the appendix)."""
+    """Reference key -> anchor. Keys: '0.4', '7.10', 'A.3', 'B.2' (subsections), '5' (sections), 'A', 'B' (appendices)."""
     anchors: Dict[str, str] = {}
     seen: Dict[str, int] = {}
     for line in lines:
@@ -143,11 +143,12 @@ def heading_anchors(lines: List[str]) -> Dict[str, str]:
         mm = re.match(r"^(\d+)\.\s", title)          # "## 7. Search ..."
         if mm and m.group(1) == "##":
             key = mm.group(1)
-        mm = re.match(r"^(\d{1,2}\.\d{1,2}|A\.\d)\s", title)   # "### 9.8 ..."
+        mm = re.match(r"^(\d{1,2}\.\d{1,2}|[A-Z]\.\d)\s", title)   # "### 9.8 ...", "### B.2 ..."
         if mm:
             key = mm.group(1)
-        if title.startswith("Appendix A"):
-            key = "A"
+        mm = re.match(r"^Appendix ([A-Z])\b", title)
+        if mm:
+            key = mm.group(1)
         if key is not None:
             anchors[key] = "#" + slug
     return anchors
@@ -158,7 +159,7 @@ def heading_anchors(lines: List[str]) -> Dict[str, str]:
 # --------------------------------------------------------------------------------------------------
 
 def strip_links(text: str) -> str:
-    text = re.sub(r"\[((?:Sections? )?(?:\d{1,2}(?:\.\d{1,2})?|A\.\d|Appendix A))\]\(#[^)]*\)", r"\1", text)
+    text = re.sub(r"\[((?:Sections? )?(?:\d{1,2}(?:\.\d{1,2})?|[A-Z]\.\d|Appendix [A-Z]))\]\(#[^)]*\)", r"\1", text)
     text = re.sub(r"\[(`[^`]*`)\]\(\.\./[^)]*\)", r"\1", text)
     return text
 
@@ -178,15 +179,15 @@ def link_sections(line: str, anchors: Dict[str, str]) -> str:
     spans = protected_spans(line)
     out = []
     i = 0
-    pattern = re.compile(r"Sections (\d{1,2}) and (\d{1,2})\b|Section (\d{1,2})\b|Appendix A\b|(?<![\w$.\\#/])(\d{1,2}\.\d{1,2}|A\.\d)(?![\d])")
+    pattern = re.compile(r"Sections (\d{1,2}) and (\d{1,2})\b|Section (\d{1,2})\b|Appendix ([A-Z])\b|(?<![\w$.\\#/])(\d{1,2}\.\d{1,2}|[A-Z]\.\d)(?![\d])")
     for m in pattern.finditer(line):
         if inside(m.start(), spans):
             continue
-        # "about 0.2, 0.5, 2 and 9 seconds" (6.6) is a measurement, not a reference.
-        if m.group(4) in ("0.2", "0.5") and re.search(r"about 0\.2, 0\.5, 2 and 9", line):
+        # "about 0.2, 0.5, 2 and 9 seconds" (B.4) is a measurement, not a reference.
+        if m.group(5) in ("0.2", "0.5") and re.search(r"about 0\.2, 0\.5, 2 and 9", line):
             continue
         # A number that fills a table cell on its own ("| 0.3 |") is a measurement, not a reference.
-        if m.group(4) and line[:m.start()].endswith("| ") and line[m.end():].startswith(" |"):
+        if m.group(5) and line[:m.start()].endswith("| ") and line[m.end():].startswith(" |"):
             continue
         repl = None
         if m.group(1):
@@ -196,11 +197,11 @@ def link_sections(line: str, anchors: Dict[str, str]) -> str:
         elif m.group(3):
             if m.group(3) in anchors:
                 repl = f"Section [{m.group(3)}]({anchors[m.group(3)]})"
-        elif m.group(0) == "Appendix A":
-            if "A" in anchors:
-                repl = f"[Appendix A]({anchors['A']})"
-        elif m.group(4) in anchors:
-            repl = f"[{m.group(4)}]({anchors[m.group(4)]})"
+        elif m.group(4):
+            if m.group(4) in anchors:
+                repl = f"[Appendix {m.group(4)}]({anchors[m.group(4)]})"
+        elif m.group(5) in anchors:
+            repl = f"[{m.group(5)}]({anchors[m.group(5)]})"
         if repl is None:
             continue
         out.append(line[i:m.start()])

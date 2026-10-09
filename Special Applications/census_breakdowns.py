@@ -141,7 +141,7 @@ def lp_closure() -> None:
     _, report, _ = run_search(verbose=False, use_cache=False)
     print("staged search:", report.stage_counts, f"({time.time()-t0:.0f}s)")
     before = set(report.proven)
-    report = add_stage(report, fritz_tricks(max_visible=5, max_predictors=1, predictor_mode='kept'), roots_only=False, name='Fritz_closure', verbose=False)
+    report = add_stage(report, fritz_tricks(max_visible=5, max_predictors=1, predictor_mode='split'), roots_only=False, name='Fritz_closure', verbose=False)
     print("after LP closure over everything reachable:", report.stage_counts, f"({time.time()-t0:.0f}s); structures {len(report.explorer.edges)}")
     new = set(report.proven) - before
     print("newly proven inputs:", len(new))
