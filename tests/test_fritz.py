@@ -20,7 +20,7 @@ IV3b = Q([(1, 2)], 3, [(0, 1)], [(1, 2)])
 # Counterexample from the review of the first implementation: node 0 shares a classical latent with 3 but also a
 # quantum latent with 1, and 1 -> 3 makes that quantum latent d-connected to 3. The old code produced IV3b from it.
 G2 = Q([(1, 2), (1, 3)], 4, [(0, 3), (0, 2)], [(0, 1), (1, 2)])
-# The lead's example: deleting the visible edge 0 -> 1 (manuscript 5.5, "deleting a visible edge").
+# The lead's example: deleting the visible edge 0 -> 1 (manuscript 6.5, "deleting a visible edge").
 EDGE_EXAMPLE = Q([(0, 1), (0, 3)], 4, [], [(1, 2), (2, 3)])
 
 

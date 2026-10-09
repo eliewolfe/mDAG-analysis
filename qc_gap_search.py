@@ -29,7 +29,7 @@ PIGGYBACK_VERSIONS: Dict[str, int] = {
     'degradation': 1,                  # quantum source to classical source (lookup only)
     'Fritz': 5,                        # 1 original; 2 common/others; 3 predictors removed soundly; 4 unified trick:
                                        #   d-separation first, LP (relabel targets) on failure, both predictor modes;
-                                       #   5 edge-first (one target, one maximal deletion per predictor set; no joint
+                                       #   5 target-first (one target, one deletion per predictor set; no joint
                                        #   predicted sets, no noise-only deletions; redundant sub-facets cleaned)
 }
 
@@ -74,8 +74,8 @@ def fritz_tricks(max_visible: int = 5, predictor_mode: str = 'dropped', modes: T
                  max_predictors: int = 1, lp_markov_target: bool = False) -> Dict[str, Trick]:
     """The Fritz trick (name 'Fritz'): QmDAG.fritz_steps once per predicted-node mode in `modes`. predictor_mode
     is 'dropped' or 'kept'; `pool` ('siblings' or 'siblings+parents') and `allow_descendants` widen the predictor
-    pool (manuscript 5.6); `max_predictors` allows joint predictor sets; lp_markov_target=True also tries the
-    `markov` LP target set after `relabel` fails (it never decided an input in the four-node census, 7.9)."""
+    pool (manuscript 8.4); `max_predictors` allows joint predictor sets; lp_markov_target=True also tries the
+    `markov` LP target set after `relabel` fails (it never decided an input in the four-node census, 9.7)."""
     if use_lp:
         try:
             import mosek  # noqa: F401
@@ -117,7 +117,7 @@ def default_stages(max_visible: int = 5, with_entropic: bool = True, with_kept: 
     `relabel` target set only (lp_markov_target=True turns the `markov` set back on; it never decided an input in
     the four-node census). The predictor pool is the latent siblings of the target that are not its descendants;
     pool='siblings+parents' adds the visible parents and allow_descendants=True keeps the descendants (the
-    experiments of manuscript 7.8). Joint predictor sets are available (max_predictors) but off."""
+    experiments of manuscript 1.2). Joint predictor sets are available (max_predictors) but off."""
     common = dict(max_visible=max_visible, use_lp=with_entropic, pool=pool, allow_descendants=allow_descendants,
                   max_predictors=max_predictors, lp_markov_target=lp_markov_target)
     elementary = elementary_tricks(max_visible, districts_check, strict_conditioning)

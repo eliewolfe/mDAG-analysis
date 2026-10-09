@@ -6,7 +6,7 @@ pytest.importorskip("mosek")
 
 # Phase 1: the 2807 labelled 4-node mDAGs that respect the order 0 < 1 < 2 < 3 and are not provably algebraic, with
 # every latent quantum (996 distinct up to relabelling, Bell variants included), elementary reductions only, three-node
-# seeds only (manuscript/piggybacks.md, 7.7). The degradation lookup is part of every group.
+# seeds only (manuscript/piggybacks.md, 1.1). The degradation lookup is part of every group.
 EXPECTED_CHEAP = {
     'inputs': 996,
     'proven': 917,
@@ -28,7 +28,7 @@ EXPECTED_CHEAP = {
 
 # Phase 2: the weakest Bell variants are seeds (994 inputs: the two all-quantum Bell variants are seeds, the other
 # all-quantum Bell variants are inputs proven by degradation), the cascade of four Fritz stages on what phase 1 left
-# (7.8). The cumulative stage counts (by the stage in which each transition was recorded) must agree with the LP rungs
+# (1.2). The cumulative stage counts (by the stage in which each transition was recorded) must agree with the LP rungs
 # of the ladder (by the recorded parameters).
 EXPECTED_STAGES = [
     ('elementary', 921),

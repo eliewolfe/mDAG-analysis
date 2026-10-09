@@ -469,7 +469,7 @@ class QmDAG:
         return g, latent_nodes
 
     # ------------------------------------------------------------------
-    # THE ENTROPIC CERTIFICATE (Khanna, Pusey and Colbeck; manuscript Section 6)
+    # THE ENTROPIC CERTIFICATE (Khanna, Pusey and Colbeck; manuscript Section 7)
     #
     # Used by fritz_certificate where d-separation fails. Hypotheses: Shannon inequalities over all nodes of G
     # (latent facets as variables, no explicit noise), the local Markov equalities of G, perfect prediction
@@ -568,21 +568,22 @@ class QmDAG:
     #
     # Every transformation of the search is a generator of (params, child) pairs on this class, so that a piggyback
     # can be read, and debugged, in one place. The elementary reductions wrap the primitives above; the Fritz
-    # piggyback is written edge-first in five short methods (fritz_pool, fritz_deletion, fritz_certificate,
-    # fritz_realise, fritz_steps): the unit of search is a target node s and the deletion D of the parents of s that
-    # a chosen predictor X cannot see, justified by d-separation or by the entropic LP, then realised by surgery.
+    # piggyback is written target-first in five short methods (fritz_pool, fritz_deletion, fritz_certificate,
+    # fritz_realise, fritz_steps): pick a target node s, try its candidate predictors X in order; each X dictates the
+    # deletion D (the parents of s that X cannot see), which is justified by d-separation or by the entropic LP, then
+    # realised by surgery (manuscript Section 8).
     # Indices are effective-DAG indices (effective_DAG_data): visible nodes, then facets, then noise sources.
     # ------------------------------------------------------------------
 
     def pd_steps(self) -> Iterable[Tuple[Tuple, "QmDAG"]]:
-        """Point distribution: fix one visible node and drop it (Section 1 of the manuscript)."""
+        """Point distribution: fix one visible node and drop it (Section 2 of the manuscript)."""
         if self.number_of_visible <= 3:
             return
         for node in self.visible_nodes:
             yield (('drop', node),), self.fix_to_point_distribution_QmDAG(node)
 
     def node_stitching_steps(self) -> Iterable[Tuple[Tuple, "QmDAG"]]:
-        """Stitch an exogenous node onto a childless sink by post-selecting on their equality (Section 4); the
+        """Stitch an exogenous node onto a childless sink by post-selecting on their equality (Section 5); the
         inverse map interrupts a node, hence the old name 'interruption'."""
         if self.number_of_visible <= 3:
             return
@@ -593,7 +594,7 @@ class QmDAG:
                 yield ((('sink', int(sink)), ('source', int(source))),), self.node_stitching(sink, source)
 
     def conditioning_steps(self, strict_latents: bool = True) -> Iterable[Tuple[Tuple, "QmDAG"]]:
-        """Condition on one visible node where conditioning_is_justified (Section 3)."""
+        """Condition on one visible node where conditioning_is_justified (Section 4)."""
         if self.number_of_visible <= 3:
             return
         for node in self.visible_nodes:
@@ -602,7 +603,7 @@ class QmDAG:
 
     def marginalization_steps(self, apply_teleportation: bool = True,
                               districts_check: bool = False) -> Iterable[Tuple[Tuple, "QmDAG"]]:
-        """Marginalize one visible node, naively or with teleportation (Section 2)."""
+        """Marginalize one visible node, naively or with teleportation (Section 3)."""
         if self.number_of_visible <= 3:
             return
         for node in self.visible_nodes:
@@ -630,7 +631,7 @@ class QmDAG:
                 results.append(((('classical', chosen),), QmDAG(self.directed_structure_instance, new_C, Hypergraph(remaining_Q, n))))
         return results
 
-    # -- the Fritz piggyback, edge-first (manuscript Sections 5 and 6) --------------------------------------------
+    # -- the Fritz piggyback, target-first (manuscript Sections 6 to 8) ------------------------------------------
 
     def fritz_pool(self, s: int, pool: str = 'siblings', allow_descendants: bool = False) -> List[int]:
         """Candidate predictors of the target s, in the order the search tries them. The lift must hand s its private
@@ -657,11 +658,12 @@ class QmDAG:
         return siblings + parents
 
     def fritz_deletion(self, s: int, X: Iterable[int]) -> Optional[Tuple[frozenset, frozenset]]:
-        """The maximal deletion justified by the predictor set X at the target s: K = Pa(s) ∩ seen(X) (what X sees:
-        the predictors and their parents), D = Pa(s) minus K. Returns (K, D), or None when the pair is useless: K holds
-        no channel (a facet containing a predictor, or a predictor itself), or D contains nothing but s's own noise.
-        Only the maximal deletion is sound: with a smaller D the kept set would contain a parent X cannot see, and
-        the lifted X could not compute s (manuscript 5.6)."""
+        """The deletion the predictor set X dictates at the target s: K = Pa(s) ∩ seen(X) (what X sees: the
+        predictors themselves and their parents), D = Pa(s) minus K. Returns (K, D), or None when the pair is useless:
+        K holds no channel (a facet containing a predictor, or a predictor itself), or D contains nothing but s's own
+        noise. There is one deletion per pair: with a smaller D the kept set would contain a parent X cannot see, and
+        the lifted X could not compute s (manuscript 8.2). Whether the deletion is justified is fritz_certificate's
+        question, asked about this same D."""
         g, latent_nodes = self.effective_DAG_data
         X = frozenset(X)
         seen = set(X)
@@ -680,9 +682,9 @@ class QmDAG:
     def fritz_certificate(self, s: int, K: frozenset, X: Iterable[int], use_lp: bool = True,
                           lp_markov_target: bool = False) -> Optional[str]:
         """Is restricting s to K justified by the predictors X? 'dsep' when every predictor is a parent of s (then
-        s = g(X) is a function of K outright) or when X minus K is d-separated from Pa(s) minus K given K in the effective
-        DAG (Theorem 5.3); 'entropic' when the entropic LP certifies it (Theorem 6.5; the `relabel` target set, and
-        `markov` too if lp_markov_target); None otherwise."""
+        s = g(X) is a function of K outright, manuscript 8.5) or when X minus K is d-separated from Pa(s) minus K given
+        K in the effective DAG (Theorem 6.3); 'entropic' when the entropic LP certifies the same deletion (Theorem 7.5;
+        the `relabel` target set, and `markov` too if lp_markov_target); None otherwise (manuscript 8.3)."""
         g, latent_nodes = self.effective_DAG_data
         X = frozenset(X)
         if X <= K:
@@ -761,10 +763,10 @@ class QmDAG:
                     pool: str = 'siblings', allow_descendants: bool = False, max_predictors: int = 1,
                     lp_markov_target: bool = False, max_visible: Optional[int] = None) -> Iterable[Tuple[Tuple, "QmDAG"]]:
         """The Fritz piggyback as the search applies it: for every target s, every predictor set X of the pool and
-        the maximal deletion X justifies, the realised output, certified by d-separation first and by the LP only
+        the deletion X dictates, the realised output, certified by d-separation first and by the LP only
         where d-separation fails (all d-separation steps are emitted before any LP step, so a search that stops
         at the first success never pays for an LP it does not need).
-        mode 'copy' splits the target first and restricts the copy (5.2); predictor_mode 'kept' splits each childful
+        mode 'copy' splits the target first and restricts the copy (6.2); predictor_mode 'kept' splits each childful
         predictor and removes the copy, 'dropped' removes the predictors themselves. Justification and surgery run
         on the structure that carries the splits; copies are the indices >= self.number_of_visible, target copy
         first, and params are stated in self's indices with a prime for a copy.

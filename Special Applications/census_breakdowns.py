@@ -1,5 +1,5 @@
 """
-Worked examples for the manuscript (manuscript/piggybacks.md, Section 8): one certificate per category.
+Worked examples for the manuscript (manuscript/piggybacks.md, Sections 1 and 8): one certificate per row.
 
 Runs the two-phase census of proving_QC_Gaps (cache disabled, so every certificate ends at a named seed) and prints,
 for every elementary piggyback, inputs of phase 1 that are lost without it; for every rung of the ladder (LADDER of

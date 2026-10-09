@@ -31,7 +31,7 @@ pays for an LP.
 Options (see qc_gap_search.default_stages): the LP tries the `relabel` target set only, because the `markov` target
 set never decided an input (lp_markov_target=True turns it back on). The predictor pool of a target is its latent
 siblings that are not its descendants; `--parents` adds the visible parents of the target to the pool and
-`--descendants` keeps the descendants (the experiments of manuscript 7.8; neither proves a further input).
+`--descendants` keeps the descendants (the experiments of manuscript 1.2; neither proves a further input).
 
 Proven gaps are cached on disk (cache/known_gaps.json) with the version of every piggyback their proof relies on;
 cached gaps count as known, so after the first run the expensive stages only touch inputs that are not yet proven.

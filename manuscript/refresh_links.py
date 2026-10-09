@@ -143,7 +143,7 @@ def heading_anchors(lines: List[str]) -> Dict[str, str]:
         mm = re.match(r"^(\d+)\.\s", title)          # "## 7. Search ..."
         if mm and m.group(1) == "##":
             key = mm.group(1)
-        mm = re.match(r"^([0-7]\.\d{1,2}|A\.\d)\s", title)   # "### 7.8 ..."
+        mm = re.match(r"^(\d{1,2}\.\d{1,2}|A\.\d)\s", title)   # "### 9.8 ..."
         if mm:
             key = mm.group(1)
         if title.startswith("Appendix A"):
@@ -158,7 +158,7 @@ def heading_anchors(lines: List[str]) -> Dict[str, str]:
 # --------------------------------------------------------------------------------------------------
 
 def strip_links(text: str) -> str:
-    text = re.sub(r"\[((?:Sections? )?(?:[0-7](?:\.\d{1,2})?|A\.\d|Appendix A))\]\(#[^)]*\)", r"\1", text)
+    text = re.sub(r"\[((?:Sections? )?(?:\d{1,2}(?:\.\d{1,2})?|A\.\d|Appendix A))\]\(#[^)]*\)", r"\1", text)
     text = re.sub(r"\[(`[^`]*`)\]\(\.\./[^)]*\)", r"\1", text)
     return text
 
@@ -178,7 +178,7 @@ def link_sections(line: str, anchors: Dict[str, str]) -> str:
     spans = protected_spans(line)
     out = []
     i = 0
-    pattern = re.compile(r"Sections (\d) and (\d)\b|Section (\d)\b|Appendix A\b|(?<![\w$.\\#/])([0-7]\.\d{1,2}|A\.\d)(?![\d])")
+    pattern = re.compile(r"Sections (\d{1,2}) and (\d{1,2})\b|Section (\d{1,2})\b|Appendix A\b|(?<![\w$.\\#/])(\d{1,2}\.\d{1,2}|A\.\d)(?![\d])")
     for m in pattern.finditer(line):
         if inside(m.start(), spans):
             continue
