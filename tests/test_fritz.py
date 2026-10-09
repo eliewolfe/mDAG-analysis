@@ -20,7 +20,7 @@ IV3b = Q([(1, 2)], 3, [(0, 1)], [(1, 2)])
 # Counterexample from the review of the first implementation: node 0 shares a classical latent with 3 but also a
 # quantum latent with 1, and 1 -> 3 makes that quantum latent d-connected to 3. The old code produced IV3b from it.
 G2 = Q([(1, 2), (1, 3)], 4, [(0, 3), (0, 2)], [(0, 1), (1, 2)])
-# The lead's example: deleting the visible edge 0 -> 1 (manuscript 6.5, "deleting a visible edge").
+# The lead's example: deleting the visible edge 0 -> 1 (manuscript 6.8, "deleting a visible edge").
 EDGE_EXAMPLE = Q([(0, 1), (0, 3)], 4, [], [(1, 2), (2, 3)])
 
 
@@ -46,16 +46,19 @@ def test_effective_DAG_has_one_noise_node_per_visible_node():
 
 # ---------------------------------------------------------------- the five layers
 
-def test_pool_is_latent_siblings_then_visible_parents_ordered_by_shared_facets():
+def test_pools_separate_visible_parents_from_latent_siblings():
     g = Q([(0, 1), (3, 1)], 4, [], [(1, 2), (1, 3), (2, 3)])
-    # Siblings of 1: 2 (one facet) and 3 (one facet); 3 is also a parent. 0 is a parent only.
-    assert g.fritz_pool(1) == [2, 3]
+    # Siblings of 1: 2 (one facet) and 3 (one facet); 3 is also a parent, so it belongs to the parent pool, where
+    # the deletion needs no certificate (manuscript 6.3). 0 is a parent only.
+    assert g.fritz_pool(1) == [2]
+    assert g.fritz_pool(1, pool='parents') == [3, 0]           # 3 shares a facet with 1, 0 does not
     assert g.fritz_pool(1, pool='siblings+parents') == [2, 3, 0]
     g = Q([], 4, [], [(0, 1, 2), (0, 1, 3), (1, 2)])
     assert g.fritz_pool(1) == [0, 2, 3]            # 0 shares two facets with 1, 2 shares two, 3 shares one
+    assert g.fritz_pool(1, pool='parents') == []
     # A node that is neither a sibling nor a parent never appears.
     chain = Q([(0, 1), (1, 2)], 3, [], [])
-    assert chain.fritz_pool(2, pool='siblings+parents') == [1]
+    assert chain.fritz_pool(2, pool='siblings+parents') == [1] and chain.fritz_pool(2) == []
     assert chain.fritz_pool(0, pool='siblings+parents') == []
 
 
@@ -92,11 +95,27 @@ def test_noise_only_deletions_are_not_emitted():
     assert steps(g) == {} and steps(g, target_mode='split') == {} and steps(g, predictor_mode='split') == {}
 
 
-def test_parent_predictor_is_certified_vacuously():
+def test_parent_predictor_needs_no_certificate_and_deletes_maximally():
     g = Q([(0, 1)], 3, [], [(1, 2)])
     K, D = g.fritz_deletion(1, {0})
     assert K == {0} and latent_index(g, 'Q', {1, 2}) in D
-    assert g.fritz_certificate(1, K, {0}, use_lp=False) == 'dsep'
+    assert g.fritz_certificate(1, K, {0}, use_lp=False) == 'parent'
+    # A parent that also shares a facet with the target: the target keeps the edge only, the shared facet goes too
+    # (s = g(X) is a legal kernel for s as it stands, manuscript 6.3).
+    g = Q([(0, 1)], 3, [], [(0, 1), (1, 2)])
+    K, D = g.fritz_deletion(1, {0})
+    assert K == {0} and D == {latent_index(g, 'Q', {0, 1}), latent_index(g, 'Q', {1, 2}), latent_index(g, 'noise', {1})}
+    assert g.fritz_certificate(1, K, {0}, use_lp=False) == 'parent'
+    # Nothing but the noise to delete: no step.
+    assert Q([(0, 1)], 2, [], []).fritz_deletion(1, {0}) is None
+    # The certified stages never see a parent: with the default pool, 0 is not offered for 1.
+    assert all(dict(p)['predictor'] != (0,) or 1 not in dict(p)['targets'] for p in steps(g))
+    assert all(dict(p)['certificate'] == 'parent' for p in steps(g, pool='parents'))
+    # A parent of several targets: the joint steps carry the label 'parent' as well (no d-separation test ran).
+    g = Q([(0, 1), (0, 2), (0, 3), (3, 1)], 4, [], [(1, 2), (2, 3)])
+    out = steps(g, pool='parents')
+    joint = [p for p in out if len(dict(p)['targets']) > 1 and dict(p)['predictor'] == (0,)]
+    assert joint and all(dict(p)['certificate'] == 'parent' for p in out)
 
 
 def test_private_noise_blocks_prediction_of_a_parent():
@@ -123,7 +142,7 @@ def test_realise_marginalizes_in_every_order_and_records_it():
     g = Q([(0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)], 5, [(2, 3)],
           [(0, 2), (0, 3), (1, 2), (1, 4), (2, 4), (3, 4)])
     K, D = g.fritz_deletion(4, {0, 2})
-    assert g.fritz_certificate(4, K, {0, 2}, use_lp=False) == 'dsep'
+    assert g.fritz_certificate(4, K, {0, 2}, use_lp=False) == 'parent'   # both predictors are visible parents of 4
     results = g.fritz_realise({4: K}, {0, 2})
     assert len(results) == 2 and len({c.unique_unlabelled_id for _, c in results}) == 2
     assert {params for params, _ in results} == {(('order', (0, 2)),), (('order', (2, 0)),)}
@@ -171,9 +190,9 @@ def test_parent_predictor_edge_is_re_supplied_by_the_kept_copy():
     # With the parents in the pool, 0 (parent of 1, no shared facet) predicts 1 vacuously: the copy 0' is 1's
     # twin parent, so 0 -> 1 and Q{1,2} are deleted and 1 keeps 0' alone; marginalizing 0' (childful) re-supplies
     # 0 -> 1 as a classical facet C{0,1,3} by teleportation. Nothing new is reached here, but the step is sound.
-    out = steps(EDGE_EXAMPLE, predictor_mode='split', pool='siblings+parents')
+    out = steps(EDGE_EXAMPLE, predictor_mode='split', pool='parents')
     params = (('targets', (1,)), ('target_mode', 'unsplit'), ('deleted', ((0, 'Q{1,2}'),)), ('predictor', (0,)), ('predictor_mode', 'split'),
-              ('certificate', 'dsep'))
+              ('certificate', 'parent'))
     child = out[params]
     assert child.C_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({0, 1, 3})}
     assert child.Q_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({2, 3})}
@@ -245,7 +264,7 @@ def test_joint_predictors_are_available_but_off_by_default():
     joint = [p for p in steps(TRIANGLE, max_predictors=2) if len(dict(p)['predictor']) == 2]
     assert joint == []            # the joint set sees every facet of the target: noise-only deletion
     g = Q([(0, 1), (0, 4), (2, 4), (3, 4)], 5, [], [(0, 4), (1, 4), (3, 4)])
-    joint = [p for p in steps(g, max_predictors=2, max_visible=5) if len(dict(p)['predictor']) == 2]
+    joint = [p for p in steps(g, max_predictors=2, max_visible=5, pool='siblings+parents') if len(dict(p)['predictor']) == 2]
     assert joint and all(any(k == 'order' for k, _ in p) for p in joint)      # several removals: the order is recorded
 
 

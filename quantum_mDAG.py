@@ -61,8 +61,9 @@ ENGINES = ('semigraphoid', 'lp', 'both')
 DEFAULT_ENGINE = 'semigraphoid'
 ENGINE_DISAGREEMENTS: List[Tuple] = []   # (unique_id, predictors, target, kept parents of the target, lp, closure)
 # Outcome tally of the Fritz certificates (QmDAG.fritz_certificate), keyed by ('certificate', outcome) with outcome
-# 'vacuous' (every predictor a parent of the target), 'dsep', 'relabel', 'markov' or 'failed' (the engine certified
-# nothing); ('engine', name) counts which engine certified, ('disagreement', kind) the engine='both' disagreements.
+# 'parent' (every predictor a visible parent of the target: no certificate needed, manuscript 6.3), 'dsep', 'relabel',
+# 'markov' or 'failed' (the engine certified nothing); ('engine', name) counts which engine certified,
+# ('disagreement', kind) the engine='both' disagreements.
 ENTROPIC_STATS: Dict[Tuple[str, str], int] = dict()
 
 
@@ -688,10 +689,13 @@ class QmDAG:
     def fritz_pool(self, s: int, pool: str = 'siblings', allow_descendants: bool = False) -> List[int]:
         """Candidate predictors of the target s, in the order the search tries them. The lift must hand s its private
         randomness through a channel the predictor also sees: a facet shared with s (latent sibling) or the edge
-        X -> s (visible parent, pool='siblings+parents'); nothing else is sound. Descendants of s are removed unless
-        allow_descendants (the d-separation test always fails for them, since s's noise reaches them through s; the
-        closure is sound either way). Within each group, nodes sharing more facets with s come first."""
-        assert pool in ('siblings', 'siblings+parents'), pool
+        X -> s (visible parent); nothing else is sound. The two channels are two piggybacks (manuscript 6.3, 6.4):
+        pool='parents' lists the visible parents of s, for which the deletion needs no certificate; pool='siblings'
+        lists the latent siblings that are not visible parents, for which a certificate is needed;
+        pool='siblings+parents' lists both. Descendants of s are removed unless allow_descendants (the d-separation
+        test always fails for them, since s's noise reaches them through s; the closure is sound either way). Within
+        each group, nodes sharing more facets with s come first."""
+        assert pool in ('siblings', 'parents', 'siblings+parents'), pool
         g, latent_nodes = self.effective_DAG_data
         n = self.number_of_visible
         descendants = set(nx.descendants(g, s))
@@ -703,26 +707,34 @@ class QmDAG:
         def ordered(nodes: Iterable[int]) -> List[int]:
             return sorted((x for x in nodes if x != s and (allow_descendants or x not in descendants)),
                           key=lambda x: (-shared(x), x))
-        siblings = ordered(self.latent_siblings_of(s))
+        visible_parents = {p for p in g.predecessors(s) if p < n}
+        siblings = ordered(x for x in self.latent_siblings_of(s) if x not in visible_parents)
+        parents = ordered(visible_parents)
         if pool == 'siblings':
             return siblings
-        parents = ordered(p for p in g.predecessors(s) if p < n and p not in siblings)
+        if pool == 'parents':
+            return parents
         return siblings + parents
 
     def fritz_deletion(self, s: int, X: Iterable[int]) -> Optional[Tuple[frozenset, frozenset]]:
-        """The deletion the predictor set X dictates at the target s: K = Pa(s) ∩ seen(X) (what X sees: the
-        predictors themselves and their parents), D = Pa(s) minus K. Returns (K, D), or None when the pair is useless:
-        K holds no channel (a facet containing a predictor, or a predictor itself), or D contains nothing but s's own
-        noise. There is one deletion per pair: with a smaller D the kept set would contain a parent X cannot see, and
-        the lifted X could not compute s (manuscript 8.2). Whether the deletion is justified is fritz_certificate's
-        question, asked about this same D."""
+        """The deletion the predictor set X dictates at the target s. When every predictor is a visible parent of s
+        (the parent piggyback, manuscript 6.3), s keeps the edges from the predictors and nothing else: K = X,
+        D = Pa(s) minus X, since s = g(X) is a legal kernel for s as it stands. Otherwise K = Pa(s) ∩ seen(X) (what X
+        sees: the predictors themselves and their parents), D = Pa(s) minus K. Returns (K, D), or None when the pair
+        is useless: K holds no channel (a facet containing a predictor, or a predictor itself), or D contains nothing
+        but s's own noise. There is one deletion per pair: with a smaller D the kept set would contain a parent X
+        cannot see, and the lifted X could not compute s (manuscript 8.2). Whether the deletion is justified is
+        fritz_certificate's question, asked about this same D."""
         g, latent_nodes = self.effective_DAG_data
         X = frozenset(X)
-        seen = set(X)
-        for x in X:
-            seen.update(g.predecessors(x))
         parents = set(g.predecessors(s))
-        K = frozenset(parents & seen)
+        if X <= parents:
+            K = X
+        else:
+            seen = set(X)
+            for x in X:
+                seen.update(g.predecessors(x))
+            K = frozenset(parents & seen)
         D = frozenset(parents - K)
         channel = any(k in X for k in K) or any(latent_nodes[k][0] != 'noise' and latent_nodes[k][1] & X
                                                 for k in K if k >= self.number_of_visible)
@@ -734,18 +746,18 @@ class QmDAG:
     def fritz_certificate(self, s: int, K: frozenset, X: Iterable[int], use_lp: bool = True,
                           lp_markov_target: bool = False, tally: bool = True,
                           engine: Optional[str] = None) -> Optional[str]:
-        """Is restricting s to K justified by the predictors X? 'dsep' when every predictor is a parent of s (then
-        s = g(X) is a function of K outright, manuscript 8.5) or when X minus K is d-separated from Pa(s) minus K given
-        K in the effective DAG (Theorem 6.3); otherwise, with use_lp, the engine ('semigraphoid', 'lp' or 'both', default
-        DEFAULT_ENGINE) is asked to certify the same deletion with the `relabel` target set (and `markov` too if
-        lp_markov_target): 'semigraphoid' when the closure certifies it, 'entropic' when the LP does (Theorem 7.5);
-        None otherwise (manuscript 8.3, 7.9)."""
+        """Is restricting s to K justified by the predictors X? 'parent' when every predictor is a visible parent of
+        s (then s = g(X) is a legal kernel for s outright: no certificate is needed, manuscript 6.3); 'dsep' when
+        X minus K is d-separated from Pa(s) minus K given K in the effective DAG (Theorem 6.4); otherwise, with
+        use_lp, the engine ('semigraphoid', 'lp' or 'both', default DEFAULT_ENGINE) is asked to certify the same
+        deletion with the `relabel` target set (and `markov` too if lp_markov_target): 'semigraphoid' when the closure
+        certifies it, 'entropic' when the LP does (Theorem 7.6); None otherwise (manuscript 8.3, 7.9)."""
         g, latent_nodes = self.effective_DAG_data
         X = frozenset(X)
         count = _tally if tally else (lambda kind, outcome: None)   # joint re-checks are not counted (ENTROPIC_STATS)
         if X <= K:
-            count('certificate', 'vacuous')
-            return 'dsep'
+            count('certificate', 'parent')
+            return 'parent'
         others = set(g.predecessors(s)) - K
         if nx.is_d_separator(g, X - K, others, set(K)):
             count('certificate', 'dsep')
@@ -871,10 +883,14 @@ class QmDAG:
         childful predictor and removes the copy, 'unsplit' removes the predictors themselves. Justification and surgery run
         on the structure that carries the splits; copies are the indices >= self.number_of_visible, in splitting
         order (predictor copies first), and params are stated in self's indices with a prime for a copy.
-        `engine` names the beyond-d-separation certificate engine (DEFAULT_ENGINE: 'semigraphoid', 'lp' or 'both').
+        `pool` is 'parents' (the parent piggyback: the predictor is a visible parent of the target and the deletion
+        needs no certificate, manuscript 6.3), 'siblings' (latent siblings that are not visible parents: the
+        certified piggybacks) or 'siblings+parents'. `engine` names the beyond-d-separation certificate engine
+        (DEFAULT_ENGINE: 'semigraphoid', 'lp' or 'both').
         params: (('targets', (s, ...)), ('target_mode', 'unsplit' | 'split'), ('deleted', (labels of D_s, ...)),
-        ('predictor', X), ('predictor_mode', 'unsplit' | 'split'), ('certificate', 'dsep' | 'semigraphoid' | 'entropic'))
-        [+ ('order', ...) when several predictors are marginalized]."""
+        ('predictor', X), ('predictor_mode', 'unsplit' | 'split'),
+        ('certificate', 'parent' | 'dsep' | 'semigraphoid' | 'entropic')) [+ ('order', ...) when several predictors
+        are marginalized]."""
         assert target_mode in ('unsplit', 'split') and predictor_mode in ('unsplit', 'split')
         if lp_only:
             if not use_lp:
@@ -966,17 +982,20 @@ class QmDAG:
                         if prepared is None:
                             continue
                         work, X_eff, eff_targets, remove, copy_of = prepared
-                        kept, deleted = {}, {}
+                        kept, deleted, labels = {}, {}, set()
                         for target in eff_targets:
                             deletion = work.fritz_deletion(target, X_eff)
-                            if deletion is None or work.fritz_certificate(target, deletion[0], X_eff, use_lp=False, tally=False) is None:
+                            label = None if deletion is None else work.fritz_certificate(target, deletion[0], X_eff, use_lp=False, tally=False)
+                            if label is None:
                                 kept = None
                                 break
                             kept[target], deleted[target] = deletion
+                            labels.add(label)
                         if kept is None:
                             continue
                         item = (X, T, work, kept, deleted, X_eff, remove, copy_of)
-                        yield from self._fritz_emit(item, target_mode, predictor_mode, 'dsep', labels_of)
+                        # 'parent' when every member is a parent step (6.3), 'dsep' otherwise (Theorem 6.4 for the set)
+                        yield from self._fritz_emit(item, target_mode, predictor_mode, 'parent' if labels == {'parent'} else 'dsep', labels_of)
         for item in deferred:
             X, T, work, kept, deleted, X_eff, remove, copy_of = item
             (target,) = kept
@@ -1003,8 +1022,9 @@ class QmDAG:
                            predictor_modes: Tuple[str, ...] = ('unsplit', 'split'),
                            strict_conditioning: bool = True) -> Iterable["QmDAG"]:
         """One application of every piggyback (PD, conditioning, marginalization, node stitching, Fritz by
-        d-separation in both target modes and the given predictor modes): the old composition API behind
-        unique_unlabelled_ids_obtainable_by_*, a closure of any depth (unlike the census cascade)."""
+        d-separation in both target modes and the given predictor modes, parent predictors included): the old
+        composition API behind unique_unlabelled_ids_obtainable_by_*, a closure of any depth (unlike the census
+        cascade)."""
         n = self.number_of_visible
         if n > min_visible:
             yield from self.subgraphs
@@ -1020,7 +1040,8 @@ class QmDAG:
             for target_mode in ('unsplit', 'split'):
                 for predictor_mode in predictor_modes:
                     for _, child in self.fritz_steps(target_mode=target_mode, predictor_mode=predictor_mode, use_lp=False,
-                                                     max_predictors=max_predictors, max_visible=max_visible):
+                                                     max_predictors=max_predictors, max_visible=max_visible,
+                                                     pool='siblings+parents'):
                         yield child
 
     def piggyback_closure(self, max_visible: int = None, min_visible: int = 3, max_states: int = 50000,
