@@ -568,10 +568,11 @@ class QmDAG:
     #
     # Every transformation of the search is a generator of (params, child) pairs on this class, so that a piggyback
     # can be read, and debugged, in one place. The elementary reductions wrap the primitives above; the Fritz
-    # piggyback is written target-first in five short methods (fritz_pool, fritz_deletion, fritz_certificate,
-    # fritz_realise, fritz_steps): pick a target node s, try its candidate predictors X in order; each X dictates the
-    # deletion D (the parents of s that X cannot see), which is justified by d-separation or by the entropic LP, then
-    # realised by surgery (manuscript Section 8).
+    # piggyback is written predictor-first in six short methods (fritz_pool, fritz_targets, fritz_deletion,
+    # fritz_certificate, fritz_realise, fritz_steps): pick a predictor set X, try its candidate targets s in order;
+    # at each target X dictates the deletion D (the parents of s that X cannot see), which is justified by
+    # d-separation or by the entropic LP, then realised by surgery, singly or for several targets of X at once
+    # (manuscript Section 8).
     # Indices are effective-DAG indices (effective_DAG_data): visible nodes, then facets, then noise sources.
     # ------------------------------------------------------------------
 
@@ -631,7 +632,7 @@ class QmDAG:
                 results.append(((('classical', chosen),), QmDAG(self.directed_structure_instance, new_C, Hypergraph(remaining_Q, n))))
         return results
 
-    # -- the Fritz piggyback, target-first (manuscript Sections 6 to 8) ------------------------------------------
+    # -- the Fritz piggyback, predictor-first (manuscript Sections 6 to 8) ---------------------------------------
 
     def fritz_pool(self, s: int, pool: str = 'siblings', allow_descendants: bool = False) -> List[int]:
         """Candidate predictors of the target s, in the order the search tries them. The lift must hand s its private
@@ -705,26 +706,20 @@ class QmDAG:
                 return 'entropic'
         return None
 
-    def fritz_targets(self, X: Iterable[int], pool: str = 'siblings', allow_descendants: bool = False) -> List[int]:
+    def fritz_targets(self, X: Iterable[int], pool: str = 'siblings', allow_descendants: bool = False,
+                      pools: Optional[Dict[int, List[int]]] = None) -> List[int]:
         """Candidate targets of the predictor set X, in the order the search tries them: the nodes s whose pool
-        (fritz_pool) contains a member of X, none of X being a descendant of s unless allow_descendants. Nodes
-        sharing more facets with X come first, then by index."""
+        (fritz_pool) contains every member of X, so that each member has its own channel to s. Nodes sharing more
+        facets with X come first, then by index. `pools` may hold precomputed fritz_pool lists per node."""
         X = frozenset(X)
-        g, latent_nodes = self.effective_DAG_data
+        _, latent_nodes = self.effective_DAG_data
         facets = [members for kind, members in latent_nodes.values() if kind != 'noise']
+        if pools is None:
+            pools = {s: self.fritz_pool(s, pool=pool, allow_descendants=allow_descendants) for s in self.visible_nodes}
 
         def shared(s: int) -> int:
             return sum(1 for members in facets if s in members and members & X)
-        out = []
-        for s in self.visible_nodes:
-            if s in X:
-                continue
-            candidates = set(self.fritz_pool(s, pool=pool, allow_descendants=allow_descendants))
-            if not X & candidates:
-                continue   # no member of X has a channel to s
-            if not allow_descendants and X & nx.descendants(g, s):
-                continue   # a member of X that cannot see s and is downstream of it
-            out.append(s)
+        out = [s for s in self.visible_nodes if s not in X and X <= set(pools[s])]
         return sorted(out, key=lambda s: (-shared(s), s))
 
     def _restrict_targets(self, kept: Dict[int, frozenset]) -> "QmDAG":
@@ -811,13 +806,14 @@ class QmDAG:
         marginalized]."""
         assert mode in ('replace', 'copy') and predictor_mode in ('dropped', 'kept')
         if lp_only:
-            use_lp, max_targets = True, 1
+            if not use_lp:
+                return   # an LP stage without the LP (mosek missing) has nothing to emit
+            max_targets = 1
         n = self.number_of_visible
         if max_visible is None:
             max_visible = n + 1
-        g0, _ = self.effective_DAG_data
-        predictor_candidates = [x for x in self.visible_nodes
-                                if self.latent_siblings_of(x) or (pool == 'siblings+parents' and set(g0.successors(x)) & set(self.visible_nodes))]
+        pools = {s: self.fritz_pool(s, pool=pool, allow_descendants=allow_descendants) for s in self.visible_nodes}
+        predictor_candidates = sorted({x for candidates in pools.values() for x in candidates})
         deferred = []
 
         def labels_of(work: "QmDAG", D: frozenset, copy_of: Dict[int, int]) -> Tuple:
@@ -836,10 +832,9 @@ class QmDAG:
                         out.append(kind + '{' + ','.join(str(node_label(v)) for v in sorted(members)) + '}')
             return tuple(out)
 
-        def prepare(X: Tuple[int, ...], T: Tuple[int, ...]):
-            """The structure carrying the splits for predictors X and targets T, with the effective indices of the
-            predictors and targets, the nodes to remove and the copy map; None when the output would be too small or
-            too large."""
+        def split_predictors(X: Tuple[int, ...]):
+            """The structure with the childful predictors split (kept mode), the predictors' effective indices, the
+            nodes to remove and the copy map; computed once per predictor set."""
             work, copy_of, X_eff = self, {}, list(X)
             if predictor_mode == 'kept':
                 for i, x in enumerate(X):
@@ -850,7 +845,14 @@ class QmDAG:
                 remove = frozenset(x for x in X_eff if x >= n)
             else:
                 remove = frozenset(X_eff)
-            targets = list(T)
+            return work, frozenset(X_eff), remove, copy_of
+
+        def prepare(base, T: Tuple[int, ...]):
+            """The structure carrying all the splits for the targets T on top of the predictor splits `base`, with
+            the effective indices of the predictors and targets, the nodes to remove and the copy map; None when the
+            output would be too small or too large."""
+            work, X_eff, remove, copy_of = base
+            copy_of, targets = dict(copy_of), list(T)
             if mode == 'copy':
                 for i, s in enumerate(T):
                     work = work.split_node(s)
@@ -858,14 +860,17 @@ class QmDAG:
                     copy_of[targets[i]] = s
             if not (3 <= work.number_of_visible - len(remove) <= max_visible):
                 return None
-            return work, frozenset(X_eff), tuple(targets), remove, copy_of
+            return work, X_eff, tuple(targets), remove, copy_of
 
         for r in range(1, min(max_predictors, len(predictor_candidates)) + 1):
             for X in itertools.combinations(predictor_candidates, r):
-                targets = self.fritz_targets(X, pool=pool, allow_descendants=allow_descendants)
+                targets = self.fritz_targets(X, pools=pools)
+                if not targets:
+                    continue
+                base = split_predictors(X)
                 certified = []   # targets certified by d-separation on their own
                 for s in targets:
-                    prepared = prepare(X, (s,))
+                    prepared = prepare(base, (s,))
                     if prepared is None:
                         continue
                     work, X_eff, (target,), remove, copy_of = prepared
@@ -886,7 +891,7 @@ class QmDAG:
                 top = len(certified) if max_targets is None else min(max_targets, len(certified))
                 for k in range(2, top + 1):
                     for T in itertools.combinations(certified, k):
-                        prepared = prepare(X, T)
+                        prepared = prepare(base, T)
                         if prepared is None:
                             continue
                         work, X_eff, eff_targets, remove, copy_of = prepared

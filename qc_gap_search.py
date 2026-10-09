@@ -80,11 +80,12 @@ def fritz_tricks(max_visible: int = 5, predictor_mode: str = 'dropped', modes: T
     one predictor (all by default; 1 disables them); lp_markov_target=True also tries the
     `markov` LP target set after `relabel` fails (it never decided an input in the four-node census, 9.7);
     lp_only=True emits the LP-certified single steps only (the LP stages of the cascade)."""
-    if use_lp:
+    if use_lp or lp_only:
         try:
             import mosek  # noqa: F401
         except ImportError:
-            warnings.warn("mosek is not installed; the Fritz trick certifies by d-separation only.")
+            warnings.warn("mosek is not installed; the Fritz trick certifies by d-separation only"
+                          + (" (an LP-only stage then emits nothing)." if lp_only else "."))
             use_lp = False
 
     def fritz(g: QmDAG) -> Iterable[Tuple[Tuple, QmDAG]]:
@@ -116,8 +117,9 @@ def default_stages(max_visible: int = 5, with_entropic: bool = True, with_kept: 
     (1) The elementary reductions, closed over everything reachable from every input.
     (2-5) Four d-separation Fritz stages, one per pair of modes (replace/dropped, replace/kept, copy/dropped,
     copy/kept), each applied once to each still-unproven input with elementary follow-up ("depth one"); within a
-    root everything is recorded, breadth-first, since a predictor's joint target sets need all its single
-    targets and the d-separation test is cheap (no early exit).
+    root everything is recorded, breadth-first (no early exit): the test is cheap, and recording every
+    d-separation route keeps the recorded routes, and the database of proven structures, independent of the order
+    in which a root's predictors are tried.
     (6-9) The same four modes with the entropic LP, single targets only, each root stopping at its first success
     (early exit); with_entropic=False omits them. The LP tries the `relabel` target set only (lp_markov_target=True
     turns the `markov` set back on; it never decided an input in the four-node census).
