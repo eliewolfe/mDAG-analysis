@@ -14,12 +14,13 @@ THREE-node known gaps only. The 4-node Bell variants are inputs here, not seeds,
 elementary piggyback contributes: how many inputs it proves alone and how many are lost without it.
 
 Phase 2 (expensive): the inputs that phase 1 left unproven, minus the Bell variants (which are known gaps and are
-now seeds), are attacked by the staged cascade of the Fritz piggyback: four d-separation stages (unsplit target and
-unsplit predictor, unsplit target and split predictor, split target and unsplit predictor, split target and split
-predictor; joint target sets included, every root recorded in full), then the same four modes with the semigraphoid
-closure (single targets, each root stopping at its first success; the entropic LP with --engine lp). Each stage is applied once to the still-unproven
-inputs with elementary follow-up. The report gives the cumulative counts after each stage, which are the rungs of
-the cheap-to-expensive ladder.
+now seeds), are attacked by the staged cascade of the Fritz piggyback: the parent piggyback (a visible parent
+predicts the target, which keeps that edge only; no certificate needed), then four d-separation stages over the
+latent siblings (unsplit target and unsplit predictor, unsplit target and split predictor, split target and unsplit
+predictor, split target and split predictor; joint target sets included, every root recorded in full), then the same
+four modes with the semigraphoid closure (single targets, each root stopping at its first success; the entropic LP
+with --engine lp). Each stage is applied once to the still-unproven inputs with elementary follow-up. The report
+gives the cumulative counts after each stage, which are the rungs of the cheap-to-expensive ladder.
 
 Throughout, a structure counts as known as soon as one of its degradations (some quantum facets made classical) is
 known: the degradation piggyback is applied as a lookup to every structure the search meets. The seeds are therefore
@@ -29,9 +30,9 @@ Within an LP stage, a root stops as soon as one of its outputs (or that output's
 gap (`--no-early-exit` records everything instead); the d-separation stages record everything.
 
 Options (see qc_gap_search.default_stages): the LP tries the `relabel` target set only, because the `markov` target
-set never decided an input (lp_markov_target=True turns it back on). The predictor pool of a target is its latent
-siblings that are not its descendants; `--parents` adds the visible parents of the target to the pool and
-`--descendants` keeps the descendants (the experiments of manuscript 1.2; neither proves a further input).
+set never decided an input (lp_markov_target=True turns it back on). The predictor pool of the certified stages is
+the latent siblings of the target that are not its visible parents (those belong to the parent stage) nor its
+descendants; `--descendants` keeps the descendants (the experiment of manuscript 1.2; it proves no further input).
 `--engine semigraphoid|lp|both` chooses the certificate engine of the entropic stages (manuscript 7.9): the
 semigraphoid closure (default, fast), the entropic LP (needs mosek), or both with every disagreement reported.
 
@@ -217,7 +218,7 @@ if __name__ == '__main__':
     with_entropic = '--no-entropic' not in sys.argv
     with_split_predictors = '--no-split-predictors' not in sys.argv
     use_cache = '--no-cache' not in sys.argv
-    pool = 'siblings+parents' if '--parents' in sys.argv else 'siblings'
+    pool = 'siblings'
     allow_descendants = '--descendants' in sys.argv
     early_exit = '--no-early-exit' not in sys.argv
     engine = sys.argv[sys.argv.index('--engine') + 1] if '--engine' in sys.argv and sys.argv.index('--engine') + 1 < len(sys.argv) else None

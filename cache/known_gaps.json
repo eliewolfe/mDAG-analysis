@@ -930,7 +930,7 @@
     ]
    },
    "versions": {
-    "Fritz": 7
+    "Fritz": 8
    },
    "via_cache": null
   },
@@ -8372,7 +8372,7 @@
     ]
    },
    "versions": {
-    "Fritz": 7,
+    "Fritz": 8,
     "conditioning": 4,
     "teleportation_marginalization": 1
    },
@@ -9240,7 +9240,7 @@
     ]
    },
    "versions": {
-    "Fritz": 7
+    "Fritz": 8
    },
    "via_cache": null
   },
@@ -24796,14 +24796,14 @@
    "via_cache": null
   },
   "4,280,0,2661": {
-   "certificate": "Fritz(('targets', (1,)), ('target_mode', 'split'), ('deleted', ((\"Q{1,3,1'}\",),)), ('predictor', (0,)), ('predictor_mode', 'unsplit'), ('certificate', 'dsep')):\n    Children  : {0:[2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(1,3)]\nteleportation_marginalization(('marginalize', 0),):\n    Children  : {1:[2],2:[3],3:[],4:[2]}\n    Classical : [(1,2,4)]\n    Quantum   : [(1,3),(1,2)]\n== known gap QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : [(0,1)]\n    Quantum   : [(1,2)]",
+   "certificate": "Fritz(('targets', (2,)), ('target_mode', 'split'), ('deleted', ((0, 1, \"Q{0,2,0',2'}\"),)), ('predictor', (0,)), ('predictor_mode', 'split'), ('certificate', 'parent')):\n    Children  : {0:[2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(1,3)]\nPD(('drop', 4),):\n    Children  : {0:[2],1:[2],2:[3],3:[],5:[3]}\n    Classical : [(0,1,2,5)]\n    Quantum   : [(1,3),(0,1,2)]\nteleportation_marginalization(('marginalize', 1),):\n    Children  : {0:[2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(1,3)]\ndegradation(('classical', ((0, 1),)),):\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(2,3),(1,2)]\n== known gap QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : [(0,1)]\n    Quantum   : [(1,2)]",
    "chain": [
     {
      "params": [
       [
        "targets",
        [
-        1
+        2
        ]
       ],
       [
@@ -24814,7 +24814,9 @@
        "deleted",
        [
         [
-         "Q{1,3,1'}"
+         0,
+         1,
+         "Q{0,2,0',2'}"
         ]
        ]
       ],
@@ -24826,11 +24828,11 @@
       ],
       [
        "predictor_mode",
-       "unsplit"
+       "split"
       ],
       [
        "certificate",
-       "dsep"
+       "parent"
       ]
      ],
      "source": [
@@ -24840,25 +24842,72 @@
       2661
      ],
      "target": [
-      4,
-      280,
-      7,
-      163
+      5,
+      34320,
+      15,
+      653
      ],
      "trick": "Fritz"
     },
     {
      "params": [
       [
+       "drop",
+       4
+      ]
+     ],
+     "source": [
+      5,
+      34320,
+      15,
+      653
+     ],
+     "target": [
+      4,
+      280,
+      0,
+      167
+     ],
+     "trick": "PD"
+    },
+    {
+     "params": [
+      [
        "marginalize",
-       0
+       1
       ]
      ],
      "source": [
       4,
       280,
-      7,
-      163
+      0,
+      167
+     ],
+     "target": [
+      3,
+      12,
+      0,
+      43
+     ],
+     "trick": "teleportation_marginalization"
+    },
+    {
+     "params": [
+      [
+       "classical",
+       [
+        [
+         0,
+         1
+        ]
+       ]
+      ]
+     ],
+     "source": [
+      3,
+      12,
+      0,
+      43
      ],
      "target": [
       3,
@@ -24866,7 +24915,7 @@
       3,
       5
      ],
-     "trick": "teleportation_marginalization"
+     "trick": "degradation"
     }
    ],
    "id": [
@@ -24914,7 +24963,9 @@
     ]
    },
    "versions": {
-    "Fritz": 7,
+    "Fritz": 8,
+    "PD": 1,
+    "degradation": 1,
     "teleportation_marginalization": 1
    },
    "via_cache": null
@@ -30677,7 +30728,7 @@
    "via_cache": null
   },
   "4,328,0,3171": {
-   "certificate": "Fritz(('targets', (1,)), ('target_mode', 'split'), ('deleted', ((\"Q{1,3,1'}\",),)), ('predictor', (0,)), ('predictor_mode', 'unsplit'), ('certificate', 'dsep')):\n    Children  : {0:[1],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(1,3)]\nteleportation_marginalization(('marginalize', 0),):\n    Children  : {1:[2],2:[3],3:[],4:[2]}\n    Classical : [(1,2,4)]\n    Quantum   : [(1,3),(1,2)]\n== known gap QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : [(0,1)]\n    Quantum   : [(1,2)]",
+   "certificate": "Fritz(('targets', (1,)), ('target_mode', 'split'), ('deleted', ((\"Q{0,1,1'}\", \"Q{1,3,1'}\"),)), ('predictor', (0,)), ('predictor_mode', 'unsplit'), ('certificate', 'parent')):\n    Children  : {0:[1],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(1,3)]\nteleportation_marginalization(('marginalize', 0),):\n    Children  : {1:[2],2:[3],3:[],4:[2]}\n    Classical : [(1,2,4)]\n    Quantum   : [(1,3),(1,2)]\n== known gap QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : [(0,1)]\n    Quantum   : [(1,2)]",
    "chain": [
     {
      "params": [
@@ -30695,6 +30746,7 @@
        "deleted",
        [
         [
+         "Q{0,1,1'}",
          "Q{1,3,1'}"
         ]
        ]
@@ -30711,7 +30763,7 @@
       ],
       [
        "certificate",
-       "dsep"
+       "parent"
       ]
      ],
      "source": [
@@ -30795,7 +30847,7 @@
     ]
    },
    "versions": {
-    "Fritz": 7,
+    "Fritz": 8,
     "teleportation_marginalization": 1
    },
    "via_cache": null
@@ -35849,7 +35901,7 @@
    "via_cache": null
   },
   "4,344,0,3171": {
-   "certificate": "Fritz(('targets', (1,)), ('target_mode', 'split'), ('deleted', ((\"Q{1,3,1'}\",),)), ('predictor', (0,)), ('predictor_mode', 'unsplit'), ('certificate', 'dsep')):\n    Children  : {0:[1,2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(1,3)]\nteleportation_marginalization(('marginalize', 0),):\n    Children  : {1:[2],2:[3],3:[],4:[2]}\n    Classical : [(1,2,4)]\n    Quantum   : [(1,3),(1,2)]\n== known gap QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : [(0,1)]\n    Quantum   : [(1,2)]",
+   "certificate": "Fritz(('targets', (1,)), ('target_mode', 'split'), ('deleted', ((\"Q{0,1,1'}\", \"Q{1,3,1'}\"),)), ('predictor', (0,)), ('predictor_mode', 'unsplit'), ('certificate', 'parent')):\n    Children  : {0:[1,2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(1,3)]\nteleportation_marginalization(('marginalize', 0),):\n    Children  : {1:[2],2:[3],3:[],4:[2]}\n    Classical : [(1,2,4)]\n    Quantum   : [(1,3),(1,2)]\n== known gap QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : [(0,1)]\n    Quantum   : [(1,2)]",
    "chain": [
     {
      "params": [
@@ -35867,6 +35919,7 @@
        "deleted",
        [
         [
+         "Q{0,1,1'}",
          "Q{1,3,1'}"
         ]
        ]
@@ -35883,7 +35936,7 @@
       ],
       [
        "certificate",
-       "dsep"
+       "parent"
       ]
      ],
      "source": [
@@ -35971,7 +36024,7 @@
     ]
    },
    "versions": {
-    "Fritz": 7,
+    "Fritz": 8,
     "teleportation_marginalization": 1
    },
    "via_cache": null
@@ -59939,7 +59992,7 @@
     ]
    },
    "versions": {
-    "Fritz": 7,
+    "Fritz": 8,
     "degradation": 1
    },
    "via_cache": null
@@ -62163,7 +62216,7 @@
     ]
    },
    "versions": {
-    "Fritz": 7
+    "Fritz": 8
    },
    "via_cache": null
   },
@@ -63505,7 +63558,7 @@
     ]
    },
    "versions": {
-    "Fritz": 7,
+    "Fritz": 8,
     "degradation": 1
    },
    "via_cache": null
@@ -63610,7 +63663,7 @@
     ]
    },
    "versions": {
-    "Fritz": 7
+    "Fritz": 8
    },
    "via_cache": null
   },
@@ -85649,7 +85702,7 @@
   }
  },
  "piggyback_versions": {
-  "Fritz": 7,
+  "Fritz": 8,
   "PD": 1,
   "conditioning": 4,
   "degradation": 1,

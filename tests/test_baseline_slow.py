@@ -35,8 +35,9 @@ EXPECTED_CHEAP = {
 # recorded) must agree with the rungs of the ladder (by the recorded parameters).
 EXPECTED_STAGES = [
     ('elementary', 921),
-    ('Fritz, unsplit target, unsplit predictor, d-separation', 922),
-    ('Fritz, unsplit target, split predictor, d-separation', 922),
+    ('Fritz, parent predictor', 924),
+    ('Fritz, unsplit target, unsplit predictor, d-separation', 925),
+    ('Fritz, unsplit target, split predictor, d-separation', 925),
     ('Fritz, split target, unsplit predictor, d-separation', 925),
     ('Fritz, split target, split predictor, d-separation', 926),
     ('Fritz, unsplit target, unsplit predictor, semigraphoid closure', 926),
@@ -44,10 +45,10 @@ EXPECTED_STAGES = [
     ('Fritz, split target, unsplit predictor, semigraphoid closure', 931),
     ('Fritz, split target, split predictor, semigraphoid closure', 931),
 ]
-EXPECTED_LADDER = [921, 922, 922, 925, 926, 926, 931, 931, 931]
+EXPECTED_LADDER = [921, 924, 925, 925, 925, 926, 926, 931, 931, 931]
 
 
-EXPECTED_CERTIFICATES = {('certificate', 'vacuous'): 404, ('certificate', 'dsep'): 398, ('certificate', 'relabel'): 54,
+EXPECTED_CERTIFICATES = {('certificate', 'parent'): 823, ('certificate', 'dsep'): 392, ('certificate', 'relabel'): 54,
                          ('certificate', 'failed'): 668}
 
 
