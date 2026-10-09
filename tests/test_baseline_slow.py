@@ -27,17 +27,21 @@ EXPECTED_CHEAP = {
 }
 
 # Phase 2: the weakest Bell variants are seeds (994 inputs: the two all-quantum Bell variants are seeds, the other
-# all-quantum Bell variants are inputs proven by degradation), the cascade of four Fritz stages on what phase 1 left
-# (1.2). The cumulative stage counts (by the stage in which each transition was recorded) must agree with the LP rungs
-# of the ladder (by the recorded parameters).
+# all-quantum Bell variants are inputs proven by degradation), the cascade of four d-separation Fritz stages and four
+# LP Fritz stages on what phase 1 left (1.2). The cumulative stage counts (by the stage in which each transition was
+# recorded) must agree with the rungs of the ladder (by the recorded parameters).
 EXPECTED_STAGES = [
     ('elementary', 921),
-    ('Fritz, replace mode, dropped predictors', 922),
-    ('Fritz, replace mode, kept predictors', 928),
-    ('Fritz, copy mode, dropped predictors', 931),
-    ('Fritz, copy mode, kept predictors', 931),
+    ('Fritz, replace mode, dropped predictors, d-separation', 922),
+    ('Fritz, replace mode, kept predictors, d-separation', 922),
+    ('Fritz, copy mode, dropped predictors, d-separation', 925),
+    ('Fritz, copy mode, kept predictors, d-separation', 926),
+    ('Fritz, replace mode, dropped predictors, LP', 926),
+    ('Fritz, replace mode, kept predictors, LP', 931),
+    ('Fritz, copy mode, dropped predictors, LP', 931),
+    ('Fritz, copy mode, kept predictors, LP', 931),
 ]
-EXPECTED_LADDER = [921, 922, 922, 922, 928, 931, 931, 931, 931]
+EXPECTED_LADDER = [921, 922, 922, 925, 926, 926, 931, 931, 931]
 
 
 @pytest.mark.slow
@@ -52,7 +56,7 @@ def test_search_counts(proving_QC_Gaps):
     assert report.stage_counts == EXPECTED_STAGES
     rungs = [proven for _, proven, _ in ladder(report)]
     assert rungs == EXPECTED_LADDER
-    assert rungs[0::2] == [count for _, count in EXPECTED_STAGES]
+    assert rungs == [count for _, count in EXPECTED_STAGES]
     assert entropic_lp.TIMEOUTS[0] == 0
     # Every proven input has a certificate ending at a named seed.
     for gid in report.proven:

@@ -40,11 +40,11 @@ def test_edge_example_certificate_is_a_single_fritz_step_to_bell():
     chain = report.proven[EDGE_EXAMPLE.unique_unlabelled_id]
     assert [t.trick for t in chain] == ['Fritz']
     assert report.seed_hit[EDGE_EXAMPLE.unique_unlabelled_id] == 'QG_Bell_C_Edge'
-    assert dict(chain[0].params)['deleted'] == (0,) and dict(chain[0].params)['certificate'] == 'dsep'
+    assert dict(chain[0].params)['deleted'] == ((0,),) and dict(chain[0].params)['certificate'] == 'dsep'
     text = report.certificate(EDGE_EXAMPLE)
     assert 'Fritz' in text and '== known gap' in text
-    # The cheapest stage that proves it is replace mode with kept predictors (stage 3 of the cascade).
-    assert [count for _, count in report.stage_counts] == [0, 0, 1, 1, 1]
+    # The cheapest stage that proves it is replace mode with kept predictors by d-separation (stage 3 of the cascade).
+    assert [count for _, count in report.stage_counts] == [0, 0, 1, 1, 1, 1, 1, 1, 1]
 
 
 def test_lost_graph_needs_fritz_and_marginalization():

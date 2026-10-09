@@ -568,10 +568,11 @@ class QmDAG:
     #
     # Every transformation of the search is a generator of (params, child) pairs on this class, so that a piggyback
     # can be read, and debugged, in one place. The elementary reductions wrap the primitives above; the Fritz
-    # piggyback is written target-first in five short methods (fritz_pool, fritz_deletion, fritz_certificate,
-    # fritz_realise, fritz_steps): pick a target node s, try its candidate predictors X in order; each X dictates the
-    # deletion D (the parents of s that X cannot see), which is justified by d-separation or by the entropic LP, then
-    # realised by surgery (manuscript Section 8).
+    # piggyback is written predictor-first in six short methods (fritz_pool, fritz_targets, fritz_deletion,
+    # fritz_certificate, fritz_realise, fritz_steps): pick a predictor set X, try its candidate targets s in order;
+    # at each target X dictates the deletion D (the parents of s that X cannot see), which is justified by
+    # d-separation or by the entropic LP, then realised by surgery, singly or for several targets of X at once
+    # (manuscript Section 8).
     # Indices are effective-DAG indices (effective_DAG_data): visible nodes, then facets, then noise sources.
     # ------------------------------------------------------------------
 
@@ -631,7 +632,7 @@ class QmDAG:
                 results.append(((('classical', chosen),), QmDAG(self.directed_structure_instance, new_C, Hypergraph(remaining_Q, n))))
         return results
 
-    # -- the Fritz piggyback, target-first (manuscript Sections 6 to 8) ------------------------------------------
+    # -- the Fritz piggyback, predictor-first (manuscript Sections 6 to 8) ---------------------------------------
 
     def fritz_pool(self, s: int, pool: str = 'siblings', allow_descendants: bool = False) -> List[int]:
         """Candidate predictors of the target s, in the order the search tries them. The lift must hand s its private
@@ -680,53 +681,77 @@ class QmDAG:
         return K, D
 
     def fritz_certificate(self, s: int, K: frozenset, X: Iterable[int], use_lp: bool = True,
-                          lp_markov_target: bool = False) -> Optional[str]:
+                          lp_markov_target: bool = False, tally: bool = True) -> Optional[str]:
         """Is restricting s to K justified by the predictors X? 'dsep' when every predictor is a parent of s (then
         s = g(X) is a function of K outright, manuscript 8.5) or when X minus K is d-separated from Pa(s) minus K given
         K in the effective DAG (Theorem 6.3); 'entropic' when the entropic LP certifies the same deletion (Theorem 7.5;
         the `relabel` target set, and `markov` too if lp_markov_target); None otherwise (manuscript 8.3)."""
         g, latent_nodes = self.effective_DAG_data
         X = frozenset(X)
+        count = _tally if tally else (lambda kind, outcome: None)   # joint re-checks are not counted (ENTROPIC_STATS)
         if X <= K:
-            _tally('certificate', 'vacuous')
+            count('certificate', 'vacuous')
             return 'dsep'
         others = set(g.predecessors(s)) - K
         if nx.is_d_separator(g, X - K, others, set(K)):
-            _tally('certificate', 'dsep')
+            count('certificate', 'dsep')
             return 'dsep'
         if use_lp:
             nodes, parents = self.lp_structure
             kept = dict(parents)
             kept[s] = frozenset(k for k in K if k in parents)
             outcome = self._entropic_certificate(X, kept, (s,), try_markov=lp_markov_target)
-            _tally('certificate', outcome or 'failed')
+            count('certificate', outcome or 'failed')
             if outcome is not None:
                 return 'entropic'
         return None
 
-    def _restrict_target(self, s: int, K: frozenset) -> "QmDAG":
-        """The candidate structure: s keeps exactly the parents K (visible nodes and facets); a facet in K stays
-        quantum for its other members and becomes classical for s (a classical facet over all its members is added);
-        every other node is untouched. Plain integer labels."""
+    def fritz_targets(self, X: Iterable[int], pool: str = 'siblings', allow_descendants: bool = False,
+                      pools: Optional[Dict[int, List[int]]] = None) -> List[int]:
+        """Candidate targets of the predictor set X, in the order the search tries them: the nodes s whose pool
+        (fritz_pool) contains every member of X, so that each member has its own channel to s. Nodes sharing more
+        facets with X come first, then by index. `pools` may hold precomputed fritz_pool lists per node."""
+        X = frozenset(X)
+        _, latent_nodes = self.effective_DAG_data
+        facets = [members for kind, members in latent_nodes.values() if kind != 'noise']
+        if pools is None:
+            pools = {s: self.fritz_pool(s, pool=pool, allow_descendants=allow_descendants) for s in self.visible_nodes}
+
+        def shared(s: int) -> int:
+            return sum(1 for members in facets if s in members and members & X)
+        out = [s for s in self.visible_nodes if s not in X and X <= set(pools[s])]
+        return sorted(out, key=lambda s: (-shared(s), s))
+
+    def _restrict_targets(self, kept: Dict[int, frozenset]) -> "QmDAG":
+        """The candidate structure: every target s in `kept` keeps exactly the parents kept[s] (visible nodes and
+        facets, effective-DAG indices of self); a facet kept by a target stays quantum for its other members and
+        becomes classical for the target (a classical facet over all its members is added); every other node is
+        untouched. Plain integer labels."""
         g, latent_nodes = self.effective_DAG_data
         n = self.number_of_visible
-        edges = sorted((a, b) for (a, b) in self.directed_structure_instance.as_set_of_tuples if b != s or a in K)
+        edges = sorted((a, b) for (a, b) in self.directed_structure_instance.as_set_of_tuples
+                       if b not in kept or a in kept[b])
         C_facets, Q_facets = set(), set()
         for idx, (kind, members) in latent_nodes.items():
             if kind == 'noise':
                 continue
-            if s not in members:
-                (C_facets if kind == 'C' else Q_facets).add(members)
-            elif idx in K:
-                C_facets.add(members)
+            losers = {s for s in members if s in kept and idx not in kept[s]}
+            keepers = {s for s in members if s in kept and idx in kept[s]}
+            rest = members - losers
+            if keepers:
+                C_facets.add(rest)
                 if kind == 'Q':
-                    Q_facets.add(members - {s})
+                    Q_facets.add(rest - keepers)
             else:
-                (C_facets if kind == 'C' else Q_facets).add(members - {s})
+                (C_facets if kind == 'C' else Q_facets).add(rest)
         C_facets = {f for f in C_facets if len(f) >= 2}
         Q_facets = {f for f in Q_facets if len(f) >= 2}
         return QmDAG(DirectedStructure(edges, n), Hypergraph(hypergraph_full_cleanup(C_facets), n),
                      Hypergraph(hypergraph_full_cleanup(Q_facets), n))
+
+    def _restrict_target(self, s: int, K: frozenset) -> "QmDAG":
+        """_restrict_targets for a single target."""
+        return self._restrict_targets({s: frozenset(K)})
 
     def _marginalize_nodes(self, order: Iterable[int]) -> Optional["QmDAG"]:
         """Marginalizes the given nodes (indices of self) in the given order, with teleportation; indices shift
@@ -741,12 +766,12 @@ class QmDAG:
             labels.pop(idx)
         return work
 
-    def fritz_realise(self, s: int, K: frozenset, remove: Iterable[int]) -> List[Tuple[Tuple, "QmDAG"]]:
-        """The surgery of one Fritz step, with no certificate logic: restrict s to K, then remove the nodes in
-        `remove` (the dropped predictors, or the copies of kept predictors) by marginalization in every order
-        (teleportation is order-dependent). Returns (order params, child) pairs; the params are empty when there is
-        one order."""
-        candidate = self._restrict_target(s, K)
+    def fritz_realise(self, kept: Dict[int, frozenset], remove: Iterable[int]) -> List[Tuple[Tuple, "QmDAG"]]:
+        """The surgery of one Fritz step, with no certificate logic: restrict every target in `kept` to its kept
+        parents, then remove the nodes in `remove` (the dropped predictors, or the copies of kept predictors) by
+        marginalization in every order (teleportation is order-dependent). Returns (order params, child) pairs; the
+        params are empty when there is one order."""
+        candidate = self._restrict_targets(kept)
         remove = sorted(remove)
         if not remove:
             return [((), candidate)]
@@ -761,21 +786,34 @@ class QmDAG:
 
     def fritz_steps(self, mode: str = 'replace', predictor_mode: str = 'dropped', use_lp: bool = True,
                     pool: str = 'siblings', allow_descendants: bool = False, max_predictors: int = 1,
-                    lp_markov_target: bool = False, max_visible: Optional[int] = None) -> Iterable[Tuple[Tuple, "QmDAG"]]:
-        """The Fritz piggyback as the search applies it: for every target s, every predictor set X of the pool and
-        the deletion X dictates, the realised output, certified by d-separation first and by the LP only
-        where d-separation fails (all d-separation steps are emitted before any LP step, so a search that stops
-        at the first success never pays for an LP it does not need).
-        mode 'copy' splits the target first and restricts the copy (6.2); predictor_mode 'kept' splits each childful
+                    max_targets: Optional[int] = None, lp_markov_target: bool = False,
+                    max_visible: Optional[int] = None, lp_only: bool = False) -> Iterable[Tuple[Tuple, "QmDAG"]]:
+        """The Fritz piggyback as the search applies it (manuscript Section 8): for every predictor set X, every
+        candidate target s of X and the deletion X dictates at s, the realised output, certified by d-separation
+        first and by the LP only where d-separation fails. Besides single targets, every set of two or more targets
+        of the same X that d-separation certifies (on the structure carrying all their splits) is emitted as one
+        joint step, up to max_targets members (all by default): Fritz's derivation of Bell from the triangle is one
+        such step. All d-separation steps, single and joint, are emitted before any LP step, so a search that stops at
+        the first success never pays for an LP it does not need; the LP certifies single targets only. With lp_only
+        the d-separation steps are not emitted at all (the census records them in its d-separation stages first,
+        manuscript 9.2) and no joint sets are formed: only the single targets the LP certifies come out.
+        mode 'copy' splits each target first and restricts the copy (6.2); predictor_mode 'kept' splits each childful
         predictor and removes the copy, 'dropped' removes the predictors themselves. Justification and surgery run
-        on the structure that carries the splits; copies are the indices >= self.number_of_visible, target copy
-        first, and params are stated in self's indices with a prime for a copy.
-        params: (('target', s), ('mode', m), ('deleted', labels of D), ('predictor', X), ('predictor_mode', pm),
-        ('certificate', 'dsep' | 'entropic')) [+ ('order', ...) when several predictors are marginalized]."""
+        on the structure that carries the splits; copies are the indices >= self.number_of_visible, in splitting
+        order (predictor copies first), and params are stated in self's indices with a prime for a copy.
+        params: (('targets', (s, ...)), ('mode', m), ('deleted', (labels of D_s, ...)), ('predictor', X),
+        ('predictor_mode', pm), ('certificate', 'dsep' | 'entropic')) [+ ('order', ...) when several predictors are
+        marginalized]."""
         assert mode in ('replace', 'copy') and predictor_mode in ('dropped', 'kept')
+        if lp_only:
+            if not use_lp:
+                return   # an LP stage without the LP (mosek missing) has nothing to emit
+            max_targets = 1
         n = self.number_of_visible
         if max_visible is None:
             max_visible = n + 1
+        pools = {s: self.fritz_pool(s, pool=pool, allow_descendants=allow_descendants) for s in self.visible_nodes}
+        predictor_candidates = sorted({x for candidates in pools.values() for x in candidates})
         deferred = []
 
         def labels_of(work: "QmDAG", D: frozenset, copy_of: Dict[int, int]) -> Tuple:
@@ -794,50 +832,94 @@ class QmDAG:
                         out.append(kind + '{' + ','.join(str(node_label(v)) for v in sorted(members)) + '}')
             return tuple(out)
 
-        for s in self.visible_nodes:
-            if mode == 'copy':
-                work0, target, copy_of0 = self.split_node(s), n, {n: s}
+        def split_predictors(X: Tuple[int, ...]):
+            """The structure with the childful predictors split (kept mode), the predictors' effective indices, the
+            nodes to remove and the copy map; computed once per predictor set."""
+            work, copy_of, X_eff = self, {}, list(X)
+            if predictor_mode == 'kept':
+                for i, x in enumerate(X):
+                    if x not in self.vis_nodes_with_no_children:
+                        work = work.split_node(x)
+                        X_eff[i] = work.number_of_visible - 1
+                        copy_of[X_eff[i]] = x
+                remove = frozenset(x for x in X_eff if x >= n)
             else:
-                work0, target, copy_of0 = self, s, {}
-            candidates = work0.fritz_pool(target, pool=pool, allow_descendants=allow_descendants)
-            for r in range(1, min(max_predictors, len(candidates)) + 1):
-                for X in itertools.combinations(candidates, r):
-                    work, copy_of, X_eff = work0, dict(copy_of0), list(X)
-                    if predictor_mode == 'kept':
-                        for i, x in enumerate(X):
-                            if x not in work0.vis_nodes_with_no_children:
-                                work = work.split_node(x)
-                                X_eff[i] = work.number_of_visible - 1
-                                copy_of[X_eff[i]] = x
-                        remove = frozenset(x for x in X_eff if x >= work0.number_of_visible)
-                    else:
-                        remove = frozenset(X_eff)
-                    X_eff = frozenset(X_eff)
+                remove = frozenset(X_eff)
+            return work, frozenset(X_eff), remove, copy_of
+
+        def prepare(base, T: Tuple[int, ...]):
+            """The structure carrying all the splits for the targets T on top of the predictor splits `base`, with
+            the effective indices of the predictors and targets, the nodes to remove and the copy map; None when the
+            output would be too small or too large."""
+            work, X_eff, remove, copy_of = base
+            copy_of, targets = dict(copy_of), list(T)
+            if mode == 'copy':
+                for i, s in enumerate(T):
+                    work = work.split_node(s)
+                    targets[i] = work.number_of_visible - 1
+                    copy_of[targets[i]] = s
+            if not (3 <= work.number_of_visible - len(remove) <= max_visible):
+                return None
+            return work, X_eff, tuple(targets), remove, copy_of
+
+        for r in range(1, min(max_predictors, len(predictor_candidates)) + 1):
+            for X in itertools.combinations(predictor_candidates, r):
+                targets = self.fritz_targets(X, pools=pools)
+                if not targets:
+                    continue
+                base = split_predictors(X)
+                certified = []   # targets certified by d-separation on their own
+                for s in targets:
+                    prepared = prepare(base, (s,))
+                    if prepared is None:
+                        continue
+                    work, X_eff, (target,), remove, copy_of = prepared
                     deletion = work.fritz_deletion(target, X_eff)
                     if deletion is None:
                         continue
                     K, D = deletion
-                    if not (3 <= work.number_of_visible - len(remove) <= max_visible):
-                        continue
-                    item = (s, X, work, target, K, D, X_eff, remove, copy_of)
-                    certificate = work.fritz_certificate(target, K, X_eff, use_lp=False)
+                    item = (X, (s,), work, {target: K}, {target: D}, X_eff, remove, copy_of)
+                    certificate = work.fritz_certificate(target, K, X_eff, use_lp=False, tally=not lp_only)
                     if certificate is None:
                         if use_lp:
                             deferred.append(item)
                         continue
+                    if lp_only:
+                        continue   # recorded by the d-separation stage
+                    certified.append(s)
                     yield from self._fritz_emit(item, mode, predictor_mode, certificate, labels_of)
+                top = len(certified) if max_targets is None else min(max_targets, len(certified))
+                for k in range(2, top + 1):
+                    for T in itertools.combinations(certified, k):
+                        prepared = prepare(base, T)
+                        if prepared is None:
+                            continue
+                        work, X_eff, eff_targets, remove, copy_of = prepared
+                        kept, deleted = {}, {}
+                        for target in eff_targets:
+                            deletion = work.fritz_deletion(target, X_eff)
+                            if deletion is None or work.fritz_certificate(target, deletion[0], X_eff, use_lp=False, tally=False) is None:
+                                kept = None
+                                break
+                            kept[target], deleted[target] = deletion
+                        if kept is None:
+                            continue
+                        item = (X, T, work, kept, deleted, X_eff, remove, copy_of)
+                        yield from self._fritz_emit(item, mode, predictor_mode, 'dsep', labels_of)
         for item in deferred:
-            s, X, work, target, K, D, X_eff, remove, copy_of = item
-            certificate = work.fritz_certificate(target, K, X_eff, use_lp=True, lp_markov_target=lp_markov_target)
+            X, T, work, kept, deleted, X_eff, remove, copy_of = item
+            (target,) = kept
+            certificate = work.fritz_certificate(target, kept[target], X_eff, use_lp=True, lp_markov_target=lp_markov_target)
             if certificate is not None:
                 yield from self._fritz_emit(item, mode, predictor_mode, certificate, labels_of)
 
     @staticmethod
     def _fritz_emit(item, mode: str, predictor_mode: str, certificate: str, labels_of) -> Iterable[Tuple[Tuple, "QmDAG"]]:
-        s, X, work, target, K, D, X_eff, remove, copy_of = item
-        base = (('target', s), ('mode', mode), ('deleted', labels_of(work, D, copy_of)), ('predictor', tuple(X)),
+        X, T, work, kept, deleted, X_eff, remove, copy_of = item
+        base = (('targets', tuple(T)), ('mode', mode),
+                ('deleted', tuple(labels_of(work, deleted[t], copy_of) for t in kept)), ('predictor', tuple(X)),
                 ('predictor_mode', predictor_mode), ('certificate', certificate))
-        for order_params, child in work.fritz_realise(target, K, remove):
+        for order_params, child in work.fritz_realise(kept, remove):
             yield base + order_params, child
 
     # ------------------------------------------------------------------

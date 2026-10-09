@@ -14,19 +14,19 @@ THREE-node known gaps only. The 4-node Bell variants are inputs here, not seeds,
 elementary piggyback contributes: how many inputs it proves alone and how many are lost without it.
 
 Phase 2 (expensive): the inputs that phase 1 left unproven, minus the Bell variants (which are known gaps and are
-now seeds), are attacked by the staged cascade of the Fritz piggyback: replace mode with dropped predictors, replace
-mode with kept predictors, copy mode with dropped predictors, copy mode with kept predictors. Every candidate is
-certified by d-separation first and by the entropic LP only where d-separation fails. Each stage is applied once to
-the still-unproven inputs with elementary follow-up. The report gives the cumulative counts after each stage and
-the cheap-to-expensive ladder, which splits each stage into its d-separation and its LP part.
+now seeds), are attacked by the staged cascade of the Fritz piggyback: four d-separation stages (replace mode with
+dropped predictors, replace mode with kept predictors, copy mode with dropped predictors, copy mode with kept
+predictors; joint target sets included, every root recorded in full), then the same four modes with the entropic
+LP (single targets, each root stopping at its first success). Each stage is applied once to the still-unproven
+inputs with elementary follow-up. The report gives the cumulative counts after each stage, which are the rungs of
+the cheap-to-expensive ladder.
 
 Throughout, a structure counts as known as soon as one of its degradations (some quantum facets made classical) is
 known: the degradation piggyback is applied as a lookup to every structure the search meets. The seeds are therefore
 kept in their weakest form only (known_QC_gaps.SEEDS).
 
-Within a stage, a root stops as soon as one of its outputs (or that output's elementary follow-up) is a known
-gap; the d-separation candidates of a root are all emitted before its LP candidates, so a root proven cheaply never
-pays for an LP.
+Within an LP stage, a root stops as soon as one of its outputs (or that output's elementary follow-up) is a known
+gap (`--no-early-exit` records everything instead); the d-separation stages record everything.
 
 Options (see qc_gap_search.default_stages): the LP tries the `relabel` target set only, because the `markov` target
 set never decided an input (lp_markov_target=True turns it back on). The predictor pool of a target is its latent
@@ -97,10 +97,10 @@ def expensive_run(cheap: GapReport, max_visible=5, verbose=True, with_entropic=T
                             lp_markov_target=False)
     # Re-base the report on the phase-2 inputs, seeds and known gaps; then run the cascade on what is left.
     report = build_report(cheap.explorer, inputs, SEEDS, TRICK_GROUPS_FOR_REPORT, known=known)
-    for name, extra, roots_only, followup in stages[1:]:
+    for name, extra, roots_only, followup, stage_exit in stages[1:]:
         t0 = time.time()
         report = add_stage(report, extra, verbose=verbose, roots_only=roots_only, name=name, followup=followup,
-                           early_exit=early_exit)
+                           early_exit=early_exit and stage_exit)
         STAGE_SECONDS[name] = time.time() - t0
     return report
 
