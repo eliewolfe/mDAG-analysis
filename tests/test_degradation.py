@@ -63,7 +63,7 @@ def test_lookup_applies_to_every_structure_the_search_reaches():
 def test_unified_fritz_records_the_certificate():
     tetra = Q([], 4, [], [(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)])
     outs = dict(S.fritz_tricks(max_visible=5, use_lp=False)['Fritz'](tetra))
-    params = (('target', 1), ('mode', 'replace'), ('deleted', ('Q{1,2,3}',)), ('predictor', (0,)), ('predictor_mode', 'dropped'),
+    params = (('targets', (1,)), ('mode', 'replace'), ('deleted', (('Q{1,2,3}',),)), ('predictor', (0,)), ('predictor_mode', 'dropped'),
               ('certificate', 'dsep'))
     assert params in outs and outs[params].unique_unlabelled_id == K.QG_Triangle.unique_unlabelled_id
     assert all(dict(p)['certificate'] == 'dsep' for p in outs)
@@ -75,7 +75,7 @@ def test_unified_fritz_lp_certificate_is_named_entropic():
     # The first LP example of the manuscript (output a relabelling of QG_Bell_C_Edge): predictor 3 kept, predicted 2, certified by the LP (relabel targets).
     g = Q([(0, 1), (1, 2)], 4, [], [(0, 2), (1, 3), (2, 3)])
     outs = dict(S.fritz_tricks(max_visible=5, predictor_mode='kept', modes=('replace',))['Fritz'](g))
-    params = (('target', 2), ('mode', 'replace'), ('deleted', (1, 'Q{0,2}')), ('predictor', (3,)), ('predictor_mode', 'kept'),
+    params = (('targets', (2,)), ('mode', 'replace'), ('deleted', ((1, 'Q{0,2}'),)), ('predictor', (3,)), ('predictor_mode', 'kept'),
               ('certificate', 'entropic'))
     assert params in outs
     assert outs[params].unique_unlabelled_id == K.QG_Bell_C_Edge.unique_unlabelled_id

@@ -30,7 +30,8 @@ def kept_parents(g, s, K):
 
 def pairs(g, **kwargs):
     """{(target, predictor): certificate} over every emitted step."""
-    return {(dict(p)['target'], dict(p)['predictor']): dict(p)['certificate'] for p, _ in g.fritz_steps(**kwargs)}
+    return {(dict(p)['targets'][0], dict(p)['predictor']): dict(p)['certificate'] for p, _ in g.fritz_steps(**kwargs)
+            if len(dict(p)['targets']) == 1}
 
 
 def test_lp_structure_excludes_noise_nodes():
@@ -71,14 +72,14 @@ def test_kpc_example_is_rescued_by_the_relabelled_target_set():
 
 
 def test_kpc_example_reaches_bell_in_one_kept_step():
-    outputs = {dict(p)['target']: (dict(p), c) for p, c in G1_KPC.fritz_steps(predictor_mode='kept')
+    outputs = {dict(p)['targets'][0]: (dict(p), c) for p, c in G1_KPC.fritz_steps(predictor_mode='kept')
                if dict(p)['predictor'] == (3,)}
     info, out = outputs[2]
     assert out.unique_unlabelled_id == QG_Bell_C_Edge.unique_unlabelled_id
-    assert info['certificate'] == 'entropic' and info['deleted'] == (0, 1)
+    assert info['certificate'] == 'entropic' and info['deleted'] == ((0, 1),)
     assert outputs[1][0]['certificate'] == 'dsep'
     # Without the LP the step is absent.
-    assert 2 not in {dict(p)['target'] for p, _ in G1_KPC.fritz_steps(predictor_mode='kept', use_lp=False)
+    assert 2 not in {dict(p)['targets'][0] for p, _ in G1_KPC.fritz_steps(predictor_mode='kept', use_lp=False)
                      if dict(p)['predictor'] == (3,)}
 
 
@@ -105,7 +106,7 @@ def test_copy_mode_runs_the_lp_on_the_split_structure():
     # Copy mode = split the target, then restrict the copy. For G1 the copy of E is NOT certified: the original E
     # keeps reading A, so neither target set can identify A with the copy (a classical model may encode A
     # differently for E and for the copy). The copy of D is certified by plain d-separation.
-    by_target = {dict(p)['target']: dict(p)['certificate'] for p, _ in G1_KPC.fritz_steps(mode='copy', predictor_mode='kept')
+    by_target = {dict(p)['targets'][0]: dict(p)['certificate'] for p, _ in G1_KPC.fritz_steps(mode='copy', predictor_mode='kept')
                  if dict(p)['predictor'] == (3,)}
     assert by_target == {1: 'dsep'}
     split = G1_KPC.split_node(2)
@@ -127,7 +128,7 @@ def test_g2_is_proven_through_the_relabelled_certificate():
     assert G2.fritz_certificate(0, K, {3}, use_lp=False) is None
     assert G2._entropic_certificate(frozenset({3}), kept_parents(G2, 0, K), (0,)) == 'relabel'
     outputs = dict(G2.fritz_steps(predictor_mode='kept'))
-    out = outputs[(('target', 0), ('mode', 'replace'), ('deleted', ('C{0,2}', 'Q{0,1}')), ('predictor', (3,)),
+    out = outputs[(('targets', (0,)), ('mode', 'replace'), ('deleted', (('C{0,2}', 'Q{0,1}'),)), ('predictor', (3,)),
                    ('predictor_mode', 'kept'), ('certificate', 'entropic'))]
     assert out.directed_structure_instance.edge_list == [(1, 2), (1, 3)]
     assert out.C_simplicial_complex_instance.simplicial_complex_as_sets == {frozenset({0, 3})}
