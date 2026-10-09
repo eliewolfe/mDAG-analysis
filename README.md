@@ -4,9 +4,9 @@ mDAG-analysis
 
 The package is managed with poetry (`poetry install`). Two dependencies deserve a note:
 
-* `numba` compiles the semigraphoid closure and the d-separation enumerator of `semigraphoid.py`, the default
-  certificate engine of the Fritz piggyback (manuscript 7.9). Without it the same code runs on numpy, about ten
-  times slower, still well ahead of the LP.
+* `numba` (optional group `jit`, `poetry install --with jit`) compiles the semigraphoid closure and the
+  d-separation enumerator of `semigraphoid.py`, the default certificate engine of the Fritz piggyback (manuscript
+  7.9). Without it the same code runs on numpy, about ten times slower, still well ahead of the LP.
 * `mosek` (optional group `lp`, `poetry install --with lp`; a licence file is needed) enables the entropic LP as
   an alternative engine: `python "Special Applications/proving_QC_Gaps.py" --engine lp`, or `--engine both` to
   cross-check the two engines on every candidate.

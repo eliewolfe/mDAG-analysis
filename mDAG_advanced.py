@@ -293,7 +293,7 @@ class mDAG:
         g = self.as_graph
         n = self.total_number_of_nodes
         parents = {v: [p for p in g.predecessors(v) if p not in deleted] for v in range(n) if v not in deleted}
-        return n, sg.dsep_model_of(n, parents)
+        return n, sg.dsep_model_of(n, parents, m=self.number_of_visible)   # sources, targets and K among the visible nodes
 
     @property
     def _all_CI_generator_numeric(self) -> Iterable[Tuple[Tuple[int, ...], Tuple[int, ...]]]:

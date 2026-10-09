@@ -81,13 +81,18 @@ def fritz_tricks(max_visible: int = 5, predictor_mode: str = 'dropped', modes: T
     `markov` target set after `relabel` fails (it never decided an input in the four-node census, 9.7);
     lp_only=True emits only the single steps the beyond-d-separation engine certifies (the entropic stages of the
     cascade); `engine` is 'semigraphoid' (default), 'lp' or 'both' (quantum_mDAG.DEFAULT_ENGINE, manuscript 7.9)."""
-    from quantum_mDAG import DEFAULT_ENGINE
+    from quantum_mDAG import DEFAULT_ENGINE, ENGINES
     engine = engine or DEFAULT_ENGINE
+    if engine not in ENGINES:
+        raise ValueError(f"unknown certificate engine {engine!r}; choose one of {ENGINES}")
     if (use_lp or lp_only) and engine in ('lp', 'both'):
         try:
             import mosek  # noqa: F401
         except ImportError:
-            warnings.warn(f"mosek is not installed; engine '{engine}' falls back to the semigraphoid closure.")
+            if engine == 'lp':
+                raise ImportError("engine 'lp' needs mosek; install it (poetry install --with lp) or use the "
+                                  "semigraphoid engine") from None
+            warnings.warn("mosek is not installed; engine 'both' runs the semigraphoid closure alone.")
             engine = 'semigraphoid'
 
     def fritz(g: QmDAG) -> Iterable[Tuple[Tuple, QmDAG]]:

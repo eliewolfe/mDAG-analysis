@@ -55,10 +55,11 @@ _ENTROPIC_LP_CACHE_SIZE = 64
 _SEMIGRAPHOID_CACHE: Dict[Tuple, Any] = dict()
 _SEMIGRAPHOID_CACHE_SIZE = 64
 # The certificate engine for Fritz steps that d-separation does not certify: 'semigraphoid' (the closure of
-# semigraphoid.py, fast and always available), 'lp' (the entropic LP, needs mosek) or 'both' (closure first, LP
-# where it fails, disagreements recorded in ENGINE_DISAGREEMENTS). Manuscript 7.9.
+# semigraphoid.py, fast and always available), 'lp' (the entropic LP, needs mosek) or 'both' (both are run on every
+# candidate and every disagreement, in either direction, is recorded in ENGINE_DISAGREEMENTS). Manuscript 7.9.
+ENGINES = ('semigraphoid', 'lp', 'both')
 DEFAULT_ENGINE = 'semigraphoid'
-ENGINE_DISAGREEMENTS: List[Tuple] = []
+ENGINE_DISAGREEMENTS: List[Tuple] = []   # (unique_id, predictors, target, kept parents of the target, lp, closure)
 # Outcome tally of the Fritz certificates (QmDAG.fritz_certificate), keyed by ('certificate', outcome) with outcome
 # 'vacuous' (every predictor a parent of the target), 'dsep', 'relabel', 'markov' or 'failed' (the engine certified
 # nothing); ('engine', name) counts which engine certified, ('disagreement', kind) the engine='both' disagreements.
@@ -584,9 +585,8 @@ class QmDAG:
         X = sg.mask_of(predictors)
         for s in predicted:
             sg.add_functional_dependence(E, s, X)
-        candidate = sg.dsep_all(n, sg.parents_to_masks(kept_parents, n))
-        block = 1 << nv   # masks below 2^nv are exactly the subsets of the visible nodes
-        E[:nv, :nv, :block] |= candidate[:nv, :nv, :block]
+        kept_masks = sg.parents_to_masks(kept_parents, n)
+        E[:nv, :nv, :1 << nv] |= sg.dsep_all(n, kept_masks, m=nv)   # the observable d-separations of the candidate
         sg.close(E)
         if len(predicted) == 1:
             s = predicted[0]
@@ -600,7 +600,7 @@ class QmDAG:
                 target = sg.restrict(sg.dsep_all(n, sg.parents_to_masks(relabelled, n)), ((1 << n) - 1) & ~(1 << lam))
                 if sg.contains(E, target):
                     return 'relabel'
-        if try_markov and sg.contains(E, candidate):
+        if try_markov and sg.contains(E, sg.dsep_all(n, kept_masks)):
             return 'markov'
         return None
 
@@ -760,17 +760,17 @@ class QmDAG:
             return 'dsep'
         if use_lp:
             engine = engine or DEFAULT_ENGINE
-            assert engine in ('semigraphoid', 'lp', 'both'), engine
+            assert engine in ENGINES, engine
             nodes, parents = self.lp_structure
             kept = dict(parents)
             kept[s] = frozenset(k for k in K if k in parents)
             closure = lp = None
             if engine in ('semigraphoid', 'both'):
                 closure = self._semigraphoid_certificate(X, kept, (s,), try_markov=lp_markov_target)
-            if engine == 'lp' or (engine == 'both' and closure is None):
+            if engine in ('lp', 'both'):   # in 'both' the LP always runs: the cross-check covers both directions
                 lp = self._entropic_certificate(X, kept, (s,), try_markov=lp_markov_target)
-            if engine == 'both' and (closure is None) != (lp is None) and closure is None:
-                count('disagreement', 'lp_only')
+            if engine == 'both' and (closure is None) != (lp is None):
+                count('disagreement', 'lp_only' if closure is None else 'closure_only')
                 ENGINE_DISAGREEMENTS.append((self.unique_id, tuple(sorted(X)), s, tuple(sorted(kept[s])), lp, closure))
             outcome = closure or lp
             count('certificate', outcome or 'failed')
@@ -885,7 +885,7 @@ class QmDAG:
         assert mode in ('replace', 'copy') and predictor_mode in ('dropped', 'kept')
         if lp_only:
             if not use_lp:
-                return   # an LP stage without the LP (mosek missing) has nothing to emit
+                return   # an entropic stage with the certificate switched off has nothing to emit
             max_targets = 1
         n = self.number_of_visible
         if max_visible is None:

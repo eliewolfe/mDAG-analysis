@@ -235,13 +235,14 @@ def _close_numpy(E: np.ndarray, n: int) -> int:
 # d-separation by Bayes ball on bitmasks
 # --------------------------------------------------------------------------------------------------
 
-def _dsep_python(E: np.ndarray, n: int, pa: np.ndarray, ch: np.ndarray) -> None:
-    """E[i, j, K] = i and j are d-separated given K, for every source i and conditioning set K not containing i.
+def _dsep_python(E: np.ndarray, n: int, m: int, pa: np.ndarray, ch: np.ndarray) -> None:
+    """E[i, j, K] = i and j are d-separated given K, for every source i, target j and conditioning set K among the
+    first m of the n nodes (K not containing i or j); the walk itself runs over all n nodes.
     Bayes ball (Shachter): a ball reaching an unobserved node from a child goes on to its parents and children,
     one reaching an observed node from a child stops; a ball reaching an unobserved node from a parent goes on to
     its children, one reaching an observed node from a parent bounces to its parents."""
-    full = (1 << n) - 1
-    for i in range(n):
+    full = (1 << m) - 1
+    for i in range(m):
         bi = 1 << i
         rest = full & ~bi
         sub = rest
@@ -278,7 +279,7 @@ def _dsep_python(E: np.ndarray, n: int, pa: np.ndarray, ch: np.ndarray) -> None:
                 up |= new_up
                 down |= new_down
             reached = up | down
-            for j in range(n):
+            for j in range(m):
                 if j != i and not (K >> j) & 1:
                     E[i, j, K] = not (reached >> j) & 1
             if sub == 0:
@@ -286,10 +287,10 @@ def _dsep_python(E: np.ndarray, n: int, pa: np.ndarray, ch: np.ndarray) -> None:
             sub = (sub - 1) & rest
 
 
-def _dsep_numpy(E: np.ndarray, n: int, pa: np.ndarray, ch: np.ndarray) -> None:
+def _dsep_numpy(E: np.ndarray, n: int, m: int, pa: np.ndarray, ch: np.ndarray) -> None:
     """The same walk, vectorised over all conditioning sets for each source."""
-    masks = np.arange(1 << n, dtype=np.int64)
-    for i in range(n):
+    masks = np.arange(1 << m, dtype=np.int64)
+    for i in range(m):
         bi = 1 << i
         Ks = masks[(masks & bi) == 0]
         observed = [((Ks >> v) & 1).astype(bool) for v in range(n)]
@@ -312,7 +313,7 @@ def _dsep_numpy(E: np.ndarray, n: int, pa: np.ndarray, ch: np.ndarray) -> None:
             up |= new_up
             down |= new_down
         reached = up | down
-        for j in range(n):
+        for j in range(m):
             if j == i:
                 continue
             free = ~observed[j]
@@ -337,25 +338,30 @@ def close(E: np.ndarray, kernel=None) -> int:
     return sweeps
 
 
-def dsep_all(n: int, parents_masks: np.ndarray, kernel=None) -> np.ndarray:
-    """The elementary d-separation model of the DAG with the given parent bitmasks (int64 array of length n)."""
+def dsep_all(n: int, parents_masks: np.ndarray, m: Optional[int] = None, kernel=None) -> np.ndarray:
+    """The elementary d-separation model of the DAG with the given parent bitmasks (int64 array of length n). With
+    `m`, only the first m nodes serve as sources, targets and conditioning variables (the observed block of a
+    structure whose observed nodes come first): the result has shape (m, m, 2^m) and equals the leading block of
+    the full model, at a cost exponential in m instead of n."""
     t0 = time.perf_counter()
     pa = np.asarray(parents_masks, dtype=np.int64)
     assert pa.shape == (n,)
+    m = n if m is None else m
+    assert 0 < m <= n
     ch = np.zeros(n, dtype=np.int64)
     for v in range(n):
         for p in bits_of(int(pa[v])):
             ch[p] |= 1 << v
-    E = empty_model(n)
-    (kernel or _dsep_kernel)(E, n, pa, ch)
+    E = empty_model(m)
+    (kernel or _dsep_kernel)(E, n, m, pa, ch)
     STATS['dsep_models'] += 1
     STATS['seconds'] += time.perf_counter() - t0
     return E
 
 
-def dsep_model_of(n: int, parents: Dict[int, Iterable[int]]) -> np.ndarray:
+def dsep_model_of(n: int, parents: Dict[int, Iterable[int]], m: Optional[int] = None) -> np.ndarray:
     """dsep_all for a parent map {node: parents} over the nodes 0..n-1."""
-    return dsep_all(n, parents_to_masks(parents, n))
+    return dsep_all(n, parents_to_masks(parents, n), m=m)
 
 
 def local_markov_model(n: int, parents_masks: np.ndarray) -> np.ndarray:

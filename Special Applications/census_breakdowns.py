@@ -152,7 +152,7 @@ def lp_closure() -> None:
 
 if __name__ == '__main__':
     with_entropic = '--no-entropic' not in sys.argv
-    engine = sys.argv[sys.argv.index('--engine') + 1] if '--engine' in sys.argv else None
+    engine = sys.argv[sys.argv.index('--engine') + 1] if '--engine' in sys.argv and sys.argv.index('--engine') + 1 < len(sys.argv) else None
     only = sys.argv[sys.argv.index('--only') + 1] if '--only' in sys.argv else None
     if only in (None, 'examples'):
         examples(with_entropic=with_entropic, engine=engine)

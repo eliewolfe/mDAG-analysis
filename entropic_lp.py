@@ -164,8 +164,9 @@ def observable_dseparation_rows(parents: Dict[int, FrozenSet[int]], nodes: Itera
     nodes = sorted(nodes)
     n = len(nodes)
     assert nodes == list(range(n)), "lp_structure indices are 0..n-1"
-    E = sg.dsep_all(n, sg.parents_to_masks(parents, n))
     observed = sorted(observed)
+    assert observed == list(range(len(observed))), "the observed nodes come first"
+    E = sg.dsep_all(n, sg.parents_to_masks(parents, n), m=len(observed))
     obs_mask = sg.mask_of(observed)
     rows = []
     for a, x in enumerate(observed):

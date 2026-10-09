@@ -1,5 +1,6 @@
 """The semigraphoid closure engine: layout, d-separation enumeration, the exchange rule, functional dependence, and
 agreement with networkx and with the entropic LP."""
+import importlib.util
 import itertools
 import random
 
@@ -52,6 +53,11 @@ def test_dsep_all_matches_networkx_and_the_numpy_kernel():
             assert (E == sg.dsep_all(n, pa, kernel=sg._dsep_numpy)).all()
             assert (E == E.transpose(1, 0, 2)).all()
             assert not (E & ~sg.valid_cells(n)).any()
+            # Restricted to the first m nodes (sources, targets and conditioning sets): the leading block.
+            m = max(2, n - 2)
+            R = sg.dsep_all(n, pa, m=m)
+            assert R.shape == (m, m, 1 << m) and (R == E[:m, :m, :1 << m]).all()
+            assert (R == sg.dsep_all(n, pa, m=m, kernel=sg._dsep_numpy)).all()
 
 
 def test_closure_of_the_local_markov_triplets_is_the_d_separation_model():
@@ -119,7 +125,7 @@ def test_restrict_and_contains():
     assert R[0, 3].sum() == 0 and R[0, 2, 0b0010] == E[0, 2, 0b0010]
 
 
-@pytest.mark.skipif(pytest.importorskip("mosek", reason="mosek not installed") is None, reason="mosek")
+@pytest.mark.skipif(importlib.util.find_spec("mosek") is None, reason="mosek not installed")
 def test_closure_implies_only_what_the_lp_implies():
     # Soundness: every elementary triplet the closure derives from a DAG's Markov statements, a functional
     # dependence and a few extra independences is implied by the Shannon LP under the same hypotheses.

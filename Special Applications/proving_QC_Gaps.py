@@ -114,6 +114,10 @@ def run_search(QmDAGs4_representatives=None, max_visible=5, verbose=True, with_e
                engine: Optional[str] = None) -> Tuple[GapReport, GapReport, Optional[GapCache]]:
     """Both phases. Returns (phase-1 report, phase-2 report, cache). The cache is loaded before phase 2 (entries whose
     piggyback versions are stale are dropped), updated with every newly proven input, and saved."""
+    from quantum_mDAG import ENGINES
+    if engine is not None and engine not in ENGINES:
+        raise ValueError(f"unknown certificate engine {engine!r}; choose one of {ENGINES}")
+    ENGINE_DISAGREEMENTS.clear()
     if QmDAGs4_representatives is None:
         QmDAGs4_representatives = four_node_representatives()
     distinct = len(set(g.unique_unlabelled_id for g in QmDAGs4_representatives))
@@ -216,7 +220,7 @@ if __name__ == '__main__':
     pool = 'siblings+parents' if '--parents' in sys.argv else 'siblings'
     allow_descendants = '--descendants' in sys.argv
     early_exit = '--no-early-exit' not in sys.argv
-    engine = sys.argv[sys.argv.index('--engine') + 1] if '--engine' in sys.argv else None
+    engine = sys.argv[sys.argv.index('--engine') + 1] if '--engine' in sys.argv and sys.argv.index('--engine') + 1 < len(sys.argv) else None
     cheap, report, cache = run_search(with_entropic=with_entropic, with_kept=with_kept, use_cache=use_cache, pool=pool,
                                       allow_descendants=allow_descendants, early_exit=early_exit, engine=engine)
     print_cheap_report(cheap)
