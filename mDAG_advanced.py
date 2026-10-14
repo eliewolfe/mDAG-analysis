@@ -7,6 +7,7 @@ from sys import version_info
 assert version_info >= (3, 8), "Python 3.8+ is required for cached_property support."
 from typing import Tuple, List, Set, FrozenSet, Iterable, Any, Union, Optional
 
+import functools
 from functools import cached_property
 
 BoolMatrix = npt.NDArray[np.bool_]
@@ -19,7 +20,6 @@ except ImportError:
     print("Visualization with matplotlib is disabled.")
 try:
     import networkx as nx
-    from networkx.algorithms.isomorphism import DiGraphMatcher
 except ImportError:
     print("Functions which depend on networkx are not available.")
 
@@ -37,6 +37,7 @@ from closure import closure as numeric_closure  # , is_this_subadjmat_densely_co
 from more_itertools import powerset
 from merge import merge_intersection
 from adjmat_class import AdjMat
+import semigraphoid as sg
 
  
 def mdag_to_int_pair(ds_bitarray: BoolMatrix, sc_bitarray: BoolMatrix) -> Tuple[int, int]:
@@ -51,6 +52,13 @@ def mdag_to_int(ds_bitarray: BoolMatrix, sc_bitarray: BoolMatrix) -> int:
     offset = 2**ds_bitarray.size
     return ds_int + (sc_int * offset)
 
+
+
+@functools.lru_cache(maxsize=None)
+def _bipartition_patterns(length: int) -> Tuple[Tuple[int, ...], ...]:
+    """Index sets of the second part of every bipartition of `length` items, in _all_bipartitions order."""
+    return tuple(itertools.chain.from_iterable(
+        itertools.combinations(range(length), r) for r in range(1, length)))
 
 
 class mDAG:
@@ -68,9 +76,8 @@ class mDAG:
         self.number_of_visible = self.directed_structure_instance.number_of_visible
         self.visible_nodes = self.directed_structure_instance.visible_nodes
         self.latent_nodes = tuple(range(self.number_of_visible, self.simplicial_complex_instance.number_of_visible_plus_latent))
-        self.nonsingleton_latent_nodes = tuple(range(self.number_of_visible, self.simplicial_complex_instance.number_of_visible_plus_nonsingleton_latent))
-        self.total_number_of_nodes=len(self.nonsingleton_latent_nodes)+self.number_of_visible
-        self.nof_nonsingleton_latents = len(self.nonsingleton_latent_nodes)
+        self.nof_nonsingleton_latents = self.simplicial_complex_instance.number_of_nonsingleton_latent
+        self.total_number_of_nodes = self.nof_nonsingleton_latents + self.number_of_visible
         self.vis_nodes_with_no_children = set(self.directed_structure_instance.nodes_with_no_children)
         self.vis_nodes_with_no_parents = set(self.simplicial_complex_instance.vis_nodes_with_singleton_latent_parents).intersection(self.directed_structure_instance.nodes_with_no_parents)
 
@@ -102,31 +109,82 @@ class mDAG:
     def __repr__(self) -> str:
         return self.as_string
 
+    # ------------------------------------------------------------------
+    # The numeric DAG: visible nodes 0..n-1, then one latent per row of as_extended_bit_array (latent n + r is row
+    # r: the lexsorted extended simplicial complex, singleton latents included), exactly the numbering that
+    # parents_of_for_supports_analysis hands to supports.py. Every graph computation below (d-separation,
+    # e-separation, predecessors, descendants, automorphisms) runs on these bitmasks; networkx is kept for plotting.
+    # ------------------------------------------------------------------
+
     @cached_property
-    def as_graph(self):  # let DirectedStructure be a DAG initially without latents
-        g = self.directed_structure_instance.as_networkx_graph.copy()
-        g.add_nodes_from(self.nonsingleton_latent_nodes)
-        g.add_edges_from(itertools.chain.from_iterable(
-            zip(itertools.repeat(i), children) for i, children in
-            zip(self.nonsingleton_latent_nodes, self.simplicial_complex_instance.compressed_simplicial_complex)))
+    def parents_masks(self) -> IntArray:
+        """parents_masks[v] = bitmask of the parents of node v (visible and latent, latents numbered as above);
+        length number_of_visible + number_of_latent."""
+        n = self.number_of_visible
+        sg.check_node_count(self.number_of_nodes_including_singleton_latents)
+        masks = np.zeros(self.number_of_nodes_including_singleton_latents, dtype=np.int64)
+        masks[:n] = self.directed_structure_instance.parents_masks | (
+            self.simplicial_complex_instance.extended_latent_parents_masks << np.int64(n))
+        return masks
+
+    @cached_property
+    def number_of_nodes_including_singleton_latents(self) -> int:
+        return self.number_of_visible + self.simplicial_complex_instance.number_of_latent
+
+    @cached_property
+    def singleton_latent_mask(self) -> int:
+        return self.simplicial_complex_instance.singleton_latent_rows_mask << self.number_of_visible
+
+    @cached_property
+    def nonsingleton_latent_nodes(self) -> Tuple[int, ...]:
+        n = self.number_of_visible
+        return tuple(n + r for r in range(self.simplicial_complex_instance.number_of_latent)
+                     if not (self.simplicial_complex_instance.singleton_latent_rows_mask >> r) & 1)
+
+    @cached_property
+    def nonsingleton_parents_masks(self) -> IntArray:
+        """parents_masks with the singleton latents removed (the parents as_graph shows)."""
+        return self.parents_masks & ~np.int64(self.singleton_latent_mask)
+
+    @cached_property
+    def parentsplus_masks(self) -> IntArray:
+        """Visible and non-singleton latent parents of each visible node, plus the node itself."""
+        n = self.number_of_visible
+        return self.nonsingleton_parents_masks[:n] | (np.int64(1) << np.arange(n, dtype=np.int64))
+
+    @cached_property
+    def descendant_masks(self) -> IntArray:
+        return sg.descendant_masks(self.parents_masks)
+
+    def _networkx_graph(self, nodes: Iterable[int]) -> 'nx.DiGraph':
+        g = nx.DiGraph()
+        nodes = list(nodes)
+        g.add_nodes_from(nodes)
+        keep = sg.mask_of(nodes)
+        for v in nodes:
+            for p in sg.bits_of(int(self.parents_masks[v]) & keep):
+                g.add_edge(p, v)
         return g
+
+    @cached_property
+    def as_graph(self):
+        """The DAG over the visible and non-singleton latent nodes (networkx; plotting and legacy callers)."""
+        return self._networkx_graph(list(self.visible_nodes) + list(self.nonsingleton_latent_nodes))
 
     @cached_property
     def as_graph_with_singleton_latents(self):
-        g = self.directed_structure_instance.as_networkx_graph.copy()
-        g.add_nodes_from(self.latent_nodes)
-        g.add_edges_from(itertools.chain.from_iterable(
-            zip(itertools.repeat(i), children) for i, children in
-            zip(self.latent_nodes, self.simplicial_complex_instance.extended_simplicial_complex_as_sets)))
-        return g
+        return self._networkx_graph(range(self.number_of_nodes_including_singleton_latents))
 
     @cached_property
     def visible_automorphisms(self) -> Tuple[Tuple[int, ...], ...]:
-        discovered_automorphisms = set()
-        for mapping in DiGraphMatcher(self.as_graph_with_singleton_latents,
-                                      self.as_graph_with_singleton_latents).isomorphisms_iter():
-            discovered_automorphisms.add(partsextractor(mapping, self.visible_nodes))
-        return tuple(discovered_automorphisms)
+        """The relabellings of the visible nodes that fix the mDAG (as image tuples). A latent is determined by
+        its set of children, so these are exactly the automorphisms of the DAG with latents restricted to the
+        visible nodes; they are read off the relabelled ids computed for unique_unlabelled_id."""
+        target = (self.directed_structure_instance.as_integer, self.simplicial_complex_instance.as_integer)
+        return tuple(perm for perm, ds_int, sc_int in zip(
+            itertools.permutations(self.visible_nodes),
+            self.directed_structure_instance.as_integer_permutations,
+            self.simplicial_complex_instance.as_integer_permutations) if (ds_int, sc_int) == target)
 
     @cached_property
     def automorphic_order(self) -> int:
@@ -155,15 +213,9 @@ class mDAG:
 
     @cached_property
     def parents_of(self) -> List[List[int]]:
-        p: List[List[int]] = [[] for _ in range(self.number_of_visible)]
-        for edge in self.directed_structure_instance.edge_list:
-            p[edge[1]].append(edge[0])
-        latent_node=len(self.visible_nodes)
-        for facet in self.simplicial_complex_instance.simplicial_complex_as_sets:
-            for visible_node in facet:
-                p[visible_node].append(latent_node)
-            latent_node=latent_node+1
-        return p
+        """The parents of each visible node (visible parents, then latents numbered as in parents_masks: the
+        supports.py convention, singleton latents included)."""
+        return [sg.bits_of(int(m)) for m in self.parents_masks[:self.number_of_visible]]
 
     @cached_property
     def ds_bit_size(self) -> int:
@@ -269,61 +321,45 @@ class mDAG:
         return (len(merge_intersection(self.common_cause_connected_sets)) == 1)
 
     @staticmethod
-    def _all_2_vs_any_partitions(variables_to_partition: List[int]):
-        # expect input in the form of a list
-        length = len(variables_to_partition)
-        subsetrange = range(length - 1)
-        for x in subsetrange:
-            for y in range(x + 1, length):
-                complimentary_set = variables_to_partition[:x] + variables_to_partition[
-                                                                 x + 1:y] + variables_to_partition[y + 1:]
-                for r in subsetrange:
-                    for complimentary_subset in itertools.combinations(complimentary_set, r):
-                        yield variables_to_partition[x], variables_to_partition[y], complimentary_subset
-
-    @staticmethod
     def fake_frozenset(stuff: Iterable[Any]) -> Tuple[Any, ...]:
         return tuple(sorted(stuff))
 
-    # We do not cache iterators, only their output, as iterators are consumed!
-    def _dsep_model(self, deleted: Tuple[int, ...] = ()) -> Tuple[int, "np.ndarray"]:
-        """The elementary d-separation model (semigraphoid.dsep_all) of as_graph with the visible nodes `deleted`
-        removed: visible nodes keep their indices, latent nodes follow them."""
-        import semigraphoid as sg
-        g = self.as_graph
-        n = self.total_number_of_nodes
-        parents = {v: [p for p in g.predecessors(v) if p not in deleted] for v in range(n) if v not in deleted}
-        return n, sg.dsep_model_of(n, parents, m=self.number_of_visible)   # sources, targets and K among the visible nodes
+    @cached_property
+    def esep_model(self) -> "np.ndarray":
+        """R[D, i, j, K]: the elementary e-separations among the visible nodes (semigraphoid.esep_all on
+        parents_masks): i and j d-separated by K after deleting the visible nodes of D; R[0] is d-separation."""
+        return sg.esep_all(self.number_of_nodes_including_singleton_latents, self.parents_masks,
+                           m=self.number_of_visible)
 
-    @property
-    def _all_CI_generator_numeric(self) -> Iterable[Tuple[Tuple[int, ...], Tuple[int, ...]]]:
-        yield from self._ci_from_model(())
+    @cached_property
+    def dsep_model(self) -> "np.ndarray":
+        """E[i, j, K]: the elementary d-separations among the visible nodes (the D = 0 slice of esep_model, computed
+        on its own when that is not cached, so that CI-only consumers do not pay for the deletion sets)."""
+        if 'esep_model' in self.__dict__:
+            return self.esep_model[0]
+        return sg.dsep_all(self.number_of_nodes_including_singleton_latents, self.parents_masks,
+                           m=self.number_of_visible)
 
-    def _ci_from_model(self, deleted: Tuple[int, ...]) -> Iterable[Tuple[Tuple[int, ...], Tuple[int, ...]]]:
-        import semigraphoid as sg
-        n, E = self._dsep_model(deleted)
-        remaining = [v for v in self.visible_nodes if v not in deleted]
-        rest_mask = sg.mask_of(remaining)
-        for a, x in enumerate(remaining):
-            for y in remaining[a + 1:]:
-                if self.skeleton_adj_mat[x, y]:
-                    continue
-                Zs = sg.submasks(rest_mask & ~((1 << x) | (1 << y)))
-                for Z in Zs[E[x, y, Zs]]:
-                    yield (self.fake_frozenset([x, y]), self.fake_frozenset(sg.bits_of(int(Z))))
+    @cached_property
+    def _esep_cells(self) -> "np.ndarray":
+        """argwhere of the e-separation model over its meaningful cells (i < j), as rows (D, i, j, K)."""
+        return np.argwhere(self.esep_model & sg.esep_valid_cells(self.number_of_visible))
+
+    @cached_property
+    def all_esep_numeric(self) -> Set[Tuple[Tuple[int, ...], Tuple[int, ...], Tuple[int, ...]]]:
+        bits = sg.bits_table(self.number_of_visible)
+        return {((int(i), int(j)), bits[K], bits[D]) for D, i, j, K in self._esep_cells}
 
     @cached_property
     def all_CI_numeric(self) -> Set[Tuple[Tuple[int, ...], Tuple[int, ...]]]:
-        return set(self._all_CI_generator_numeric)
+        m = self.number_of_visible
+        bits = sg.bits_table(m)
+        return {((int(i), int(j)), bits[K]) for i, j, K in np.argwhere(self.dsep_model & sg.dsep_valid_cells(m))}
 
     @cached_property
     def d_separable_pairs(self) -> Set[Tuple[int, ...]]:
-        discovered_pairs = set()
-        for x, y, Z in self._all_2_vs_any_partitions(self.visible_nodes):
-            if not self.skeleton_adj_mat[x, y]:
-                if (self.fake_frozenset([x, y]), self.fake_frozenset(Z)) in self.all_CI_numeric:
-                    discovered_pairs.add(self.fake_frozenset([x, y]))
-        return discovered_pairs
+        E = self.dsep_model
+        return {(x, y) for x, y in itertools.combinations(self.visible_nodes, 2) if E[x, y].any()}
 
     @cached_property
     def d_unseparable_pairs(self) -> Set[Tuple[int, ...]]:
@@ -331,19 +367,14 @@ class mDAG:
 
     @cached_property
     def d_unrestricted_sets(self) -> List[Tuple[int, ...]]:
+        """Subsets of visible nodes no pair of which is d-separated by a subset of the complement."""
+        E = self.dsep_model
+        full = (1 << self.number_of_visible) - 1
         d_unrestricted_sets = []
-        visible_nodes_as_set = set(self.visible_nodes)
-        for r in range(2, self.number_of_visible+1):
-            for subnodes in itertools.combinations(visible_nodes_as_set, r):
-                complement = visible_nodes_as_set.difference(subnodes)
-                no_restrictions_found = True
-                for xy_tuple in itertools.combinations(subnodes, 2):
-                    if any(((dsep[0] == xy_tuple) and
-                             complement.issuperset(dsep[1]))
-                            for dsep in self.all_CI_numeric):
-                        no_restrictions_found = False
-                        break
-                if no_restrictions_found:
+        for r in range(2, self.number_of_visible + 1):
+            for subnodes in itertools.combinations(self.visible_nodes, r):
+                Zs = sg.submasks(full & ~sg.mask_of(subnodes))
+                if not any(E[x, y, Zs].any() for x, y in itertools.combinations(subnodes, 2)):
                     d_unrestricted_sets.append(subnodes)
         return d_unrestricted_sets
 
@@ -360,15 +391,11 @@ class mDAG:
 
     @cached_property
     def CI_count(self) -> int:
-        return len(self.all_CI_numeric)
+        return int(np.count_nonzero(self.dsep_model & sg.dsep_valid_cells(self.number_of_visible)))
 
-    def _all_CI_like_unlabelled_generator(self, attribute: str) -> Iterable[Tuple[Tuple[Tuple[int, ...], ...], ...]]:
-        for perm in itertools.permutations(self.visible_nodes):
-            yield self.fake_frozenset(
-                tuple(
-                    self.fake_frozenset(partsextractor(perm, variable_set))
-                    for variable_set in relation)
-                for relation in self.__getattribute__(attribute))
+    # Unlabelled (relabelling-invariant) keys: the lexicographically smallest relabelled model, packed to bytes
+    # (semigraphoid.canonical_form), reported as the sorted relations of that relabelling. Only equality of these
+    # keys is ever used (classification into CI / e-separation classes).
 
     def convert_to_named_set_of_tuples_of_tuples(self, attribute: str) -> Set[Tuple[Tuple[Any, ...], ...]]:
         if hasattr(self, 'variable_names'):
@@ -386,27 +413,23 @@ class mDAG:
 
     @cached_property
     def all_CI_unlabelled(self) -> Tuple[Tuple[Tuple[int, ...], ...], ...]:
-        return min(self._all_CI_like_unlabelled_generator('all_CI_numeric'))
-
-    @property
-    def _all_e_sep_generator_numeric(self) -> Iterable[Tuple[Tuple[int, ...], Tuple[int, ...], Tuple[int, ...]]]:
-        for r in range(self.number_of_visible - 1):
-            for to_delete in itertools.combinations(self.visible_nodes, r):
-                for pair, Z in self._ci_from_model(to_delete):
-                    yield (pair, Z, self.fake_frozenset(to_delete))
-
-    @cached_property
-    def all_esep_numeric(self) -> Set[Tuple[Tuple[int, ...], Tuple[int, ...], Tuple[int, ...]]]:
-        return set(self._all_e_sep_generator_numeric)
+        m = self.number_of_visible
+        bits = sg.bits_table(m)
+        canonical = sg.canonical_form(self.dsep_model, m)
+        return self.fake_frozenset(((int(i), int(j)), bits[K]) for i, j, K in
+                                   np.argwhere(canonical & sg.dsep_valid_cells(m)))
 
     @cached_property
     def all_esep(self) -> Tuple[Tuple[Tuple[Any, ...], ...], ...]:
-        # return set(self._all_e_sep_generator_numeric)
         return tuple(self.convert_to_named_set_of_tuples_of_tuples('all_esep_numeric'))
 
     @cached_property
     def all_esep_unlabelled(self) -> Tuple[Tuple[Tuple[int, ...], ...], ...]:
-        return min(self._all_CI_like_unlabelled_generator('all_esep_numeric'))
+        m = self.number_of_visible
+        bits = sg.bits_table(m)
+        canonical = sg.canonical_form(self.esep_model, m)
+        return self.fake_frozenset(((int(i), int(j)), bits[K], bits[D]) for D, i, j, K in
+                                   np.argwhere(canonical & sg.esep_valid_cells(m)))
 
     @cached_property
     def e_separable_pairs(self) -> Set[Tuple[int, int]]:
@@ -524,16 +547,14 @@ class mDAG:
     def droppable_edges(self) -> List[Tuple[int, int]]:
         candidates = [tuple(pair) for pair in self.directed_structure_instance.edge_list if
                       any(set(pair).issubset(hyperedge) for hyperedge in self.simplicial_complex_instance.compressed_simplicial_complex)]
-        candidates = [pair for pair in candidates if set(self.as_graph.predecessors(pair[0])).issubset(
-            self.as_graph.predecessors(pair[1]))]  # as_graph includes both visible at latent parents
-        return candidates
+        pa = self.nonsingleton_parents_masks.tolist()   # visible and latent parents, as as_graph shows them
+        return [pair for pair in candidates if pa[pair[0]] & ~pa[pair[1]] == 0]
 
     @cached_property
     def addable_edges(self) -> List[Tuple[int, int]]:
         candidates = set(self.skeleton_instance.as_edges).difference(self.directed_structure_instance.edge_list)
-        candidates = [pair for pair in candidates if set(self.as_graph.predecessors(pair[0])).issubset(
-            self.as_graph.predecessors(pair[1]))]  # as_graph includes both visible at latent parents
-        return candidates
+        pa = self.nonsingleton_parents_masks.tolist()
+        return [pair for pair in candidates if pa[pair[0]] & ~pa[pair[1]] == 0]
 
     @cached_property
     def equivalent_under_edge_dropping(self) -> List["mDAG"]:
@@ -567,24 +588,19 @@ class mDAG:
 
     @staticmethod
     def _all_bipartitions(variables_to_partition: Iterable[int]):
-        #Yields tuples of frozensets
-        # expect input in the form of a list
-        length = len(variables_to_partition)
-        integers = range(length)
-        subsetrange = range(1, length)
-        for r in subsetrange:
-            for ints_to_mask in map(list, itertools.combinations(integers, r)):
-                mask = np.ones(length, dtype=bool)
-                mask[ints_to_mask] = False
-                yield (frozenset(itertools.compress(variables_to_partition, mask.tolist())),
-                       frozenset(itertools.compress(variables_to_partition, np.logical_not(mask).tolist())))
+        """(C, D) frozenset pairs, one per bipartition of the items (the order of _bipartition_patterns, which
+        _facet_bipartitions_as_masks follows)."""
+        items = tuple(variables_to_partition)
+        for pattern in _bipartition_patterns(len(items)):
+            yield (frozenset(items[i] for i in range(len(items)) if i not in pattern),
+                   frozenset(items[i] for i in pattern))
 
 
     @cached_property
     def all_parentsplus_list(self) -> List[FrozenSet[int]]:
-        return [frozenset({}).union(v_par, l_par) for v_par,l_par in zip(
-                self.directed_structure_instance.observable_parentsplus_list,
-                self.simplicial_complex_instance.latent_parents_list)]
+        """Each visible node with its visible and non-singleton latent parents (latents numbered as in
+        parents_masks)."""
+        return [frozenset(sg.bits_of(int(m))) for m in self.parentsplus_masks]
 
     def set_predecessors(self, X: Iterable[int]) -> FrozenSet[int]:
         # return frozenset().union(*partsextractor(self.directed_structure_instance.observable_parentsplus_list, X))
@@ -603,24 +619,51 @@ class mDAG:
         return c
         
     def descendants(self, node: int) -> Set[int]:
-        return nx.descendants(self.as_graph, node)
+        return set(sg.bits_of(int(self.descendant_masks[node])))
+
+    def _facet_bipartitions_as_masks(self) -> Iterable[Tuple[int, int]]:
+        """(C, D) bitmask pairs, one per bipartition of each facet, in the order _all_bipartitions yields them."""
+        for facet in self.simplicial_complex_instance.compressed_simplicial_complex:
+            facet = tuple(int(v) for v in facet)
+            F = sg.mask_of(facet)
+            for pattern in _bipartition_patterns(len(facet)):
+                D = 0
+                for i in pattern:
+                    D |= 1 << facet[i]
+                yield F & ~D, D
+
+    @staticmethod
+    def _masks_to_frozensets(pairs: Iterable[Tuple[int, int]]) -> List[Tuple[FrozenSet[int], FrozenSet[int]]]:
+        return [(frozenset(sg.bits_of(C)), frozenset(sg.bits_of(D))) for C, D in pairs]
+
+    @staticmethod
+    def _union_of_masks(masks: List[int], C: int) -> int:
+        u = 0
+        for c in sg.bits_of(C):
+            u |= masks[c]
+        return u
 
     @cached_property
     def splittable_faces(self) -> List[Tuple[FrozenSet[int], FrozenSet[int]]]:
-        candidates = itertools.chain.from_iterable(map(self._all_bipartitions, self.simplicial_complex_instance.compressed_simplicial_complex))
-        candidates = [(C, D) for C, D in candidates if
-                      all(self.set_predecessors(C).issubset(self.singleton_predecessors(d)) for d in D)]
-        return candidates
+        """Bipartitions (C, D) of a facet with Pa+(C) a subset of Pa+(d) for every d in D (visible and non-singleton
+        latent parents, plus the nodes themselves)."""
+        pp = self.parentsplus_masks.tolist()
+        result = []
+        for C, D in self._facet_bipartitions_as_masks():
+            u = self._union_of_masks(pp, C)
+            if all(u & ~pp[d] == 0 for d in sg.bits_of(D)):
+                result.append((C, D))
+        return self._masks_to_frozensets(result)
 
     @cached_property
     def eventually_splittable_faces(self) -> List[Tuple[FrozenSet[int], FrozenSet[int]]]:
-        candidates = itertools.chain.from_iterable(map(self._all_bipartitions, self.simplicial_complex_instance.compressed_simplicial_complex))
+        pp = self.parentsplus_masks.tolist()
         result = []
-        for C, D in candidates:
-            if all((self.set_predecessors(C).difference(C)).issubset(
-                self.singleton_predecessors(d).difference(D)) for d in D):
+        for C, D in self._facet_bipartitions_as_masks():
+            u = self._union_of_masks(pp, C) & ~C
+            if all(u & ~(pp[d] & ~D) == 0 for d in sg.bits_of(D)):
                 result.append((C, D))
-        return result
+        return self._masks_to_frozensets(result)
 
     @cached_property
     def has_no_eventually_splittable_face(self) -> bool:
@@ -665,12 +708,7 @@ class mDAG:
         nx.draw_networkx_nodes(G, pos, nodelist=self.nonsingleton_latent_nodes, node_color="tab:red")
         nx.draw_networkx_labels(G, pos)
         nx.draw_networkx_edges(G,pos,edgelist=self.directed_structure_instance.edge_list)
-        latent_edges=[]
-        f=0
-        for facet in self.simplicial_complex_instance.simplicial_complex_as_sets:
-            for element in facet:
-                latent_edges.append((self.latent_nodes[f],element))
-            f=f+1
+        latent_edges = [(p, v) for p, v in self.as_graph.edges if p >= self.number_of_visible]
         nx.draw_networkx_edges(G,pos,edgelist=latent_edges)
         plt.show()
         
@@ -679,33 +717,32 @@ class mDAG:
         G.add_nodes_from(self.visible_nodes)
         G.add_nodes_from(self.nonsingleton_latent_nodes)
         pos=nx.spring_layout(G)
-        v=self.visible_nodes.copy()
-        nx.draw_networkx_nodes(G, pos, nodelist=v.remove(node), node_color="tab:blue")
+        v = [x for x in self.visible_nodes if x != node]
+        nx.draw_networkx_nodes(G, pos, nodelist=v, node_color="tab:blue")
         nx.draw_networkx_nodes(G, pos, nodelist=[node], node_color="tab:green")
         nx.draw_networkx_nodes(G, pos, nodelist=self.nonsingleton_latent_nodes, node_color="tab:red")
         nx.draw_networkx_labels(G, pos)
         nx.draw_networkx_edges(G, pos, edgelist=self.directed_structure_instance.edge_list)
-        latent_edges=[]
-        f=0
-        for facet in self.simplicial_complex_instance.simplicial_complex_as_sets:
-            for element in facet:
-                latent_edges.append((self.latent_nodes[f],element))
-            f=f+1
+        latent_edges = [(p, v) for p, v in self.as_graph.edges if p >= self.number_of_visible]
         nx.draw_networkx_edges(G, pos, edgelist=latent_edges)
         plt.show()
     
     @cached_property
     def weak_splittable_faces(self) -> List[Tuple[FrozenSet[int], FrozenSet[int]]]:
-        candidates = itertools.chain.from_iterable(map(self._all_bipartitions, self.simplicial_complex_instance.compressed_simplicial_complex))
-        # candidates = [(C,D) for C,D in candidates if all(set(self.as_graph.predecessors(c).issubset(self.as_graph.predecessors(d)) for c in C for d in D)]
-        simp_complex=[]
-        for s in self.simplicial_complex_instance.compressed_simplicial_complex:
-            simp_complex.append(tuple(s))
-        candidates = [(C, D) for C, D in candidates if
-                      all(self.set_visible_predecessors(C).issubset(self.singleton_visible_predecessors(d)) for d in D) and
-                      all(c not in itertools.chain.from_iterable(set(simp_complex)-{tuple(set(C)|set(D))}) for c in C)]
-        # print(candidates)
-        return candidates
+        """Bipartitions (C, D) of a facet with the visible Pa+(C) a subset of the visible Pa+(d) for every d in D,
+        and no node of C in another facet."""
+        n = self.number_of_visible
+        vpp_masks = sg.columns_to_masks(self.directed_structure_instance.as_bit_square_matrix_plus_eye).tolist()
+        facets = [sg.mask_of(f) for f in self.simplicial_complex_instance.compressed_simplicial_complex]
+        result = []
+        for C, D in self._facet_bipartitions_as_masks():
+            others = 0
+            for f in facets:
+                if f != C | D:
+                    others |= f
+            if C & others == 0 and all(self._union_of_masks(vpp_masks, C) & ~vpp_masks[d] == 0 for d in sg.bits_of(D)):
+                result.append((C, D))
+        return self._masks_to_frozensets(result)
 
     
     @property  
@@ -820,13 +857,14 @@ class mDAG:
         else:
             return self.all_densely_connected_pairs_numeric
 
-    def _all_densely_connected_pairs_unlabelled_generator(self) -> Iterable[Tuple[Tuple[int, ...], ...]]:
-        for perm in itertools.permutations(self.visible_nodes):
-            yield self.fake_frozenset(map(self.fake_frozenset, np.take(perm, self.all_densely_connected_pairs_numeric)))
-            
     @cached_property
     def all_densely_connected_pairs_unlabelled(self) -> Tuple[Tuple[int, ...], ...]:
-        return min(self._all_densely_connected_pairs_unlabelled_generator())
+        n = self.number_of_visible
+        adj = np.zeros((n, n), dtype=np.bool_)
+        for x, y in self.all_densely_connected_pairs_numeric:
+            adj[x, y] = adj[y, x] = True
+        canonical = sg.canonical_form(adj, n)
+        return self.fake_frozenset((int(x), int(y)) for x, y in np.argwhere(np.triu(canonical, 1)))
 
 
     @cached_property

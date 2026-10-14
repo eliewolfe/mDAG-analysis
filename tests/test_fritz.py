@@ -73,6 +73,16 @@ def test_descendants_are_excluded_from_the_pool_by_default():
     assert g.fritz_certificate(0, K, {2}, use_lp=False) is None
 
 
+def test_descendant_predictor_is_not_certified_by_d_separation_through_the_noise_of_the_target():
+    # 0 -> 1 -> 2 with Q{0,2}: 2 is a descendant of 0, and with K = {Q{0,2}} every other parent of 0 is its noise
+    # source, which reaches 2 along 0 -> 1 -> 2. The d-separation test must see that noise (it is not part of
+    # lp_structure) and fail; the closure then has to decide the candidate.
+    g = QmDAG(DirectedStructure([(0, 1), (1, 2)], 3), Hypergraph([], 3), Hypergraph([(0, 2)], 3))
+    _, latent_nodes = g.effective_DAG_data
+    facet = next(idx for idx, (kind, members) in latent_nodes.items() if kind == 'Q')
+    assert g.fritz_certificate(0, frozenset({facet}), {2}, use_lp=False, tally=False) is None
+
+
 def test_deletion_is_maximal_and_requires_a_channel():
     K, D = TRIANGLE.fritz_deletion(0, {2})
     assert K == {latent_index(TRIANGLE, 'Q', {0, 2})}

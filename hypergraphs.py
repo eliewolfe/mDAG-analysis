@@ -9,6 +9,7 @@ from typing import Any, FrozenSet, Iterable, List, Set, Tuple, Union
 from functools import cached_property
 
 BoolMatrix = npt.NDArray[np.bool_]
+IntArray = npt.NDArray[np.int_]
 Hyperedge = Iterable[Any]
 HypergraphLike = Iterable[Hyperedge]
 
@@ -153,6 +154,18 @@ class Hypergraph:
         for i, lp in enumerate(self.extended_simplicial_complex_as_sets):
             r[i, tuple(lp)] = True
         return r[np.lexsort(r.T)]
+
+    @cached_property
+    def extended_latent_parents_masks(self) -> IntArray:
+        """For each visible node, the bitmask (over the rows of as_extended_bit_array) of its latent parents."""
+        from semigraphoid import columns_to_masks
+        return columns_to_masks(self.as_extended_bit_array)
+
+    @cached_property
+    def singleton_latent_rows_mask(self) -> int:
+        """Bitmask (over the rows of as_extended_bit_array) of the singleton latents."""
+        sizes = self.as_extended_bit_array.sum(axis=1)
+        return int(((sizes == 1).astype(np.int64) << np.arange(len(sizes), dtype=np.int64)).sum())
 
     @cached_property
     def nonsingleton_districts(self) -> List[Set[int]]:

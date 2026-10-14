@@ -6,6 +6,7 @@ import numpy.typing as npt
 from hypergraphs import Hypergraph, LabelledHypergraph, hypergraph_full_cleanup
 from directed_structures import DirectedStructure, LabelledDirectedStructure
 from mDAG_advanced import mDAG
+import semigraphoid as sg
 from sys import version_info
 assert version_info >= (3, 8), "Python 3.8+ is required for cached_property support."
 from functools import total_ordering
@@ -546,9 +547,26 @@ class QmDAG:
         finally:
             lp.pop_to(handle)
 
+    @cached_property
+    def effective_parents_masks(self) -> List[int]:
+        """The effective DAG (effective_DAG_data: visible nodes, facets, noise sources) as parent bitmasks."""
+        g, latent_nodes = self.effective_DAG_data
+        return sg.parents_to_masks({v: g.predecessors(v) for v in g.nodes}, g.number_of_nodes()).tolist()
+
+    @cached_property
+    def effective_children_masks(self) -> List[int]:
+        return sg.children_masks(self.effective_parents_masks).tolist()
+
+    @cached_property
+    def _effective_descendant_masks(self) -> "np.ndarray":
+        return sg.descendant_masks(self.effective_parents_masks)
+
+    def _descendants(self, s: int) -> Set[int]:
+        """The descendants of s in the effective DAG."""
+        return set(sg.bits_of(int(self._effective_descendant_masks[s])))
+
     def _semigraphoid_model(self):
         """The elementary d-separation model of lp_structure (noise excluded), cached per labelled structure."""
-        import semigraphoid as sg
         key = self.unique_id
         model = _SEMIGRAPHOID_CACHE.get(key)
         if model is None:
@@ -569,7 +587,6 @@ class QmDAG:
         of a d-separation model: `relabel` is the d-separation model of the relabelled candidate (the kept facet
         replaced by s) restricted to the remaining variables, `markov` that of the candidate itself. Returns
         'relabel', 'markov' or None. Sound because every semigraphoid step is a Shannon-type identity."""
-        import semigraphoid as sg
         nodes, parents = self.lp_structure
         n = len(nodes)
         nv = self.number_of_visible
@@ -698,7 +715,7 @@ class QmDAG:
         assert pool in ('siblings', 'parents', 'siblings+parents'), pool
         g, latent_nodes = self.effective_DAG_data
         n = self.number_of_visible
-        descendants = set(nx.descendants(g, s))
+        descendants = self._descendants(s)
         facets_with_s = [members for idx, (kind, members) in latent_nodes.items() if kind != 'noise' and s in members]
 
         def shared(x: int) -> int:
@@ -758,8 +775,11 @@ class QmDAG:
         if X <= K:
             count('certificate', 'parent')
             return 'parent'
+        # The d-separation test X - K _||_ Pa(s) - K | K on the effective DAG, noise source of s included (a
+        # predictor that is a descendant of s is reached by that noise through s).
         others = set(g.predecessors(s)) - K
-        if nx.is_d_separator(g, X - K, others, set(K)):
+        if sg.is_d_separated(self.effective_parents_masks, sg.mask_of(X - K), sg.mask_of(others), sg.mask_of(K),
+                             children=self.effective_children_masks):
             count('certificate', 'dsep')
             return 'dsep'
         if use_lp:

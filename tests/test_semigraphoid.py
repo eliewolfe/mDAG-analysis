@@ -50,14 +50,119 @@ def test_dsep_all_matches_networkx_and_the_numpy_kernel():
             pa = random_dag(n, rng=rng)
             E = sg.dsep_all(n, pa)
             assert (E == nx_dsep_model(n, pa)).all()
-            assert (E == sg.dsep_all(n, pa, kernel=sg._dsep_numpy)).all()
+            assert (E == sg.dsep_all(n, pa, kernel=sg._esep_numpy)).all()
             assert (E == E.transpose(1, 0, 2)).all()
             assert not (E & ~sg.valid_cells(n)).any()
             # Restricted to the first m nodes (sources, targets and conditioning sets): the leading block.
             m = max(2, n - 2)
             R = sg.dsep_all(n, pa, m=m)
             assert R.shape == (m, m, 1 << m) and (R == E[:m, :m, :1 << m]).all()
-            assert (R == sg.dsep_all(n, pa, m=m, kernel=sg._dsep_numpy)).all()
+            assert (R == sg.dsep_all(n, pa, m=m, kernel=sg._esep_numpy)).all()
+
+
+def nx_esep_model(n, m, pa, max_deleted):
+    g = nx.DiGraph()
+    g.add_nodes_from(range(n))
+    for v in range(n):
+        for u in sg.bits_of(int(pa[v])):
+            g.add_edge(u, v)
+    R = np.zeros((1 << m, m, m, 1 << m), dtype=bool)
+    for D in range(1 << m):
+        deleted = sg.bits_of(D)
+        if len(deleted) > max_deleted:
+            continue
+        h = g.copy()
+        h.remove_nodes_from(deleted)
+        rest = [v for v in range(m) if v not in deleted]
+        for i in rest:
+            for j in rest:
+                if i == j:
+                    continue
+                others = [v for v in rest if v not in (i, j)]
+                for r in range(len(others) + 1):
+                    for K in itertools.combinations(others, r):
+                        R[D, i, j, sg.mask_of(K)] = nx.is_d_separator(h, {i}, {j}, set(K))
+    return R
+
+
+def random_dag_with_latents(m, n, rng):
+    """Observed nodes 0..m-1 (in topological order), latent roots m..n-1 with random observed children."""
+    pa = random_dag(m, rng=rng)
+    pa = np.concatenate([pa, np.zeros(n - m, dtype=np.int64)])
+    for latent in range(m, n):
+        for child in rng.sample(range(m), rng.randint(1, m)):
+            pa[child] |= 1 << latent
+    return pa
+
+
+def test_esep_all_matches_networkx_on_the_dag_with_the_deleted_nodes_removed():
+    rng = random.Random(5)
+    for m in (2, 3, 4, 5):
+        for extra in (0, 2, 3):
+            n = m + extra
+            pa = random_dag_with_latents(m, n, rng)
+            R = sg.esep_all(n, pa, m=m)
+            assert R.shape == (1 << m, m, m, 1 << m)
+            assert sg.canonical_form(R, m).shape == R.shape
+            assert (R == nx_esep_model(n, m, pa, m - 2)).all()
+            assert (R == sg.esep_all(n, pa, m=m, kernel=sg._esep_numpy)).all()
+            assert (R[0] == sg.dsep_all(n, pa, m=m)).all()
+            assert not (R & ~sg.esep_valid_cells(m) & ~sg.esep_valid_cells(m).transpose(0, 2, 1, 3)).any()
+            # Only the requested deletion sets are filled.
+            R1 = sg.esep_all(n, pa, m=m, max_deleted=1)
+            assert (R1[0] == R[0]).all() and not R1[[D for D in range(1 << m) if bin(D).count("1") > 1]].any()
+
+
+def test_canonical_form_is_relabelling_invariant_and_an_actual_relabelling():
+    rng = random.Random(3)
+    m = 4
+    for _ in range(5):
+        pa = random_dag_with_latents(m, m + 2, rng)
+        R = sg.esep_all(m + 2, pa, m=m)
+        canonical = sg.canonical_form(R, m)
+        perms = [p for p, _ in sg._permutation_index_maps(m)]
+        relabelled = [R[np.ix_(pm, p, p, pm)] for p, pm in sg._permutation_index_maps(m)]
+        assert any((canonical == Rp).all() for Rp in relabelled)
+        for Rp in relabelled:
+            assert (sg.canonical_form(Rp, m) == canonical).all()
+        # the same for the d-separation model and for a symmetric adjacency matrix
+        E = R[0]
+        assert all((sg.canonical_form(E[np.ix_(p, p, pm)], m) == sg.canonical_form(E, m)).all()
+                   for p, pm in sg._permutation_index_maps(m))
+        adj = np.zeros((m, m), dtype=bool)
+        adj[0, 1] = adj[1, 0] = adj[1, 3] = adj[3, 1] = True
+        for p in perms:
+            assert (sg.canonical_form(adj[np.ix_(p, p)], m) == sg.canonical_form(adj, m)).all()
+
+
+def test_is_d_separated_matches_networkx_and_dsep_all_allocates_one_slice():
+    rng = random.Random(9)
+    for _ in range(6):
+        m = rng.randint(3, 5)
+        n = m + rng.randint(0, 3)
+        pa = random_dag_with_latents(m, n, rng)
+        g = nx.DiGraph()
+        g.add_nodes_from(range(n))
+        for v in range(n):
+            for u in sg.bits_of(int(pa[v])):
+                g.add_edge(u, v)
+        for _ in range(40):
+            nodes = list(range(n))
+            rng.shuffle(nodes)
+            A = nodes[:rng.randint(1, 2)]
+            B = nodes[len(A):len(A) + rng.randint(1, 2)]
+            K = [v for v in nodes[len(A) + len(B):] if rng.random() < 0.4]
+            assert sg.is_d_separated(pa, sg.mask_of(A), sg.mask_of(B), sg.mask_of(K)) == \
+                nx.is_d_separator(g, set(A), set(B), set(K))
+        assert sg.is_d_separated(pa, 0, 1, 0) and sg.is_d_separated(pa, 1, 0, 0)
+        E = sg.dsep_all(n, pa)
+        assert E.base is None or E.base.shape[0] == 1   # not a view into a (2^n, n, n, 2^n) array
+
+
+def test_descendant_masks():
+    pa = sg.parents_to_masks({1: [0], 2: [1], 3: [1, 4], 4: []}, 5)
+    desc = sg.descendant_masks(pa)
+    assert [sg.bits_of(int(d)) for d in desc] == [[1, 2, 3], [2, 3], [], [], [3]]
 
 
 def test_closure_of_the_local_markov_triplets_is_the_d_separation_model():
