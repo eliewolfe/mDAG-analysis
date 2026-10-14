@@ -484,7 +484,9 @@ class Observable_unlabelled_mDAGs:
                                           verbose=self.verbose,
                                           message="Finding dominances which preserve CI"):
             (strong_mDAG, weak_mDAG) = self.lookup_mDAG(dom_ids)
-            if strong_mDAG.skeleton_nof_edges == strong_mDAG.skeleton_nof_edges:
+            # The skeleton (adjacency = no e-separation, Evans) and the CI count are invariants of observational
+            # equivalence: a dominance between structures that differ in either is never an equivalence.
+            if strong_mDAG.skeleton_nof_edges == weak_mDAG.skeleton_nof_edges:
                 if strong_mDAG.CI_count == weak_mDAG.CI_count:
                     equiv_maybe_preserving_doms.append(dom_ids)
         return equiv_maybe_preserving_doms
