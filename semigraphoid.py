@@ -297,7 +297,7 @@ def _esep_python(R: np.ndarray, n: int, m: int, pa: np.ndarray, ch: np.ndarray, 
     a parent goes on to its children, one reaching an observed node from a parent bounces to its parents. Deleted
     nodes are never entered. The D = 0 slice is the d-separation model."""
     full = (1 << m) - 1
-    for D in range(1 << m):
+    for D in range(R.shape[0]):
         count = 0
         d = D
         while d != 0:
@@ -357,7 +357,7 @@ def _esep_numpy(R: np.ndarray, n: int, m: int, pa: np.ndarray, ch: np.ndarray, m
     """The same walk, vectorised over all conditioning sets for each (deletion set, source): the independent
     fallback. Deleting a node = isolating it (no parents, no children) and skipping the cells that involve it."""
     masks = np.arange(1 << m, dtype=np.int64)
-    for D in range(1 << m):
+    for D in range(R.shape[0]):
         if bin(D).count('1') > max_deleted:
             continue
         pa_D = pa & ~D
@@ -444,7 +444,8 @@ def esep_all(n: int, parents_masks: np.ndarray, m: Optional[int] = None, max_del
     an array R of shape (2^m, m, m, 2^m): R[D] is the d-separation model of the DAG with the observed nodes of D
     deleted, for every D among the first m nodes (the observed block of a structure whose observed nodes come
     first) with at most max_deleted elements (default m - 2, the largest D leaving a pair to separate); the other
-    slices, and the cells touching D, stay False. R[0] is the d-separation model (`dsep_all`)."""
+    slices, and the cells touching D, stay False. R[0] is the d-separation model (`dsep_all`). With
+    max_deleted = 0 only that slice is allocated (shape (1, m, m, 2^m))."""
     t0 = time.perf_counter()
     pa = np.asarray(parents_masks, dtype=np.int64)
     assert pa.shape == (n,)
@@ -452,7 +453,7 @@ def esep_all(n: int, parents_masks: np.ndarray, m: Optional[int] = None, max_del
     assert 0 < m <= n
     max_deleted = max(m - 2, 0) if max_deleted is None else max_deleted
     ch = children_masks(pa)
-    R = np.zeros((1 << m, m, m, 1 << m), dtype=np.bool_)
+    R = np.zeros((1 << m if max_deleted > 0 else 1, m, m, 1 << m), dtype=np.bool_)
     (kernel or _esep_kernel)(R, n, m, pa, ch, max_deleted)
     STATS['dsep_models'] += 1
     STATS['seconds'] += time.perf_counter() - t0
@@ -465,6 +466,35 @@ def dsep_all(n: int, parents_masks: np.ndarray, m: Optional[int] = None, kernel=
     structure whose observed nodes come first): the result has shape (m, m, 2^m) and equals the leading block of
     the full model, at a cost exponential in m instead of n."""
     return esep_all(n, parents_masks, m=m, max_deleted=0, kernel=kernel)[0]
+
+
+def is_d_separated(parents_masks: np.ndarray, A: int, B: int, K: int) -> bool:
+    """One Bayes-ball walk: are the node sets A and B (bitmasks) d-separated by K in the DAG with the given parent
+    bitmasks? The walk is the one of `_esep_python`, started from every node of A at once. True when A or B is
+    empty."""
+    assert A & B == 0 and A & K == 0 and B & K == 0, "a d-separation query has disjoint sides"
+    if A == 0 or B == 0:
+        return True
+    pa = [int(x) for x in np.asarray(parents_masks, dtype=np.int64)]
+    ch = [int(x) for x in children_masks(parents_masks)]
+    up, down = A, 0
+    frontier_up, frontier_down = A, 0
+    while frontier_up or frontier_down:
+        new_up = new_down = 0
+        for v in bits_of(frontier_up):
+            if not (K >> v) & 1:
+                new_up |= pa[v]
+                new_down |= ch[v]
+        for v in bits_of(frontier_down):
+            if (K >> v) & 1:
+                new_up |= pa[v]
+            else:
+                new_down |= ch[v]
+        frontier_up = new_up & ~up
+        frontier_down = new_down & ~down
+        up |= new_up
+        down |= new_down
+    return (up | down) & B == 0
 
 
 def dsep_model_of(n: int, parents: Dict[int, Iterable[int]], m: Optional[int] = None) -> np.ndarray:

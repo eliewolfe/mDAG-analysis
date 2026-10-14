@@ -547,12 +547,19 @@ class QmDAG:
         finally:
             lp.pop_to(handle)
 
+    @cached_property
+    def effective_parents_masks(self) -> "np.ndarray":
+        """The effective DAG (effective_DAG_data: visible nodes, facets, noise sources) as parent bitmasks."""
+        g, latent_nodes = self.effective_DAG_data
+        return sg.parents_to_masks({v: g.predecessors(v) for v in g.nodes}, g.number_of_nodes())
+
+    @cached_property
+    def _effective_descendant_masks(self) -> "np.ndarray":
+        return sg.descendant_masks(self.effective_parents_masks)
+
     def _descendants(self, s: int) -> Set[int]:
-        """The descendants of s in the effective DAG, read off lp_structure (noise sources are not in it and have
-        no descendants beyond their child)."""
-        nodes, parents = self.lp_structure
-        n = len(nodes)
-        return set(sg.bits_of(int(sg.descendant_masks(sg.parents_to_masks(parents, n))[s])))
+        """The descendants of s in the effective DAG."""
+        return set(sg.bits_of(int(self._effective_descendant_masks[s])))
 
     def _semigraphoid_model(self):
         """The elementary d-separation model of lp_structure (noise excluded), cached per labelled structure."""
@@ -764,12 +771,10 @@ class QmDAG:
         if X <= K:
             count('certificate', 'parent')
             return 'parent'
-        # The d-separation test X - K _||_ Pa(s) - K | K on the cached model of lp_structure. The noise source of s
-        # (not in lp_structure) is always separated: the only path to it ends at the collider s, which K, a set
-        # of parents of s, cannot open.
-        n_lp = len(self.lp_structure[0])
-        others = {p for p in g.predecessors(s) if p < n_lp} - K
-        if sg.holds(self._semigraphoid_model(), sg.mask_of(X - K), sg.mask_of(others), sg.mask_of(K)):
+        # The d-separation test X - K _||_ Pa(s) - K | K on the effective DAG, noise source of s included (a
+        # predictor that is a descendant of s is reached by that noise through s).
+        others = set(g.predecessors(s)) - K
+        if sg.is_d_separated(self.effective_parents_masks, sg.mask_of(X - K), sg.mask_of(others), sg.mask_of(K)):
             count('certificate', 'dsep')
             return 'dsep'
         if use_lp:

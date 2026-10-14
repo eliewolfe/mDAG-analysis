@@ -134,6 +134,30 @@ def test_canonical_form_is_relabelling_invariant_and_an_actual_relabelling():
             assert (sg.canonical_form(adj[np.ix_(p, p)], m) == sg.canonical_form(adj, m)).all()
 
 
+def test_is_d_separated_matches_networkx_and_dsep_all_allocates_one_slice():
+    rng = random.Random(9)
+    for _ in range(6):
+        m = rng.randint(3, 5)
+        n = m + rng.randint(0, 3)
+        pa = random_dag_with_latents(m, n, rng)
+        g = nx.DiGraph()
+        g.add_nodes_from(range(n))
+        for v in range(n):
+            for u in sg.bits_of(int(pa[v])):
+                g.add_edge(u, v)
+        for _ in range(40):
+            nodes = list(range(n))
+            rng.shuffle(nodes)
+            A = nodes[:rng.randint(1, 2)]
+            B = nodes[len(A):len(A) + rng.randint(1, 2)]
+            K = [v for v in nodes[len(A) + len(B):] if rng.random() < 0.4]
+            assert sg.is_d_separated(pa, sg.mask_of(A), sg.mask_of(B), sg.mask_of(K)) == \
+                nx.is_d_separator(g, set(A), set(B), set(K))
+        assert sg.is_d_separated(pa, 0, 1, 0) and sg.is_d_separated(pa, 1, 0, 0)
+        E = sg.dsep_all(n, pa)
+        assert E.base is None or E.base.shape[0] == 1   # not a view into a (2^n, n, n, 2^n) array
+
+
 def test_descendant_masks():
     pa = sg.parents_to_masks({1: [0], 2: [1], 3: [1, 4], 4: []}, 5)
     desc = sg.descendant_masks(pa)

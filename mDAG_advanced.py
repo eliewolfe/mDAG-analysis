@@ -7,6 +7,7 @@ from sys import version_info
 assert version_info >= (3, 8), "Python 3.8+ is required for cached_property support."
 from typing import Tuple, List, Set, FrozenSet, Iterable, Any, Union, Optional
 
+import functools
 from functools import cached_property
 
 BoolMatrix = npt.NDArray[np.bool_]
@@ -53,7 +54,7 @@ def mdag_to_int(ds_bitarray: BoolMatrix, sc_bitarray: BoolMatrix) -> int:
 
 
 
-@methodtools.lru_cache(maxsize=None)
+@functools.lru_cache(maxsize=None)
 def _bipartition_patterns(length: int) -> Tuple[Tuple[int, ...], ...]:
     """Index sets of the second part of every bipartition of `length` items, in _all_bipartitions order."""
     return tuple(itertools.chain.from_iterable(
@@ -331,7 +332,10 @@ class mDAG:
 
     @cached_property
     def dsep_model(self) -> "np.ndarray":
-        return self.esep_model[0]
+        """E[i, j, K]: the elementary d-separations among the visible nodes (the D = 0 slice of esep_model,
+        computed on its own so that CI-only consumers do not pay for the deletion sets)."""
+        return sg.dsep_all(self.number_of_nodes_including_singleton_latents, self.parents_masks,
+                           m=self.number_of_visible)
 
     @cached_property
     def _esep_cells(self) -> "np.ndarray":
@@ -706,12 +710,7 @@ class mDAG:
         nx.draw_networkx_nodes(G, pos, nodelist=self.nonsingleton_latent_nodes, node_color="tab:red")
         nx.draw_networkx_labels(G, pos)
         nx.draw_networkx_edges(G,pos,edgelist=self.directed_structure_instance.edge_list)
-        latent_edges=[]
-        f=0
-        for facet in self.simplicial_complex_instance.simplicial_complex_as_sets:
-            for element in facet:
-                latent_edges.append((self.latent_nodes[f],element))
-            f=f+1
+        latent_edges = [(p, v) for p, v in self.as_graph.edges if p >= self.number_of_visible]
         nx.draw_networkx_edges(G,pos,edgelist=latent_edges)
         plt.show()
         
@@ -726,12 +725,7 @@ class mDAG:
         nx.draw_networkx_nodes(G, pos, nodelist=self.nonsingleton_latent_nodes, node_color="tab:red")
         nx.draw_networkx_labels(G, pos)
         nx.draw_networkx_edges(G, pos, edgelist=self.directed_structure_instance.edge_list)
-        latent_edges=[]
-        f=0
-        for facet in self.simplicial_complex_instance.simplicial_complex_as_sets:
-            for element in facet:
-                latent_edges.append((self.latent_nodes[f],element))
-            f=f+1
+        latent_edges = [(p, v) for p, v in self.as_graph.edges if p >= self.number_of_visible]
         nx.draw_networkx_edges(G, pos, edgelist=latent_edges)
         plt.show()
     

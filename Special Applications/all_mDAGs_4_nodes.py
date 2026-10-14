@@ -11,8 +11,8 @@ unlabelled_mDAGs4=list(Observable_unlabelled_mDAGs4.all_unlabelled_mDAGs)
 def dict_names(mDAG):
     dict_names={}
     for v in range(mDAG.number_of_visible):
-        dict_names[v]=list(string.ascii_uppercase)[len(mDAG.nonsingleton_latent_nodes)+v]
-    for l in range(mDAG.number_of_visible,mDAG.number_of_visible+len(mDAG.nonsingleton_latent_nodes)):
+        dict_names[v]=list(string.ascii_uppercase)[mDAG.number_of_nodes_including_singleton_latents-mDAG.number_of_visible+v]
+    for l in range(mDAG.number_of_visible, mDAG.number_of_nodes_including_singleton_latents):   # parents_of numbering
         dict_names[l]=list(string.ascii_uppercase)[l-mDAG.number_of_visible]
     return dict_names
 
