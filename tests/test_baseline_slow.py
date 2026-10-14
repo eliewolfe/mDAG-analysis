@@ -52,13 +52,16 @@ EXPECTED_CERTIFICATES = {('certificate', 'parent'): 823, ('certificate', 'dsep')
                          ('certificate', 'failed'): 668}
 
 
-def _check(cheap, report, cache, proving_QC_Gaps):
-    from qc_gap_search import ladder
+def _check(cheap, report, cache, proving_QC_Gaps, engine='semigraphoid'):
+    from qc_gap_search import ladder, _ENGINE_LABEL
     assert cache is None
     assert cheap.counts == EXPECTED_CHEAP
     assert report.counts['inputs'] == 994 and report.counts['labelled_inputs'] == 2801
     assert report.counts['proven'] == 931 and report.counts['remaining'] == 63
-    assert report.stage_counts == EXPECTED_STAGES
+    # The closure stages are named after the engine; EXPECTED_STAGES pins the names of the default engine.
+    stage_counts = [(name.replace(_ENGINE_LABEL[engine], _ENGINE_LABEL['semigraphoid']), count)
+                    for name, count in report.stage_counts]
+    assert stage_counts == EXPECTED_STAGES
     rungs = [proven for _, proven, _ in ladder(report)]
     assert rungs == EXPECTED_LADDER
     assert rungs == [count for _, count in EXPECTED_STAGES]
@@ -88,7 +91,7 @@ def test_search_counts_with_both_engines_agree(proving_QC_Gaps):
     QM.ENTROPIC_STATS.clear()
     QM.ENGINE_DISAGREEMENTS.clear()
     cheap, report, cache = proving_QC_Gaps.run_search(verbose=False, with_entropic=True, use_cache=False, engine='both')
-    _check(cheap, report, cache, proving_QC_Gaps)
+    _check(cheap, report, cache, proving_QC_Gaps, engine='both')
     assert QM.ENGINE_DISAGREEMENTS == []
     assert ('engine', 'entropic') not in QM.ENTROPIC_STATS     # the LP never certified what the closure had not
     assert entropic_lp.TIMEOUTS[0] == 0
