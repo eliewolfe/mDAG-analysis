@@ -20,16 +20,19 @@ information targets, since H(s|X) is a sum of such terms along any ordering of t
 
 `dsep_all` enumerates the elementary d-separations of a DAG given as parent bitmasks, by Bayes-ball reachability on
 bitmasks, one walk per (source, conditioning set); the result is the d-separation model in the same layout, so
-Markov properties are containment checks (`contains`).
+Markov properties are containment checks (`contains`). `esep_all` runs the same walk once per deletion set of
+observed nodes, giving the e-separation models (d-separation after deleting the nodes) stacked in one array.
 
 Kernels are compiled with numba when it is installed (MDAG_SEMIGRAPHOID_NUMBA=0 forces the numpy fallback); the
 numpy fallback is an independent implementation, which the tests compare cell by cell with the compiled one.
 """
 from __future__ import annotations
 
+import functools
+import itertools
 import os
 import time
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
 
@@ -92,6 +95,56 @@ def valid_cells(n: int, excluded: int = 0) -> np.ndarray:
                 continue
             valid[i, j] = (masks & ((1 << i) | (1 << j) | excluded)) == 0
     return valid
+
+
+@functools.lru_cache(maxsize=None)
+def bits_table(m: int) -> Tuple[Tuple[int, ...], ...]:
+    """bits_table(m)[mask] = the sorted tuple of the bits of mask, for every mask below 2^m."""
+    return tuple(tuple(bits_of(mask)) for mask in range(1 << m))
+
+
+@functools.lru_cache(maxsize=None)
+def esep_valid_cells(m: int) -> np.ndarray:
+    """Boolean array over the cells (D, i, j, K) of an e-separation model (shape (2^m, m, m, 2^m)) marking those that
+    carry a relation once per unordered pair: i < j, K disjoint from {i, j}, D disjoint from {i, j} and K."""
+    masks = np.arange(1 << m, dtype=np.int64)
+    valid = np.zeros((1 << m, m, m, 1 << m), dtype=np.bool_)
+    for i in range(m):
+        for j in range(i + 1, m):
+            bij = (1 << i) | (1 << j)
+            Ks = masks[(masks & bij) == 0]
+            for D in masks[(masks & bij) == 0]:
+                valid[D, i, j, Ks[(Ks & D) == 0]] = True
+    return valid
+
+
+@functools.lru_cache(maxsize=None)
+def _permutation_index_maps(m: int) -> Tuple[Tuple[np.ndarray, np.ndarray], ...]:
+    """For every permutation p of range(m): (p as an index array, the induced map on bitmasks)."""
+    masks = np.arange(1 << m, dtype=np.int64)
+    out = []
+    for perm in itertools.permutations(range(m)):
+        pm = np.zeros(1 << m, dtype=np.int64)
+        for v, target in enumerate(perm):
+            pm |= ((masks >> v) & 1) << target
+        out.append((np.array(perm, dtype=np.int64), pm))
+    return tuple(out)
+
+
+def canonical_form(model: np.ndarray, m: int) -> np.ndarray:
+    """The lexicographically smallest (as packed bytes) relabelling of `model` under the permutations of the m
+    variables; every axis of length m is permuted as variables, every axis of length 2^m as bitmasks. A
+    relabelling-invariant key for d-separation models (m, m, 2^m), e-separation models (2^m, m, m, 2^m) and
+    adjacency matrices (m, m)."""
+    best_key = None
+    best = model
+    for p, pm in _permutation_index_maps(m):
+        index = np.ix_(*[p if size == m else pm for size in model.shape])
+        permuted = model[index]
+        key = np.packbits(permuted.ravel()).tobytes()
+        if best_key is None or key < best_key:
+            best_key, best = key, permuted
+    return best
 
 
 def parents_to_masks(parents: Dict[int, Iterable[int]], n: int) -> np.ndarray:
@@ -232,100 +285,121 @@ def _close_numpy(E: np.ndarray, n: int) -> int:
 
 
 # --------------------------------------------------------------------------------------------------
-# d-separation by Bayes ball on bitmasks
+# d-separation and e-separation by Bayes ball on bitmasks
 # --------------------------------------------------------------------------------------------------
 
-def _dsep_python(E: np.ndarray, n: int, m: int, pa: np.ndarray, ch: np.ndarray) -> None:
-    """E[i, j, K] = i and j are d-separated given K, for every source i, target j and conditioning set K among the
-    first m of the n nodes (K not containing i or j); the walk itself runs over all n nodes.
-    Bayes ball (Shachter): a ball reaching an unobserved node from a child goes on to its parents and children,
-    one reaching an observed node from a child stops; a ball reaching an unobserved node from a parent goes on to
-    its children, one reaching an observed node from a parent bounces to its parents."""
+def _esep_python(R: np.ndarray, n: int, m: int, pa: np.ndarray, ch: np.ndarray, max_deleted: int) -> None:
+    """R[D, i, j, K] = i and j are d-separated given K in the DAG with the nodes of D deleted (Evans' e-separation),
+    for every deletion set D among the first m of the n nodes with at most max_deleted elements, and every source i,
+    target j and conditioning set K among the first m nodes outside D (K not containing i or j); the walk itself
+    runs over all n nodes. Bayes ball (Shachter): a ball reaching an unobserved node from a child goes on to its
+    parents and children, one reaching an observed node from a child stops; a ball reaching an unobserved node from
+    a parent goes on to its children, one reaching an observed node from a parent bounces to its parents. Deleted
+    nodes are never entered. The D = 0 slice is the d-separation model."""
     full = (1 << m) - 1
-    for i in range(m):
-        bi = 1 << i
-        rest = full & ~bi
-        sub = rest
-        while True:
-            K = sub
-            up = bi          # visited "from a child" (the source counts as such)
-            down = 0         # visited "from a parent"
-            frontier_up = bi
-            frontier_down = 0
-            while frontier_up != 0 or frontier_down != 0:
-                new_up = 0
-                new_down = 0
-                f = frontier_up
-                while f != 0:
-                    v = 0
-                    while not (f >> v) & 1:
-                        v += 1
-                    f &= f - 1
-                    if not (K >> v) & 1:
-                        new_up |= pa[v]
-                        new_down |= ch[v]
-                f = frontier_down
-                while f != 0:
-                    v = 0
-                    while not (f >> v) & 1:
-                        v += 1
-                    f &= f - 1
-                    if (K >> v) & 1:
-                        new_up |= pa[v]
-                    else:
-                        new_down |= ch[v]
+    for D in range(1 << m):
+        count = 0
+        d = D
+        while d != 0:
+            d &= d - 1
+            count += 1
+        if count > max_deleted:
+            continue
+        alive = ~D
+        for i in range(m):
+            if (D >> i) & 1:
+                continue
+            bi = 1 << i
+            rest = full & ~bi & alive
+            sub = rest
+            while True:
+                K = sub
+                up = bi          # visited "from a child" (the source counts as such)
+                down = 0         # visited "from a parent"
+                frontier_up = bi
+                frontier_down = 0
+                while frontier_up != 0 or frontier_down != 0:
+                    new_up = 0
+                    new_down = 0
+                    f = frontier_up
+                    while f != 0:
+                        v = 0
+                        while not (f >> v) & 1:
+                            v += 1
+                        f &= f - 1
+                        if not (K >> v) & 1:
+                            new_up |= pa[v] & alive
+                            new_down |= ch[v] & alive
+                    f = frontier_down
+                    while f != 0:
+                        v = 0
+                        while not (f >> v) & 1:
+                            v += 1
+                        f &= f - 1
+                        if (K >> v) & 1:
+                            new_up |= pa[v] & alive
+                        else:
+                            new_down |= ch[v] & alive
+                    frontier_up = new_up & ~up
+                    frontier_down = new_down & ~down
+                    up |= new_up
+                    down |= new_down
+                reached = up | down
+                for j in range(m):
+                    if j != i and not (K >> j) & 1 and not (D >> j) & 1:
+                        R[D, i, j, K] = not (reached >> j) & 1
+                if sub == 0:
+                    break
+                sub = (sub - 1) & rest
+
+
+def _esep_numpy(R: np.ndarray, n: int, m: int, pa: np.ndarray, ch: np.ndarray, max_deleted: int) -> None:
+    """The same walk, vectorised over all conditioning sets for each (deletion set, source): the independent
+    fallback. Deleting a node = isolating it (no parents, no children) and skipping the cells that involve it."""
+    masks = np.arange(1 << m, dtype=np.int64)
+    for D in range(1 << m):
+        if bin(D).count('1') > max_deleted:
+            continue
+        pa_D = pa & ~D
+        ch_D = ch & ~D
+        for i in range(m):
+            if (D >> i) & 1:
+                continue
+            bi = 1 << i
+            Ks = masks[(masks & (bi | D)) == 0]
+            observed = [((Ks >> v) & 1).astype(bool) for v in range(n)]
+            up = np.full(Ks.shape, bi, dtype=np.int64)
+            down = np.zeros(Ks.shape, dtype=np.int64)
+            frontier_up = up.copy()
+            frontier_down = down.copy()
+            while frontier_up.any() or frontier_down.any():
+                new_up = np.zeros(Ks.shape, dtype=np.int64)
+                new_down = np.zeros(Ks.shape, dtype=np.int64)
+                for v in range(n):
+                    in_up = ((frontier_up >> v) & 1).astype(bool) & ~observed[v]
+                    new_up |= np.where(in_up, pa_D[v], 0)
+                    new_down |= np.where(in_up, ch_D[v], 0)
+                    in_down = ((frontier_down >> v) & 1).astype(bool)
+                    new_up |= np.where(in_down & observed[v], pa_D[v], 0)
+                    new_down |= np.where(in_down & ~observed[v], ch_D[v], 0)
                 frontier_up = new_up & ~up
                 frontier_down = new_down & ~down
                 up |= new_up
                 down |= new_down
             reached = up | down
             for j in range(m):
-                if j != i and not (K >> j) & 1:
-                    E[i, j, K] = not (reached >> j) & 1
-            if sub == 0:
-                break
-            sub = (sub - 1) & rest
-
-
-def _dsep_numpy(E: np.ndarray, n: int, m: int, pa: np.ndarray, ch: np.ndarray) -> None:
-    """The same walk, vectorised over all conditioning sets for each source."""
-    masks = np.arange(1 << m, dtype=np.int64)
-    for i in range(m):
-        bi = 1 << i
-        Ks = masks[(masks & bi) == 0]
-        observed = [((Ks >> v) & 1).astype(bool) for v in range(n)]
-        up = np.full(Ks.shape, bi, dtype=np.int64)
-        down = np.zeros(Ks.shape, dtype=np.int64)
-        frontier_up = up.copy()
-        frontier_down = down.copy()
-        while frontier_up.any() or frontier_down.any():
-            new_up = np.zeros(Ks.shape, dtype=np.int64)
-            new_down = np.zeros(Ks.shape, dtype=np.int64)
-            for v in range(n):
-                in_up = ((frontier_up >> v) & 1).astype(bool) & ~observed[v]
-                new_up |= np.where(in_up, pa[v], 0)
-                new_down |= np.where(in_up, ch[v], 0)
-                in_down = ((frontier_down >> v) & 1).astype(bool)
-                new_up |= np.where(in_down & observed[v], pa[v], 0)
-                new_down |= np.where(in_down & ~observed[v], ch[v], 0)
-            frontier_up = new_up & ~up
-            frontier_down = new_down & ~down
-            up |= new_up
-            down |= new_down
-        reached = up | down
-        for j in range(m):
-            if j == i:
-                continue
-            free = ~observed[j]
-            E[i, j, Ks[free]] = ((reached[free] >> j) & 1) == 0
+                if j == i or (D >> j) & 1:
+                    continue
+                free = ~observed[j]
+                R[D, i, j, Ks[free]] = ((reached[free] >> j) & 1) == 0
 
 
 if HAVE_NUMBA:
     _close_kernel = njit(cache=True)(_close_python)
-    _dsep_kernel = njit(cache=True)(_dsep_python)
+    _esep_kernel = njit(cache=True)(_esep_python)
 else:
     _close_kernel = _close_numpy
-    _dsep_kernel = _dsep_numpy
+    _esep_kernel = _esep_numpy
 
 
 def close(E: np.ndarray, kernel=None) -> int:
@@ -338,25 +412,59 @@ def close(E: np.ndarray, kernel=None) -> int:
     return sweeps
 
 
-def dsep_all(n: int, parents_masks: np.ndarray, m: Optional[int] = None, kernel=None) -> np.ndarray:
-    """The elementary d-separation model of the DAG with the given parent bitmasks (int64 array of length n). With
-    `m`, only the first m nodes serve as sources, targets and conditioning variables (the observed block of a
-    structure whose observed nodes come first): the result has shape (m, m, 2^m) and equals the leading block of
-    the full model, at a cost exponential in m instead of n."""
+def children_masks(parents_masks: np.ndarray) -> np.ndarray:
+    pa = np.asarray(parents_masks, dtype=np.int64)
+    ch = np.zeros(pa.shape[0], dtype=np.int64)
+    for v in range(pa.shape[0]):
+        for p in bits_of(int(pa[v])):
+            ch[p] |= 1 << v
+    return ch
+
+
+def descendant_masks(parents_masks: np.ndarray) -> np.ndarray:
+    """desc[v] = bitmask of the strict descendants of v."""
+    ch = children_masks(parents_masks)
+    desc = ch.copy()
+    changed = True
+    while changed:
+        changed = False
+        for v in range(desc.shape[0]):
+            new = int(desc[v])
+            for d in bits_of(int(desc[v])):
+                new |= int(desc[d])
+            if new != desc[v]:
+                desc[v] = new
+                changed = True
+    return desc
+
+
+def esep_all(n: int, parents_masks: np.ndarray, m: Optional[int] = None, max_deleted: Optional[int] = None,
+             kernel=None) -> np.ndarray:
+    """The elementary e-separation models of the DAG with the given parent bitmasks (int64 array of length n), as
+    an array R of shape (2^m, m, m, 2^m): R[D] is the d-separation model of the DAG with the observed nodes of D
+    deleted, for every D among the first m nodes (the observed block of a structure whose observed nodes come
+    first) with at most max_deleted elements (default m - 2, the largest D leaving a pair to separate); the other
+    slices, and the cells touching D, stay False. R[0] is the d-separation model (`dsep_all`)."""
     t0 = time.perf_counter()
     pa = np.asarray(parents_masks, dtype=np.int64)
     assert pa.shape == (n,)
     m = n if m is None else m
     assert 0 < m <= n
-    ch = np.zeros(n, dtype=np.int64)
-    for v in range(n):
-        for p in bits_of(int(pa[v])):
-            ch[p] |= 1 << v
-    E = empty_model(m)
-    (kernel or _dsep_kernel)(E, n, m, pa, ch)
+    max_deleted = max(m - 2, 0) if max_deleted is None else max_deleted
+    ch = children_masks(pa)
+    R = np.zeros((1 << m, m, m, 1 << m), dtype=np.bool_)
+    (kernel or _esep_kernel)(R, n, m, pa, ch, max_deleted)
     STATS['dsep_models'] += 1
     STATS['seconds'] += time.perf_counter() - t0
-    return E
+    return R
+
+
+def dsep_all(n: int, parents_masks: np.ndarray, m: Optional[int] = None, kernel=None) -> np.ndarray:
+    """The elementary d-separation model of the DAG with the given parent bitmasks (int64 array of length n). With
+    `m`, only the first m nodes serve as sources, targets and conditioning variables (the observed block of a
+    structure whose observed nodes come first): the result has shape (m, m, 2^m) and equals the leading block of
+    the full model, at a cost exponential in m instead of n."""
+    return esep_all(n, parents_masks, m=m, max_deleted=0, kernel=kernel)[0]
 
 
 def dsep_model_of(n: int, parents: Dict[int, Iterable[int]], m: Optional[int] = None) -> np.ndarray:
@@ -369,22 +477,7 @@ def local_markov_model(n: int, parents_masks: np.ndarray) -> np.ndarray:
     the d-separation model; its closure equals `dsep_all`)."""
     pa = np.asarray(parents_masks, dtype=np.int64)
     full = (1 << n) - 1
-    desc = np.zeros(n, dtype=np.int64)
-    changed = True
-    ch = np.zeros(n, dtype=np.int64)
-    for v in range(n):
-        for p in bits_of(int(pa[v])):
-            ch[p] |= 1 << v
-    desc[:] = ch
-    while changed:
-        changed = False
-        for v in range(n):
-            new = desc[v]
-            for d in bits_of(int(desc[v])):
-                new |= desc[d]
-            if new != desc[v]:
-                desc[v] = new
-                changed = True
+    desc = descendant_masks(pa)
     E = empty_model(n)
     for v in range(n):
         nondesc = full & ~(int(desc[v]) | (1 << v) | int(pa[v]))
@@ -397,4 +490,4 @@ def warm_up() -> None:
     """Compiles the kernels (a few seconds the first time on a machine; cached afterwards)."""
     E = empty_model(3)
     close(E)
-    dsep_all(3, np.array([0, 1, 2], dtype=np.int64))
+    esep_all(3, np.array([0, 1, 2], dtype=np.int64))
