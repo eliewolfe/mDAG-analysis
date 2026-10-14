@@ -136,6 +136,7 @@ def canonical_form(model: np.ndarray, m: int) -> np.ndarray:
     variables; every axis of length m is permuted as variables, every axis of length 2^m as bitmasks. A
     relabelling-invariant key for d-separation models (m, m, 2^m), e-separation models (2^m, m, m, 2^m) and
     adjacency matrices (m, m)."""
+    assert all(size in (m, 1 << m) for size in model.shape), f"axes of length m or 2^m expected, got {model.shape}"
     best_key = None
     best = model
     for p, pm in _permutation_index_maps(m):
@@ -444,16 +445,19 @@ def esep_all(n: int, parents_masks: np.ndarray, m: Optional[int] = None, max_del
     an array R of shape (2^m, m, m, 2^m): R[D] is the d-separation model of the DAG with the observed nodes of D
     deleted, for every D among the first m nodes (the observed block of a structure whose observed nodes come
     first) with at most max_deleted elements (default m - 2, the largest D leaving a pair to separate); the other
-    slices, and the cells touching D, stay False. R[0] is the d-separation model (`dsep_all`). With
-    max_deleted = 0 only that slice is allocated (shape (1, m, m, 2^m))."""
+    slices, and the cells touching D, stay False. R[0] is the d-separation model (`dsep_all`)."""
+    m = n if m is None else m
+    max_deleted = max(m - 2, 0) if max_deleted is None else max_deleted
+    return _run_esep_kernel(n, parents_masks, m, 1 << m, max_deleted, kernel)
+
+
+def _run_esep_kernel(n: int, parents_masks: np.ndarray, m: int, slices: int, max_deleted: int, kernel) -> np.ndarray:
     t0 = time.perf_counter()
     pa = np.asarray(parents_masks, dtype=np.int64)
     assert pa.shape == (n,)
-    m = n if m is None else m
     assert 0 < m <= n
-    max_deleted = max(m - 2, 0) if max_deleted is None else max_deleted
     ch = children_masks(pa)
-    R = np.zeros((1 << m if max_deleted > 0 else 1, m, m, 1 << m), dtype=np.bool_)
+    R = np.zeros((slices, m, m, 1 << m), dtype=np.bool_)
     (kernel or _esep_kernel)(R, n, m, pa, ch, max_deleted)
     STATS['dsep_models'] += 1
     STATS['seconds'] += time.perf_counter() - t0
@@ -464,8 +468,10 @@ def dsep_all(n: int, parents_masks: np.ndarray, m: Optional[int] = None, kernel=
     """The elementary d-separation model of the DAG with the given parent bitmasks (int64 array of length n). With
     `m`, only the first m nodes serve as sources, targets and conditioning variables (the observed block of a
     structure whose observed nodes come first): the result has shape (m, m, 2^m) and equals the leading block of
-    the full model, at a cost exponential in m instead of n."""
-    return esep_all(n, parents_masks, m=m, max_deleted=0, kernel=kernel)[0]
+    the full model, at a cost exponential in m instead of n. Only the D = 0 slice of the e-separation kernel is
+    allocated and run."""
+    m = n if m is None else m
+    return _run_esep_kernel(n, parents_masks, m, 1, 0, kernel)[0]
 
 
 def is_d_separated(parents_masks: np.ndarray, A: int, B: int, K: int) -> bool:

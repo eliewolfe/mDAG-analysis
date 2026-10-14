@@ -349,9 +349,9 @@ class mDAG:
 
     @cached_property
     def all_CI_numeric(self) -> Set[Tuple[Tuple[int, ...], Tuple[int, ...]]]:
-        bits = sg.bits_table(self.number_of_visible)
-        cells = self._esep_cells
-        return {((int(i), int(j)), bits[K]) for D, i, j, K in cells[cells[:, 0] == 0]}
+        m = self.number_of_visible
+        bits = sg.bits_table(m)
+        return {((int(i), int(j)), bits[K]) for i, j, K in np.argwhere(self.dsep_model & sg.esep_valid_cells(m)[0])}
 
     @cached_property
     def d_separable_pairs(self) -> Set[Tuple[int, ...]]:
@@ -585,17 +585,12 @@ class mDAG:
 
     @staticmethod
     def _all_bipartitions(variables_to_partition: Iterable[int]):
-        #Yields tuples of frozensets
-        # expect input in the form of a list
-        length = len(variables_to_partition)
-        integers = range(length)
-        subsetrange = range(1, length)
-        for r in subsetrange:
-            for ints_to_mask in map(list, itertools.combinations(integers, r)):
-                mask = np.ones(length, dtype=bool)
-                mask[ints_to_mask] = False
-                yield (frozenset(itertools.compress(variables_to_partition, mask.tolist())),
-                       frozenset(itertools.compress(variables_to_partition, np.logical_not(mask).tolist())))
+        """(C, D) frozenset pairs, one per bipartition of the items (the order of _bipartition_patterns, which
+        _facet_bipartitions_as_masks follows)."""
+        items = tuple(variables_to_partition)
+        for pattern in _bipartition_patterns(len(items)):
+            yield (frozenset(items[i] for i in range(len(items)) if i not in pattern),
+                   frozenset(items[i] for i in pattern))
 
 
     @cached_property

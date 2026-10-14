@@ -16,11 +16,15 @@ from metagraph_advanced import Observable_unlabelled_mDAGs
 
 
 @pytest.fixture(scope="module")
-def sample():
+def metagraph():
+    return Observable_unlabelled_mDAGs(4, verbose=False)
+
+
+@pytest.fixture(scope="module")
+def sample(metagraph):
     """A reproducible sample of labelled 4-node mDAGs (directed structure x simplicial complex)."""
-    M = Observable_unlabelled_mDAGs(4, verbose=False)
     rng = random.Random(2024)
-    return rng.sample(M.all_labelled_mDAGs, 250)
+    return rng.sample(metagraph.all_labelled_mDAGs, 250)
 
 
 def nx_graph(md):
@@ -125,8 +129,18 @@ def test_unlabelled_keys_are_relabelling_invariant(sample):
         assert len(other.all_esep_unlabelled) == len(md.all_esep_numeric)
 
 
-def test_metagraph_class_counts():
-    M = Observable_unlabelled_mDAGs(4, verbose=False)
+def test_small_mdags_have_keys_too():
+    for n, edges, facets in ((2, [(0, 1)], []), (2, [], [(0, 1)]), (3, [(0, 1)], [(1, 2)])):
+        md = mDAG(DirectedStructure(edges, n), Hypergraph(facets, n))
+        ci, esep = nx_ci_and_esep(md)
+        assert md.all_CI_numeric == ci and md.all_esep_numeric == esep
+        assert md.esep_model.shape == (1 << n, n, n, 1 << n)
+        assert len(md.all_CI_unlabelled) == len(ci) and len(md.all_esep_unlabelled) == len(esep)
+        assert md.all_densely_connected_pairs_unlabelled is not None
+
+
+def test_metagraph_class_counts(metagraph):
+    M = metagraph
     assert len(M.dict_uniqind_unlabelled_mDAGs) == 2809
     assert len(M.equivalence_classes_as_ids) == 396
     assert len(M.CI_classes) == 25

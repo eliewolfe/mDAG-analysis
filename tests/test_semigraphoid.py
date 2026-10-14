@@ -97,12 +97,13 @@ def random_dag_with_latents(m, n, rng):
 
 def test_esep_all_matches_networkx_on_the_dag_with_the_deleted_nodes_removed():
     rng = random.Random(5)
-    for m in (3, 4, 5):
+    for m in (2, 3, 4, 5):
         for extra in (0, 2, 3):
             n = m + extra
             pa = random_dag_with_latents(m, n, rng)
             R = sg.esep_all(n, pa, m=m)
             assert R.shape == (1 << m, m, m, 1 << m)
+            assert sg.canonical_form(R, m).shape == R.shape
             assert (R == nx_esep_model(n, m, pa, m - 2)).all()
             assert (R == sg.esep_all(n, pa, m=m, kernel=sg._esep_numpy)).all()
             assert (R[0] == sg.dsep_all(n, pa, m=m)).all()
