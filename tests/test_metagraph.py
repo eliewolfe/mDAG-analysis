@@ -98,15 +98,26 @@ def test_upward_steps_within_the_classical_class(index):
     # classically equivalent to it; both are in the same quantum class here, so the upward step is a self-loop
     # and is not listed. A class structurally above another class of the same classical class is listed.
     G = Q([(0, 1), (0, 3), (1, 2)], 4, [], [(0, 3), (2, 3)])
-    assert index.upward_steps(G) == [] or all(index.key(child) != index.key(G) for _, child in index.upward_steps(G))
+    assert all(index.key(child) != index.key(G) for _, child in index.upward_steps(G))
     C4 = index.classical[4]
     found = 0
     for key in index.input_keys(4):
         rep = index.representative(key)
         for params, below in index.upward_steps(rep):
             found += 1
-            assert index.key(below) != key
-            assert index.classical_class(index.key(below)) == index.classical_class(key)
-            above_uid = next(iter(index._mdag_ids_of[key] & C4.structurally_above(next(iter(index._mdag_ids_of[index.key(below)])))), None)
-            assert above_uid is not None or True
+            below_key = index.key(below)
+            assert below_key != key
+            assert index.classical_class(below_key) == index.classical_class(key)
+            # some member of the upper class is structurally above some member of the lower class
+            lower_ids = index._mdag_ids_of[below_key]
+            assert any(C4.structurally_below(uid) & lower_ids for uid in index._mdag_ids_of[key])
+            # and the step names the pair in the structures' own words
+            assert dict(params).keys() == {'above', 'below'}
     assert found > 0
+    # the structural order is a sound containment: a structure below has fewer facets or edges
+    uid = next(iter(index._mdag_ids_of[index.key(G)]))
+    md = C4.dict_uniqind_unlabelled_mDAGs[uid]
+    for lower in C4.structurally_below(uid):
+        low = C4.dict_uniqind_unlabelled_mDAGs[lower]
+        assert low.n_of_edges + low.n_of_latents < md.n_of_edges + md.n_of_latents or \
+            low.simplicial_complex_instance.as_extended_bit_array.sum() < md.simplicial_complex_instance.as_extended_bit_array.sum()

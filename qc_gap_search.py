@@ -199,8 +199,8 @@ LOOKUP_TRICKS = frozenset({'degradation', 'upward'})   # always allowed: part of
 # trick is assessed by the cumulative ladder. The lookups (degradation, upward) are part of every group; 'identity'
 # alone counts the inputs that are seeds.
 TRICK_GROUPS_FOR_REPORT: Dict[str, Tuple[FrozenSet[str], FrozenSet[str]]] = {
-    name: (frozenset(group) | LOOKUP_TRICKS, frozenset(removed)) for name, (group, removed) in {
-        'identity': (set(), set()),
+    name: (frozenset(group) | (LOOKUP_TRICKS if group else frozenset()), frozenset(removed)) for name, (group, removed) in {
+        'identity': (set(), set()),    # no transitions at all: exactly the inputs that are seed classes
         'PD': ({'PD'}, {'PD'}),
         'node_stitching': ({'node_stitching'}, {'node_stitching'}),
         'conditioning': ({'conditioning'}, {'conditioning'}),
@@ -245,6 +245,7 @@ class ClosureExplorer:
         self.max_states = max_states
         self.representatives: Dict[UnlabelledId, QmDAG] = dict()
         self.edges: Dict[UnlabelledId, List[Transition]] = dict()  # populated once per expanded id
+        self._edge_sets: Dict[UnlabelledId, Set[Transition]] = dict()
         self.applied: Dict[UnlabelledId, Set[str]] = dict()       # tricks already applied to each expanded id
 
     @property
@@ -256,11 +257,18 @@ class ClosureExplorer:
         """The search key of a structure: its class key with an index, its unlabelled id without."""
         return self.index.key(g) if self.index is not None else g.unique_unlabelled_id
 
+    CLASS_LEVEL_LOOKUPS = frozenset({'upward'})   # lookups that depend on the class only: applied once per key
+
     def members(self, key: UnlabelledId) -> List[QmDAG]:
-        """The structures a key is expanded through: the class's all-quantum members, or the structure itself."""
+        """The structures a key is expanded through: the class's all-quantum members, or the structure itself.
+        Every member is kept in `structures` so that certificates can print it."""
         if self.index is not None:
-            return self.index.members(key, fallback=self.representatives[key])
-        return [self.representatives[key]]
+            members = self.index.members(key, fallback=self.representatives[key])
+        else:
+            members = [self.representatives[key]]
+        for m in members:
+            self.structures.setdefault(m.unique_unlabelled_id, m)
+        return members
 
     def _representative_for(self, key: UnlabelledId, g: QmDAG) -> QmDAG:
         if self.index is not None:
@@ -291,8 +299,9 @@ class ClosureExplorer:
 
     def _lookup(self, key: UnlabelledId) -> None:
         transitions = []
-        for g in self.members(key):
-            for name, trick in self.lookup_tricks.items():
+        members = self.members(key)
+        for name, trick in self.lookup_tricks.items():
+            for g in (members[:1] if name in self.CLASS_LEVEL_LOOKUPS else members):
                 for params, child in trick(g):
                     child_key = self._register_lookup_child(child)
                     if child_key == key:
@@ -323,8 +332,14 @@ class ClosureExplorer:
         return self.edges.get(key, [])
 
     def _record(self, gid: UnlabelledId, transitions: List[Transition]) -> None:
-        self.edges.setdefault(gid, []).extend(transitions)
+        """Appends the transitions not already recorded for this key (the same step can be met again)."""
+        known = self._edge_sets.setdefault(gid, set())
+        edges = self.edges.setdefault(gid, [])
         for t in transitions:
+            if t in known:
+                continue
+            known.add(t)
+            edges.append(t)
             self.stage_of.setdefault(t, self.current_stage)
 
     def stage_filter(self, stage_index: int) -> Callable[[Transition], bool]:
@@ -488,6 +503,7 @@ class GapReport:
     explorer: ClosureExplorer
     stage_counts: List[Tuple[str, int]] = field(default_factory=list)   # cumulative: proven after each stage
     known: Dict[str, UnlabelledId] = field(default_factory=dict)        # extra known gaps by key (cache), act as seeds
+    _seed_keys: Optional[Dict[UnlabelledId, str]] = field(default=None, repr=False)
 
     def key(self, g: QmDAG) -> UnlabelledId:
         return self.explorer.key(g)
@@ -498,8 +514,16 @@ class GapReport:
 
     @property
     def seed_keys(self) -> Dict[UnlabelledId, str]:
-        """key -> seed name(s); seeds in one class share a key and their names are joined with '+'."""
-        return _seed_keys(self.explorer, self.seeds, self.known)
+        """key -> name of the known gap: seeds (seeds in one class share a key and their names are joined with
+        '+') and the cache-supplied known gaps ('cache:...')."""
+        if self._seed_keys is None:
+            self._seed_keys = _seed_keys(self.explorer, self.seeds, self.known)
+        return self._seed_keys
+
+    @property
+    def seed_class_names(self) -> List[str]:
+        """The names of the seed classes alone (no cache entries)."""
+        return sorted(name for name in self.seed_keys.values() if not name.startswith('cache:'))
 
     @property
     def counts(self) -> Dict[str, int]:
@@ -518,7 +542,7 @@ class GapReport:
                 'classical classes of proven': index.classical_classes(self.proven),
                 'classical classes of remaining': index.classical_classes(remaining_keys),
                 'classical classes with proven and unproven': len(
-                    {index.classical_class(k) for k in self.proven} & {index.classical_class(k) for k in remaining_keys}),
+                    {index.classical_class(k) for k in self.proven} & {index.classical_class(k) for k in remaining_keys} - {None}),
             })
         counts.update({'with ' + k: v for k, v in self.provable_with.items()})
         counts.update({'only via ' + k: v for k, v in self.only_via.items()})
@@ -707,7 +731,8 @@ def build_report(explorer: ClosureExplorer, inputs: List[QmDAG], seeds: Dict[str
     # transitions belong to that stage).
     stage_counts = [(name, count(_fixpoint(explorer, unique_input_ids, set(seed_ids), None, explorer.stage_filter(k))))
                     for k, name in enumerate(explorer.stage_names)]
-    return GapReport(inputs, seeds, proven, seed_hit, remaining, provable_with, only_via, explorer, stage_counts, known)
+    return GapReport(inputs, seeds, proven, seed_hit, remaining, provable_with, only_via, explorer, stage_counts, known,
+                     _seed_keys=seed_ids)
 
 
 # --------------------------------------------------------------------------------------------------

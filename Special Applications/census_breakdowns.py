@@ -120,8 +120,8 @@ def examples(with_entropic: bool = True, engine=None) -> None:
     by_n: Dict[int, int] = {}
     for g in reps_known:
         by_n[g.number_of_visible] = by_n.get(g.number_of_visible, 0) + 1
-    print("\nproven structures (reach a seed), all sizes:", len(reps_known), "by visible-node count", dict(sorted(by_n.items())),
-          "; with at least one classical facet:", len(hybrid))
+    print("\nproven keys (reach a seed; quantum classes for three and four nodes, structures otherwise):", len(reps_known),
+          "by visible-node count", dict(sorted(by_n.items())), "; non-liftable hybrids among them:", len(hybrid))
     print("\nremaining unproven classes:", len(report.remaining))
     for g in sorted(report.remaining, key=lambda g: report.key(g)):
         print("    " + g.as_string.replace("\n", "\n    ").rstrip())

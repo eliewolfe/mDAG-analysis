@@ -112,8 +112,7 @@ class Observable_unlabelled_mDAGs:
         Observable_unlabelled_mDAGs.__init__(new, other.n, fully_foundational=other.fully_foundational,
                                              all_dominances=other.all_dominances, verbose=other.verbose, rule=rule, **kwargs)
         for name in cls.SHARED_CACHE:
-            if name in other.__dict__:
-                new.__dict__[name] = other.__dict__[name]
+            new.__dict__[name] = getattr(other, name)   # computed on `other` if need be, then shared
         return new
 
     @cached_property
@@ -719,12 +718,10 @@ class Observable_unlabelled_mDAGs:
     def _ids_of_bits(self, mask: int):
         order = self._structural_closure[0]
         out = set()
-        i = 0
         while mask:
-            if mask & 1:
-                out.add(order[i])
-            mask >>= 1
-            i += 1
+            low = mask & -mask
+            out.add(order[low.bit_length() - 1])
+            mask ^= low
         return out
 
     def structurally_below(self, uid):
@@ -1111,7 +1108,6 @@ class ClassicalMetagraph(Observable_unlabelled_mDAGs):
         """The classical metagraph on the nodes of `quantum`, sharing its dominances and face-splitting edges and
         adding the unrestricted HLP edges."""
         assert quantum.rule == 'quantum'
-        quantum.structural_dominances, quantum.face_splitting_edge_list, quantum.structural_order, quantum._structural_closure   # computed once, then shared
         return cls.from_sibling(quantum, 'classical')
 
     def within_class_above(self, uid):

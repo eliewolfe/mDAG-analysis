@@ -143,7 +143,7 @@ def print_report(report: GapReport, certificates_for=()) -> None:
           f"{counts.get('classical classes with proven and unproven', '?')} of them also containing a proven class)")
     if report.known:
         print("# known gaps supplied by the cache: ", len(report.known))
-    print("Seed classes (identity piggyback): ", ' | '.join(sorted(report.seed_keys.values())))
+    print("Seed classes (identity piggyback where they are inputs): ", ' | '.join(report.seed_class_names))
     print("Provable using only this piggyback (closed under implication among the inputs; lookups included):")
     for name, count in report.provable_with.items():
         print(f"    via {name:>35}: {count}")
