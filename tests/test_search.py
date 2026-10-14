@@ -135,3 +135,63 @@ def test_stage_params_are_stated_in_the_labels_of_the_stored_representative():
     for t in stage_transitions:
         replay = {params: child.unique_unlabelled_id for params, child in extra[t.trick](explorer.representatives[t.source])}
         assert replay.get(t.params) == t.target
+
+
+# --------------------------------------------------------------------------------------------------
+# The search over quantum equivalence classes (equivalence_classes.ClassIndex)
+# --------------------------------------------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def index():
+    from equivalence_classes import ClassIndex
+    return ClassIndex((3, 4))
+
+
+def test_class_search_keys_identity_and_members(index):
+    bell_settings = Q([(0, 1), (0, 3), (1, 2)], 4, [], [(0, 3), (2, 3)])   # G of the five-structure Bell-settings class
+    explorer = S.ClosureExplorer(S.elementary_tricks(), max_visible=5, index=index)
+    key = explorer.register(bell_settings)
+    assert key == index.key(bell_settings) and len(explorer.members(key)) == 5
+    # the seeds of that class share the key; the input is proven by identity with no transition
+    report = S.prove_gaps([bell_settings], SEEDS, stages=S.default_stages()[:1], verbose=False, index=index)
+    assert report.proven[key] == [] and report.seed_hit[key].startswith('QG_Bell_Edge_Edge_Settings')
+    assert report.certificate(bell_settings).startswith('identity')
+    assert report.counts['with identity'] == 1 and report.counts['structures'] == 5
+    assert report.counts['classical classes of inputs'] == 1
+
+
+def test_class_search_expands_every_member_and_records_the_member(index):
+    # The class of the Bell seeds without a settings link has six members; PD on any member gives a three-node
+    # structure, and the transition records which member it was applied to and what it produced.
+    bell = Q([], 4, [], [(0, 2), (1, 3), (2, 3)])
+    explorer = S.ClosureExplorer(S.elementary_tricks(), max_visible=5, index=index)
+    key = explorer.register(bell)
+    assert len(explorer.members(key)) == 6
+    explorer.expand(bell)
+    pd = [t for t in explorer.edges[key] if t.trick == 'PD']
+    assert pd and {t.via for t in pd} == {m.unique_unlabelled_id for m in explorer.members(key)}
+    for t in pd:
+        assert t.produced in explorer.structures and explorer.key(explorer.structures[t.produced]) == t.target
+    # degradations that lift back into the same class are not recorded as transitions
+    assert all(t.target != key for t in explorer.edges[key])
+
+
+def test_upward_rule_is_a_recorded_lookup(index):
+    # A class structurally above a proven class inside the same classical class is proven through an 'upward'
+    # transition. We fabricate the situation: the only seed is the lower class's representative.
+    import networkx as nx
+    C4, Q4 = index.classical[4], index.quantum[4]
+    pair = None
+    for key in index.input_keys(4):
+        steps = index.upward_steps(index.representative(key))
+        if steps:
+            pair = (key, steps[0][1])
+            break
+    assert pair is not None
+    above_key, below_rep = pair
+    report = S.prove_gaps([index.representative(above_key)], {'lower': below_rep}, stages=S.default_stages()[:1],
+                          verbose=False, index=index)
+    chain = report.proven[above_key]
+    assert [t.trick for t in chain] == ['upward'] and report.seed_hit[above_key] == 'lower'
+    assert dict(chain[0].params).keys() == {'above', 'below'}
+    assert 'upward' in report.certificate(index.representative(above_key))

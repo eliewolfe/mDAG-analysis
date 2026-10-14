@@ -36,7 +36,8 @@ def test_round_trip_and_invalidation_by_piggyback_version(tmp_path, monkeypatch)
     entry = data['entries'][C.id_key(LOST.unique_unlabelled_id)]
     assert entry['id'] == list(LOST.unique_unlabelled_id)
     assert entry['seed'] in SEEDS
-    assert entry['chain'] and all(set(step) == {'trick', 'params', 'source', 'target'} for step in entry['chain'])
+    assert entry['chain'] and all(set(step) == {'trick', 'params', 'source', 'target', 'via', 'produced'} for step in entry['chain'])
+    assert data['format'] == C.CACHE_FORMAT
     assert set(entry['versions']) == {step['trick'] for step in entry['chain']}
     assert 'Fritz' in entry['versions']
     assert entry['structure']['edges'] == [[0, 2], [1, 2], [2, 3]]

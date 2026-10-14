@@ -1,12 +1,15 @@
 """
 JSON cache of proven QC gaps, with the version of every piggyback a proof relied on.
 
-Every entry is one proven input structure: its unlabelled id, its structure (edges, classical and quantum facets,
-with the node labels of the stored representative), the seed its certificate ends at, the chain of transitions
-(trick name, params, source and target ids) and the version of each trick that appears in the chain. When a
-piggyback is corrected its version in `qc_gap_search.PIGGYBACK_VERSIONS` is bumped, and loading the cache drops
-exactly the entries whose chain used that piggyback. The expensive stages of the search then run only on the inputs
-that are neither cached nor proven by the cheap stage.
+Every entry is one proven input: its key (the unlabelled id of the class representative, qc_gap_search), the
+representative's structure (edges, classical and quantum facets, with the node labels of the stored
+representative), the structures of the other members of its quantum equivalence class, the seed its certificate
+ends at, the chain of transitions (trick name, params, source and target keys, the member the step was applied to
+and the structure it produced) and the version of each trick that appears in the chain. When a piggyback is
+corrected its version in `qc_gap_search.PIGGYBACK_VERSIONS` is bumped, and loading the cache drops exactly the
+entries whose chain used that piggyback. The expensive stages of the search then run only on the inputs that are
+neither cached nor proven by the cheap stage. `CACHE_FORMAT` changes when the meaning of the keys changes (2: keys
+are quantum equivalence classes); a file of another format is dropped whole.
 """
 import json
 import os
@@ -15,6 +18,7 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 from qc_gap_search import GapReport, PIGGYBACK_VERSIONS, render_certificate
 
 CACHE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cache', 'known_gaps.json')
+CACHE_FORMAT = 2
 
 
 def _plain(obj: Any) -> Any:
@@ -62,11 +66,15 @@ class GapCache:
         with open(path) as f:
             data = json.load(f)
         entries = data.get('entries', {})
+        if data.get('format') != CACHE_FORMAT:
+            cache.dropped = len(entries)
+            return cache
         seed_names = None if seeds is None else set(seeds)
         for key, entry in entries.items():
             versions = entry.get('versions', {})
-            if all(PIGGYBACK_VERSIONS.get(trick) == version for trick, version in versions.items()) \
-                    and (seed_names is None or entry.get('seed') in seed_names):
+            # A seed name may be several seeds of one class joined with '+'.
+            seed_ok = seed_names is None or all(part in seed_names for part in str(entry.get('seed')).split('+'))
+            if all(PIGGYBACK_VERSIONS.get(trick) == version for trick, version in versions.items()) and seed_ok:
                 cache.entries[key] = entry
             else:
                 cache.dropped += 1
@@ -94,12 +102,14 @@ class GapCache:
         """Stores every proven input of the report whose certificate has at least one transition (seeds and
         already-cached inputs are skipped). Returns the number of entries added."""
         added = 0
-        seed_names = {g.unique_unlabelled_id: name for name, g in report.seeds.items()}
+        seed_keys = set(report.seed_keys)
+        index = report.explorer.index
         for gid, chain in report.proven.items():
             key = id_key(gid)
-            if not chain or gid in seed_names or (only_new and key in self.entries):
+            if not chain or gid in seed_keys or (only_new and key in self.entries):
                 continue
             rep_structure = report.explorer.representatives.get(gid)
+            members = index.members(gid) if index is not None else []
             seed = report.seed_hit.get(gid, '?')
             versions = {t.trick: PIGGYBACK_VERSIONS[t.trick] for t in chain}
             via_cache = None
@@ -113,10 +123,14 @@ class GapCache:
             self.entries[key] = {
                 'id': list(map(int, gid)),
                 'structure': structure_record(rep_structure) if rep_structure is not None else None,
+                'class_members': [structure_record(m) for m in members
+                                  if rep_structure is None or m.unique_unlabelled_id != rep_structure.unique_unlabelled_id],
                 'seed': seed,
                 'via_cache': via_cache,
                 'chain': [{'trick': t.trick, 'params': _plain(t.params), 'source': list(map(int, t.source)),
-                           'target': list(map(int, t.target))} for t in chain],
+                           'target': list(map(int, t.target)),
+                           'via': None if t.via is None else list(map(int, t.via)),
+                           'produced': None if t.produced is None else list(map(int, t.produced))} for t in chain],
                 'versions': versions,
                 'certificate': render_certificate(report.explorer, chain, report.seed_hit.get(gid, '?')),
             }
@@ -126,7 +140,8 @@ class GapCache:
     def save(self) -> None:
         os.makedirs(os.path.dirname(self.path), exist_ok=True)
         with open(self.path, 'w') as f:
-            json.dump({'piggyback_versions': PIGGYBACK_VERSIONS, 'entries': self.entries}, f, indent=1, sort_keys=True)
+            json.dump({'format': CACHE_FORMAT, 'piggyback_versions': PIGGYBACK_VERSIONS, 'entries': self.entries},
+                      f, indent=1, sort_keys=True)
 
     def __len__(self) -> int:
         return len(self.entries)

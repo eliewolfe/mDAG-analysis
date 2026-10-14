@@ -1,10 +1,10 @@
 """
 Worked examples for the manuscript (manuscript/piggybacks.md, Sections 1 and 8): one certificate per row.
 
-Runs the two-phase census of proving_QC_Gaps (cache disabled, so every certificate ends at a named seed) and prints,
-for every elementary piggyback, inputs of phase 1 that are lost without it; for every rung of the ladder (LADDER of
-qc_gap_search), the inputs it adds, with the shortest certificate each; the proven-structure database by node count;
-and the still-unproven inputs.
+Runs the census of proving_QC_Gaps (cache disabled, so every certificate ends at a named seed) and prints, for every
+elementary piggyback, input classes that are lost without it; for every rung of the ladder (LADDER of
+qc_gap_search), the classes it adds, with the shortest certificate each; the proven-structure database by node
+count; and the still-unproven classes.
 
 Usage: python "Special Applications/census_breakdowns.py" [--no-entropic] [--engine semigraphoid|lp|both] [--only examples|lpclosure]
 """
@@ -20,15 +20,13 @@ sys.path.insert(0, _HERE)
 from known_QC_gaps import SEEDS  # noqa: E402
 from qc_gap_search import (ClosureExplorer, Transition, GapReport, fritz_tricks, add_stage, render_certificate,  # noqa: E402
                            LADDER, _fixpoint_if, is_fritz_type)
-from proving_QC_Gaps import run_search, print_cheap_report, print_report  # noqa: E402
+from proving_QC_Gaps import run_search, print_report  # noqa: E402
 
 Predicate = Callable[[Transition], bool]
 
 
 def _goals(report: GapReport) -> Dict:
-    goals = {g.unique_unlabelled_id: name for name, g in report.seeds.items()}
-    goals.update({gid: name for name, gid in report.known.items()})
-    return goals
+    return dict(report.seed_keys)
 
 
 def _path(explorer: ClosureExplorer, root, goals: Set, keep: Predicate) -> Optional[List[Transition]]:
@@ -95,29 +93,25 @@ def show_examples(report: GapReport, lost: Set, keep: Predicate, title: str, lim
 
 def examples(with_entropic: bool = True, engine=None) -> None:
     t0 = time.time()
-    cheap, report, _ = run_search(verbose=False, with_entropic=with_entropic, use_cache=False, engine=engine)
+    report, _ = run_search(verbose=False, with_entropic=with_entropic, use_cache=False, engine=engine)
     print(f"[census in {time.time() - t0:.0f}s]")
-    print_cheap_report(cheap)
     print_report(report)
-    everything = lambda t: True  # noqa: E731
 
-    # Phase 1: elementary piggybacks, three-node seeds. The explorer is shared with phase 2, so the Fritz-type
-    # transitions recorded later have to be excluded here.
+    # The elementary stage: what each elementary piggyback proves exclusively (the Fritz transitions excluded).
     elementary = lambda t: not is_fritz_type(t)  # noqa: E731
-    proven_cheap = _fixpoint_if(cheap, elementary)
-    assert len(proven_cheap) == cheap.counts['proven']
+    proven_cheap = _fixpoint_if(report, elementary)
+    assert len(proven_cheap) == report.stage_counts[0][1]
     for trick in ('PD', 'conditioning', 'node_stitching', 'naive_marginalization', 'teleportation_marginalization'):
-        lost = proven_cheap - _fixpoint_if(cheap, lambda t, trick=trick: elementary(t) and t.trick != trick)
-        assert len(lost) == cheap.only_via[trick]
-        show_examples(cheap, lost, elementary, f"[phase 1] only via {trick}", limit=3)
-    lost = proven_cheap - _fixpoint_if(cheap, lambda t: elementary(t) and t.trick not in ('naive_marginalization', 'teleportation_marginalization'))
-    show_examples(cheap, lost, elementary, "[phase 1] only via marginalization (either kind)", limit=4)
+        lost = proven_cheap - _fixpoint_if(report, lambda t, trick=trick: elementary(t) and t.trick != trick)
+        show_examples(report, lost, elementary, f"[elementary] only via {trick}", limit=3)
+    lost = proven_cheap - _fixpoint_if(report, lambda t: elementary(t) and t.trick not in ('naive_marginalization', 'teleportation_marginalization'))
+    show_examples(report, lost, elementary, "[elementary] only via marginalization (either kind)", limit=4)
 
-    # Phase 2: what each rung of the ladder adds (a certificate using that rung's transitions and cheaper ones).
+    # What each rung of the ladder adds (a certificate using that rung's transitions and cheaper ones).
     previous = _fixpoint_if(report, LADDER[0][1])
     for name, keep in LADDER[1:]:
         proven = _fixpoint_if(report, keep)
-        show_examples(report, proven - previous, keep, f"[phase 2] new at rung {name}", limit=3)
+        show_examples(report, proven - previous, keep, f"new at rung {name}", limit=3)
         previous = proven
 
     known = report.proven_structure_ids()
@@ -128,8 +122,8 @@ def examples(with_entropic: bool = True, engine=None) -> None:
         by_n[g.number_of_visible] = by_n.get(g.number_of_visible, 0) + 1
     print("\nproven structures (reach a seed), all sizes:", len(reps_known), "by visible-node count", dict(sorted(by_n.items())),
           "; with at least one classical facet:", len(hybrid))
-    print("\nremaining unproven inputs:", len(report.remaining))
-    for g in sorted(report.remaining, key=lambda g: g.unique_unlabelled_id):
+    print("\nremaining unproven classes:", len(report.remaining))
+    for g in sorted(report.remaining, key=lambda g: report.key(g)):
         print("    " + g.as_string.replace("\n", "\n    ").rstrip())
 
 
@@ -138,7 +132,7 @@ def lp_closure() -> None:
     more? Every structure proven so far is already a known gap for the others (reachability is transitive), so
     this tests LP steps at depth greater than one."""
     t0 = time.time()
-    _, report, _ = run_search(verbose=False, use_cache=False)
+    report, _ = run_search(verbose=False, use_cache=False)
     print("staged search:", report.stage_counts, f"({time.time()-t0:.0f}s)")
     before = set(report.proven)
     report = add_stage(report, fritz_tricks(max_visible=5, max_predictors=1, predictor_mode='split'), roots_only=False, name='Fritz_closure', verbose=False)

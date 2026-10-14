@@ -6,21 +6,32 @@ transition is recorded with its provenance (which trick, with which parameters, 
 discovered gap comes with a human-readable certificate, and so that reachability restricted to any subset of tricks is
 a cheap graph query over the recorded transitions. Structures are identified up to relabelling by their unlabelled id;
 each id is expanded exactly once (all tricks are label-equivariant).
+
+With a `ClassIndex` (equivalence_classes.py) the unit of the search is the quantum observational equivalence class
+instead of the structure: every structure is keyed by its class (the smallest unlabelled id among the class's
+all-quantum members; a hybrid that lifts by the class of its lift; anything else by its own id), a class is expanded
+by applying the tricks to every member, and a class is proven as soon as any member reaches a known gap. The
+`Transition` then records which member it was applied to (`via`) and which structure it produced (`produced`).
 """
 from __future__ import annotations
 
 import warnings
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Callable, Dict, FrozenSet, Iterable, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Callable, Dict, FrozenSet, Iterable, List, Optional, Set, Tuple
 
 from quantum_mDAG import QmDAG
+
+if TYPE_CHECKING:   # pragma: no cover
+    from equivalence_classes import ClassIndex
 
 UnlabelledId = Tuple[int, int, int, int]
 
 # Bump a piggyback's version when its map or its admissibility rule changes; cached proofs that relied on it are
 # then discarded (gap_cache.py). Fritz-type tricks share the mechanism but are versioned separately.
 PIGGYBACK_VERSIONS: Dict[str, int] = {
+    'identity': 1,                     # an input that is (in the class of) a seed
+    'upward': 1,                       # gap(G') for G' structurally above G in G's classical class (lookup only)
     'PD': 1,
     'node_stitching': 1,               # formerly 'interruption'
     'conditioning': 4,                 # 1 visible grandparents; 2 latent grandparents; 3 guessing parents' children;
@@ -45,6 +56,8 @@ class Transition:
     params: Tuple
     source: UnlabelledId
     target: UnlabelledId
+    via: Optional[UnlabelledId] = None        # the structure (a member of `source`) the params apply to
+    produced: Optional[UnlabelledId] = None   # the structure the trick produced (a member of `target`)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -181,11 +194,13 @@ MARGINALIZATION_TRICKS = frozenset({'naive_marginalization', 'teleportation_marg
 # itself from the full set. The Fritz trick is only meaningful together with marginalization (its outputs are
 # typically larger than the original and need to be reduced), so its group includes the marginalizations.
 FRITZ_TRICKS_ALL = frozenset({'Fritz'})
-LOOKUP_TRICKS = frozenset({'degradation'})   # always allowed: part of what "known" means
+LOOKUP_TRICKS = frozenset({'degradation', 'upward'})   # always allowed: part of what "known" means
 # "Provable with T alone" and "provable only via T" are reported for the elementary reductions only; the expensive
-# trick is assessed by the cumulative ladder. The degradation lookup is part of every group.
+# trick is assessed by the cumulative ladder. The lookups (degradation, upward) are part of every group; 'identity'
+# alone counts the inputs that are seeds.
 TRICK_GROUPS_FOR_REPORT: Dict[str, Tuple[FrozenSet[str], FrozenSet[str]]] = {
     name: (frozenset(group) | LOOKUP_TRICKS, frozenset(removed)) for name, (group, removed) in {
+        'identity': (set(), set()),
         'PD': ({'PD'}, {'PD'}),
         'node_stitching': ({'node_stitching'}, {'node_stitching'}),
         'conditioning': ({'conditioning'}, {'conditioning'}),
@@ -200,14 +215,26 @@ TRICK_GROUPS_FOR_REPORT: Dict[str, Tuple[FrozenSet[str], FrozenSet[str]]] = {
 # --------------------------------------------------------------------------------------------------
 
 class ClosureExplorer:
-    """Expands structures under `tricks`. `lookup_tricks` (by default the degradation piggyback) are applied once
-    to every structure registered, their children are recorded as transitions but never expanded: they only serve
-    to recognise a known gap (a structure is known as soon as one of its lookups is), so their cost is one id
-    computation per child and no search."""
+    """Expands structures under `tricks`. `lookup_tricks` (by default the degradation piggyback, and the upward rule
+    when an index is given) are applied once to every structure registered, their children are recorded as
+    transitions but never expanded: they only serve to recognise a known gap (a structure is known as soon as one
+    of its lookups is), so their cost is one id computation per child and no search.
+
+    With `index` (a ClassIndex) the keys are quantum equivalence classes: `register` maps a structure to its class,
+    `representatives[key]` is the class representative, every member of a class is expanded, and `structures`
+    keeps every labelled structure met by its own unlabelled id (certificates print the member a step was applied
+    to and the structure it produced)."""
     def __init__(self, tricks: Dict[str, Callable], max_visible: int = 5, min_visible: int = 3,
-                 max_states: int = 200000, lookup_tricks: Optional[Dict[str, Callable]] = None) -> None:
+                 max_states: int = 200000, lookup_tricks: Optional[Dict[str, Callable]] = None,
+                 index: Optional["ClassIndex"] = None) -> None:
         self.tricks = dict(tricks)
-        self.lookup_tricks: Dict[str, Callable] = {'degradation': degradation} if lookup_tricks is None else dict(lookup_tricks)
+        self.index = index
+        if lookup_tricks is None:
+            lookup_tricks = {'degradation': degradation}
+            if index is not None:
+                lookup_tricks['upward'] = index.upward_steps
+        self.lookup_tricks: Dict[str, Callable] = dict(lookup_tricks)
+        self.structures: Dict[UnlabelledId, QmDAG] = dict()   # every labelled structure met, by its own id
         self.lookup_only: Set[UnlabelledId] = set()   # registered through a lookup trick only: never expanded
         self.stage_tricks: List[FrozenSet[str]] = [frozenset(tricks)]   # cumulative trick sets, one per stage
         self.stage_names: List[str] = ['base']
@@ -225,46 +252,75 @@ class ClosureExplorer:
         """Tricks of the first stage (preferred in certificates)."""
         return self.stage_tricks[0]
 
+    def key(self, g: QmDAG) -> UnlabelledId:
+        """The search key of a structure: its class key with an index, its unlabelled id without."""
+        return self.index.key(g) if self.index is not None else g.unique_unlabelled_id
+
+    def members(self, key: UnlabelledId) -> List[QmDAG]:
+        """The structures a key is expanded through: the class's all-quantum members, or the structure itself."""
+        if self.index is not None:
+            return self.index.members(key, fallback=self.representatives[key])
+        return [self.representatives[key]]
+
+    def _representative_for(self, key: UnlabelledId, g: QmDAG) -> QmDAG:
+        if self.index is not None:
+            rep = self.index.representative(key)
+            if rep is not None:
+                return rep
+        return g
+
     def register(self, g: QmDAG) -> UnlabelledId:
         """Registers a structure reached by the search (or given as a root) and records its lookups."""
-        gid = g.unique_unlabelled_id
-        if gid in self.lookup_only:
-            self.lookup_only.discard(gid)   # promoted: reached by a real trick, so it gets its own lookups
-        elif gid in self.representatives:
-            return gid
-        self.representatives.setdefault(gid, g)
-        self._lookup(gid)
-        return gid
+        self.structures.setdefault(g.unique_unlabelled_id, g)
+        key = self.key(g)
+        if key in self.lookup_only:
+            self.lookup_only.discard(key)   # promoted: reached by a real trick, so it gets its own lookups
+        elif key in self.representatives:
+            return key
+        self.representatives.setdefault(key, self._representative_for(key, g))
+        self._lookup(key)
+        return key
 
-    def _lookup(self, gid: UnlabelledId) -> None:
-        g = self.representatives[gid]
+    def _register_lookup_child(self, child: QmDAG) -> UnlabelledId:
+        self.structures.setdefault(child.unique_unlabelled_id, child)
+        child_key = self.key(child)
+        if child_key not in self.representatives:
+            self.representatives[child_key] = self._representative_for(child_key, child)
+            self.lookup_only.add(child_key)
+        return child_key
+
+    def _lookup(self, key: UnlabelledId) -> None:
         transitions = []
-        for name, trick in self.lookup_tricks.items():
-            for params, child in trick(g):
-                child_id = child.unique_unlabelled_id
-                if child_id not in self.representatives:
-                    self.representatives[child_id] = child
-                    self.lookup_only.add(child_id)
-                transitions.append(Transition(name, params, gid, child_id))
-        self._record(gid, transitions)
+        for g in self.members(key):
+            for name, trick in self.lookup_tricks.items():
+                for params, child in trick(g):
+                    child_key = self._register_lookup_child(child)
+                    if child_key == key:
+                        continue   # e.g. a degradation that lifts back to the same class
+                    transitions.append(Transition(name, params, key, child_key, g.unique_unlabelled_id, child.unique_unlabelled_id))
+        self._record(key, transitions)
 
-    def _expand_one(self, gid: UnlabelledId, only: Optional[FrozenSet[str]] = None) -> List[Transition]:
-        """Applies every trick (or every trick in `only`) not yet applied to this id; returns its transitions."""
-        pending = [name for name in self.tricks if name not in self.applied.get(gid, set())
+    def _child_transition(self, trick_name: str, params: Tuple, key: UnlabelledId, g: QmDAG, child: QmDAG) -> Transition:
+        return Transition(trick_name, params, key, self.register(child), g.unique_unlabelled_id, child.unique_unlabelled_id)
+
+    def _expand_one(self, key: UnlabelledId, only: Optional[FrozenSet[str]] = None) -> List[Transition]:
+        """Applies every trick (or every trick in `only`) not yet applied to this key, to every member; returns its
+        transitions."""
+        pending = [name for name in self.tricks if name not in self.applied.get(key, set())
                    and (only is None or name in only)]
-        if not pending or gid in self.lookup_only:
-            return self.edges.get(gid, [])
-        g = self.representatives[gid]
+        if not pending or key in self.lookup_only:
+            return self.edges.get(key, [])
+        members = self.members(key)
         for trick_name in pending:
             new_transitions = []
-            for params, child in self.tricks[trick_name](g):   # collected first: a failure leaves no partial record
-                if not (self.min_visible <= child.number_of_visible <= self.max_visible):
-                    continue
-                child_id = self.register(child)
-                new_transitions.append(Transition(trick_name, params, gid, child_id))
-            self._record(gid, new_transitions)
-            self.applied.setdefault(gid, set()).add(trick_name)
-        return self.edges.get(gid, [])
+            for g in members:
+                for params, child in self.tricks[trick_name](g):   # collected first: a failure leaves no partial record
+                    if not (self.min_visible <= child.number_of_visible <= self.max_visible):
+                        continue
+                    new_transitions.append(self._child_transition(trick_name, params, key, g, child))
+            self._record(key, new_transitions)
+            self.applied.setdefault(key, set()).add(trick_name)
+        return self.edges.get(key, [])
 
     def _record(self, gid: UnlabelledId, transitions: List[Transition]) -> None:
         self.edges.setdefault(gid, []).extend(transitions)
@@ -316,50 +372,52 @@ class ClosureExplorer:
         if roots_only:
             for root in roots:
                 self.expand(root)   # no-op when already expanded; closes the root under the base tricks
-                gid = self.register(root)
-                representative = self.representatives[gid]   # params are stated in the representative's labels
+                key = self.register(root)
+                members = self.members(key)   # params are stated in the members' labels (Transition.via)
                 if stop_when_known is not None:
-                    self._extend_root_lazily(gid, representative, extra_tricks, followup, stop_when_known)
+                    self._extend_root_lazily(key, members, extra_tricks, followup, stop_when_known)
                     continue
                 new_children = []
                 for trick_name, trick in extra_tricks.items():
                     # The same trick name may return in a later stage with other parameters (e.g. split targets after
                     # unsplit targets), so roots-only applications are remembered per stage.
                     applied_key = f"{self.stage_names[self.current_stage]}:{trick_name}"
-                    if applied_key in self.applied.get(gid, set()):
+                    if applied_key in self.applied.get(key, set()):
                         continue
                     transitions = []
-                    for params, child in trick(representative):
-                        if not (self.min_visible <= child.number_of_visible <= self.max_visible):
-                            continue
-                        transitions.append(Transition(trick_name, params, gid, self.register(child)))
-                    self._record(gid, transitions)
-                    self.applied.setdefault(gid, set()).add(applied_key)
+                    for g in members:
+                        for params, child in trick(g):
+                            if not (self.min_visible <= child.number_of_visible <= self.max_visible):
+                                continue
+                            transitions.append(self._child_transition(trick_name, params, key, g, child))
+                    self._record(key, transitions)
+                    self.applied.setdefault(key, set()).add(applied_key)
                     new_children.extend(t.target for t in transitions)
-                for child_id in new_children:
-                    self.expand(self.representatives[child_id], only=followup)
+                for child_key in new_children:
+                    self.expand(self.representatives[child_key], only=followup)
             return
         self.tricks.update(extra_tricks)
         for root in roots:
             self.expand(root)
 
-    def _extend_root_lazily(self, gid: UnlabelledId, representative: QmDAG, extra_tricks: Dict[str, Callable],
+    def _extend_root_lazily(self, key: UnlabelledId, members: List[QmDAG], extra_tricks: Dict[str, Callable],
                             followup: Optional[FrozenSet[str]], goals: Set[UnlabelledId]) -> None:
         """The roots-only application of `extend` with early exit (see there). Degradation lookups are recorded
         transitions, so a child whose degradation is known counts as known through its recorded follow-up."""
         for trick_name, trick in extra_tricks.items():
             applied_key = f"{self.stage_names[self.current_stage]}:{trick_name}"
-            if applied_key in self.applied.get(gid, set()):
+            if applied_key in self.applied.get(key, set()):
                 continue
-            for params, child in trick(representative):
-                if not (self.min_visible <= child.number_of_visible <= self.max_visible):
-                    continue
-                child_id = self.register(child)
-                self._record(gid, [Transition(trick_name, params, gid, child_id)])
-                self.expand(self.representatives[child_id], only=followup)
-                if not goals.isdisjoint(self.reachable(child_id)):   # the child's lookups and follow-up included
-                    return   # proven: the trick is left unfinished for this root (not marked as applied)
-            self.applied.setdefault(gid, set()).add(applied_key)
+            for g in members:
+                for params, child in trick(g):
+                    if not (self.min_visible <= child.number_of_visible <= self.max_visible):
+                        continue
+                    transition = self._child_transition(trick_name, params, key, g, child)
+                    self._record(key, [transition])
+                    self.expand(self.representatives[transition.target], only=followup)
+                    if not goals.isdisjoint(self.reachable(transition.target)):   # the child's lookups and follow-up included
+                        return   # proven: the trick is left unfinished for this root (not marked as applied)
+            self.applied.setdefault(key, set()).add(applied_key)
 
     def reachable(self, root_id: UnlabelledId, tricks: Optional[FrozenSet[str]] = None,
                   keep: Optional[Callable[[Transition], bool]] = None) -> Set[UnlabelledId]:
@@ -417,34 +475,57 @@ class ClosureExplorer:
 
 @dataclass
 class GapReport:
-    """All counts are up to relabelling: an input structure is identified with its unlabelled id, so inputs that
-    are relabellings of each other count once. `inputs` keeps the structures as given (with duplicates);
-    `remaining` holds one representative per unproven unlabelled id."""
+    """All counts are over the explorer's keys: up to relabelling without a class index (inputs that are
+    relabellings of each other count once), over quantum equivalence classes with one. `inputs` keeps the
+    structures as given (with duplicates); `remaining` holds one representative per unproven key."""
     inputs: List[QmDAG]
     seeds: Dict[str, QmDAG]
-    proven: Dict[UnlabelledId, List[Transition]]        # input id -> certificate (chain of transitions to a seed)
-    seed_hit: Dict[UnlabelledId, str]                   # input id -> name of the seed the certificate ends at
+    proven: Dict[UnlabelledId, List[Transition]]        # input key -> certificate (chain of transitions to a seed)
+    seed_hit: Dict[UnlabelledId, str]                   # input key -> name of the seed (class) the certificate ends at
     remaining: List[QmDAG]
-    provable_with: Dict[str, int]                        # per trick: number of input ids provable using its group alone
-    only_via: Dict[str, int]                             # per trick: input ids no longer provable without it
+    provable_with: Dict[str, int]                        # per trick: number of input keys provable using its group alone
+    only_via: Dict[str, int]                             # per trick: input keys no longer provable without it
     explorer: ClosureExplorer
     stage_counts: List[Tuple[str, int]] = field(default_factory=list)   # cumulative: proven after each stage
-    known: Dict[str, UnlabelledId] = field(default_factory=dict)        # extra known gaps by id (cache), act as seeds
+    known: Dict[str, UnlabelledId] = field(default_factory=dict)        # extra known gaps by key (cache), act as seeds
+
+    def key(self, g: QmDAG) -> UnlabelledId:
+        return self.explorer.key(g)
 
     @property
     def input_ids(self) -> List[UnlabelledId]:
-        return list(dict.fromkeys(g.unique_unlabelled_id for g in self.inputs))
+        return list(dict.fromkeys(self.key(g) for g in self.inputs))
+
+    @property
+    def seed_keys(self) -> Dict[UnlabelledId, str]:
+        """key -> seed name(s); seeds in one class share a key and their names are joined with '+'."""
+        return _seed_keys(self.explorer, self.seeds, self.known)
 
     @property
     def counts(self) -> Dict[str, int]:
-        """Counts up to relabelling (distinct unlabelled ids)."""
-        return {'inputs': len(self.input_ids), 'proven': len(self.proven), 'remaining': len(self.remaining),
-                'labelled_inputs': len(self.inputs),
-                **{'with ' + k: v for k, v in self.provable_with.items()},
-                **{'only via ' + k: v for k, v in self.only_via.items()}}
+        """Counts over keys (classes with an index, unlabelled ids without); 'structures' is the number of
+        all-quantum structures the input classes contain."""
+        index = self.explorer.index
+        counts = {'inputs': len(self.input_ids), 'proven': len(self.proven), 'remaining': len(self.remaining),
+                  'labelled_inputs': len(self.inputs)}
+        if index is not None:
+            remaining_keys = [self.key(g) for g in self.remaining]
+            counts.update({
+                'structures': sum(index.size(k) for k in self.input_ids),
+                'structures proven': sum(index.size(k) for k in self.proven),
+                'structures remaining': sum(index.size(k) for k in remaining_keys),
+                'classical classes of inputs': index.classical_classes(self.input_ids),
+                'classical classes of proven': index.classical_classes(self.proven),
+                'classical classes of remaining': index.classical_classes(remaining_keys),
+                'classical classes with proven and unproven': len(
+                    {index.classical_class(k) for k in self.proven} & {index.classical_class(k) for k in remaining_keys}),
+            })
+        counts.update({'with ' + k: v for k, v in self.provable_with.items()})
+        counts.update({'only via ' + k: v for k, v in self.only_via.items()})
+        return counts
 
     def certificate(self, g: QmDAG) -> str:
-        return render_certificate(self.explorer, self.proven[g.unique_unlabelled_id], self.seed_hit[g.unique_unlabelled_id])
+        return render_certificate(self.explorer, self.proven[self.key(g)], self.seed_hit[self.key(g)])
 
     def proven_structure_ids(self) -> Set[UnlabelledId]:
         """Every structure the search touched (inputs, intermediates, hybrids with classical facets) that reaches a
@@ -452,7 +533,7 @@ class GapReport:
         piggybacks from it to a seed; nothing is inferred from a structure to a weaker variant of it. Structures
         registered only as lookup targets (degradations) are not counted: a non-seed among them never reaches a
         seed, and a seed among them is a seed."""
-        seed_ids = {g.unique_unlabelled_id for g in self.seeds.values()} | set(self.known.values())
+        seed_ids = set(self.seed_keys)
         reverse: Dict[UnlabelledId, List[UnlabelledId]] = {}
         for transitions in self.explorer.edges.values():
             for t in transitions:
@@ -490,33 +571,53 @@ def _trick_groups_for(explorer: ClosureExplorer, trick_groups):
     return TRICK_GROUPS_FOR_REPORT if trick_groups is None else trick_groups
 
 
+def _seed_keys(explorer: ClosureExplorer, seeds: Dict[str, QmDAG], known: Optional[Dict[str, UnlabelledId]]) -> Dict[UnlabelledId, str]:
+    """key -> name of the known gap: seeds (several seeds in one class share a key; their names are joined with
+    '+') and the extra known gaps by key."""
+    by_key: Dict[UnlabelledId, List[str]] = {}
+    for name, g in seeds.items():
+        by_key.setdefault(explorer.key(g), []).append(name)
+    seed_ids = {key: '+'.join(sorted(names)) for key, names in by_key.items()}
+    seed_ids.update({gid: name for name, gid in (known or {}).items()})
+    return seed_ids
+
+
 def prove_gaps(inputs: Iterable[QmDAG], seeds: Dict[str, QmDAG], tricks: Optional[Dict[str, Callable]] = None,
                max_visible: int = 5,
                trick_groups: Optional[Dict[str, Tuple[FrozenSet[str], FrozenSet[str]]]] = None,
                verbose: bool = True, stages: Optional[List[Stage]] = None, with_entropic: bool = True,
-               known: Optional[Dict[str, UnlabelledId]] = None, early_exit: bool = True) -> GapReport:
+               known: Optional[Dict[str, UnlabelledId]] = None, early_exit: bool = True,
+               index: Optional["ClassIndex"] = None, on_stage: Optional[Callable[[str, float], None]] = None) -> GapReport:
     """Proves QC gaps for `inputs` from the known gaps `seeds`. With `tricks`, a single closure stage under those
     tricks. Otherwise the stages of `default_stages` (or the given `stages`) are run in order, cheapest first;
     every structure proven in a stage counts as a known gap for the later ones (reachability is transitive, so
-    this holds whatever the order; the order decides cost and which tricks certificates prefer)."""
+    this holds whatever the order; the order decides cost and which tricks certificates prefer). With `index` the
+    search runs over quantum equivalence classes. `on_stage(name, seconds)` is called after each stage."""
+    import time
     inputs = list(inputs)
     if stages is None:
         stages = [('base', dict(tricks), False, None, False)] if tricks is not None \
             else default_stages(max_visible=max_visible, with_entropic=with_entropic)
     name, first = stages[0][0], stages[0][1]
-    explorer = ClosureExplorer(first, max_visible=max_visible)
+    explorer = ClosureExplorer(first, max_visible=max_visible, index=index)
     explorer.stage_names[0] = name
+    t0 = time.time()
     for i, g in enumerate(inputs):
         if verbose and i % 250 == 0:
-            print(f"[{name}] expanding {i} of {len(inputs)} inputs; {len(explorer.edges)} structures expanded so far")
+            print(f"[{name}] expanding {i} of {len(inputs)} inputs; {len(explorer.edges)} keys expanded so far")
         explorer.expand(g)
     report = build_report(explorer, inputs, seeds, _trick_groups_for(explorer, trick_groups), known=known)
+    if on_stage is not None:
+        on_stage(name, time.time() - t0)
     for stage in stages[1:]:
         name, extra, roots_only = stage[0], stage[1], stage[2]
         followup = stage[3] if len(stage) > 3 else None
         stage_exit = stage[4] if len(stage) > 4 else True
+        t0 = time.time()
         report = add_stage(report, extra, trick_groups=trick_groups, verbose=verbose, roots_only=roots_only, name=name,
                            followup=followup, early_exit=early_exit and stage_exit)
+        if on_stage is not None:
+            on_stage(name, time.time() - t0)
     return report
 
 
@@ -537,11 +638,11 @@ def add_stage(report: GapReport, extra_tricks: Dict[str, Callable],
     known = report.known if known is None else known
     if seeds is not report.seeds or inputs is not report.inputs or known is not report.known:
         report = build_report(explorer, inputs, seeds, _trick_groups_for(explorer, trick_groups), known=known)
-    roots = list(dict.fromkeys(report.remaining)) if roots_only else list({g.unique_unlabelled_id: g for g in inputs}.values())
+    roots = list(dict.fromkeys(report.remaining)) if roots_only else list({explorer.key(g): g for g in inputs}.values())
     explorer.begin_stage(name, extra_tricks)   # the stage is counted even when nothing is left to expand
     # Early exit: a root stops as soon as it reaches a seed, a cached known gap or an input proven earlier (an input
     # proven in this very stage is not yet a goal; the next build_report chains the certificates anyway).
-    goals = {g.unique_unlabelled_id for g in seeds.values()} | set(known.values()) | set(report.proven) if early_exit else None
+    goals = set(_seed_keys(explorer, seeds, known)) | set(report.proven) if early_exit else None
     for i, g in enumerate(roots):
         if verbose and i % 250 == 0:
             print(f"[{name}] expanding {i} of {len(roots)} roots; {len(explorer.edges)} structures")
@@ -552,11 +653,10 @@ def add_stage(report: GapReport, extra_tricks: Dict[str, Callable],
 def build_report(explorer: ClosureExplorer, inputs: List[QmDAG], seeds: Dict[str, QmDAG],
                  trick_groups: Dict[str, Tuple[FrozenSet[str], FrozenSet[str]]],
                  known: Optional[Dict[str, UnlabelledId]] = None) -> GapReport:
-    """`known` are further known gaps given by unlabelled id (e.g. from the cache); they act as seeds."""
+    """`known` are further known gaps given by key (e.g. from the cache); they act as seeds."""
     known = known or {}
-    seed_ids = {g.unique_unlabelled_id: name for name, g in seeds.items()}
-    seed_ids.update({gid: name for name, gid in known.items()})
-    input_ids = [g.unique_unlabelled_id for g in inputs]
+    seed_ids = _seed_keys(explorer, seeds, known)
+    input_ids = [explorer.key(g) for g in inputs]
     unique_input_ids = list(dict.fromkeys(input_ids))
     tricks = dict(explorer.tricks)
     for transitions in explorer.edges.values():
@@ -601,7 +701,7 @@ def build_report(explorer: ClosureExplorer, inputs: List[QmDAG], seeds: Dict[str
             progressed = True
         assert progressed, "certificate construction stalled"
 
-    remaining_by_id = {g.unique_unlabelled_id: g for g in inputs if g.unique_unlabelled_id not in proven_all}
+    remaining_by_id = {explorer.key(g): g for g in inputs if explorer.key(g) not in proven_all}
     remaining = list(remaining_by_id.values())
     # Cumulative: proven using the transitions recorded in stages up to k (a stage's elementary follow-up
     # transitions belong to that stage).
@@ -706,7 +806,7 @@ def _reachable_if(explorer: ClosureExplorer, root: UnlabelledId, keep: Callable[
 
 
 def _fixpoint_if(report: GapReport, keep: Callable[[Transition], bool]) -> Set[UnlabelledId]:
-    goals = {g.unique_unlabelled_id for g in report.seeds.values()} | set(report.known.values())
+    goals = set(report.seed_keys)
     input_ids = report.input_ids
     reach = {gid: _reachable_if(report.explorer, gid, keep) for gid in input_ids}
     proven = set(goals)
@@ -733,14 +833,29 @@ def ladder(report: GapReport) -> List[Tuple[str, int, int]]:
     return rows
 
 
+def _indented(g: QmDAG) -> str:
+    return "    " + g.as_string.replace("\n", "\n    ").rstrip()
+
+
 def render_certificate(explorer: ClosureExplorer, chain: List[Transition], seed_name: str) -> str:
+    """The chain as text: each step's parameters and the structure it was applied to (the class member, with an
+    index), then the structure the last step produced and, when that is another member of the known gap's class,
+    the class representative."""
     if not chain:
-        return f"is itself the known gap {seed_name}"
+        return f"identity: is itself the known gap {seed_name}"
     lines = []
     for t in chain:
-        source = explorer.representatives[t.source]
+        source = explorer.structures.get(t.via) if t.via is not None else None
+        if source is None:
+            source = explorer.representatives[t.source]
         lines.append(f"{t.trick}{t.params}:")
-        lines.append("    " + source.as_string.replace("\n", "\n    ").rstrip())
+        lines.append(_indented(source))
+    last = chain[-1]
+    produced = explorer.structures.get(last.produced) if last.produced is not None else None
+    representative = explorer.representatives[last.target]
     lines.append("== known gap " + seed_name + ":")
-    lines.append("    " + explorer.representatives[chain[-1].target].as_string.replace("\n", "\n    ").rstrip())
+    lines.append(_indented(produced if produced is not None else representative))
+    if produced is not None and produced.unique_unlabelled_id != representative.unique_unlabelled_id:
+        lines.append("    (quantum-equivalent to the class representative)")
+        lines.append(_indented(representative))
     return "\n".join(lines)
