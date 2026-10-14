@@ -121,6 +121,7 @@ class mDAG:
         """parents_masks[v] = bitmask of the parents of node v (visible and latent, latents numbered as above);
         length number_of_visible + number_of_latent."""
         n = self.number_of_visible
+        sg.check_node_count(self.number_of_nodes_including_singleton_latents)
         masks = np.zeros(self.number_of_nodes_including_singleton_latents, dtype=np.int64)
         masks[:n] = self.directed_structure_instance.parents_masks | (
             self.simplicial_complex_instance.extended_latent_parents_masks << np.int64(n))
@@ -332,8 +333,10 @@ class mDAG:
 
     @cached_property
     def dsep_model(self) -> "np.ndarray":
-        """E[i, j, K]: the elementary d-separations among the visible nodes (the D = 0 slice of esep_model,
-        computed on its own so that CI-only consumers do not pay for the deletion sets)."""
+        """E[i, j, K]: the elementary d-separations among the visible nodes (the D = 0 slice of esep_model, computed
+        on its own when that is not cached, so that CI-only consumers do not pay for the deletion sets)."""
+        if 'esep_model' in self.__dict__:
+            return self.esep_model[0]
         return sg.dsep_all(self.number_of_nodes_including_singleton_latents, self.parents_masks,
                            m=self.number_of_visible)
 
@@ -351,7 +354,7 @@ class mDAG:
     def all_CI_numeric(self) -> Set[Tuple[Tuple[int, ...], Tuple[int, ...]]]:
         m = self.number_of_visible
         bits = sg.bits_table(m)
-        return {((int(i), int(j)), bits[K]) for i, j, K in np.argwhere(self.dsep_model & sg.esep_valid_cells(m)[0])}
+        return {((int(i), int(j)), bits[K]) for i, j, K in np.argwhere(self.dsep_model & sg.dsep_valid_cells(m))}
 
     @cached_property
     def d_separable_pairs(self) -> Set[Tuple[int, ...]]:
@@ -388,7 +391,7 @@ class mDAG:
 
     @cached_property
     def CI_count(self) -> int:
-        return int(np.count_nonzero(self.dsep_model & sg.esep_valid_cells(self.number_of_visible)[0]))
+        return int(np.count_nonzero(self.dsep_model & sg.dsep_valid_cells(self.number_of_visible)))
 
     # Unlabelled (relabelling-invariant) keys: the lexicographically smallest relabelled model, packed to bytes
     # (semigraphoid.canonical_form), reported as the sorted relations of that relabelling. Only equality of these
@@ -414,7 +417,7 @@ class mDAG:
         bits = sg.bits_table(m)
         canonical = sg.canonical_form(self.dsep_model, m)
         return self.fake_frozenset(((int(i), int(j)), bits[K]) for i, j, K in
-                                   np.argwhere(canonical & sg.esep_valid_cells(m)[0]))
+                                   np.argwhere(canonical & sg.dsep_valid_cells(m)))
 
     @cached_property
     def all_esep(self) -> Tuple[Tuple[Tuple[Any, ...], ...], ...]:
@@ -714,8 +717,8 @@ class mDAG:
         G.add_nodes_from(self.visible_nodes)
         G.add_nodes_from(self.nonsingleton_latent_nodes)
         pos=nx.spring_layout(G)
-        v=self.visible_nodes.copy()
-        nx.draw_networkx_nodes(G, pos, nodelist=v.remove(node), node_color="tab:blue")
+        v = [x for x in self.visible_nodes if x != node]
+        nx.draw_networkx_nodes(G, pos, nodelist=v, node_color="tab:blue")
         nx.draw_networkx_nodes(G, pos, nodelist=[node], node_color="tab:green")
         nx.draw_networkx_nodes(G, pos, nodelist=self.nonsingleton_latent_nodes, node_color="tab:red")
         nx.draw_networkx_labels(G, pos)
@@ -729,8 +732,7 @@ class mDAG:
         """Bipartitions (C, D) of a facet with the visible Pa+(C) a subset of the visible Pa+(d) for every d in D,
         and no node of C in another facet."""
         n = self.number_of_visible
-        vpp = self.directed_structure_instance.as_bit_square_matrix_plus_eye
-        vpp_masks = [sg.mask_of(np.flatnonzero(vpp[:, v])) for v in range(n)]
+        vpp_masks = sg.columns_to_masks(self.directed_structure_instance.as_bit_square_matrix_plus_eye).tolist()
         facets = [sg.mask_of(f) for f in self.simplicial_complex_instance.compressed_simplicial_complex]
         result = []
         for C, D in self._facet_bipartitions_as_masks():

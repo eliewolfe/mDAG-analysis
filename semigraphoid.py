@@ -32,7 +32,7 @@ import functools
 import itertools
 import os
 import time
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -103,32 +103,51 @@ def bits_table(m: int) -> Tuple[Tuple[int, ...], ...]:
     return tuple(tuple(bits_of(mask)) for mask in range(1 << m))
 
 
+MAX_NODES = 63   # bitmasks are int64
+
+
+def check_node_count(n: int) -> None:
+    assert 0 < n <= MAX_NODES, f"bitmask kernels handle at most {MAX_NODES} nodes, got {n}"
+
+
+def columns_to_masks(bool_matrix: np.ndarray) -> np.ndarray:
+    """For each column of a boolean matrix, the bitmask of the rows that are True."""
+    rows = bool_matrix.shape[0]
+    check_node_count(max(rows, 1))
+    weights = np.int64(1) << np.arange(rows, dtype=np.int64)
+    return (bool_matrix.astype(np.int64) * weights[:, None]).sum(axis=0)
+
+
+@functools.lru_cache(maxsize=None)
+def dsep_valid_cells(m: int) -> np.ndarray:
+    """valid_cells(m) once per unordered pair: i < j and K disjoint from {i, j} (the cells of a d-separation model
+    that carry a relation)."""
+    return valid_cells(m) & (np.arange(m)[:, None] < np.arange(m)[None, :])[:, :, None]
+
+
 @functools.lru_cache(maxsize=None)
 def esep_valid_cells(m: int) -> np.ndarray:
     """Boolean array over the cells (D, i, j, K) of an e-separation model (shape (2^m, m, m, 2^m)) marking those that
-    carry a relation once per unordered pair: i < j, K disjoint from {i, j}, D disjoint from {i, j} and K."""
+    carry a relation once per unordered pair: dsep_valid_cells(m) with D disjoint from {i, j} and K."""
     masks = np.arange(1 << m, dtype=np.int64)
     valid = np.zeros((1 << m, m, m, 1 << m), dtype=np.bool_)
-    for i in range(m):
-        for j in range(i + 1, m):
-            bij = (1 << i) | (1 << j)
-            Ks = masks[(masks & bij) == 0]
-            for D in masks[(masks & bij) == 0]:
-                valid[D, i, j, Ks[(Ks & D) == 0]] = True
+    cells = dsep_valid_cells(m)
+    for D in range(1 << m):
+        touched = np.zeros(m, dtype=np.bool_)
+        for v in bits_of(D):
+            touched[v] = True
+        valid[D] = cells & ~touched[:, None, None] & ~touched[None, :, None] & ((masks & D) == 0)[None, None, :]
     return valid
 
 
-@functools.lru_cache(maxsize=None)
-def _permutation_index_maps(m: int) -> Tuple[Tuple[np.ndarray, np.ndarray], ...]:
-    """For every permutation p of range(m): (p as an index array, the induced map on bitmasks)."""
+def _permutation_index_maps(m: int) -> Iterable[Tuple[np.ndarray, np.ndarray]]:
+    """For every permutation p of range(m): (p as an index array, the induced map on bitmasks), generated lazily."""
     masks = np.arange(1 << m, dtype=np.int64)
-    out = []
     for perm in itertools.permutations(range(m)):
         pm = np.zeros(1 << m, dtype=np.int64)
         for v, target in enumerate(perm):
             pm |= ((masks >> v) & 1) << target
-        out.append((np.array(perm, dtype=np.int64), pm))
-    return tuple(out)
+        yield np.array(perm, dtype=np.int64), pm
 
 
 def canonical_form(model: np.ndarray, m: int) -> np.ndarray:
@@ -453,6 +472,7 @@ def esep_all(n: int, parents_masks: np.ndarray, m: Optional[int] = None, max_del
 
 def _run_esep_kernel(n: int, parents_masks: np.ndarray, m: int, slices: int, max_deleted: int, kernel) -> np.ndarray:
     t0 = time.perf_counter()
+    check_node_count(n)
     pa = np.asarray(parents_masks, dtype=np.int64)
     assert pa.shape == (n,)
     assert 0 < m <= n
@@ -474,15 +494,16 @@ def dsep_all(n: int, parents_masks: np.ndarray, m: Optional[int] = None, kernel=
     return _run_esep_kernel(n, parents_masks, m, 1, 0, kernel)[0]
 
 
-def is_d_separated(parents_masks: np.ndarray, A: int, B: int, K: int) -> bool:
+def is_d_separated(parents_masks: Sequence[int], A: int, B: int, K: int,
+                   children: Optional[Sequence[int]] = None) -> bool:
     """One Bayes-ball walk: are the node sets A and B (bitmasks) d-separated by K in the DAG with the given parent
     bitmasks? The walk is the one of `_esep_python`, started from every node of A at once. True when A or B is
-    empty."""
+    empty. `children` (children_masks of the same DAG) can be passed to save recomputing it."""
     assert A & B == 0 and A & K == 0 and B & K == 0, "a d-separation query has disjoint sides"
     if A == 0 or B == 0:
         return True
-    pa = [int(x) for x in np.asarray(parents_masks, dtype=np.int64)]
-    ch = [int(x) for x in children_masks(parents_masks)]
+    pa = parents_masks
+    ch = children_masks(parents_masks) if children is None else children
     up, down = A, 0
     frontier_up, frontier_down = A, 0
     while frontier_up or frontier_down:

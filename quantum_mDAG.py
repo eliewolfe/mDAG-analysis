@@ -548,10 +548,14 @@ class QmDAG:
             lp.pop_to(handle)
 
     @cached_property
-    def effective_parents_masks(self) -> "np.ndarray":
+    def effective_parents_masks(self) -> List[int]:
         """The effective DAG (effective_DAG_data: visible nodes, facets, noise sources) as parent bitmasks."""
         g, latent_nodes = self.effective_DAG_data
-        return sg.parents_to_masks({v: g.predecessors(v) for v in g.nodes}, g.number_of_nodes())
+        return sg.parents_to_masks({v: g.predecessors(v) for v in g.nodes}, g.number_of_nodes()).tolist()
+
+    @cached_property
+    def effective_children_masks(self) -> List[int]:
+        return sg.children_masks(self.effective_parents_masks).tolist()
 
     @cached_property
     def _effective_descendant_masks(self) -> "np.ndarray":
@@ -774,7 +778,8 @@ class QmDAG:
         # The d-separation test X - K _||_ Pa(s) - K | K on the effective DAG, noise source of s included (a
         # predictor that is a descendant of s is reached by that noise through s).
         others = set(g.predecessors(s)) - K
-        if sg.is_d_separated(self.effective_parents_masks, sg.mask_of(X - K), sg.mask_of(others), sg.mask_of(K)):
+        if sg.is_d_separated(self.effective_parents_masks, sg.mask_of(X - K), sg.mask_of(others), sg.mask_of(K),
+                             children=self.effective_children_masks):
             count('certificate', 'dsep')
             return 'dsep'
         if use_lp:

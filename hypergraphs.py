@@ -158,9 +158,8 @@ class Hypergraph:
     @cached_property
     def extended_latent_parents_masks(self) -> IntArray:
         """For each visible node, the bitmask (over the rows of as_extended_bit_array) of its latent parents."""
-        ext = self.as_extended_bit_array
-        weights = np.int64(1) << np.arange(ext.shape[0], dtype=np.int64)
-        return (ext.astype(np.int64) * weights[:, None]).sum(axis=0)
+        from semigraphoid import columns_to_masks
+        return columns_to_masks(self.as_extended_bit_array)
 
     @cached_property
     def singleton_latent_rows_mask(self) -> int:

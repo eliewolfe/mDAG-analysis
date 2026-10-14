@@ -83,8 +83,8 @@ class DirectedStructure:
     @cached_property
     def parents_masks(self) -> IntVector:
         """parents_masks[v] = bitmask of the visible parents of v."""
-        adj = self.as_bit_square_matrix.astype(np.int64)
-        return (adj * (np.int64(1) << np.arange(self.number_of_visible, dtype=np.int64))[:, None]).sum(axis=0)
+        from semigraphoid import columns_to_masks
+        return columns_to_masks(self.as_bit_square_matrix)
 
     @cached_property
     def nodes_with_no_parents(self) -> IntVector:
