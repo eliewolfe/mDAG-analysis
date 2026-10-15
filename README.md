@@ -17,7 +17,11 @@ The four-node census: `python "Special Applications/proving_QC_Gaps.py"` (about 
 recompute everything). It searches over quantum observational equivalence classes: `metagraph_advanced.QuantumMetagraph`
 builds the metagraph whose edges are quantum-valid (structural dominance, face splitting, the HLP edge rule when the
 origin node has no visible parent and one latent parent), `ClassicalMetagraph.from_quantum` adds the remaining HLP
-edges for the classical classes, and `equivalence_classes.ClassIndex` keys every structure by its class. The nodes
+edges for the classical classes, and `equivalence_classes.ClassIndex` keys every structure by its class. The elementary
+piggybacks run in reverse first (`reverse_piggybacks.py`, manuscript Appendix A): the seeds are closed under their
+inverses below five nodes and the forward search only reduces five-node structures; `--reverse none` is the forward-only
+run, `--reverse all` adds the Fritz inverse, `--no-hybrids` restricts the closure to all-quantum structures, and
+`python "Special Applications/verify_reverse.py"` checks a configuration against the forward census. The nodes
 of the metagraph are enumerated by orbits from permutation tables (`canonical_forms.py`: canonical ids on demand,
 no dictionary over the labelled mDAGs) and held as scipy sparse matrices; both five-node metagraphs (1,718,596
 unlabelled mDAGs, 490,800 classical and 595,074 quantum classes) build in about five minutes within 3.5 GB. Tests:

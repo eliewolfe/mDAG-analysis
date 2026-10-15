@@ -14,7 +14,10 @@ are two classes and the three instrumental seeds one; the triangle seed with two
 stays a degradation target (its all-quantum class is proven through the degradation lookup). Seed classes that are
 inputs are proven by the identity piggyback.
 
-One phase: the staged cascade of qc_gap_search.default_stages over every input class, cheapest first. (1) The
+One phase: the staged cascade of qc_gap_search.default_stages over every input class, cheapest first, after the
+reverse closure (reverse_piggybacks.py, manuscript Appendix A): the seeds closed under the inverses of the elementary
+piggybacks, every colouring, below five nodes, so that stage (1) only reads known gaps off the closure and applies
+the elementary reductions to five-node structures (`--reverse none` restores the forward-only run). (1) The
 elementary reductions (point distribution, node stitching, conditioning, marginalization with and without
 teleportation), closed over everything reachable, with the lookups: degradation (a structure is known when one of
 its degradations is) and the upward rule (a class is known when a class structurally below it inside the same
@@ -80,9 +83,13 @@ def census_inputs(index: ClassIndex) -> List:
 
 STAGE_SECONDS: Dict[str, float] = {}   # wall-clock seconds of each stage in the last run_search
 
-# The piggybacks run in reverse by default (reverse_piggybacks): the seeds are closed under their inverses before the
-# census, and the forward search uses the remaining piggybacks. Grows as the piggybacks are reversed one at a time.
+# The elementary piggybacks run in reverse by default (reverse_piggybacks, manuscript Appendix A): the seeds are
+# closed under their inverses before the census (every colouring, so the closure is complete below five nodes), and
+# the forward search applies them only to five-node structures (the Fritz children). The Fritz piggyback is not
+# reversed by default: its inverse (modes a to d) is complete for the node-count-preserving modes but costs about
+# fifty minutes on four nodes against under a minute for the forward Fritz stages (`--reverse all` runs it).
 DEFAULT_REVERSED: Tuple[str, ...] = ('node_stitching', 'PD', 'naive_marginalization', 'teleportation_marginalization', 'conditioning')
+ELEMENTARY_REVERSED = DEFAULT_REVERSED
 LAST_CLOSURE: Optional[ReverseClosure] = None   # the reverse closure of the last run_search (for its summary)
 
 
@@ -90,7 +97,7 @@ def run_search(index: Optional[ClassIndex] = None, max_visible=5, verbose=True, 
                with_split_predictors=True, strict_conditioning=True, use_cache=True, cache_path: str = CACHE_PATH,
                pool: str = 'siblings', allow_descendants: bool = False, early_exit: bool = True,
                engine: Optional[str] = None, reversed_tricks: Tuple[str, ...] = DEFAULT_REVERSED,
-               reverse_hybrids: bool = True, reverse_cap: Optional[int] = None) -> Tuple[GapReport, Optional[GapCache]]:
+               reverse_hybrids: bool = True, reverse_cap: Optional[int] = 'auto') -> Tuple[GapReport, Optional[GapCache]]:
     """The census: one staged search over the four-node input classes with every seed known. Returns (report,
     cache). The cache is loaded first (entries whose piggyback versions are stale are dropped), updated with every
     newly proven class, and saved. `reversed_tricks` are run in reverse first (reverse_piggybacks.ReverseClosure
@@ -113,6 +120,10 @@ def run_search(index: Optional[ClassIndex] = None, max_visible=5, verbose=True, 
     known = cache.known() if cache is not None else {}
     global LAST_CLOSURE
     LAST_CLOSURE = None
+    if reverse_cap == 'auto':
+        # the forward elementary tricks are switched off below five nodes only where the closure is complete there:
+        # every elementary trick reversed and every colouring expanded
+        reverse_cap = 4 if (reverse_hybrids and set(ELEMENTARY_REVERSED) <= set(reversed_tricks)) else None
     if reversed_tricks:
         t1 = time.time()
         LAST_CLOSURE = ReverseClosure(index, {name: INVERSES[name] for name in reversed_tricks},
@@ -222,5 +233,5 @@ if __name__ == '__main__':
     report, cache = run_search(with_entropic=with_entropic, with_split_predictors=with_split_predictors, use_cache=use_cache, pool=pool,
                                allow_descendants=allow_descendants, early_exit=early_exit, engine=engine,
                                reversed_tricks=reversed_tricks, reverse_hybrids='--no-hybrids' not in sys.argv,
-                               reverse_cap=4 if '--reverse-cap' in sys.argv else None)
+                               reverse_cap=None if '--no-reverse-cap' in sys.argv else 'auto')
     print_report(report, certificates_for=proven_through_fritz(report))

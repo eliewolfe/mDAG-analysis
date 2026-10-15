@@ -84,12 +84,21 @@ def _check(report, cache, proving_QC_Gaps, engine=None):
 
 
 @pytest.mark.slow
-def test_search_counts(proving_QC_Gaps):
-    """The census with the default engine, the semigraphoid closure."""
+@pytest.mark.parametrize("reversed_tricks", ["default", ()], ids=["reverse-elementary", "forward-only"])
+def test_search_counts(proving_QC_Gaps, reversed_tricks):
+    """The census with the default engine, the semigraphoid closure: with the elementary piggybacks run in reverse
+    (the default: the seeds closed under their inverses, the forward tricks applied to five-node structures only)
+    and forward only; both give the same counts, stage counts and ladder."""
     import quantum_mDAG as QM
     QM.ENTROPIC_STATS.clear()
-    report, cache = proving_QC_Gaps.run_search(verbose=False, with_entropic=True, use_cache=False, engine='semigraphoid')
+    kwargs = {} if reversed_tricks == "default" else {'reversed_tricks': reversed_tricks}
+    report, cache = proving_QC_Gaps.run_search(verbose=False, with_entropic=True, use_cache=False, engine='semigraphoid', **kwargs)
     _check(report, cache, proving_QC_Gaps)
+    if reversed_tricks == "default":
+        closure = proving_QC_Gaps.LAST_CLOSURE
+        assert closure is not None and set(closure.inverses) == set(proving_QC_Gaps.ELEMENTARY_REVERSED)
+        assert len(closure.known) == 9814 and closure.known_by_nodes() == {3: (3, 2), 4: (372, 9437)}
+        assert all(closure.stats[t]['rejected'] == 0 for t in closure.inverses)   # the forward check never rejects
     stats = {k: v for k, v in QM.ENTROPIC_STATS.items() if k[0] == 'certificate'}
     assert stats == EXPECTED_CERTIFICATES
     assert QM.ENTROPIC_STATS[('engine', 'semigraphoid')] == EXPECTED_CERTIFICATES[('certificate', 'relabel')]

@@ -98,9 +98,9 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument('--reverse', nargs='*', default=list(census.DEFAULT_REVERSED), help="tricks to run in reverse ('all' for every inverse)")
     ap.add_argument('--no-hybrids', action='store_true')
-    ap.add_argument('--cap', action='store_true', help="apply the reversed tricks forward only above four nodes")
+    ap.add_argument('--cap', action='store_true', help="apply the reversed tricks forward only above four nodes (run_search decides this itself by default)")
     ap.add_argument('--verbose', action='store_true')
     args = ap.parse_args()
     tricks = list(INVERSES) if args.reverse == ['all'] else args.reverse
-    ok, *_ = verify(tricks, hybrids=not args.no_hybrids, cap=4 if args.cap else None, verbose=args.verbose)
+    ok, *_ = verify(tricks, hybrids=not args.no_hybrids, cap=4 if args.cap else 'auto', verbose=args.verbose)
     sys.exit(0 if ok else 1)
