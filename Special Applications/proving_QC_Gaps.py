@@ -54,6 +54,7 @@ from equivalence_classes import ClassIndex
 from known_QC_gaps import SEEDS
 from qc_gap_search import prove_gaps, default_stages, GapReport, FRITZ_TRICKS_ALL, ladder
 from gap_cache import GapCache, CACHE_PATH
+from reverse_piggybacks import INVERSES, ReverseClosure
 import entropic_lp
 
 
@@ -79,14 +80,22 @@ def census_inputs(index: ClassIndex) -> List:
 
 STAGE_SECONDS: Dict[str, float] = {}   # wall-clock seconds of each stage in the last run_search
 
+# The piggybacks run in reverse by default (reverse_piggybacks): the seeds are closed under their inverses before the
+# census, and the forward search uses the remaining piggybacks. Grows as the piggybacks are reversed one at a time.
+DEFAULT_REVERSED: Tuple[str, ...] = ('node_stitching',)
+LAST_CLOSURE: Optional[ReverseClosure] = None   # the reverse closure of the last run_search (for its summary)
+
 
 def run_search(index: Optional[ClassIndex] = None, max_visible=5, verbose=True, with_entropic=True,
                with_split_predictors=True, strict_conditioning=True, use_cache=True, cache_path: str = CACHE_PATH,
                pool: str = 'siblings', allow_descendants: bool = False, early_exit: bool = True,
-               engine: Optional[str] = None) -> Tuple[GapReport, Optional[GapCache]]:
+               engine: Optional[str] = None, reversed_tricks: Tuple[str, ...] = DEFAULT_REVERSED,
+               reverse_hybrids: bool = True, reverse_cap: Optional[int] = None) -> Tuple[GapReport, Optional[GapCache]]:
     """The census: one staged search over the four-node input classes with every seed known. Returns (report,
     cache). The cache is loaded first (entries whose piggyback versions are stale are dropped), updated with every
-    newly proven class, and saved."""
+    newly proven class, and saved. `reversed_tricks` are run in reverse first (reverse_piggybacks.ReverseClosure
+    over the seeds, every colouring when `reverse_hybrids`, capped at four visible nodes); with `reverse_cap` they
+    are applied forward only above that many visible nodes (sound once the closure is complete below it)."""
     from quantum_mDAG import ENGINES
     if engine is not None and engine not in ENGINES:
         raise ValueError(f"unknown certificate engine {engine!r}; choose one of {ENGINES}")
@@ -102,13 +111,23 @@ def run_search(index: Optional[ClassIndex] = None, max_visible=5, verbose=True, 
     if cache is not None and verbose:
         print(f"Cache: {len(cache)} valid entries loaded, {cache.dropped} dropped (stale format or key kind, piggyback version or seed)")
     known = cache.known() if cache is not None else {}
+    global LAST_CLOSURE
+    LAST_CLOSURE = None
+    if reversed_tricks:
+        t1 = time.time()
+        LAST_CLOSURE = ReverseClosure(index, {name: INVERSES[name] for name in reversed_tricks},
+                                      max_visible=4, hybrids=reverse_hybrids, verbose=verbose).run(SEEDS)
+        STAGE_SECONDS['reverse closure'] = time.time() - t1
+        if verbose:
+            print(LAST_CLOSURE.summary())
     # lp_markov_target=True would also try the `markov` target set after `relabel` fails; it is off because in the
     # four-node census it never decided an input.
     stages = default_stages(max_visible=max_visible, with_entropic=with_entropic, with_split_predictors=with_split_predictors,
                             strict_conditioning=strict_conditioning, pool=pool, allow_descendants=allow_descendants,
-                            lp_markov_target=False, engine=engine)
+                            lp_markov_target=False, engine=engine, reversed_tricks=frozenset(reversed_tricks),
+                            reverse_cap=reverse_cap)
     report = prove_gaps(inputs, SEEDS, stages=stages, max_visible=max_visible, verbose=verbose, known=known,
-                        early_exit=early_exit, index=index, on_stage=STAGE_SECONDS.__setitem__)
+                        early_exit=early_exit, index=index, on_stage=STAGE_SECONDS.__setitem__, reverse=LAST_CLOSURE)
     if cache is not None:
         added = cache.record(report)
         cache.save()
@@ -134,6 +153,8 @@ def proven_through_fritz(report: GapReport, tricks=FRITZ_TRICKS_ALL) -> List:
 def print_report(report: GapReport, certificates_for=()) -> None:
     counts = report.counts
     print("=" * 20, "The census over quantum equivalence classes", "=" * 20)
+    if LAST_CLOSURE is not None:
+        print(LAST_CLOSURE.summary())
     print(f"Input classes: {counts['inputs']} ({counts.get('structures', counts['inputs'])} structures up to relabelling, "
           f"in {counts.get('classical classes of inputs', '?')} classical equivalence classes)")
     print(f"# of classes with a proven QC gap: {counts['proven']} ({counts.get('structures proven', '?')} structures; "
@@ -189,6 +210,17 @@ if __name__ == '__main__':
     allow_descendants = '--descendants' in sys.argv
     early_exit = '--no-early-exit' not in sys.argv
     engine = sys.argv[sys.argv.index('--engine') + 1] if '--engine' in sys.argv and sys.argv.index('--engine') + 1 < len(sys.argv) else None
+    # --reverse none | all | name [name ...]: which piggybacks run in reverse (default DEFAULT_REVERSED)
+    reversed_tricks = DEFAULT_REVERSED
+    if '--reverse' in sys.argv:
+        names = []
+        for word in sys.argv[sys.argv.index('--reverse') + 1:]:
+            if word.startswith('--'):
+                break
+            names.append(word)
+        reversed_tricks = () if names == ['none'] else tuple(INVERSES) if names == ['all'] else tuple(names)
     report, cache = run_search(with_entropic=with_entropic, with_split_predictors=with_split_predictors, use_cache=use_cache, pool=pool,
-                               allow_descendants=allow_descendants, early_exit=early_exit, engine=engine)
+                               allow_descendants=allow_descendants, early_exit=early_exit, engine=engine,
+                               reversed_tricks=reversed_tricks, reverse_hybrids='--no-hybrids' not in sys.argv,
+                               reverse_cap=4 if '--reverse-cap' in sys.argv else None)
     print_report(report, certificates_for=proven_through_fritz(report))

@@ -78,16 +78,27 @@ def degradation(g: QmDAG) -> Iterable[Tuple[Tuple, QmDAG]]:
     return g.degradation_steps()
 
 
+def _above(trick: Trick, cap: int) -> Trick:
+    """The trick applied only to structures with more than `cap` visible nodes: below the cap the reverse closure
+    (reverse_piggybacks) is complete, so a forward application would only repeat it."""
+    return lambda g: trick(g) if g.number_of_visible > cap else ()
+
+
 def elementary_tricks(max_visible: int = 5, districts_check: bool = False,
-                      strict_conditioning: bool = True) -> Dict[str, Trick]:
-    """The node-count-reducing piggybacks: point distribution, node stitching, conditioning, marginalization."""
-    return {
+                      strict_conditioning: bool = True, reversed_tricks: FrozenSet[str] = frozenset(),
+                      reverse_cap: Optional[int] = None) -> Dict[str, Trick]:
+    """The node-count-reducing piggybacks: point distribution, node stitching, conditioning, marginalization. With
+    `reverse_cap`, the tricks in `reversed_tricks` are applied forward only above that many visible nodes."""
+    tricks = {
         'PD': lambda g: g.pd_steps(),
         'node_stitching': lambda g: g.node_stitching_steps(),
         'conditioning': lambda g: g.conditioning_steps(strict_latents=strict_conditioning),
         'naive_marginalization': lambda g: g.marginalization_steps(apply_teleportation=False, districts_check=districts_check),
         'teleportation_marginalization': lambda g: g.marginalization_steps(apply_teleportation=True, districts_check=districts_check),
     }
+    if reverse_cap is not None:
+        tricks = {name: (_above(trick, reverse_cap) if name in reversed_tricks else trick) for name, trick in tricks.items()}
+    return tricks
 
 
 def fritz_tricks(max_visible: int = 5, predictor_mode: str = 'unsplit', target_modes: Tuple[str, ...] = ('unsplit', 'split'),
@@ -143,7 +154,8 @@ Stage = Tuple[str, Dict[str, Callable], bool, Optional[FrozenSet[str]], bool]   
 def default_stages(max_visible: int = 5, with_entropic: bool = True, with_split_predictors: bool = True,
                    max_predictors: int = 1, districts_check: bool = False, strict_conditioning: bool = True,
                    pool: str = 'siblings', allow_descendants: bool = False, max_targets: Optional[int] = None,
-                   lp_markov_target: bool = False, engine: Optional[str] = None) -> List[Stage]:
+                   lp_markov_target: bool = False, engine: Optional[str] = None,
+                   reversed_tricks: FrozenSet[str] = frozenset(), reverse_cap: Optional[int] = None) -> List[Stage]:
     """The cascade (manuscript 9.2), cheapest first; each stage runs only on the inputs the earlier ones left
     unproven, and every structure proven in a stage is a known gap for the next.
     (1) The elementary reductions, closed over everything reachable from every input.
@@ -167,7 +179,8 @@ def default_stages(max_visible: int = 5, with_entropic: bool = True, with_split_
                          "are the parent stage, which the cascade always runs")
     common = dict(max_visible=max_visible, allow_descendants=allow_descendants,
                   max_predictors=max_predictors, lp_markov_target=lp_markov_target, engine=engine)
-    elementary = elementary_tricks(max_visible, districts_check, strict_conditioning)
+    elementary = elementary_tricks(max_visible, districts_check, strict_conditioning,
+                                  reversed_tricks=reversed_tricks, reverse_cap=reverse_cap)
     reductions = frozenset(elementary)
     names = [name for name, _ in CASCADE]
     stages: List[Stage] = [(names[0], elementary, False, None, False)]
@@ -248,6 +261,7 @@ class ClosureExplorer:
         self.edges: Dict[UnlabelledId, List[Transition]] = dict()  # populated once per expanded id
         self._edge_sets: Dict[UnlabelledId, Set[Transition]] = dict()
         self.applied: Dict[UnlabelledId, Set[str]] = dict()       # tricks already applied to each expanded id
+        self.known_keys: Set[UnlabelledId] = set()    # preloaded known gaps (reverse closure): never expanded
 
     @property
     def base_tricks(self) -> FrozenSet[str]:
@@ -268,6 +282,22 @@ class ClosureExplorer:
         for m in members:
             self.structures.setdefault(m.unique_unlabelled_id, m)
         return members
+
+    def preload(self, closure) -> None:
+        """Loads a reverse closure (reverse_piggybacks.ReverseClosure): its known keys are known gaps that are never
+        expanded, its structures and representatives are available to certificates, and its forward transitions
+        are recorded in the current stage, so that reports, reachability counts and certificates read them exactly
+        as forward transitions (an input reaches a seed through them)."""
+        for key, rep in closure.representatives.items():
+            self.representatives.setdefault(key, rep)
+        for uid, g in closure.structures.items():
+            self.structures.setdefault(uid, g)
+        for key, transitions in closure.edges.items():
+            self._record(key, transitions)
+        self.known_keys.update(closure.known)
+        reversed_tricks = set(closure.inverses)
+        for key in closure.known:
+            self.applied.setdefault(key, set()).update(reversed_tricks)
 
     def _representative_for(self, key: UnlabelledId, g: QmDAG) -> QmDAG:
         if self.index is not None:
@@ -316,7 +346,7 @@ class ClosureExplorer:
         transitions."""
         pending = [name for name in self.tricks if name not in self.applied.get(key, set())
                    and (only is None or name in only)]
-        if not pending or key in self.lookup_only:
+        if not pending or key in self.lookup_only or key in self.known_keys:
             return self.edges.get(key, [])
         members = self.members(key)
         for trick_name in pending:
@@ -358,7 +388,8 @@ class ClosureExplorer:
                     continue
                 if transition.target not in reached:
                     reached.add(transition.target)
-                    frontier.append(transition.target)
+                    if transition.target not in self.known_keys:
+                        frontier.append(transition.target)
             if len(self.edges) > self.max_states:
                 warnings.warn("ClosureExplorer exceeded max_states; results are incomplete.")
                 break
@@ -615,12 +646,14 @@ def prove_gaps(inputs: Iterable[QmDAG], seeds: Dict[str, QmDAG], tricks: Optiona
                trick_groups: Optional[Dict[str, Tuple[FrozenSet[str], FrozenSet[str]]]] = None,
                verbose: bool = True, stages: Optional[List[Stage]] = None, with_entropic: bool = True,
                known: Optional[Dict[str, UnlabelledId]] = None, early_exit: bool = True,
-               index: Optional["ClassIndex"] = None, on_stage: Optional[Callable[[str, float], None]] = None) -> GapReport:
+               index: Optional["ClassIndex"] = None, on_stage: Optional[Callable[[str, float], None]] = None,
+               reverse=None) -> GapReport:
     """Proves QC gaps for `inputs` from the known gaps `seeds`. With `tricks`, a single closure stage under those
     tricks. Otherwise the stages of `default_stages` (or the given `stages`) are run in order, cheapest first;
     every structure proven in a stage counts as a known gap for the later ones (reachability is transitive, so
     this holds whatever the order; the order decides cost and which tricks certificates prefer). With `index` the
-    search runs over quantum equivalence classes. `on_stage(name, seconds)` is called after each stage."""
+    search runs over quantum equivalence classes. `on_stage(name, seconds)` is called after each stage. `reverse` is
+    a reverse_piggybacks.ReverseClosure whose known gaps and transitions are preloaded into the explorer."""
     import time
     inputs = list(inputs)
     if stages is None:
@@ -629,6 +662,8 @@ def prove_gaps(inputs: Iterable[QmDAG], seeds: Dict[str, QmDAG], tricks: Optiona
     name, first = stages[0][0], stages[0][1]
     explorer = ClosureExplorer(first, max_visible=max_visible, index=index)
     explorer.stage_names[0] = name
+    if reverse is not None:
+        explorer.preload(reverse)   # the reverse closure's known gaps and forward transitions (reverse_piggybacks)
     t0 = time.time()
     for i, g in enumerate(inputs):
         if verbose and i % 250 == 0:
@@ -670,7 +705,7 @@ def add_stage(report: GapReport, extra_tricks: Dict[str, Callable],
     explorer.begin_stage(name, extra_tricks)   # the stage is counted even when nothing is left to expand
     # Early exit: a root stops as soon as it reaches a seed, a cached known gap or an input proven earlier (an input
     # proven in this very stage is not yet a goal; the next build_report chains the certificates anyway).
-    goals = set(_seed_keys(explorer, seeds, known)) | set(report.proven) if early_exit else None
+    goals = set(_seed_keys(explorer, seeds, known)) | set(report.proven) | explorer.known_keys if early_exit else None
     for i, g in enumerate(roots):
         if verbose and i % 250 == 0:
             print(f"[{name}] expanding {i} of {len(roots)} roots; {len(explorer.edges)} structures")
