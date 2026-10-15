@@ -64,17 +64,42 @@ def multiple_classifications(*args):
     return list(filter(None, itertools.starmap(set.intersection, itertools.product(*args))))
 
 class Observable_unlabelled_mDAGs:
+    """The metagraph of the n-node mDAGs up to relabelling: nodes are the unlabelled mDAGs, edges are sound
+    containments of model sets (structural dominance, face splitting, the HLP edge rule), and the strongly connected
+    components are proven observational equivalence classes.
+
+    `rule` selects the model sets the edges are sound for. 'classical' (the default) uses every rule. 'quantum'
+    uses structural dominance and face splitting, which are quantum-valid as they stand, and the HLP edge rule only
+    where its origin node is premeasurable (mDAG.is_premeasurable); its components are proven *quantum*
+    observational equivalence classes, each inside one classical class. The two metagraphs share everything but the
+    HLP edges: build the quantum one and derive the classical one with `ClassicalMetagraph.from_quantum`.
+    """
+    SHARED_CACHE = ('all_directed_structures', 'all_unlabelled_directed_structures', 'truly_all_directed_structures',
+                    'all_noncanonical_directed_structures', 'all_simplicial_complices', 'most_labelled_mDAGs',
+                    'all_labelled_mDAGs', 'dict_id_to_canonical_id', 'dict_uniqind_unlabelled_mDAGs',
+                    'dict_ind_unlabelled_mDAGs', 'metagraph_nodes', 'hypergraph_dominances',
+                    'directed_dominances_up_to_symmetry', 'structural_dominances', 'face_splitting_edge_list',
+                    'latent_free_DAGs_unlabelled', 'structural_order', '_structural_closure')
+    # What a sibling must share for the two metagraphs to agree (the rest is shared when already computed).
+    FORCED_SHARED = ('dict_uniqind_unlabelled_mDAGs', 'dict_id_to_canonical_id', 'structural_dominances',
+                     'face_splitting_edge_list', 'structural_order')
+
     def __init__(self, n: int,
                  fully_foundational=False,
                  all_dominances=False,
-                 verbose=True):
+                 verbose=True,
+                 rule: str = 'classical'):
         """
         Parameters
         ----------
         n : int
             The number of observed variables.
+        rule : 'classical' or 'quantum'
+            Which model sets the metagraph's equivalences are sound for (see the class docstring).
         """
+        assert rule in ('classical', 'quantum'), rule
         self.n = n
+        self.rule = rule
         self.tuple_n = tuple(range(self.n))
         self.set_n = set(self.tuple_n)
         self.sort_by_length = lambda s: sorted(s, key=len)
@@ -82,6 +107,19 @@ class Observable_unlabelled_mDAGs:
         self.verbose = verbose
         # self.experimental_speedup = experimental_speedup
         self.all_dominances = all_dominances
+
+    @classmethod
+    def from_sibling(cls, other: "Observable_unlabelled_mDAGs", rule: str, **kwargs) -> "Observable_unlabelled_mDAGs":
+        """A metagraph on the same nodes under another rule, sharing every rule-independent cached attribute."""
+        new = cls.__new__(cls)
+        Observable_unlabelled_mDAGs.__init__(new, other.n, fully_foundational=other.fully_foundational,
+                                             all_dominances=other.all_dominances, verbose=other.verbose, rule=rule, **kwargs)
+        for name in cls.FORCED_SHARED:
+            getattr(other, name)                       # computed on `other` if need be, so that both share it
+        for name in cls.SHARED_CACHE:
+            if name in other.__dict__:
+                new.__dict__[name] = other.__dict__[name]
+        return new
 
     @cached_property
     def all_directed_structures(self):
@@ -402,8 +440,8 @@ class Observable_unlabelled_mDAGs:
         for (id, mdag) in explore_candidates(
                 self.dict_ind_unlabelled_mDAGs.items(),
                 verbose=self.verbose,
-                message="Finding HLP Rule #4 type edges"):  # NEW: Over graph patterns only
-            for id2 in mdag.generate_weaker_mDAG_HLP:
+                message=f"Finding HLP Rule #4 type edges ({self.rule} rule)"):  # NEW: Over graph patterns only
+            for id2 in mdag.weaker_mDAG_HLP(self.rule):
                 yield (id2, id)
 
     @property
@@ -425,58 +463,45 @@ class Observable_unlabelled_mDAGs:
         for (id2, id) in self.raw_FaceSplitting_edges:
             yield partsextractor(self.dict_id_to_canonical_id, (id2, id))
 
+    def _canonical_pairs(self, pairs) -> set:
+        return {(self.dict_id_to_canonical_id[a], self.dict_id_to_canonical_id[b]) for a, b in pairs}
+
     @cached_property
-    def all_HLP_relevant_dominances(self):
+    def structural_dominances(self):
+        """(strong, weak) canonical-id pairs: weak is strong with one facet or one edge fewer (a containment of
+        both the classical and the quantum model set). Rule-independent, shared between the two metagraphs."""
         if self.verbose:
             eprint('Adding dominance relations...', flush=True)
-        directed_ids = np.array(tuple(ds.as_integer for ds in self.all_unlabelled_directed_structures), dtype=object)[:,np.newaxis,np.newaxis]
+        directed_ids = np.array(tuple(ds.as_integer for ds in self.all_unlabelled_directed_structures), dtype=object)[:, np.newaxis, np.newaxis]
         hypergraph_dominances = np.asarray(self.hypergraph_dominances, dtype=object)
-        dominances_from_hypergraphs = np.reshape(self.mdag_int_pair_to_single_int(directed_ids, hypergraph_dominances),(-1,2))
-        simplicial_ids = np.array(tuple(sc.as_integer for sc in self.all_simplicial_complices), dtype=object)[:,np.newaxis,np.newaxis]
+        from_hypergraphs = np.reshape(self.mdag_int_pair_to_single_int(directed_ids, hypergraph_dominances), (-1, 2))
+        simplicial_ids = np.array(tuple(sc.as_integer for sc in self.all_simplicial_complices), dtype=object)[:, np.newaxis, np.newaxis]
         directed_dominances = np.asarray(self.directed_dominances_up_to_symmetry, dtype=object)
-        dominances_from_directed_edges = np.reshape(self.mdag_int_pair_to_single_int(directed_dominances, simplicial_ids),(-1,2))
-        HLP_dominances = np.asarray(tuple(self.raw_HLP_edges), dtype=object)
-        num_equiv_dom = len(HLP_dominances)
-        # all_dominances = np.vstack((dominances_from_hypergraphs, dominances_from_directed_edges, HLP_dominances))
-        # partsextractor(self.dict_id_to_canonical_id, dominances_from_hypergraphs.ravel().tolist())
-        # partsextractor(self.dict_id_to_canonical_id, dominances_from_directed_edges.ravel().tolist())
+        from_directed_edges = np.reshape(self.mdag_int_pair_to_single_int(directed_dominances, simplicial_ids), (-1, 2))
         if self.verbose:
             eprint("Converting dominance relations to unique ids...")
+        return list(self._canonical_pairs(from_hypergraphs.tolist())) + list(self._canonical_pairs(from_directed_edges.tolist()))
 
-        HLP_dominances = set(zip(
-            partsextractor(self.dict_id_to_canonical_id,
-                           HLP_dominances[:,0]),
-            partsextractor(self.dict_id_to_canonical_id,
-                           HLP_dominances[:, 1])))
-        dominances_from_hypergraphs = set(zip(
-            partsextractor(self.dict_id_to_canonical_id,
-                           dominances_from_hypergraphs[:, 0]),
-            partsextractor(self.dict_id_to_canonical_id,
-                           dominances_from_hypergraphs[:, 1])))
-        dominances_from_directed_edges = set(zip(
-            partsextractor(self.dict_id_to_canonical_id,
-                           dominances_from_directed_edges[:, 0]),
-            partsextractor(self.dict_id_to_canonical_id,
-                           dominances_from_directed_edges[:, 1])))
-        return (list(dominances_from_hypergraphs) + list(dominances_from_directed_edges),
-                list(HLP_dominances))
-        #
-        #
-        # all_dominances = np.array(
-        #     partsextractor(self.dict_id_to_canonical_id,
-        #                    all_dominances.ravel())).reshape((-1, 2))
-        # equiv_maybe_breaking_doms = all_dominances[:-num_equiv_dom]
-        # equiv_preserving_doms = all_dominances[-num_equiv_dom:]
-        # # [row, col] = all_dominances.T.tolist()
-        # del directed_ids, hypergraph_dominances, simplicial_ids, directed_dominances, dominances_from_hypergraphs, dominances_from_directed_edges, HLP_dominances
-        # if self.verbose:
-        #     eprint("Deleting duplicate dominance relations...")
-        # return (set(map(tuple, equiv_maybe_breaking_doms.tolist())), set(map(tuple, equiv_preserving_doms.tolist())))
-        # # return set(map(tuple, all_dominances.tolist()))
+    @cached_property
+    def hlp_edge_list(self):
+        """(weak, strong) canonical-id pairs of the HLP equivalence under this metagraph's rule."""
+        return list(self._canonical_pairs(self.raw_HLP_edges))
+
+    @cached_property
+    def face_splitting_edge_list(self):
+        """(split, original) canonical-id pairs of the face-splitting equivalence (quantum-valid as well: the
+        source of the part D distributes one conditional state per value of what every member of D sees of C)."""
+        return list(self.FaceSplitting_edges)
+
+    @cached_property
+    def all_HLP_relevant_dominances(self):
+        """(structural dominances, HLP equivalence edges), both as canonical-id pairs."""
+        return (self.structural_dominances, self.hlp_edge_list)
 
     @property
     def boring_dominances(self):
         (equiv_breaking_doms, equiv_maybe_preserving_doms) = self.all_HLP_relevant_dominances
+        equiv_maybe_preserving_doms = list(equiv_maybe_preserving_doms)   # a copy: the cached HLP list stays intact
         if self.all_dominances:
             equiv_maybe_preserving_doms.extend(equiv_breaking_doms)
             return equiv_maybe_preserving_doms
@@ -581,11 +606,20 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def meta_graph(self):
+        if self.rule == 'quantum':
+            # Every edge is a sound containment of quantum model sets; no CI filter is needed for soundness, and the
+            # classical companion (from_quantum) adds the unrestricted HLP edges to this graph.
+            g = nx.DiGraph()
+            g.add_nodes_from(self.metagraph_nodes.flat)
+            g.add_edges_from(self.structural_dominances)
+            g.add_edges_from(self.hlp_edge_list)
+            g.add_edges_from(self.face_splitting_edge_list)
+            return g
         g = self.HLP_meta_graph.copy()
         # edge_count = g.number_of_edges()
         if self.verbose:
             eprint('Adding FaceSplitting equivalence relations...', flush=True)
-        g.add_edges_from(self.FaceSplitting_edges)
+        g.add_edges_from(self.face_splitting_edge_list)
         gc.collect(generation=2)
         # new_edge_count = g.number_of_edges()
         # if self.verbose:
@@ -596,6 +630,80 @@ class Observable_unlabelled_mDAGs:
     @cached_property
     def equivalence_classes_as_ids(self):
         return list(nx.strongly_connected_components(self.meta_graph))
+
+    # ------------------------------------------------------------------
+    # Class lookups shared by the quantum and the classical metagraph
+    # ------------------------------------------------------------------
+
+    @cached_property
+    def class_index_of(self):
+        """unlabelled mDAG id -> index of its equivalence class in equivalence_classes_as_ids."""
+        return {uid: k for k, cls in enumerate(self.equivalence_classes_as_ids) for uid in cls}
+
+    def class_of(self, uid):
+        """The equivalence class (a set of unlabelled ids) of an unlabelled mDAG id."""
+        return self.equivalence_classes_as_ids[self.class_index_of[uid]]
+
+    @cached_property
+    def latent_free_equivalent_ids(self):
+        """Members of the classes that contain a latent-free DAG (under this metagraph's rule). Under the
+        classical rule these are the provably algebraic structures, for which Q(G) = C(G)."""
+        latent_free = {m.unique_unlabelled_id for m in self.latent_free_DAGs_unlabelled}
+        return set().union(*(cls for cls in self.equivalence_classes_as_ids if cls & latent_free)) \
+            if self.equivalence_classes_as_ids else set()
+
+    @cached_property
+    def structural_order(self):
+        """The structural dominances as a digraph (strong -> weak): u reaches v iff v is u with facets or edges
+        removed, so model(u) contains model(v) classically and quantumly."""
+        g = nx.DiGraph()
+        g.add_nodes_from(self.metagraph_nodes.flat)
+        g.add_edges_from(self.structural_dominances)
+        return g
+
+    @cached_property
+    def _structural_closure(self):
+        """Transitive closure of the structural order as bitsets: (index of each id, below[i] = bitmask of the
+        indices structurally below id i, above[i] likewise), computed once in topological order."""
+        order = list(nx.topological_sort(self.structural_order))
+        index = {uid: i for i, uid in enumerate(order)}
+        below = [0] * len(order)
+        for uid in reversed(order):
+            i = index[uid]
+            mask = 0
+            for child in self.structural_order.successors(uid):
+                j = index[child]
+                mask |= (1 << j) | below[j]
+            below[i] = mask
+        above = [0] * len(order)
+        for uid in order:
+            i = index[uid]
+            mask = 0
+            for parent in self.structural_order.predecessors(uid):
+                j = index[parent]
+                mask |= (1 << j) | above[j]
+            above[i] = mask
+        return order, index, below, above
+
+    def _ids_of_bits(self, mask: int):
+        order = self._structural_closure[0]
+        out = set()
+        while mask:
+            low = mask & -mask
+            out.add(order[low.bit_length() - 1])
+            mask ^= low
+        return out
+
+    def structurally_below(self, uid):
+        """Unlabelled ids of the structures obtained from uid by removing facets or edges (uid excluded)."""
+        order, index, below, above = self._structural_closure
+        return self._ids_of_bits(below[index[uid]])
+
+    def structurally_above(self, uid):
+        order, index, below, above = self._structural_closure
+        return self._ids_of_bits(above[index[uid]])
+
+
 
     # @cached_property
     # def safe_equivalence_classes_as_mDAGs(self):
@@ -947,6 +1055,36 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
                       ilen(itertools.chain.from_iterable(self.non_singletons_dict[k]))))     
    
 
+
+
+
+class QuantumMetagraph(Observable_unlabelled_mDAGs):
+    """The metagraph under the quantum rule: its strongly connected components are proven quantum observational
+    equivalence classes (each inside one classical class)."""
+    def __init__(self, n: int, verbose: bool = False, **kwargs) -> None:
+        super().__init__(n, verbose=verbose, rule='quantum', **kwargs)
+
+
+class ClassicalMetagraph(Observable_unlabelled_mDAGs):
+    """The metagraph under the classical rule (every HLP edge)."""
+    def __init__(self, n: int, verbose: bool = False, **kwargs) -> None:
+        super().__init__(n, verbose=verbose, rule='classical', **kwargs)
+
+    @classmethod
+    def from_quantum(cls, quantum: "Observable_unlabelled_mDAGs") -> "ClassicalMetagraph":
+        """The classical metagraph on the nodes of `quantum`, sharing its dominances and face-splitting edges and
+        adding the unrestricted HLP edges."""
+        assert quantum.rule == 'quantum'
+        return cls.from_sibling(quantum, 'classical')
+
+    def within_class_above(self, uid):
+        """Members of uid's class that are structurally above uid: gap(uid) implies gap of each of them, since
+        their quantum model contains uid's and their classical model equals it."""
+        return self.structurally_above(uid) & self.class_of(uid)
+
+    def within_class_below(self, uid):
+        """Members of uid's class that are structurally below uid: a gap of any of them implies gap(uid)."""
+        return self.structurally_below(uid) & self.class_of(uid)
 
 
 if __name__ == "__main__":

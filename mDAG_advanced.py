@@ -543,18 +543,55 @@ class mDAG:
         return all(self.no_infeasible_binary_supports_n_events(n, **kwargs) for n in range(2, max_n + 1))
 
 
+    # ------------------------------------------------------------------
+    # The HLP edge rule (Evans; Henson, Lal and Pusey): an edge a -> b between two members of a facet with
+    # Pa(a) <= Pa(b) can be added or dropped without changing the classical model, since b sees everything a is
+    # a function of and the latent can carry a's noise. Quantumly the rule holds exactly when a has no visible
+    # parent and exactly one latent parent (`is_premeasurable`): a's measurement is then fixed, so the facet's
+    # source can perform it and hand the outcome to a and to b. With a visible parent (a setting) or a second facet
+    # (a joint measurement on two independent shares) the source cannot, and the rule fails: Q{A,B,D}, Q{A,C,D},
+    # Q{B,C} with A -> D lets D copy A's CHSH outcome against B, which the monogamy of nonlocality forbids without
+    # the edge.
+    # ------------------------------------------------------------------
+
+    def is_premeasurable(self, node: int) -> bool:
+        """No visible parent and exactly one (non-singleton) latent parent: the node's measurement does not depend
+        on anything the facet's source does not know, so the source can perform it."""
+        pa = int(self.nonsingleton_parents_masks[node])
+        return pa & ((1 << self.number_of_visible) - 1) == 0 and bin(pa >> self.number_of_visible).count('1') == 1
+
+    def _hlp_candidates_ok(self, pairs: Iterable[Tuple[int, int]], rule: str) -> List[Tuple[int, int]]:
+        assert rule in ('classical', 'quantum'), rule
+        pa = self.nonsingleton_parents_masks.tolist()   # visible and latent parents, as as_graph shows them
+        return [pair for pair in pairs if pa[pair[0]] & ~pa[pair[1]] == 0
+                and (rule == 'classical' or self.is_premeasurable(pair[0]))]
+
     @cached_property
     def droppable_edges(self) -> List[Tuple[int, int]]:
         candidates = [tuple(pair) for pair in self.directed_structure_instance.edge_list if
                       any(set(pair).issubset(hyperedge) for hyperedge in self.simplicial_complex_instance.compressed_simplicial_complex)]
-        pa = self.nonsingleton_parents_masks.tolist()   # visible and latent parents, as as_graph shows them
-        return [pair for pair in candidates if pa[pair[0]] & ~pa[pair[1]] == 0]
+        return self._hlp_candidates_ok(candidates, 'classical')
 
     @cached_property
     def addable_edges(self) -> List[Tuple[int, int]]:
         candidates = set(self.skeleton_instance.as_edges).difference(self.directed_structure_instance.edge_list)
-        pa = self.nonsingleton_parents_masks.tolist()
-        return [pair for pair in candidates if pa[pair[0]] & ~pa[pair[1]] == 0]
+        return self._hlp_candidates_ok(candidates, 'classical')
+
+    @cached_property
+    def quantum_droppable_edges(self) -> List[Tuple[int, int]]:
+        """droppable_edges whose origin is premeasurable: the quantum-valid HLP edges."""
+        return self._hlp_candidates_ok(self.droppable_edges, 'quantum')
+
+    @cached_property
+    def quantum_addable_edges(self) -> List[Tuple[int, int]]:
+        return self._hlp_candidates_ok(self.addable_edges, 'quantum')
+
+    def hlp_edges(self, rule: str) -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
+        """(droppable, addable) under the classical or the quantum rule."""
+        if rule == 'classical':
+            return self.droppable_edges, self.addable_edges
+        assert rule == 'quantum', rule
+        return self.quantum_droppable_edges, self.quantum_addable_edges
 
     @cached_property
     def equivalent_under_edge_dropping(self) -> List["mDAG"]:
@@ -568,13 +605,19 @@ class mDAG:
         return equivalent_mdags
 
 
-    @property
-    def generate_weaker_mDAG_HLP(self):
-        if self.droppable_edges and not self.addable_edges:
+    def weaker_mDAG_HLP(self, rule: str = 'classical'):
+        """The id of this mDAG with all its HLP-droppable edges (under `rule`) dropped, when nothing is addable:
+        the equivalence edge of the metagraph (the addable case is reached from the structure that has the edges)."""
+        droppable, addable = self.hlp_edges(rule)
+        if droppable and not addable:
             new_bit_square_matrix = self.directed_structure_instance.as_bit_square_matrix.copy()
-            new_bit_square_matrix[tuple(np.asarray(self.droppable_edges, dtype=int).reshape((-1,2)).T)] = False
+            new_bit_square_matrix[tuple(np.asarray(droppable, dtype=int).reshape((-1, 2)).T)] = False
             yield self.mdag_int_pair_to_single_int(bitarray_to_int(new_bit_square_matrix),
                                                    self.simplicial_complex_instance.as_integer)
+
+    @property
+    def generate_weaker_mDAG_HLP(self):
+        return self.weaker_mDAG_HLP('classical')
 
     @property
     def generate_slightly_weaker_mDAGs_HLP(self):

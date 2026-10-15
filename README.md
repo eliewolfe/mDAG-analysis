@@ -13,5 +13,9 @@ The package is managed with poetry (`poetry install`). Two dependencies deserve 
   (manuscript Appendix B) as an alternative engine: `python "Special Applications/proving_QC_Gaps.py" --engine lp`, or `--engine both` to
   cross-check the two engines on every candidate.
 
-The four-node census: `python "Special Applications/proving_QC_Gaps.py"` (about half a minute; `--no-cache` to
-recompute everything). Tests: `pytest` (fast suite) and `pytest -m slow` (the census pins).
+The four-node census: `python "Special Applications/proving_QC_Gaps.py"` (about a minute; `--no-cache` to
+recompute everything). It searches over quantum observational equivalence classes: `metagraph_advanced.QuantumMetagraph`
+builds the metagraph whose edges are quantum-valid (structural dominance, face splitting, the HLP edge rule when the
+origin node has no visible parent and one latent parent), `ClassicalMetagraph.from_quantum` adds the remaining HLP
+edges for the classical classes, and `equivalence_classes.ClassIndex` keys every structure by its class. Tests:
+`pytest` (fast suite) and `pytest -m slow` (the census pins).

@@ -32,12 +32,14 @@ def test_round_trip_and_invalidation_by_piggyback_version(tmp_path, monkeypatch)
     assert [step['trick'] for step in tri_entry['chain']] == ['degradation'] and tri_entry['seed'] == 'QG_Triangle'
     cache.save()
     data = json.load(open(path))
-    assert data['piggyback_versions'] == S.PIGGYBACK_VERSIONS
+    assert data['piggyback_versions'] == S.PIGGYBACK_VERSIONS and data['keyed_by'] == 'structure'
+    assert C.GapCache.load(path, keyed_by='class').valid_ids() == set()    # a class-keyed search drops a structure-keyed file
     entry = data['entries'][C.id_key(LOST.unique_unlabelled_id)]
     assert entry['id'] == list(LOST.unique_unlabelled_id)
     assert entry['seed'] in SEEDS
-    assert entry['chain'] and all(set(step) == {'trick', 'params', 'source', 'target'} for step in entry['chain'])
-    assert set(entry['versions']) == {step['trick'] for step in entry['chain']}
+    assert entry['chain'] and all(set(step) == {'trick', 'params', 'source', 'target', 'via', 'produced'} for step in entry['chain'])
+    assert data['format'] == C.CACHE_FORMAT
+    assert set(entry['versions']) == {step['trick'] for step in entry['chain']} | {'metagraph'}
     assert 'Fritz' in entry['versions']
     assert entry['structure']['edges'] == [[0, 2], [1, 2], [2, 3]]
     assert '== known gap' in entry['certificate']
@@ -68,6 +70,41 @@ def test_round_trip_and_invalidation_by_piggyback_version(tmp_path, monkeypatch)
     assert C.GapCache.load(path, seeds=SEEDS).valid_ids() == loaded.valid_ids()
     without = [name for name in SEEDS if name != entry['seed']]
     assert C.GapCache.load(path, seeds=without).valid_ids() == loaded.valid_ids() - {LOST.unique_unlabelled_id}
+
+
+def test_a_file_of_another_format_is_dropped_whole(tmp_path):
+    path = str(tmp_path / "known_gaps.json")
+    report = S.prove_gaps([TRIANGLE], SEEDS, verbose=False)
+    cache = C.GapCache(path)
+    assert cache.record(report) == 1
+    cache.save()
+    data = json.load(open(path))
+    for bad in (None, 1, C.CACHE_FORMAT + 1):
+        data['format'] = bad
+        if bad is None:
+            del data['format']
+        json.dump(data, open(path, 'w'))
+        loaded = C.GapCache.load(path)
+        assert len(loaded) == 0 and loaded.dropped == 1
+    data['format'] = C.CACHE_FORMAT
+    json.dump(data, open(path, 'w'))
+    assert len(C.GapCache.load(path)) == 1 and len(C.GapCache.load(path, keyed_by='structure')) == 1
+    assert len(C.GapCache.load(path, keyed_by='class')) == 0
+
+
+def test_class_keyed_entries_carry_the_metagraph_version(tmp_path):
+    from equivalence_classes import ClassIndex
+    index = ClassIndex((3, 4))
+    report = S.prove_gaps([SQUARE], SEEDS, stages=S.default_stages()[:1], verbose=False, index=index)
+    cache = C.GapCache(str(tmp_path / "known_gaps.json"))
+    assert cache.record(report) == 1
+    entry = next(iter(cache.entries.values()))
+    assert entry['versions']['metagraph'] == S.PIGGYBACK_VERSIONS['metagraph'] and cache.keyed_by == 'class'
+    # a class with several seeds stays known while any of its seeds is listed
+    cache.save()
+    bell = [n for n in SEEDS if n.startswith('QG_Bell_Edge_Edge_Settings')]
+    assert C.GapCache.load(cache.path, seeds=[n for n in SEEDS if n not in bell[:1]], keyed_by='class').valid_ids() == cache.valid_ids()
+    assert entry['class_members'] == [] or all(set(m) == {'nodes', 'edges', 'classical_facets', 'quantum_facets'} for m in entry['class_members'])
 
 
 def test_cached_gaps_act_as_known_and_dependent_entries_inherit_versions(tmp_path):
