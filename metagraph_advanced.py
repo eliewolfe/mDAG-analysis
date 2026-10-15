@@ -80,6 +80,9 @@ class Observable_unlabelled_mDAGs:
                     'dict_ind_unlabelled_mDAGs', 'metagraph_nodes', 'hypergraph_dominances',
                     'directed_dominances_up_to_symmetry', 'structural_dominances', 'face_splitting_edge_list',
                     'latent_free_DAGs_unlabelled', 'structural_order', '_structural_closure')
+    # What a sibling must share for the two metagraphs to agree (the rest is shared when already computed).
+    FORCED_SHARED = ('dict_uniqind_unlabelled_mDAGs', 'dict_id_to_canonical_id', 'structural_dominances',
+                     'face_splitting_edge_list', 'structural_order', '_structural_closure')
 
     def __init__(self, n: int,
                  fully_foundational=False,
@@ -111,8 +114,11 @@ class Observable_unlabelled_mDAGs:
         new = cls.__new__(cls)
         Observable_unlabelled_mDAGs.__init__(new, other.n, fully_foundational=other.fully_foundational,
                                              all_dominances=other.all_dominances, verbose=other.verbose, rule=rule, **kwargs)
+        for name in cls.FORCED_SHARED:
+            getattr(other, name)                       # computed on `other` if need be, so that both share it
         for name in cls.SHARED_CACHE:
-            new.__dict__[name] = getattr(other, name)   # computed on `other` if need be, then shared
+            if name in other.__dict__:
+                new.__dict__[name] = other.__dict__[name]
         return new
 
     @cached_property
@@ -457,19 +463,29 @@ class Observable_unlabelled_mDAGs:
         for (id2, id) in self.raw_FaceSplitting_edges:
             yield partsextractor(self.dict_id_to_canonical_id, (id2, id))
 
-    def _canonical_hlp_edges(self):
-        return {(self.dict_id_to_canonical_id[a], self.dict_id_to_canonical_id[b]) for a, b in self.raw_HLP_edges}
+    def _canonical_pairs(self, pairs) -> set:
+        return {(self.dict_id_to_canonical_id[a], self.dict_id_to_canonical_id[b]) for a, b in pairs}
 
     @cached_property
     def structural_dominances(self):
         """(strong, weak) canonical-id pairs: weak is strong with one facet or one edge fewer (a containment of
-        both the classical and the quantum model set). Rule-independent."""
-        return self.all_HLP_relevant_dominances[0]
+        both the classical and the quantum model set). Rule-independent, shared between the two metagraphs."""
+        if self.verbose:
+            eprint('Adding dominance relations...', flush=True)
+        directed_ids = np.array(tuple(ds.as_integer for ds in self.all_unlabelled_directed_structures), dtype=object)[:, np.newaxis, np.newaxis]
+        hypergraph_dominances = np.asarray(self.hypergraph_dominances, dtype=object)
+        from_hypergraphs = np.reshape(self.mdag_int_pair_to_single_int(directed_ids, hypergraph_dominances), (-1, 2))
+        simplicial_ids = np.array(tuple(sc.as_integer for sc in self.all_simplicial_complices), dtype=object)[:, np.newaxis, np.newaxis]
+        directed_dominances = np.asarray(self.directed_dominances_up_to_symmetry, dtype=object)
+        from_directed_edges = np.reshape(self.mdag_int_pair_to_single_int(directed_dominances, simplicial_ids), (-1, 2))
+        if self.verbose:
+            eprint("Converting dominance relations to unique ids...")
+        return list(self._canonical_pairs(from_hypergraphs.tolist())) + list(self._canonical_pairs(from_directed_edges.tolist()))
 
     @cached_property
     def hlp_edge_list(self):
         """(weak, strong) canonical-id pairs of the HLP equivalence under this metagraph's rule."""
-        return self.all_HLP_relevant_dominances[1]
+        return list(self._canonical_pairs(self.raw_HLP_edges))
 
     @cached_property
     def face_splitting_edge_list(self):
@@ -479,54 +495,8 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def all_HLP_relevant_dominances(self):
-        if 'structural_dominances' in self.__dict__:   # shared from a sibling: only the HLP edges are recomputed
-            return (self.structural_dominances, list(self._canonical_hlp_edges()))
-        if self.verbose:
-            eprint('Adding dominance relations...', flush=True)
-        directed_ids = np.array(tuple(ds.as_integer for ds in self.all_unlabelled_directed_structures), dtype=object)[:,np.newaxis,np.newaxis]
-        hypergraph_dominances = np.asarray(self.hypergraph_dominances, dtype=object)
-        dominances_from_hypergraphs = np.reshape(self.mdag_int_pair_to_single_int(directed_ids, hypergraph_dominances),(-1,2))
-        simplicial_ids = np.array(tuple(sc.as_integer for sc in self.all_simplicial_complices), dtype=object)[:,np.newaxis,np.newaxis]
-        directed_dominances = np.asarray(self.directed_dominances_up_to_symmetry, dtype=object)
-        dominances_from_directed_edges = np.reshape(self.mdag_int_pair_to_single_int(directed_dominances, simplicial_ids),(-1,2))
-        HLP_dominances = np.asarray(tuple(self.raw_HLP_edges), dtype=object)
-        num_equiv_dom = len(HLP_dominances)
-        # all_dominances = np.vstack((dominances_from_hypergraphs, dominances_from_directed_edges, HLP_dominances))
-        # partsextractor(self.dict_id_to_canonical_id, dominances_from_hypergraphs.ravel().tolist())
-        # partsextractor(self.dict_id_to_canonical_id, dominances_from_directed_edges.ravel().tolist())
-        if self.verbose:
-            eprint("Converting dominance relations to unique ids...")
-
-        HLP_dominances = set(zip(
-            partsextractor(self.dict_id_to_canonical_id,
-                           HLP_dominances[:,0]),
-            partsextractor(self.dict_id_to_canonical_id,
-                           HLP_dominances[:, 1])))
-        dominances_from_hypergraphs = set(zip(
-            partsextractor(self.dict_id_to_canonical_id,
-                           dominances_from_hypergraphs[:, 0]),
-            partsextractor(self.dict_id_to_canonical_id,
-                           dominances_from_hypergraphs[:, 1])))
-        dominances_from_directed_edges = set(zip(
-            partsextractor(self.dict_id_to_canonical_id,
-                           dominances_from_directed_edges[:, 0]),
-            partsextractor(self.dict_id_to_canonical_id,
-                           dominances_from_directed_edges[:, 1])))
-        return (list(dominances_from_hypergraphs) + list(dominances_from_directed_edges),
-                list(HLP_dominances))
-        #
-        #
-        # all_dominances = np.array(
-        #     partsextractor(self.dict_id_to_canonical_id,
-        #                    all_dominances.ravel())).reshape((-1, 2))
-        # equiv_maybe_breaking_doms = all_dominances[:-num_equiv_dom]
-        # equiv_preserving_doms = all_dominances[-num_equiv_dom:]
-        # # [row, col] = all_dominances.T.tolist()
-        # del directed_ids, hypergraph_dominances, simplicial_ids, directed_dominances, dominances_from_hypergraphs, dominances_from_directed_edges, HLP_dominances
-        # if self.verbose:
-        #     eprint("Deleting duplicate dominance relations...")
-        # return (set(map(tuple, equiv_maybe_breaking_doms.tolist())), set(map(tuple, equiv_preserving_doms.tolist())))
-        # # return set(map(tuple, all_dominances.tolist()))
+        """(structural dominances, HLP equivalence edges), both as canonical-id pairs."""
+        return (self.structural_dominances, self.hlp_edge_list)
 
     @property
     def boring_dominances(self):
@@ -1087,9 +1057,6 @@ class Observable_mDAGs_Analysis(Observable_unlabelled_mDAGs):
 
 
 
-if __name__ == "__main__":
-    test = Observable_unlabelled_mDAGs(3, verbose=2)
-    print(len(test.all_unlabelled_mDAGs))
 
 class QuantumMetagraph(Observable_unlabelled_mDAGs):
     """The metagraph under the quantum rule: its strongly connected components are proven quantum observational
@@ -1119,3 +1086,7 @@ class ClassicalMetagraph(Observable_unlabelled_mDAGs):
         """Members of uid's class that are structurally below uid: a gap of any of them implies gap(uid)."""
         return self.structurally_below(uid) & self.class_of(uid)
 
+
+if __name__ == "__main__":
+    test = Observable_unlabelled_mDAGs(3, verbose=2)
+    print(len(test.all_unlabelled_mDAGs))

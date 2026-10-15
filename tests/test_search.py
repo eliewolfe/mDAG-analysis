@@ -194,4 +194,6 @@ def test_upward_rule_is_a_recorded_lookup(index):
     chain = report.proven[above_key]
     assert [t.trick for t in chain] == ['upward'] and report.seed_hit[above_key] == 'lower'
     assert dict(chain[0].params).keys() == {'above', 'below'}
+    # the step is stated in the labels of the member it was applied to
+    assert dict(chain[0].params)['above'] == str(report.explorer.structures[chain[0].via].as_mDAG)
     assert 'upward' in report.certificate(index.representative(above_key))

@@ -112,6 +112,8 @@ class GapCache:
             members = index.members(gid) if index is not None else []
             seed = report.seed_hit.get(gid, '?')
             versions = {t.trick: PIGGYBACK_VERSIONS[t.trick] for t in chain}
+            if index is not None:
+                versions['metagraph'] = PIGGYBACK_VERSIONS['metagraph']   # the keys themselves depend on the rules
             via_cache = None
             if seed.startswith('cache:'):
                 # The certificate ends at a cached gap: this proof relies on that entry's proof too, so it inherits

@@ -35,7 +35,9 @@ class ClassIndex:
         self._members: Dict[UnlabelledId, List[QmDAG]] = {}          # key -> all-quantum members
         self._key_of_mdag: Dict[Tuple[int, int], UnlabelledId] = {}   # (n, mDAG unlabelled id) -> key
         self._mdag_ids_of: Dict[UnlabelledId, Set[int]] = {}         # key -> member mDAG unlabelled ids
-        self._upward: Dict[UnlabelledId, List[Tuple[Tuple, QmDAG]]] = {}   # key -> upward_steps, computed once
+        self._upward: Dict[UnlabelledId, Dict[int, List[Tuple[Tuple, QmDAG]]]] = {}   # key -> {above mDAG id: steps}
+        self._key_memo: Dict[UnlabelledId, UnlabelledId] = {}                       # structure id -> key
+        self._representative: Dict[UnlabelledId, QmDAG] = {}
         for n in node_counts:
             Q = QuantumMetagraph(n, verbose=verbose)
             C = ClassicalMetagraph.from_quantum(Q)
@@ -44,6 +46,7 @@ class ClassIndex:
                 members = [upgrade_to_QmDAG(Q.dict_uniqind_unlabelled_mDAGs[uid]) for uid in sorted(cls)]
                 key = min(m.unique_unlabelled_id for m in members)
                 self._members[key] = members
+                self._representative[key] = next(m for m in members if m.unique_unlabelled_id == key)
                 self._mdag_ids_of[key] = set(cls)
                 for uid in cls:
                     self._key_of_mdag[(n, uid)] = key
@@ -54,11 +57,16 @@ class ClassIndex:
         return g.number_of_visible in self.quantum
 
     def key(self, g: QmDAG) -> UnlabelledId:
-        """The class key of a structure (see the module docstring)."""
+        """The class key of a structure (see the module docstring); memoised by the structure's id."""
+        gid = g.unique_unlabelled_id
+        try:
+            return self._key_memo[gid]
+        except KeyError:
+            pass
         lifted = g.lift() if self.covers(g) else None
-        if lifted is None:
-            return g.unique_unlabelled_id
-        return self._key_of_mdag[(lifted.number_of_visible, lifted.as_mDAG.unique_unlabelled_id)]
+        key = gid if lifted is None else self._key_of_mdag[(lifted.number_of_visible, lifted.as_mDAG.unique_unlabelled_id)]
+        self._key_memo[gid] = key
+        return key
 
     def is_class_key(self, key: UnlabelledId) -> bool:
         return key in self._members
@@ -71,10 +79,8 @@ class ClassIndex:
         return [fallback] if fallback is not None else []
 
     def representative(self, key: UnlabelledId) -> Optional[QmDAG]:
-        members = self._members.get(key)
-        if not members:
-            return None
-        return min(members, key=lambda m: m.unique_unlabelled_id)
+        """The member whose unlabelled id is the key (None for a non-class key)."""
+        return self._representative.get(key)
 
     def size(self, key: UnlabelledId) -> int:
         return len(self._members.get(key, ())) or 1
@@ -118,37 +124,36 @@ class ClassIndex:
     # -- the upward rule ----------------------------------------------------------------------------------
 
     def upward_steps(self, g: QmDAG) -> List[Tuple[Tuple, QmDAG]]:
-        """For a structure of a covered class: the classes structurally below its class inside the same classical
-        class, as (params, representative) pairs. A gap of such a class is a gap of g's class: g's quantum model
-        contains the lower structure's (it has more edges or facets) while its classical model equals it (same
-        classical class). params: (('above', <member of g's class>), ('below', <structure below it>))."""
+        """For an all-quantum structure g of a covered class: the classes of the structures structurally below g
+        inside g's classical class, as (params, representative) pairs, one per lower class. A gap of such a class is
+        a gap of g's class: g's quantum model contains the lower structure's (g has more edges or facets) while its
+        classical model equals it (same classical class). params: (('above', g), ('below', <structure below it>)),
+        so that the step is stated in g's own labels (the search applies it to every member of a class)."""
         key = self.key(g)
         members = self._members.get(key)
-        if not members:
+        if not members or not g.is_all_quantum:
             return []
-        if key in self._upward:
-            return self._upward[key]
         n = members[0].number_of_visible
         C = self.classical[n]
+        uid = g.as_mDAG.unique_unlabelled_id
+        per_member = self._upward.setdefault(key, {})
+        if uid in per_member:
+            return per_member[uid]
         out: Dict[UnlabelledId, Tuple] = {}
-        for uid in sorted(self._mdag_ids_of[key]):
-            for below in sorted(C.within_class_below(uid)):
-                below_key = self._key_of_mdag[(n, below)]
-                if below_key == key or below_key in out:
-                    continue
-                above_structure = str(C.dict_uniqind_unlabelled_mDAGs[uid])
-                below_structure = str(C.dict_uniqind_unlabelled_mDAGs[below])
-                out[below_key] = (('above', above_structure), ('below', below_structure))
-        self._upward[key] = [(params, self.representative(below_key)) for below_key, params in out.items()]
-        return self._upward[key]
+        above_structure = str(C.dict_uniqind_unlabelled_mDAGs[uid])
+        for below in sorted(C.within_class_below(uid)):
+            below_key = self._key_of_mdag[(n, below)]
+            if below_key == key or below_key in out:
+                continue
+            out[below_key] = (('above', above_structure), ('below', str(C.dict_uniqind_unlabelled_mDAGs[below])))
+        per_member[uid] = [(params, self.representative(below_key)) for below_key, params in out.items()]
+        return per_member[uid]
 
     # -- seeds --------------------------------------------------------------------------------------------
 
     def seed_keys(self, seeds: Dict[str, QmDAG]) -> Dict[UnlabelledId, str]:
-        """key -> '+'-joined seed names. A seed that lifts is the class of its lift; a seed that does not (a hybrid
-        strictly weaker than its all-quantum version) keeps its own id, and the class of its all-quantum version is
-        proven through the degradation lookup."""
-        by_key: Dict[UnlabelledId, List[str]] = {}
-        for name, g in seeds.items():
-            by_key.setdefault(self.key(g), []).append(name)
-        return {key: '+'.join(sorted(names)) for key, names in by_key.items()}
+        """key -> '+'-joined seed names (qc_gap_search.group_seeds_by_key). A seed that lifts is the class of its
+        lift; a seed that does not (a hybrid strictly weaker than its all-quantum version) keeps its own id, and the
+        class of its all-quantum version is proven through the degradation lookup."""
+        from qc_gap_search import group_seeds_by_key
+        return group_seeds_by_key(self.key, seeds)

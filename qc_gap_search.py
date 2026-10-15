@@ -30,6 +30,9 @@ UnlabelledId = Tuple[int, int, int, int]
 # Bump a piggyback's version when its map or its admissibility rule changes; cached proofs that relied on it are
 # then discarded (gap_cache.py). Fritz-type tricks share the mechanism but are versioned separately.
 PIGGYBACK_VERSIONS: Dict[str, int] = {
+    'metagraph': 1,                    # the class keys and the upward rule rest on the metagraph rules (structural
+                                       #   dominance, face splitting, the premeasurable HLP rule, the lift); every
+                                       #   cached proof of a class-keyed search carries this version
     'identity': 1,                     # an input that is (in the class of) a seed
     'upward': 1,                       # gap(G') for G' structurally above G in G's classical class (lookup only)
     'PD': 1,
@@ -257,8 +260,6 @@ class ClosureExplorer:
         """The search key of a structure: its class key with an index, its unlabelled id without."""
         return self.index.key(g) if self.index is not None else g.unique_unlabelled_id
 
-    CLASS_LEVEL_LOOKUPS = frozenset({'upward'})   # lookups that depend on the class only: applied once per key
-
     def members(self, key: UnlabelledId) -> List[QmDAG]:
         """The structures a key is expanded through: the class's all-quantum members, or the structure itself.
         Every member is kept in `structures` so that certificates can print it."""
@@ -301,7 +302,7 @@ class ClosureExplorer:
         transitions = []
         members = self.members(key)
         for name, trick in self.lookup_tricks.items():
-            for g in (members[:1] if name in self.CLASS_LEVEL_LOOKUPS else members):
+            for g in members:
                 for params, child in trick(g):
                     child_key = self._register_lookup_child(child)
                     if child_key == key:
@@ -595,13 +596,18 @@ def _trick_groups_for(explorer: ClosureExplorer, trick_groups):
     return TRICK_GROUPS_FOR_REPORT if trick_groups is None else trick_groups
 
 
-def _seed_keys(explorer: ClosureExplorer, seeds: Dict[str, QmDAG], known: Optional[Dict[str, UnlabelledId]]) -> Dict[UnlabelledId, str]:
-    """key -> name of the known gap: seeds (several seeds in one class share a key; their names are joined with
-    '+') and the extra known gaps by key."""
+def group_seeds_by_key(key: Callable[[QmDAG], UnlabelledId], seeds: Dict[str, QmDAG]) -> Dict[UnlabelledId, str]:
+    """key -> seed name(s): several seeds in one class share a key and their names are joined with '+' (the cache
+    splits them on '+' again)."""
     by_key: Dict[UnlabelledId, List[str]] = {}
     for name, g in seeds.items():
-        by_key.setdefault(explorer.key(g), []).append(name)
-    seed_ids = {key: '+'.join(sorted(names)) for key, names in by_key.items()}
+        by_key.setdefault(key(g), []).append(name)
+    return {k: '+'.join(sorted(names)) for k, names in by_key.items()}
+
+
+def _seed_keys(explorer: ClosureExplorer, seeds: Dict[str, QmDAG], known: Optional[Dict[str, UnlabelledId]]) -> Dict[UnlabelledId, str]:
+    """key -> name of the known gap: the seeds (group_seeds_by_key) and the extra known gaps by key."""
+    seed_ids = group_seeds_by_key(explorer.key, seeds)
     seed_ids.update({gid: name for name, gid in (known or {}).items()})
     return seed_ids
 
