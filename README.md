@@ -17,5 +17,7 @@ The four-node census: `python "Special Applications/proving_QC_Gaps.py"` (about 
 recompute everything). It searches over quantum observational equivalence classes: `metagraph_advanced.QuantumMetagraph`
 builds the metagraph whose edges are quantum-valid (structural dominance, face splitting, the HLP edge rule when the
 origin node has no visible parent and one latent parent), `ClassicalMetagraph.from_quantum` adds the remaining HLP
-edges for the classical classes, and `equivalence_classes.ClassIndex` keys every structure by its class. Tests:
+edges for the classical classes, and `equivalence_classes.ClassIndex` keys every structure by its class. The nodes
+of the metagraph are enumerated by orbits from permutation tables (`canonical_forms.py`: canonical ids on demand,
+no dictionary over the labelled mDAGs), which is what makes five nodes (1,718,596 unlabelled mDAGs) enumerable. Tests:
 `pytest` (fast suite) and `pytest -m slow` (the census pins).
