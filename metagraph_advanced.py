@@ -97,7 +97,7 @@ class Observable_unlabelled_mDAGs:
                     'all_labelled_mDAGs', 'canonical_forms', 'dict_id_to_canonical_id', 'dict_uniqind_unlabelled_mDAGs',
                     'dict_ind_unlabelled_mDAGs', 'metagraph_nodes', 'hypergraph_dominances',
                     'directed_dominances_up_to_symmetry', 'structural_dominances', 'face_splitting_edge_list',
-                    'latent_free_DAGs_unlabelled', 'structural_order', '_structural_closure')
+                    'latent_free_DAGs_unlabelled', 'structural_order', '_structural_closure', '_dict_id_to_idx')
     # What a sibling must share for the two metagraphs to agree (the rest is shared when already computed).
     FORCED_SHARED = ('canonical_forms', 'dict_uniqind_unlabelled_mDAGs', 'structural_dominances',
                      'face_splitting_edge_list', 'structural_order')
@@ -106,7 +106,8 @@ class Observable_unlabelled_mDAGs:
                  fully_foundational=False,
                  all_dominances=False,
                  verbose=True,
-                 rule: str = 'classical'):
+                 rule: str = 'classical',
+                 compact=None):
         """
         Parameters
         ----------
@@ -114,10 +115,16 @@ class Observable_unlabelled_mDAGs:
             The number of observed variables.
         rule : 'classical' or 'quantum'
             Which model sets the metagraph's equivalences are sound for (see the class docstring).
+        compact : bool, default n >= 5
+            Keep the memory per node small: every mDAG's cached attributes are released once its edges have been
+            read off (a few hundred bytes per node instead of a few kilobytes), and the dominances enter the
+            classical graph without the CI filter of `boring_dominances`, which prunes edges that can never lie
+            on a cycle and so leaves the components unchanged while costing a d-separation enumeration per node.
         """
         assert rule in ('classical', 'quantum'), rule
         self.n = n
         self.rule = rule
+        self.compact = (n >= 5) if compact is None else bool(compact)
         self.tuple_n = tuple(range(self.n))
         self.set_n = set(self.tuple_n)
         self.sort_by_length = lambda s: sorted(s, key=len)
@@ -131,7 +138,8 @@ class Observable_unlabelled_mDAGs:
         """A metagraph on the same nodes under another rule, sharing every rule-independent cached attribute."""
         new = cls.__new__(cls)
         Observable_unlabelled_mDAGs.__init__(new, other.n, fully_foundational=other.fully_foundational,
-                                             all_dominances=other.all_dominances, verbose=other.verbose, rule=rule, **kwargs)
+                                             all_dominances=other.all_dominances, verbose=other.verbose, rule=rule,
+                                             compact=other.compact, **kwargs)
         for name in cls.FORCED_SHARED:
             getattr(other, name)                       # computed on `other` if need be, so that both share it
         for name in cls.SHARED_CACHE:
@@ -478,6 +486,8 @@ class Observable_unlabelled_mDAGs:
                 message=f"Finding HLP Rule #4 type edges ({self.rule} rule)"):  # NEW: Over graph patterns only
             for id2 in mdag.weaker_mDAG_HLP(self.rule):
                 yield (id2, id)
+            if self.compact:
+                mdag.release_cache()
 
     @property
     def raw_FaceSplitting_edges(self):
@@ -487,6 +497,8 @@ class Observable_unlabelled_mDAGs:
                 message="Finding metagraph edges due to face splitting"):  # NEW: Over graph patterns only
             for id2 in mdag.generate_weaker_mDAGs_FaceSplitting('strong'):
                 yield (id2, id)
+            if self.compact:
+                mdag.release_cache()
 
     @property
     def HLP_edges(self):
@@ -551,7 +563,10 @@ class Observable_unlabelled_mDAGs:
     def boring_dominances(self):
         (equiv_breaking_doms, equiv_maybe_preserving_doms) = self.all_HLP_relevant_dominances
         equiv_maybe_preserving_doms = list(equiv_maybe_preserving_doms)   # a copy: the cached HLP list stays intact
-        if self.all_dominances:
+        if self.all_dominances or self.compact:
+            # Unfiltered: the filter below only drops dominances that can never lie on a cycle (every edge is a
+            # sound containment, so a cycle's members share skeleton and CI count), so the components are the
+            # same; it is skipped when the CI enumeration per node is the expensive part.
             equiv_maybe_preserving_doms.extend(equiv_breaking_doms)
             return equiv_maybe_preserving_doms
         for dom_ids in explore_candidates(equiv_breaking_doms,
@@ -565,41 +580,54 @@ class Observable_unlabelled_mDAGs:
                     equiv_maybe_preserving_doms.append(dom_ids)
         return equiv_maybe_preserving_doms
 
-    @cached_property
-    def HLP_meta_graph(self):
-        g = nx.DiGraph()
-        g.add_nodes_from(self.metagraph_nodes.flat)
-        # gc.collect(generation=2)
-        # if self.verbose:
-        #     eprint('Adding dominance relations...', flush=True)
-        # # raw_dir_dom = tuple(self._all_directed_dominances)
-        # # raw_hyp_dom = tuple(self._all_hypergraph_dominances)
-        # # dedup_dir_dom = set(raw_dir_dom)
-        # # dedup_hyp_dom = set(raw_hyp_dom)
-        # # eprint(f"Directed dominances before and after deduplication: {len(raw_dir_dom)} vs {len(dedup_dir_dom)}")
-        # # eprint(f"Hypergraph dominances before and after deduplication: {len(raw_hyp_dom)} vs {len(dedup_hyp_dom)}")
-        # # g.add_edges_from(dedup_dir_dom.union(dedup_hyp_dom))
-        # g.add_edges_from(set(self.boring_dominances))
-        # gc.collect(generation=2)
-        # # edge_count = g.number_of_edges()
-        # if self.verbose:
-        #     eprint('Adding HLP equivalence relations...', flush=True)
-        # g.add_edges_from(zip(*self.all_HLP_relevant_dominances))
-        g.add_edges_from(self.boring_dominances)
-        # gc.collect(generation=2)
-        # new_edge_count =  g.number_of_edges()
-        # if self.verbose:
-        #     print('Number of HLP equivalence relations added: ', new_edge_count-edge_count)
-        # if self.verbose:
-        #     print('HLP Metagraph has been constructed. Total edge count: ', g.number_of_edges(), flush=True)
-        return g
+    # ------------------------------------------------------------------
+    # The metagraph as sparse adjacency matrices (scipy.sparse): node i is metagraph_nodes[i], and a True entry
+    # (i, j) is an edge from i to j. Strongly connected components, reachability and the topological order all
+    # come from the CSR arrays; nothing is held as a networkx graph.
+    # ------------------------------------------------------------------
 
     @cached_property
     def _dict_id_to_idx(self):
         return {id: i for i, id in enumerate(self.metagraph_nodes.flat)}
 
+    def _csr_from_pairs(self, *edge_lists):
+        """The boolean N x N CSR adjacency matrix of the given (source, target) id-pair lists; duplicates
+        collapse."""
+        idx = self._dict_id_to_idx
+        N = self.num_metagraph_nodes
+        rows, cols = [], []
+        for pairs in edge_lists:
+            for a, b in pairs:
+                rows.append(idx[a])
+                cols.append(idx[b])
+        m = sparse.coo_matrix((np.ones(len(rows), dtype=bool),
+                               (np.asarray(rows, dtype=np.int32), np.asarray(cols, dtype=np.int32))),
+                              shape=(N, N)).tocsr()
+        m.data[:] = True
+        return m
 
+    @staticmethod
+    def _reachable(csr, start, blocked=None):
+        """Indices reachable from `start` along the rows of `csr`, `start` itself excluded, never entering an
+        index marked in `blocked`."""
+        indptr, indices = csr.indptr, csr.indices
+        seen = {start}
+        stack = [start]
+        out = set()
+        while stack:
+            u = stack.pop()
+            for v in indices[indptr[u]:indptr[u + 1]].tolist():
+                if v not in seen and (blocked is None or not blocked[v]):
+                    seen.add(v)
+                    out.add(v)
+                    stack.append(v)
+        return out
 
+    @cached_property
+    def HLP_meta_graph(self):
+        """The classical-rule graph without face splitting: the (CI-filtered) structural dominances and the HLP
+        equivalence edges, as a CSR matrix."""
+        return self._csr_from_pairs(self.boring_dominances)
 
     @cached_property
     def HLP_meta_adjmat(self):
@@ -624,61 +652,49 @@ class Observable_unlabelled_mDAGs:
                 closure_mat = next_closure_mat
         return closure_mat
 
-
     @cached_property
     def boring_by_virtue_of_HLP(self):
-        # proven_boring = set()
-        # for lf_id, lf_CI in explore_candidates(self.latent_free_DAG_ids_and_CI_unlabelled.items(),
-        #                                        verbose=self.verbose,
-        #                                        message="Running HLP in reverse"):
-        #
-        #     idxs_dominated_by_LF = self.HLP_meta_adjmat_closure[self._dict_id_to_idx[lf_id]].tocoo().row
-        #     ids_dominated_by_LF = self.metagraph_nodes[idxs_dominated_by_LF].tolist()
-        #     mdags_dominated_by_LF = partsextractor(self.dict_uniqind_unlabelled_mDAGs, ids_dominated_by_LF)
-        #     mdags_dominated_by_LF = [m for m in mdags_dominated_by_LF if m.all_CI_unlabelled==lf_CI]
-        #     proven_boring.update(mdags_dominated_by_LF)
-        # return proven_boring
-        # HLP_meta_graph = nx.transitive_closure(self.HLP_meta_graph, reflexive=True)
-        HLP_meta_graph = self.HLP_meta_graph.copy()
+        """The mDAGs dominated by (reaching, in HLP_meta_graph) a latent-free DAG, found latent-free DAG by
+        latent-free DAG in order of CI count; what one DAG accounts for is removed before the next search."""
+        incoming = self.HLP_meta_graph.T.tocsr()          # row v: the nodes with an edge into v
+        removed = np.zeros(self.num_metagraph_nodes, dtype=bool)
+        idx = self._dict_id_to_idx
+        nodes = self.metagraph_nodes
         proven_boring = set()
         for lf_id, lf_CI in explore_candidates(self.latent_free_DAG_ids_and_CI_unlabelled.items(),
                                                verbose=self.verbose,
                                                message="Running HLP in reverse"):
-            ids_dominated_by_LF = {lf_id}.union(nx.ancestors(HLP_meta_graph, lf_id))
-            # ids_dominated_by_LF = tuple(HLP_meta_graph.predecessors(lf_id))
+            i = idx[lf_id]
+            ids_dominated_by_LF = {lf_id}.union(nodes[list(self._reachable(incoming, i, removed))].tolist())
             dominated_by_LF = partsextractor(self.dict_uniqind_unlabelled_mDAGs, ids_dominated_by_LF)
             if self.all_dominances:
                 dominated_by_LF = [m for m in dominated_by_LF if m.all_CI_unlabelled==lf_CI]
-            HLP_meta_graph.remove_nodes_from(m.unique_unlabelled_id for m in dominated_by_LF)
+            for m in dominated_by_LF:
+                removed[idx[m.unique_unlabelled_id]] = True
             proven_boring.update(dominated_by_LF)
         return proven_boring
 
     @cached_property
     def meta_graph(self):
+        """The full metagraph under this rule, as a CSR matrix: structural dominances, the HLP edges of the rule
+        and face splitting (the classical companion of a quantum metagraph adds the unrestricted HLP edges)."""
         if self.rule == 'quantum':
-            # Every edge is a sound containment of quantum model sets; no CI filter is needed for soundness, and the
-            # classical companion (from_quantum) adds the unrestricted HLP edges to this graph.
-            g = nx.DiGraph()
-            g.add_nodes_from(self.metagraph_nodes.flat)
-            g.add_edges_from(self.structural_dominances)
-            g.add_edges_from(self.hlp_edge_list)
-            g.add_edges_from(self.face_splitting_edge_list)
-            return g
-        g = self.HLP_meta_graph.copy()
-        # edge_count = g.number_of_edges()
+            # Every edge is a sound containment of quantum model sets; no CI filter is needed for soundness.
+            return self._csr_from_pairs(self.structural_dominances, self.hlp_edge_list, self.face_splitting_edge_list)
         if self.verbose:
             eprint('Adding FaceSplitting equivalence relations...', flush=True)
-        g.add_edges_from(self.face_splitting_edge_list)
-        gc.collect(generation=2)
-        # new_edge_count = g.number_of_edges()
-        # if self.verbose:
-        #     print('Number of FaceSplitting equivalence relations added: ', new_edge_count - edge_count)
-        #     print('Full metagraph has been constructed. Total edge count: ', g.number_of_edges(), flush=True)
-        return g         
+        return self._csr_from_pairs(self.boring_dominances, self.face_splitting_edge_list)
 
     @cached_property
     def equivalence_classes_as_ids(self):
-        return list(nx.strongly_connected_components(self.meta_graph))
+        """The strongly connected components of meta_graph, as sets of unlabelled ids, ordered by their smallest
+        node index."""
+        _, labels = sparse.csgraph.connected_components(self.meta_graph, directed=True, connection='strong')
+        order = np.argsort(labels, kind='stable')
+        groups = np.split(order, np.flatnonzero(np.diff(labels[order])) + 1) if len(order) else []
+        groups.sort(key=lambda g: int(g[0]))
+        nodes = self.metagraph_nodes
+        return [set(nodes[g].tolist()) for g in groups]
 
     # ------------------------------------------------------------------
     # Class lookups shared by the quantum and the classical metagraph
@@ -697,41 +713,55 @@ class Observable_unlabelled_mDAGs:
     def latent_free_equivalent_ids(self):
         """Members of the classes that contain a latent-free DAG (under this metagraph's rule). Under the
         classical rule these are the provably algebraic structures, for which Q(G) = C(G)."""
-        latent_free = {m.unique_unlabelled_id for m in self.latent_free_DAGs_unlabelled}
-        return set().union(*(cls for cls in self.equivalence_classes_as_ids if cls & latent_free)) \
-            if self.equivalence_classes_as_ids else set()
+        classes = self.equivalence_classes_as_ids
+        hit = {self.class_index_of[m.unique_unlabelled_id] for m in self.latent_free_DAGs_unlabelled}
+        return set().union(*(classes[k] for k in hit)) if hit else set()
 
     @cached_property
     def structural_order(self):
-        """The structural dominances as a digraph (strong -> weak): u reaches v iff v is u with facets or edges
-        removed, so model(u) contains model(v) classically and quantumly."""
-        g = nx.DiGraph()
-        g.add_nodes_from(self.metagraph_nodes.flat)
-        g.add_edges_from(self.structural_dominances)
-        return g
+        """The structural dominances as a CSR matrix (strong -> weak): u reaches v iff v is u with facets or
+        edges removed, so model(u) contains model(v) classically and quantumly."""
+        return self._csr_from_pairs(self.structural_dominances)
 
     @cached_property
     def _structural_closure(self):
-        """Transitive closure of the structural order as bitsets: (index of each id, below[i] = bitmask of the
-        indices structurally below id i, above[i] likewise), computed once in topological order."""
-        order = list(nx.topological_sort(self.structural_order))
-        index = {uid: i for i, uid in enumerate(order)}
-        below = [0] * len(order)
-        for uid in reversed(order):
-            i = index[uid]
+        """Transitive closure of the structural order as bitsets: (ids in topological order, index of each id in
+        it, below[i] = bitmask of the indices structurally below the i-th id, above[i] likewise)."""
+        g = self.structural_order
+        gT = g.T.tocsr()
+        N = g.shape[0]
+        indegree = np.diff(gT.indptr).tolist()
+        ready = [i for i in range(N) if indegree[i] == 0]
+        topo = []
+        while ready:                                          # Kahn's algorithm on the CSR arrays
+            u = ready.pop()
+            topo.append(u)
+            for v in g.indices[g.indptr[u]:g.indptr[u + 1]].tolist():
+                indegree[v] -= 1
+                if indegree[v] == 0:
+                    ready.append(v)
+        assert len(topo) == N, "the structural order has a cycle"
+        position = [0] * N                                    # node index -> position in topo
+        for k, u in enumerate(topo):
+            position[u] = k
+        below = [0] * N
+        for k in range(N - 1, -1, -1):
             mask = 0
-            for child in self.structural_order.successors(uid):
-                j = index[child]
+            u = topo[k]
+            for v in g.indices[g.indptr[u]:g.indptr[u + 1]].tolist():
+                j = position[v]
                 mask |= (1 << j) | below[j]
-            below[i] = mask
-        above = [0] * len(order)
-        for uid in order:
-            i = index[uid]
+            below[k] = mask
+        above = [0] * N
+        for k in range(N):
             mask = 0
-            for parent in self.structural_order.predecessors(uid):
-                j = index[parent]
+            u = topo[k]
+            for v in gT.indices[gT.indptr[u]:gT.indptr[u + 1]].tolist():
+                j = position[v]
                 mask |= (1 << j) | above[j]
-            above[i] = mask
+            above[k] = mask
+        order = self.metagraph_nodes[topo].tolist()
+        index = {uid: k for k, uid in enumerate(order)}
         return order, index, below, above
 
     def _ids_of_bits(self, mask: int):
@@ -752,12 +782,6 @@ class Observable_unlabelled_mDAGs:
         order, index, below, above = self._structural_closure
         return self._ids_of_bits(above[index[uid]])
 
-
-
-    # @cached_property
-    # def safe_equivalence_classes_as_mDAGs(self):
-    #     return [self.lookup_mDAG(eqclass) for eqclass in self.safe_equivalence_classes]
-
     @cached_property
     def equivalence_classes_as_mDAGs(self):
         return [self.lookup_mDAG(eqclass) for eqclass in self.equivalence_classes_as_ids]
@@ -774,26 +798,26 @@ class Observable_unlabelled_mDAGs:
             if element not in partition_into_eqclasses:
                 partition_into_eqclasses.append(element)
         return partition_into_eqclasses
-    
-    
-    
-    
-    def partial_order_of_subset(self, subset):   #subset is a set of mDAGs (i.e. nodes of the metagraph)
-        G = nx.DiGraph()
-        for g in subset:
-            G.add_node(g)
-        for child in subset:
-            for potential_ancestor in subset:
-               if potential_ancestor.unique_unlabelled_id in nx.ancestors(self.meta_graph,child.unique_unlabelled_id):
-                    G.add_edge(potential_ancestor,child)
-        G_simplified = nx.DiGraph()                  # If there is a path g1->g2->g3, G_simplified gets rid of the direct arrow g1->g3
-        for n1 in G.nodes():
-            for n2 in G.nodes():
-                number_paths=0
-                for path in nx.all_simple_paths(G,n1,n2):
-                    number_paths=number_paths+1
-                if number_paths==1:
-                    G_simplified.add_edge(n1,n2)
+
+    def partial_order_of_subset(self, subset):
+        """The reachability order of meta_graph restricted to `subset` (mDAGs that are nodes of the metagraph),
+        transitively reduced, as a networkx DiGraph for plotting: an edge a -> b means a reaches b in the
+        metagraph and no third member of the subset lies between them."""
+        subset = list(subset)
+        idx = self._dict_id_to_idx
+        incoming = self.meta_graph.T.tocsr()
+        positions = {idx[g.unique_unlabelled_id]: k for k, g in enumerate(subset)}
+        reaches = np.zeros((len(subset), len(subset)), dtype=bool)        # reaches[a, b]: a is an ancestor of b
+        for b, child in enumerate(subset):
+            for i in self._reachable(incoming, idx[child.unique_unlabelled_id]):
+                if i in positions:
+                    reaches[positions[i], b] = True
+        G_simplified = nx.DiGraph()
+        G_simplified.add_nodes_from(subset)
+        for a in range(len(subset)):
+            for b in range(len(subset)):
+                if reaches[a, b] and not (reaches[a] & reaches[:, b]).any():
+                    G_simplified.add_edge(subset[a], subset[b])
         return G_simplified
 
 

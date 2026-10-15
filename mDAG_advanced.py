@@ -74,14 +74,46 @@ class mDAG:
                 if not tuple(self.variable_names) == tuple(self.simplicial_complex_instance.variable_names):
                     print('Warning: Inconsistent node ordering. Following ordering of directed structure!')
         self.number_of_visible = self.directed_structure_instance.number_of_visible
-        self.visible_nodes = self.directed_structure_instance.visible_nodes
-        self.latent_nodes = tuple(range(self.number_of_visible, self.simplicial_complex_instance.number_of_visible_plus_latent))
-        self.nof_nonsingleton_latents = self.simplicial_complex_instance.number_of_nonsingleton_latent
-        self.total_number_of_nodes = self.nof_nonsingleton_latents + self.number_of_visible
-        self.vis_nodes_with_no_children = set(self.directed_structure_instance.nodes_with_no_children)
-        self.vis_nodes_with_no_parents = set(self.simplicial_complex_instance.vis_nodes_with_singleton_latent_parents).intersection(self.directed_structure_instance.nodes_with_no_parents)
 
-        self.number_of_root_nodes = self.simplicial_complex_instance.number_of_latent
+    # The attributes below are read off the two parts on demand rather than stored: an mDAG then holds three
+    # references and an integer (a few hundred bytes), which is what lets the five-node metagraph keep its 1.7
+    # million nodes in memory.
+    _CORE_ATTRIBUTES = frozenset(('restricted_perfect_predictions_numeric', 'directed_structure_instance',
+                                  'simplicial_complex_instance', 'number_of_visible', 'variable_names'))
+
+    @property
+    def visible_nodes(self) -> List[int]:
+        return self.directed_structure_instance.visible_nodes
+
+    @property
+    def latent_nodes(self) -> Tuple[int, ...]:
+        return tuple(range(self.number_of_visible, self.simplicial_complex_instance.number_of_visible_plus_latent))
+
+    @property
+    def nof_nonsingleton_latents(self) -> int:
+        return self.simplicial_complex_instance.number_of_nonsingleton_latent
+
+    @property
+    def total_number_of_nodes(self) -> int:
+        return self.nof_nonsingleton_latents + self.number_of_visible
+
+    @property
+    def vis_nodes_with_no_children(self) -> Set[int]:
+        return set(self.directed_structure_instance.nodes_with_no_children)
+
+    @property
+    def vis_nodes_with_no_parents(self) -> Set[int]:
+        return set(self.simplicial_complex_instance.vis_nodes_with_singleton_latent_parents).intersection(
+            self.directed_structure_instance.nodes_with_no_parents)
+
+    @property
+    def number_of_root_nodes(self) -> int:
+        return self.simplicial_complex_instance.number_of_latent
+
+    def release_cache(self) -> None:
+        """Drop every cached property, keeping the two parts: the mDAG is recomputed from them when next used."""
+        for key in [k for k in self.__dict__ if k not in self._CORE_ATTRIBUTES]:
+            del self.__dict__[key]
 
     @cached_property
     def is_SWIG_like(self):

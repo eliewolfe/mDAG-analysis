@@ -174,3 +174,53 @@ def test_facet_removals_and_automorphisms():
     edge = DirectedStructure([(0, 1)], 4)
     assert len(forms.ds_automorphisms(edge.as_integer)) == 2
     assert len(forms.sc_orbits(0)) == len(M.all_unlabelled_simplicial_complices)
+
+
+# -- the sparse metagraph (scipy) ---------------------------------------------------------------------------------
+
+def test_sparse_metagraph_queries_and_compact_mode():
+    C = Observable_unlabelled_mDAGs(4, verbose=False)
+    N = C.num_metagraph_nodes
+    assert C.meta_graph.shape == (N, N) and C.structural_order.shape == (N, N)
+    # components partition the nodes; a dominance never joins two classes unless it lies on a cycle
+    assert sum(map(len, C.equivalence_classes_as_ids)) == N
+    assert len(set().union(*C.equivalence_classes_as_ids)) == N
+    for strong, weak in C.structural_dominances:
+        assert weak in C.structurally_below(strong) and strong in C.structurally_above(weak)
+    # the reachability order of a subset is transitively reduced and loop-free
+    subset = list(C.dict_uniqind_unlabelled_mDAGs.values())[100:112]
+    order = C.partial_order_of_subset(subset)
+    assert all(a is not b for a, b in order.edges())
+    idx = C._dict_id_to_idx
+    reach = {g: C._reachable(C.meta_graph, idx[g.unique_unlabelled_id]) for g in subset}
+    for a, b in order.edges():
+        assert idx[b.unique_unlabelled_id] in reach[a]
+        assert not any(idx[c.unique_unlabelled_id] in reach[a] and idx[b.unique_unlabelled_id] in reach[c]
+                       for c in subset if c is not a and c is not b)
+    for a in subset:
+        for b in subset:
+            if a is not b and idx[b.unique_unlabelled_id] in reach[a] and not order.has_edge(a, b):
+                assert any(idx[c.unique_unlabelled_id] in reach[a] and idx[b.unique_unlabelled_id] in reach[c]
+                           for c in subset if c is not a and c is not b)
+    # the HLP-in-reverse search finds the structures reaching a latent-free DAG
+    boring = {m.unique_unlabelled_id for m in C.boring_by_virtue_of_HLP}
+    assert {m.unique_unlabelled_id for m in C.latent_free_DAGs_unlabelled} <= boring <= C.latent_free_equivalent_ids
+    # compact mode: unfiltered dominances and released caches give the same partition
+    compact = Observable_unlabelled_mDAGs(4, verbose=False, compact=True)
+    assert compact.compact and not C.compact
+    assert sorted(map(sorted, compact.equivalence_classes_as_ids)) == sorted(map(sorted, C.equivalence_classes_as_ids))
+    assert compact.meta_graph.nnz > C.meta_graph.nnz
+    Qc = QuantumMetagraph(4, compact=True)
+    assert ClassicalMetagraph.from_quantum(Qc).compact
+
+
+def test_mdag_release_cache_and_derived_attributes():
+    md = mDAG(DirectedStructure([(0, 1), (2, 1)], 4), Hypergraph([(1, 2, 3)], 4))
+    assert md.visible_nodes == [0, 1, 2, 3] and md.latent_nodes == (4, 5) and md.nof_nonsingleton_latents == 1
+    assert md.total_number_of_nodes == 5 and md.number_of_root_nodes == 2
+    assert md.vis_nodes_with_no_children == {1, 3} and md.vis_nodes_with_no_parents == {0}
+    before = (md.unique_unlabelled_id, md.droppable_edges, md.CI_count, list(md.weaker_mDAG_HLP('classical')))
+    assert len(md.__dict__) > 4
+    md.release_cache()
+    assert set(md.__dict__) <= mDAG._CORE_ATTRIBUTES
+    assert (md.unique_unlabelled_id, md.droppable_edges, md.CI_count, list(md.weaker_mDAG_HLP('classical'))) == before
