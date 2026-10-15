@@ -20,7 +20,7 @@ as 'upward' lookups.
 """
 from __future__ import annotations
 
-from typing import Dict, Iterable, List, Optional, Set, Tuple
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple
 
 from metagraph_advanced import ClassicalMetagraph, QuantumMetagraph
 from quantum_mDAG import QmDAG, upgrade_to_QmDAG
@@ -97,7 +97,11 @@ class ClassIndex:
 
     def classical_classes(self, keys: Iterable[UnlabelledId]) -> int:
         """How many classical equivalence classes the given quantum classes fall into."""
-        return len({self.classical_class(k) for k in keys if self.classical_class(k) is not None})
+        return len({c for c in map(self.classical_class, keys) if c is not None})
+
+    def lookup_tricks(self) -> Dict[str, Callable]:
+        """The lookups a class index contributes to the search (qc_gap_search.ClosureExplorer)."""
+        return {'upward': self.upward_steps}
 
     # -- inputs -------------------------------------------------------------------------------------------
 
@@ -128,7 +132,8 @@ class ClassIndex:
         inside g's classical class, as (params, representative) pairs, one per lower class. A gap of such a class is
         a gap of g's class: g's quantum model contains the lower structure's (g has more edges or facets) while its
         classical model equals it (same classical class). params: (('above', g), ('below', <structure below it>)),
-        so that the step is stated in g's own labels (the search applies it to every member of a class)."""
+        both written in the labels of the metagraph's canonical representatives (g up to relabelling); the search
+        applies the lookup to every member of a class, and Transition.via names the member."""
         key = self.key(g)
         members = self._members.get(key)
         if not members or not g.is_all_quantum:

@@ -33,8 +33,8 @@ PIGGYBACK_VERSIONS: Dict[str, int] = {
     'metagraph': 1,                    # the class keys and the upward rule rest on the metagraph rules (structural
                                        #   dominance, face splitting, the premeasurable HLP rule, the lift); every
                                        #   cached proof of a class-keyed search carries this version
-    'identity': 1,                     # an input that is (in the class of) a seed
     'upward': 1,                       # gap(G') for G' structurally above G in G's classical class (lookup only)
+    # 'identity' (an input that is a seed class) is a report label, not a transition: no version.
     'PD': 1,
     'node_stitching': 1,               # formerly 'interruption'
     'conditioning': 4,                 # 1 visible grandparents; 2 latent grandparents; 3 guessing parents' children;
@@ -232,10 +232,8 @@ class ClosureExplorer:
                  index: Optional["ClassIndex"] = None) -> None:
         self.tricks = dict(tricks)
         self.index = index
-        if lookup_tricks is None:
-            lookup_tricks = {'degradation': degradation}
-            if index is not None:
-                lookup_tricks['upward'] = index.upward_steps
+        if lookup_tricks is None:   # the defaults: degradation, plus whatever the class index contributes (upward)
+            lookup_tricks = {'degradation': degradation, **(index.lookup_tricks() if index is not None else {})}
         self.lookup_tricks: Dict[str, Callable] = dict(lookup_tricks)
         self.structures: Dict[UnlabelledId, QmDAG] = dict()   # every labelled structure met, by its own id
         self.lookup_only: Set[UnlabelledId] = set()   # registered through a lookup trick only: never expanded

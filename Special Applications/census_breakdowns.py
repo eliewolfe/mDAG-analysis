@@ -100,7 +100,8 @@ def examples(with_entropic: bool = True, engine=None) -> None:
     # The elementary stage: what each elementary piggyback proves exclusively (the Fritz transitions excluded).
     elementary = lambda t: not is_fritz_type(t)  # noqa: E731
     proven_cheap = _fixpoint_if(report, elementary)
-    assert len(proven_cheap) == report.stage_counts[0][1]
+    if len(proven_cheap) != report.stage_counts[0][1]:   # lookups of a class promoted in a later stage are non-Fritz
+        print(f"(non-Fritz transitions prove {len(proven_cheap)} classes; the elementary stage alone {report.stage_counts[0][1]})")
     for trick in ('PD', 'conditioning', 'node_stitching', 'naive_marginalization', 'teleportation_marginalization'):
         lost = proven_cheap - _fixpoint_if(report, lambda t, trick=trick: elementary(t) and t.trick != trick)
         show_examples(report, lost, elementary, f"[elementary] only via {trick}", limit=3)

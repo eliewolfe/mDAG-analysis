@@ -98,9 +98,9 @@ def run_search(index: Optional[ClassIndex] = None, max_visible=5, verbose=True, 
     print(f"Census inputs: {len(inputs)} quantum equivalence classes "
           f"({index.all_quantum_structures(index.input_keys(4))} structures up to relabelling)")
     t0 = time.time()
-    cache = GapCache.load(cache_path, seeds=SEEDS) if use_cache else None
+    cache = GapCache.load(cache_path, seeds=SEEDS, keyed_by='class') if use_cache else None
     if cache is not None and verbose:
-        print(f"Cache: {len(cache)} valid entries loaded, {cache.dropped} dropped (stale format, piggyback version or seed)")
+        print(f"Cache: {len(cache)} valid entries loaded, {cache.dropped} dropped (stale format or key kind, piggyback version or seed)")
     known = cache.known() if cache is not None else {}
     # lp_markov_target=True would also try the `markov` target set after `relabel` fails; it is off because in the
     # four-node census it never decided an input.
@@ -150,7 +150,7 @@ def print_report(report: GapReport, certificates_for=()) -> None:
     print("Provable ONLY with this piggyback (lost when it is removed):")
     for name, count in report.only_via.items():
         print(f"    only via {name:>30}: {count}")
-    print("Proven after each stage (cumulative, up to relabelling), and the stage's wall-clock time:")
+    print("Proven after each stage (cumulative, over classes), and the stage's wall-clock time:")
     for name, count in report.stage_counts:
         seconds = STAGE_SECONDS.get(name)
         print(f"    {name:>50}: {count}" + (f"   ({seconds:.0f}s)" if seconds is not None else ""))

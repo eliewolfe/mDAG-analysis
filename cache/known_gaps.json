@@ -60659,12 +60659,12 @@
   }
  },
  "format": 2,
+ "keyed_by": "class",
  "piggyback_versions": {
   "Fritz": 8,
   "PD": 1,
   "conditioning": 4,
   "degradation": 1,
-  "identity": 1,
   "metagraph": 1,
   "naive_marginalization": 1,
   "node_stitching": 1,

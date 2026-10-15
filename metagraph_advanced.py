@@ -82,7 +82,7 @@ class Observable_unlabelled_mDAGs:
                     'latent_free_DAGs_unlabelled', 'structural_order', '_structural_closure')
     # What a sibling must share for the two metagraphs to agree (the rest is shared when already computed).
     FORCED_SHARED = ('dict_uniqind_unlabelled_mDAGs', 'dict_id_to_canonical_id', 'structural_dominances',
-                     'face_splitting_edge_list', 'structural_order', '_structural_closure')
+                     'face_splitting_edge_list', 'structural_order')
 
     def __init__(self, n: int,
                  fully_foundational=False,
