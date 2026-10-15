@@ -72,40 +72,13 @@ def _sorted_rows_int(row_keys: np.ndarray, count: int, n: int) -> int:
     return value
 
 
-def _sc_table_python(facets: np.ndarray, counts: np.ndarray, perms: np.ndarray, n: int) -> np.ndarray:
-    """facets: (S, Lmax) int64 masks (bit c = node c), counts[s] facets in complex s; returns (S, n!) int64: the
-    integer of the relabelled, re-sorted facet bit array under every permutation p (new column c = old column
-    p[c], as hypergraphs.permute_bit_array)."""
-    S, Lmax = facets.shape
-    P = perms.shape[0]
-    out = np.zeros((S, P), dtype=np.int64)
-    keys = np.zeros(Lmax, dtype=np.int64)
-    for s in range(S):
-        count = counts[s]
-        for k in range(P):
-            for r in range(count):
-                mask = facets[s, r]
-                new = 0
-                for c in range(n):
-                    if (mask >> perms[k, c]) & 1:
-                        new |= 1 << c
-                keys[r] = new
-            out[s, k] = _sorted_rows_int(keys, count, n)
-    return out
-
-
-def _sc_int_python(facets: np.ndarray, count: int, n: int) -> int:
-    """The integer of a complex given as facet masks (unsorted)."""
-    return _sorted_rows_int(facets, count, n)
-
-
-if HAVE_NUMBA:
-    _ds_table = njit(cache=True)(_ds_table_python)
-    _sorted_rows_int_jit = njit(cache=True)(_sorted_rows_int)
-
-    # the compiled kernels must call the compiled row encoder, so they are separate copies of the Python ones
-    @njit(cache=True)
-    def _sc_table_impl(facets, counts, perms, n):
+def _make_sc_table(sorted_rows_int):
+    """The complex-table kernel, built once around the Python row encoder and once around the compiled one, so
+    that the two share a single source."""
+    def sc_table(facets, counts, perms, n):
+        """facets: (S, Lmax) int64 masks (bit c = node c), counts[s] facets in complex s; returns (S, n!) int64:
+        the integer of the relabelled, re-sorted facet bit array under every permutation p (new column c = old
+        column p[c], as hypergraphs.permute_bit_array)."""
         S, Lmax = facets.shape
         P = perms.shape[0]
         out = np.zeros((S, P), dtype=np.int64)
@@ -120,21 +93,27 @@ if HAVE_NUMBA:
                         if (mask >> perms[k, c]) & 1:
                             new |= 1 << c
                     keys[r] = new
-                out[s, k] = _sorted_rows_int_jit(keys, count, n)
+                out[s, k] = sorted_rows_int(keys, count, n)
         return out
+    return sc_table
 
+
+if HAVE_NUMBA:
+    _ds_table = njit(cache=True)(_ds_table_python)
+    _sorted_rows_int_jit = njit(cache=True)(_sorted_rows_int)
+    _sc_table = njit(cache=True)(_make_sc_table(_sorted_rows_int_jit))
     @njit(cache=True)
     def _sc_int_impl(facets, count, n):
         return _sorted_rows_int_jit(facets, count, n)
-
-    _sc_table = _sc_table_impl
-
-    def _sc_int(facets: np.ndarray, count: int, n: int) -> int:
-        return int(_sc_int_impl(facets, count, n))
 else:
     _ds_table = _ds_table_python
-    _sc_table = _sc_table_python
-    _sc_int = _sc_int_python
+    _sc_table = _make_sc_table(_sorted_rows_int)
+    _sc_int_impl = _sorted_rows_int
+
+
+def _sc_int(facets: np.ndarray, count: int, n: int) -> int:
+    """The integer of a complex given as facet masks (unsorted); a Python int under either kernel."""
+    return int(_sc_int_impl(facets, count, n))
 
 
 # --------------------------------------------------------------------------------------------------
@@ -189,7 +168,10 @@ class CanonicalForms:
 
     def __init__(self, n: int, ds_ints: Sequence[int], ds_matrices: Sequence[np.ndarray],
                  sc_ints: Sequence[int], sc_facets: Sequence[Iterable[Iterable[int]]]) -> None:
-        assert fits_int64(n, max((len(list(f)) for f in sc_facets), default=0)), "the tables need 64-bit integers"
+        max_facets = max((len(list(f)) for f in sc_facets), default=0)
+        if not fits_int64(n, max_facets):
+            raise ValueError(f"the permutation tables need 64-bit integers: n^2 = {n * n} and {max_facets} facets x "
+                             f"{n} nodes must both be at most 62 (n <= 5 for all complices)")
         self.n = n
         self.ds_offset = 2 ** (n * n)
         self.ds_ints = np.array([int(v) for v in ds_ints], dtype=np.int64)
@@ -201,6 +183,8 @@ class CanonicalForms:
         self.sc_table = _sc_table(self.sc_masks, self.sc_counts, permutations_array(n), n)
         assert np.array_equal(self.ds_table[:, 0], self.ds_ints), "directed structure integers disagree with radix"
         assert np.array_equal(self.sc_table[:, 0], self.sc_ints), "simplicial complex integers disagree with radix"
+        self.sc_canonical = self.sc_table.min(axis=1)
+        self._cosets: Dict[int, np.ndarray] = {}
         self._memo: Dict[int, int] = {}
         self._facet_removals: Dict[int, Tuple[int, ...]] = {}
 
@@ -214,9 +198,13 @@ class CanonicalForms:
 
     def stabiliser_coset(self, sc_int: int) -> Tuple[int, np.ndarray]:
         """(canonical integer of the complex, the permutation indices that achieve it)."""
-        row = self.sc_table[self.sc_index[int(sc_int)]]
-        s = int(row.min())
-        return s, np.flatnonzero(row == s)
+        i = self.sc_index[int(sc_int)]
+        s = int(self.sc_canonical[i])
+        try:
+            coset = self._cosets[i]
+        except KeyError:
+            coset = self._cosets[i] = np.flatnonzero(self.sc_table[i] == s)
+        return s, coset
 
     def canonical(self, ds_int: int, sc_int: int) -> int:
         """mDAG.unique_unlabelled_id of the mDAG (ds_int, sc_int): the complex occupies the high bits of the id,
@@ -254,9 +242,8 @@ class CanonicalForms:
         of their first members."""
         aut = self.ds_automorphisms(ds_int)
         keys = self.sc_table[:, aut].min(axis=1)
-        _, first, inverse = np.unique(keys, return_index=True, return_inverse=True)
-        last = np.zeros(len(first), dtype=np.int64)
-        last[inverse] = np.arange(len(keys))          # the last assignment to each orbit wins
+        first = np.unique(keys, return_index=True)[1]
+        last = len(keys) - 1 - np.unique(keys[::-1], return_index=True)[1]     # same sorted order of values
         order = np.argsort(first)
         return [(int(first[k]), int(last[k])) for k in order]
 
