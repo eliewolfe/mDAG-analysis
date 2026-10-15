@@ -1,5 +1,6 @@
 """The quantum metagraph (equivalence_classes.ClassIndex, metagraph_advanced.QuantumMetagraph): its classes, the
 quantum-valid HLP rule, the lift of hybrids, the seed classes and the upward rule."""
+import numpy as np
 import pytest
 
 from hypergraphs import Hypergraph
@@ -146,7 +147,7 @@ def test_orbit_construction_matches_the_labelled_enumeration(n):
         assert md.unique_id in M.dict_id_to_canonical_id
     assert M.dict_id_to_canonical_id.get(-1) is None
     # the lower-neighbour dominances are the former all-pairs dominances
-    new, old = set(M.structural_dominances), set(M.legacy_structural_dominances)
+    new, old = set(M.edge_ids(M.structural_dominances)), set(M.legacy_structural_dominances)
     assert len(M.structural_dominances) == len(new) and new == old
     for strong, weak in new:
         s, w = M.dict_uniqind_unlabelled_mDAGs[strong], M.dict_uniqind_unlabelled_mDAGs[weak]
@@ -184,8 +185,11 @@ def test_sparse_metagraph_queries_and_compact_mode():
     assert C.meta_graph.shape == (N, N) and C.structural_order.shape == (N, N)
     # components partition the nodes; a dominance never joins two classes unless it lies on a cycle
     assert sum(map(len, C.equivalence_classes_as_ids)) == N
+    assert C.structural_dominances.dtype == np.int32 and C.structural_dominances.shape[1] == 2
+    assert all(C.class_index_of[uid] == k for k, cls in enumerate(C.equivalence_classes_as_ids) for uid in cls)
+    assert len(C.class_index_of) == N and set(C.class_labels.tolist()) == set(range(len(C.equivalence_classes_as_ids)))
     assert len(set().union(*C.equivalence_classes_as_ids)) == N
-    for strong, weak in C.structural_dominances:
+    for strong, weak in C.edge_ids(C.structural_dominances):
         assert weak in C.structurally_below(strong) and strong in C.structurally_above(weak)
     # the reachability order of a subset is transitively reduced and loop-free
     subset = list(C.dict_uniqind_unlabelled_mDAGs.values())[100:112]

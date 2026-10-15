@@ -148,4 +148,4 @@ def test_metagraph_class_counts(metagraph):
     assert len(M.Dense_connectedness_and_esep) == 58
     # Only dominances between structures of equal skeleton and CI count feed the equivalence search.
     assert all(s.skeleton_nof_edges == w.skeleton_nof_edges and s.CI_count == w.CI_count
-               for s, w in map(M.lookup_mDAG, M.boring_dominances))
+               for s, w in map(M.lookup_mDAG, M.edge_ids(M.boring_dominances)))
