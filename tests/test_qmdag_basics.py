@@ -48,3 +48,26 @@ def test_unlabelled_id_is_memoized_and_label_invariant():
 def test_triangle_reaches_bell6_via_fritz():
     ids = triangle().unique_unlabelled_ids_obtainable_by_Fritz_for_QC()
     assert bell6().unique_unlabelled_id in ids
+
+
+def test_unlabelled_id_fast_path_equals_the_permutation_minimum():
+    """QmDAG.unique_unlabelled_id uses the permutation-table kernels of canonical_forms; it must equal the minimum
+    over the three as_integer_permutations tuples (the definition) on random labelled structures, hybrids included."""
+    import random
+    from hypergraphs import hypergraph_full_cleanup
+    from quantum_mDAG import _UNLABELLED_ID_MEMO
+    rng = random.Random(2026)
+    for n in (3, 4, 5):
+        for _ in range(60):
+            order = list(range(n))
+            rng.shuffle(order)
+            edges = [(order[i], order[j]) for i in range(n) for j in range(i + 1, n) if rng.random() < 0.4]
+            def facets():
+                fs = {frozenset(rng.sample(range(n), rng.randint(2, n))) for _ in range(rng.randint(0, 3))}
+                return hypergraph_full_cleanup(fs)
+            g = QmDAG(DirectedStructure(edges, n), Hypergraph(facets(), n), Hypergraph(facets(), n))
+            _UNLABELLED_ID_MEMO.pop(g.unique_id, None)
+            expected = (n,) + min(zip(g.directed_structure_instance.as_integer_permutations,
+                                      g.C_simplicial_complex_instance.as_integer_permutations,
+                                      g.Q_simplicial_complex_instance.as_integer_permutations))
+            assert g.unique_unlabelled_id == expected

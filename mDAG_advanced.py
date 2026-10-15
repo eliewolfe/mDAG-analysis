@@ -33,6 +33,7 @@ except:
 from hypergraphs import Hypergraph, LabelledHypergraph, UndirectedGraph, LabelledUndirectedGraph, hypergraph_full_cleanup
 import methodtools
 from directed_structures import LabelledDirectedStructure, DirectedStructure
+from canonical_forms import unlabelled_pair
 from closure import closure as numeric_closure  # , is_this_subadjmat_densely_connected
 from more_itertools import powerset
 from merge import merge_intersection
@@ -280,8 +281,13 @@ class mDAG:
 
     @cached_property
     def unique_unlabelled_id(self) -> int:
-        # Returns the unique id minimized over relabellings
-        return min(self.ids_under_relabelling)
+        # The unique id minimized over relabellings; the permutation-table kernels of canonical_forms give the same
+        # minimum as ids_under_relabelling an order of magnitude faster (they need 64-bit integers).
+        pair = unlabelled_pair(self.number_of_visible, self.directed_structure_instance.as_bit_square_matrix,
+                               self.simplicial_complex_instance.compressed_simplicial_complex)
+        if pair is None:
+            return min(self.ids_under_relabelling)
+        return self.mdag_int_pair_to_single_int(*pair)
 
     @cached_property
     def skeleton_instance(self) -> Union[LabelledUndirectedGraph, UndirectedGraph]:

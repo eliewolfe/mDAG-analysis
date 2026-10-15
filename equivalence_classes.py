@@ -154,6 +154,25 @@ class ClassIndex:
         per_member[uid] = [(params, self.representative(below_key)) for below_key, params in out.items()]
         return per_member[uid]
 
+    def above_steps(self, g: QmDAG) -> List[Tuple[Tuple, QmDAG, QmDAG]]:
+        """The upward rule in reverse (reverse_piggybacks): for an all-quantum structure g of a covered class, the
+        all-quantum structures m structurally above g inside g's classical class whose `upward_steps` list g's
+        class, as (params, m, representative of g's class) triples; the forward transition from key(m) to key(g)
+        with these params is exactly what the forward search would record."""
+        key = self.key(g)
+        members = self._members.get(key)
+        if not members or not g.is_all_quantum:
+            return []
+        n = members[0].number_of_visible
+        C = self.classical[n]
+        out = []
+        for above in sorted(C.within_class_above(g.as_mDAG.unique_unlabelled_id)):
+            m = upgrade_to_QmDAG(C.dict_uniqind_unlabelled_mDAGs[above])
+            for params, rep in self.upward_steps(m):
+                if self.key(rep) == key:
+                    out.append((params, m, rep))
+        return out
+
     # -- seeds --------------------------------------------------------------------------------------------
 
     def seed_keys(self, seeds: Dict[str, QmDAG]) -> Dict[UnlabelledId, str]:
