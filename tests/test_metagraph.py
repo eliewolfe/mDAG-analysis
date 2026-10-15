@@ -228,3 +228,18 @@ def test_mdag_release_cache_and_derived_attributes():
     md.release_cache()
     assert set(md.__dict__) <= mDAG._CORE_ATTRIBUTES
     assert (md.unique_unlabelled_id, md.droppable_edges, md.CI_count, list(md.weaker_mDAG_HLP('classical'))) == before
+
+
+def test_mdag_unlabelled_id_fast_path_equals_the_definition():
+    """mDAG.unique_unlabelled_id uses the permutation-table kernels; it must equal min(ids_under_relabelling)."""
+    import random
+    from hypergraphs import hypergraph_full_cleanup
+    rng = random.Random(99)
+    for n in (3, 4, 5):
+        for _ in range(60):
+            order = list(range(n))
+            rng.shuffle(order)
+            edges = [(order[i], order[j]) for i in range(n) for j in range(i + 1, n) if rng.random() < 0.4]
+            facets = hypergraph_full_cleanup({frozenset(rng.sample(range(n), rng.randint(2, n))) for _ in range(rng.randint(0, 3))})
+            md = mDAG(DirectedStructure(edges, n), Hypergraph(facets, n))
+            assert md.unique_unlabelled_id == min(md.ids_under_relabelling)

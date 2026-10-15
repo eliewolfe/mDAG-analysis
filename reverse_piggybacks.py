@@ -280,7 +280,9 @@ def _inside(S: FrozenSet[int], facets: Iterable[FrozenSet[int]]) -> bool:
     return any(S <= F for F in facets)
 
 
-def inverse_marginalization(c: QmDAG, apply_teleportation: bool, hybrids: bool = True) -> Iterable[Candidate]:
+def inverse_marginalization(c: QmDAG, apply_teleportation: bool, hybrids: bool = True,
+                            fixed_children: Optional[FrozenSet[int]] = None,
+                            fixed_parents: Optional[FrozenSet[int]] = None) -> Iterable[Candidate]:
     """Un-marginalization (A.3). Marginalizing x relays its visible parents to its visible children Ch, turns every
     facet F containing x (classical or quantum) into the classical facet (F minus x) u Ch, adds the classical facet
     Ch when x is in no facet, keeps the quantum facets F minus x (naive) or enlarges them to (F minus x) u T with T the
@@ -302,10 +304,14 @@ def inverse_marginalization(c: QmDAG, apply_teleportation: bool, hybrids: bool =
     def face_or_point(S: FrozenSet[int], where: Set[FrozenSet[int]]) -> bool:
         return len(S) <= 1 or S in where
 
-    for Ch in _subsets(nodes):
+    for Ch in ([fixed_children] if fixed_children is not None else _subsets(nodes)):
         common_parents = set(nodes) - Ch
         for ch in Ch:
             common_parents &= parents_of(c, ch)
+        if fixed_parents is not None:
+            if not fixed_parents <= common_parents:
+                continue
+            common_parents = set(fixed_parents)
         relay_target_ok = len(Ch) <= 1 or Ch in all_faces
         # quantum bases: an antichain of nonempty S; the relay S u Ch must be a face of G' (or a point) and S itself
         # (naive) or S u T (teleportation) must be a quantum face (or a point)
@@ -338,7 +344,7 @@ def inverse_marginalization(c: QmDAG, apply_teleportation: bool, hybrids: bool =
                         if any(_inside(F, base_C) or any(G < F for G in base_C) for F in extra_C):
                             continue
                         new_C = base_C | set(extra_C) | x_facets_C
-                        for Pa in _subsets(common_parents):
+                        for Pa in ([frozenset(common_parents)] if fixed_parents is not None else _subsets(common_parents)):
                             relay = {(p, ch) for p in Pa for ch in Ch}
                             for removed in _subsets(sorted(relay)) if relay else [frozenset()]:
                                 new_edges = (E - set(removed)) | {(p, x) for p in Pa} | {(x, ch) for ch in Ch}
@@ -498,36 +504,110 @@ def fritz_forward_matches(g: QmDAG, key_of: Callable[[QmDAG], UnlabelledId], tar
     target key: (params, child) pairs as fritz_steps emits them."""
     out = []
     for params, child in g.fritz_steps(target_mode=target_mode, predictor_mode=predictor_mode, use_lp=use_lp,
-                                       pool='siblings+parents', max_predictors=len(X), engine=engine):
+                                       pool='siblings+parents', max_predictors=len(X), engine=engine,
+                                       only_predictors=tuple(sorted(X)), only_targets=(s,)):
         p = dict(params)
-        if p['targets'] != (s,) or tuple(p['predictor']) != tuple(X):
+        if p['targets'] != (s,) or tuple(p['predictor']) != tuple(sorted(X)):
             continue
         if child.number_of_visible <= 4 and key_of(child) == target_key:
             out.append((params, child))
     return out
 
 
-def inverse_fritz(c: QmDAG, hybrids: bool = True, use_lp: bool = True) -> Iterable[Candidate]:
-    """The Fritz piggyback in reverse, for the modes whose output has at most as many nodes as the input: an
-    unsplit target with the predictor present in c (split predictor mode, childless predictor: g has c's nodes) or
-    removed (unsplit predictor: g1 is an un-marginalization of c with the predictor as the new node); then the
-    un-restriction of the target. The forward params are read off the forward step that confirms the candidate,
-    so the caller must confirm each candidate with `fritz_forward_matches` (the trick name is 'Fritz')."""
+def facets_with(g: QmDAG, v: int) -> Set[FrozenSet[int]]:
+    return {F for F in c_facets_of(g) | q_facets_of(g) if v in F}
+
+
+def is_copy_of(g: QmDAG, copy: int, original: int, parents_subset: bool = False) -> bool:
+    """Does `copy` look like a node-splitting copy of `original`: the same children, the same visible parents (or
+    a subset, for a restricted copy), and the same facets up to the classical pair facet {original, copy}?"""
+    if children_of(g, copy) != children_of(g, original):
+        return False
+    pc, po = parents_of(g, copy), parents_of(g, original)
+    if not (pc <= po if parents_subset else pc == po):
+        return False
+    pair = frozenset((copy, original))
+    fc = {F - {copy} for F in facets_with(g, copy) if F != pair}
+    fo = {F - {original} for F in facets_with(g, original) if F != pair}
+    return fc == fo and all(original in F for F in facets_with(g, copy) if F != pair)
+
+
+def inverse_fritz(c: QmDAG, hybrids: bool = True) -> Iterable[Candidate]:
+    """The Fritz piggyback in reverse (A.6), for the modes whose output has at most as many visible nodes as the
+    structure whose gap is at stake: the forward step is splits, then the restriction of the target, then the
+    removal of the predictors by teleportation marginalization (QmDAG.fritz_realise), and each piece is undone in
+    turn. Candidates (with the target, predictor and modes in their params) are confirmed by the caller with the
+    forward Fritz step (fritz_forward_matches), which also supplies the recorded params.
+    (a) unsplit target, split predictor mode with a childless predictor: the predictor is present in c; un-restrict.
+    (b) unsplit target, unsplit predictor: c is the teleportation marginalization of the restricted structure with
+        the predictor x = n' as the removed node; un-marginalize, then un-restrict.
+    (c) split target, unsplit predictor: c holds the target s and its restricted copy s' (same children, parents a
+        subset, no quantum facet); un-marginalize with the predictor as the new node (it shares a facet with s' and
+        is not adjacent to s or s'), un-restrict s', then merge s' into s (the copy, now equal to s, is deleted).
+    (d) unsplit target, split childful predictor: the predictor's copy x' was marginalized; un-marginalize with x'
+        as the new node constrained to be a copy of some x (same children, parents and facets), un-restrict the
+        target with x' as the predictor, then merge x' into x.
+    The split-target, split-predictor mode produces a structure with one more node than c and is not reversed here.
+    Intermediate structures may be hybrids whatever `hybrids` says; it filters the final candidates only."""
     n = c.number_of_visible
-    # predictor present (split predictor mode, childless predictor)
-    for s in range(n):
-        for x in range(n):
-            if x == s:
-                continue
-            for g in unrestrict(c, s, (x,), hybrids):
-                yield 'Fritz', (('targets', (s,)), ('predictor', (x,)), ('target_mode', 'unsplit'), ('predictor_mode', 'split')), g
-    # predictor removed by (teleportation) marginalization: the new node x = n is the predictor
+    nodes = range(n)
+
+    def final(g: QmDAG) -> bool:
+        return hybrids or g.is_all_quantum
+
+    def params(s, x, tm, pm):
+        return (('targets', (s,)), ('predictor', (x,)), ('target_mode', tm), ('predictor_mode', pm))
+
+    # (a) the predictor is present
+    for s in nodes:
+        for x in nodes:
+            if x != s:
+                for g in unrestrict(c, s, (x,), True):
+                    if final(g):
+                        yield 'Fritz', params(s, x, 'unsplit', 'split'), g
+    # (b) the predictor was marginalized
     if n < 4:
-        for trick, params, g1 in inverse_marginalization(c, True, hybrids):
+        for _, _, g1 in inverse_marginalization(c, True, True):
             x = n
-            for s in range(n):
-                for g in unrestrict(g1, s, (x,), hybrids):
-                    yield 'Fritz', (('targets', (s,)), ('predictor', (x,)), ('target_mode', 'unsplit'), ('predictor_mode', 'unsplit')), g
+            for s in nodes:
+                for g in unrestrict(g1, s, (x,), True):
+                    if final(g):
+                        yield 'Fritz', params(s, x, 'unsplit', 'unsplit'), g
+    # (c) split target: c holds the target and its restricted copy
+    for s in nodes:
+        for s_copy in nodes:
+            if s_copy == s or not is_copy_of(c, s_copy, s, parents_subset=True) or any(s_copy in F for F in q_facets_of(c)):
+                continue
+            x = n
+            for _, _, g1 in inverse_marginalization(c, True, True):
+                if not any(x in F and s_copy in F for F in c_facets_of(g1) | q_facets_of(g1)):
+                    continue
+                if x in children_of(g1, s) | parents_of(g1, s) | children_of(g1, s_copy) | parents_of(g1, s_copy):
+                    continue
+                for g2 in unrestrict(g1, s_copy, (x,), True):
+                    if not is_copy_of(g2, s_copy, s):
+                        continue
+                    g = g2.fix_to_point_distribution_QmDAG(s_copy)       # merge the copy back into s
+                    if final(g):
+                        yield 'Fritz', params(s, x - 1 if x > s_copy else x, 'split', 'unsplit'), g
+    # (d) split childful predictor: its copy was marginalized
+    for x in nodes:
+        if not children_of(c, x):
+            continue
+        x_copy = n
+        for _, _, g1 in inverse_marginalization(c, True, True, fixed_children=frozenset(children_of(c, x)),
+                                                fixed_parents=frozenset(parents_of(c, x))):
+            if not is_copy_of(g1, x_copy, x):
+                continue
+            for s in nodes:
+                if s == x:
+                    continue
+                for g2 in unrestrict(g1, s, (x_copy,), True):
+                    if not is_copy_of(g2, x_copy, x):
+                        continue
+                    g = g2.fix_to_point_distribution_QmDAG(x_copy)
+                    if final(g):
+                        yield 'Fritz', params(s, x, 'unsplit', 'split'), g
 
 
 NODE_PRESERVING = frozenset(['Fritz'])    # inverses applied at every node count within the cap
@@ -597,13 +677,14 @@ class ReverseClosure:
         self.origin[key] = origin
         return True
 
-    def colourings(self, key: UnlabelledId) -> List[QmDAG]:
+    def colourings(self, key: UnlabelledId, hybrids: Optional[bool] = None) -> List[QmDAG]:
         """The structures with this key: the class members and their degradations that lift back into the class
         (a forward child is often such a hybrid, and its parents are only reached from it); a non-class key has
         its stored structure alone. Without `hybrids`, the all-quantum members only."""
+        hybrids = self.hybrids if hybrids is None else hybrids
         members = self.index.members(key, fallback=self.known[key])
         out = {m.unique_unlabelled_id: self._store(m) for m in members}
-        if self.hybrids and self.index.is_class_key(key):
+        if hybrids and self.index.is_class_key(key):
             for m in members:
                 for _, d in m.degradation_steps():
                     if self.index.key(d) == key:
@@ -751,15 +832,24 @@ class ReverseClosure:
                 for name, inverse in self.inverses.items():
                     if n >= self.max_visible and name not in NODE_PRESERVING:
                         continue
+                    if name == 'Fritz':
+                        continue      # applied to every colouring below
                     t0 = time.time()
                     for trick, params, g in inverse(c, hybrids=self.hybrids):
-                        if trick == 'Fritz':
-                            queue.extend(self._accept_fritz(params, g, key))
-                            continue
                         gk = self._accept(trick, params, g, key)
                         if gk is not None:
                             queue.append(gk)
                     self.seconds[name] += time.time() - t0
+            if 'Fritz' in self.inverses:
+                # Fritz outputs are hybrids as a rule (the kept facets become classical for the target), so every
+                # colouring of the known key is a starting point even when only all-quantum candidates are recorded
+                t0 = time.time()
+                for c in self.colourings(key, hybrids=True):
+                    if c.number_of_visible > self.max_visible:
+                        continue
+                    for trick, params, g in self.inverses['Fritz'](c, hybrids=self.hybrids):
+                        queue.extend(self._accept_fritz(params, g, key))
+                self.seconds['Fritz'] += time.time() - t0
         self.seconds['total'] += time.time() - t_start
         return self
 

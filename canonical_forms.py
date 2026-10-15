@@ -338,3 +338,17 @@ def unlabelled_triple(n: int, adjacency: np.ndarray, c_facets: Iterable[Iterable
     q_row = _sc_table(q_masks, q_count, perms, n)[0]
     best = int(np.lexsort((q_row, c_row, d_row))[0])
     return int(d_row[best]), int(c_row[best]), int(q_row[best])
+
+
+def unlabelled_pair(n: int, adjacency: np.ndarray, facets: Iterable[Iterable[int]]) -> Optional[Tuple[int, int]]:
+    """(ds_int, sc_int) of the relabelling that minimises ds_int + sc_int * 2^(n^2), i.e. lexicographically by
+    (sc_int, ds_int): mDAG.unique_unlabelled_id split into its parts. None when the integers do not fit 64 bits."""
+    facets = list(facets)
+    if not fits_int64(n, len(facets)):
+        return None
+    perms = _perms(n)
+    d_row = _ds_table(np.asarray(adjacency, dtype=np.bool_).reshape(1, n, n), perms)[0]
+    masks, count = _facets_to_masks(facets)
+    s_row = _sc_table(masks, count, perms, n)[0]
+    best = int(np.lexsort((d_row, s_row))[0])
+    return int(d_row[best]), int(s_row[best])

@@ -916,7 +916,8 @@ class QmDAG:
                     pool: str = 'siblings', allow_descendants: bool = False, max_predictors: int = 1,
                     max_targets: Optional[int] = None, lp_markov_target: bool = False,
                     max_visible: Optional[int] = None, lp_only: bool = False,
-                    engine: Optional[str] = None) -> Iterable[Tuple[Tuple, "QmDAG"]]:
+                    engine: Optional[str] = None, only_predictors: Optional[Tuple[int, ...]] = None,
+                    only_targets: Optional[Tuple[int, ...]] = None) -> Iterable[Tuple[Tuple, "QmDAG"]]:
         """The Fritz piggyback as the search applies it (manuscript Section 8): for every predictor set X, every
         candidate target s of X and the deletion X dictates at s, the realised output, certified by d-separation
         first and by the semigraphoid closure (or the LP) only where d-separation fails. Besides single targets,
@@ -938,7 +939,8 @@ class QmDAG:
         params: (('targets', (s, ...)), ('target_mode', 'unsplit' | 'split'), ('deleted', (labels of D_s, ...)),
         ('predictor', X), ('predictor_mode', 'unsplit' | 'split'),
         ('certificate', 'parent' | 'dsep' | 'semigraphoid' | 'entropic')) [+ ('order', ...) when several predictors
-        are marginalized]."""
+        are marginalized]. `only_predictors` / `only_targets` restrict the enumeration to those predictor sets (as
+        sorted tuples) and targets (the reverse closure confirms one candidate step this way)."""
         assert target_mode in ('unsplit', 'split') and predictor_mode in ('unsplit', 'split')
         if lp_only:
             if not use_lp:
@@ -999,7 +1001,11 @@ class QmDAG:
 
         for r in range(1, min(max_predictors, len(predictor_candidates)) + 1):
             for X in itertools.combinations(predictor_candidates, r):
+                if only_predictors is not None and tuple(X) != tuple(only_predictors):
+                    continue
                 targets = self.fritz_targets(X, pools=pools)
+                if only_targets is not None:
+                    targets = [t for t in targets if t in only_targets]
                 if not targets:
                     continue
                 base = split_predictors(X)
