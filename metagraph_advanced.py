@@ -18,6 +18,7 @@ from functools import cached_property
 from hypergraphs import Hypergraph
 from directed_structures import DirectedStructure
 from mDAG_advanced import mDAG
+from canonical_forms import CanonicalForms
 # from functools import lru_cache
 from supports import explore_candidates
 
@@ -63,6 +64,23 @@ def further_classify_by_attributes(eqclasses, attributes, verbose=True):
 def multiple_classifications(*args):
     return list(filter(None, itertools.starmap(set.intersection, itertools.product(*args))))
 
+
+class CanonicalIdView:
+    """A read-only mapping from the id of any labelled mDAG (a tabulated directed structure with any complex) to
+    its unlabelled id, canonicalising on demand: what dict_id_to_canonical_id used to hold as a dict over every
+    labelled mDAG (seven million entries on five nodes)."""
+    def __init__(self, forms: CanonicalForms) -> None:
+        self.forms = forms
+
+    def __getitem__(self, mdag_int):
+        return self.forms.canonical_of_int(mdag_int)
+
+    def __contains__(self, mdag_int) -> bool:
+        return mdag_int in self.forms
+
+    def get(self, mdag_int, default=None):
+        return self[mdag_int] if mdag_int in self else default
+
 class Observable_unlabelled_mDAGs:
     """The metagraph of the n-node mDAGs up to relabelling: nodes are the unlabelled mDAGs, edges are sound
     containments of model sets (structural dominance, face splitting, the HLP edge rule), and the strongly connected
@@ -76,12 +94,12 @@ class Observable_unlabelled_mDAGs:
     """
     SHARED_CACHE = ('all_directed_structures', 'all_unlabelled_directed_structures', 'truly_all_directed_structures',
                     'all_noncanonical_directed_structures', 'all_simplicial_complices', 'most_labelled_mDAGs',
-                    'all_labelled_mDAGs', 'dict_id_to_canonical_id', 'dict_uniqind_unlabelled_mDAGs',
+                    'all_labelled_mDAGs', 'canonical_forms', 'dict_id_to_canonical_id', 'dict_uniqind_unlabelled_mDAGs',
                     'dict_ind_unlabelled_mDAGs', 'metagraph_nodes', 'hypergraph_dominances',
                     'directed_dominances_up_to_symmetry', 'structural_dominances', 'face_splitting_edge_list',
                     'latent_free_DAGs_unlabelled', 'structural_order', '_structural_closure')
     # What a sibling must share for the two metagraphs to agree (the rest is shared when already computed).
-    FORCED_SHARED = ('dict_uniqind_unlabelled_mDAGs', 'dict_id_to_canonical_id', 'structural_dominances',
+    FORCED_SHARED = ('canonical_forms', 'dict_uniqind_unlabelled_mDAGs', 'structural_dominances',
                      'face_splitting_edge_list', 'structural_order')
 
     def __init__(self, n: int,
@@ -194,14 +212,28 @@ class Observable_unlabelled_mDAGs:
                                                                  self.all_noncanonical_directed_structures)]
 
     @cached_property
-    def dict_id_to_canonical_id(self):
-        # if self.verbose:
-        #     print("Dictionary creations: mDAG ids to unlabelled ids...", flush=True)
-        return {mdag.unique_id: mdag.unique_unlabelled_id for mdag in
-                explore_candidates(self.all_labelled_mDAGs,
-                                   verbose=False,
-                                   message="mDAG ids to unlabelled id")}
+    def canonical_forms(self):
+        """Permutation tables of the labelled directed structures and complices (canonical_forms.CanonicalForms):
+        canonical ids on demand, the orbit enumeration of the nodes and their lower neighbours."""
+        if self.verbose:
+            eprint("Tabulating directed structures and simplicial complices under relabelling...", flush=True)
+        return CanonicalForms(self.n,
+                              [ds.as_integer for ds in self.all_directed_structures],
+                              [ds.as_bit_square_matrix for ds in self.all_directed_structures],
+                              [sc.as_integer for sc in self.all_simplicial_complices],
+                              [sc.as_tuples for sc in self.all_simplicial_complices])
 
+    def canonical_id(self, ds_int, sc_int):
+        """The unlabelled id (mDAG.unique_unlabelled_id) of the labelled mDAG with these parts, canonicalised on
+        demand: the canonical complex first, then the smallest directed structure over the relabellings that
+        achieve it (a bounded memo keeps recent answers)."""
+        return self.canonical_forms.canonical(ds_int, sc_int)
+
+    @cached_property
+    def dict_id_to_canonical_id(self):
+        """Labelled mDAG id -> unlabelled id, as a lazy view (CanonicalIdView) rather than a dict over every
+        labelled mDAG."""
+        return CanonicalIdView(self.canonical_forms)
 
     @cached_property
     def ds_bit_size(self):
@@ -212,16 +244,19 @@ class Observable_unlabelled_mDAGs:
         return ds_int + sc_int*self.ds_bit_size
 
     def mdag_int_pair_to_canonical_int(self, ds_int, sc_int):
-        #print(ds_int, sc_int, self.mdag_int_pair_to_single_int(ds_int, sc_int))
-        return self.dict_id_to_canonical_id[self.mdag_int_pair_to_single_int(ds_int, sc_int)]
+        return self.canonical_id(ds_int, sc_int)
 
     @cached_property
     def dict_uniqind_unlabelled_mDAGs(self):
-        return {mdag.unique_unlabelled_id: mdag for mdag in explore_candidates(
-            self.most_labelled_mDAGs,
-            verbose=self.verbose,
-            message="Mapping unlabelled ids to mDAGs"
-        )}
+        """unlabelled id -> one labelled representative mDAG, enumerated by orbits: for each unlabelled directed
+        structure's representative, the complices up to its automorphism group (no non-canonical mDAG is ever
+        built). Order and representatives are those of the former dict over complex x directed structure."""
+        if self.verbose:
+            eprint("Enumerating unlabelled mDAGs by orbits...", flush=True)
+        ds_by_int = {ds.as_integer: ds for ds in self.all_unlabelled_directed_structures}
+        sc_by_int = {sc.as_integer: sc for sc in self.all_simplicial_complices}
+        return {canonical: mDAG(ds_by_int[ds_int], sc_by_int[sc_int]) for canonical, ds_int, sc_int in
+                self.canonical_forms.nodes(list(ds_by_int.keys()))}
 
     @cached_property
     def dict_ind_unlabelled_mDAGs(self):
@@ -468,18 +503,32 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def structural_dominances(self):
-        """(strong, weak) canonical-id pairs: weak is strong with one facet or one edge fewer (a containment of
-        both the classical and the quantum model set). Rule-independent, shared between the two metagraphs."""
+        """(strong, weak) canonical-id pairs: weak is strong with one maximal face or one edge fewer (a containment
+        of both the classical and the quantum model set). Generated from each node's lower neighbours (drop one
+        edge; drop one maximal face) and canonicalised, which gives the same set as the former all-pairs
+        hypergraph_dominances x directed structures and directed_dominances_up_to_symmetry x complices.
+        Rule-independent, shared between the two metagraphs."""
         if self.verbose:
             eprint('Adding dominance relations...', flush=True)
+        forms = self.canonical_forms
+        pairs = set()
+        for strong, mdag in explore_candidates(self.dict_uniqind_unlabelled_mDAGs.items(),
+                                               verbose=self.verbose, message="Structural dominances"):
+            ds_int = mdag.directed_structure_instance.as_integer
+            sc_int = mdag.simplicial_complex_instance.as_integer
+            for d, s in forms.lower_neighbour_parts(ds_int, sc_int):
+                pairs.add((strong, self.canonical_id(d, s)))
+        return list(pairs)
+
+    @cached_property
+    def legacy_structural_dominances(self):
+        """The structural dominances by the former all-pairs construction (kept to cross-check the new one)."""
         directed_ids = np.array(tuple(ds.as_integer for ds in self.all_unlabelled_directed_structures), dtype=object)[:, np.newaxis, np.newaxis]
         hypergraph_dominances = np.asarray(self.hypergraph_dominances, dtype=object)
         from_hypergraphs = np.reshape(self.mdag_int_pair_to_single_int(directed_ids, hypergraph_dominances), (-1, 2))
         simplicial_ids = np.array(tuple(sc.as_integer for sc in self.all_simplicial_complices), dtype=object)[:, np.newaxis, np.newaxis]
         directed_dominances = np.asarray(self.directed_dominances_up_to_symmetry, dtype=object)
         from_directed_edges = np.reshape(self.mdag_int_pair_to_single_int(directed_dominances, simplicial_ids), (-1, 2))
-        if self.verbose:
-            eprint("Converting dominance relations to unique ids...")
         return list(self._canonical_pairs(from_hypergraphs.tolist())) + list(self._canonical_pairs(from_directed_edges.tolist()))
 
     @cached_property
@@ -969,6 +1018,9 @@ class Observable_labelled_mDAGs(Observable_unlabelled_mDAGs):
         # if self.verbose:
         #     print("Dictionary creations: mDAG ids to unlabelled ids...", flush=True)
         return {mdag.unique_id: mdag.unique_id for mdag in self.all_labelled_mDAGs}
+
+    def canonical_id(self, ds_int, sc_int):
+        return self.mdag_int_pair_to_single_int(ds_int, sc_int)    # labelled: every mDAG is its own class
 
     @cached_property
     def dict_uniqind_unlabelled_mDAGs(self):

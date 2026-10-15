@@ -121,3 +121,56 @@ def test_upward_steps_within_the_classical_class(index):
         low = C4.dict_uniqind_unlabelled_mDAGs[lower]
         assert low.n_of_edges + low.n_of_latents < md.n_of_edges + md.n_of_latents or \
             low.simplicial_complex_instance.as_extended_bit_array.sum() < md.simplicial_complex_instance.as_extended_bit_array.sum()
+
+
+# -- the orbit construction (canonical_forms.CanonicalForms) against the former labelled enumeration -------------
+
+@pytest.mark.parametrize("n", [3, 4])
+def test_orbit_construction_matches_the_labelled_enumeration(n):
+    M = Observable_unlabelled_mDAGs(n, verbose=False)
+    forms = M.canonical_forms
+    # the node dict: same keys in the same order, same labelled representatives, keys are the members' ids
+    legacy = {}
+    for md in M.most_labelled_mDAGs:
+        legacy[md.unique_unlabelled_id] = md
+    assert list(M.dict_uniqind_unlabelled_mDAGs) == list(legacy)
+    assert [md.unique_id for md in M.dict_uniqind_unlabelled_mDAGs.values()] == [md.unique_id for md in legacy.values()]
+    for uid, md in M.dict_uniqind_unlabelled_mDAGs.items():
+        assert md.unique_unlabelled_id == uid
+    # canonical ids on demand equal mDAG.unique_unlabelled_id, through the view and the function
+    sample = M.all_labelled_mDAGs if n == 3 else M.all_labelled_mDAGs[::13]
+    for md in sample:
+        ds_int, sc_int = md.directed_structure_instance.as_integer, md.simplicial_complex_instance.as_integer
+        assert M.canonical_id(ds_int, sc_int) == md.unique_unlabelled_id
+        assert M.dict_id_to_canonical_id[md.unique_id] == md.unique_unlabelled_id
+        assert md.unique_id in M.dict_id_to_canonical_id
+    assert M.dict_id_to_canonical_id.get(-1) is None
+    # the lower-neighbour dominances are the former all-pairs dominances
+    new, old = set(M.structural_dominances), set(M.legacy_structural_dominances)
+    assert len(M.structural_dominances) == len(new) and new == old
+    for strong, weak in new:
+        s, w = M.dict_uniqind_unlabelled_mDAGs[strong], M.dict_uniqind_unlabelled_mDAGs[weak]
+        assert (s.n_of_edges, len(s.simplicial_complex_instance.faces)) in \
+            {(w.n_of_edges + 1, len(w.simplicial_complex_instance.faces)), (w.n_of_edges, len(w.simplicial_complex_instance.faces) + 1)}
+    # the canonical forms object is shared by the classical companion
+    Q = QuantumMetagraph(n)
+    C = ClassicalMetagraph.from_quantum(Q)
+    assert C.canonical_forms is Q.canonical_forms and C.structural_dominances is Q.structural_dominances
+
+
+def test_facet_removals_and_automorphisms():
+    M = Observable_unlabelled_mDAGs(4, verbose=False)
+    forms = M.canonical_forms
+    full = Hypergraph([(0, 1, 2)], 4)
+    # removing the 3-face of {0,1,2} leaves its three edges; removing an edge leaves nothing
+    assert set(forms.facet_removals(full.as_integer)) == {Hypergraph([(0, 1), (0, 2), (1, 2)], 4).as_integer}
+    assert set(forms.facet_removals(Hypergraph([(0, 1)], 4).as_integer)) == {0}
+    # a sub-face already covered by another facet is not added
+    sc = Hypergraph([(0, 1, 2), (0, 1, 3)], 4)
+    assert set(forms.facet_removals(sc.as_integer)) == {Hypergraph([(0, 1, 3), (0, 2), (1, 2)], 4).as_integer,
+                                                        Hypergraph([(0, 1, 2), (0, 3), (1, 3)], 4).as_integer}
+    # Aut of the empty directed structure is all of S_4; of a single edge 0 -> 1, the permutations fixing 0 and 1
+    assert len(forms.ds_automorphisms(0)) == 24
+    edge = DirectedStructure([(0, 1)], 4)
+    assert len(forms.ds_automorphisms(edge.as_integer)) == 2
+    assert len(forms.sc_orbits(0)) == len(M.all_unlabelled_simplicial_complices)
