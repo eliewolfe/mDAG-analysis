@@ -158,3 +158,19 @@ def test_un_swapping_examples_are_confirmed(index):
         child = R.forward_child(trick, params, g)
         assert child is not None and index.key(child) == index.key(inst_C)
     assert all(g.is_all_quantum for _, _, g in R.inverse_conditioning(inst_C, hybrids=False))
+
+
+def test_fritz_inverse_recovers_the_appendix_examples(index):
+    c = K.SEEDS['QG_Bell_C_Edge']                                        # 1->3; C{0,2}, Q{2,3}
+    closure_example = Q([(0, 1), (1, 2)], 4, [], [(0, 2), (1, 3), (2, 3)])   # certified by the semigraphoid closure
+    dsep_example = Q([(0, 1), (0, 2), (1, 2)], 4, [], [(1, 3), (2, 3)])      # certified by d-separation
+    found = {}
+    for trick, params, g in R.inverse_fritz(c):
+        p = dict(params)
+        matches = R.fritz_forward_matches(g, index.key, index.key(c), p['targets'][0], p['predictor'],
+                                          p['target_mode'], p['predictor_mode'])
+        for full_params, child in matches:
+            assert index.key(child) == index.key(c) and dict(full_params)['certificate'] in ('parent', 'dsep', 'semigraphoid')
+            found.setdefault(g.unique_unlabelled_id, set()).add(dict(full_params)['certificate'])
+    assert 'semigraphoid' in found[closure_example.unique_unlabelled_id]
+    assert found[dsep_example.unique_unlabelled_id]          # certified (by the closure here: d-separation fails on it)

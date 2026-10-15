@@ -420,12 +420,125 @@ def inverse_conditioning(c: QmDAG, hybrids: bool = True) -> Iterable[Candidate]:
                             yield from emit('conditioning', params, n + 1, new_edges, new_C, new_Q, hybrids)
 
 
+# -- the Fritz piggyback in reverse (A.6) -----------------------------------------------------------------------
+
+def _seen_by(g: QmDAG, X: Iterable[int]) -> Tuple[Set[int], Set[FrozenSet[int]]]:
+    """What the predictor set sees: the predictors, their visible parents, and the facets containing a predictor."""
+    X = set(X)
+    nodes = set(X)
+    facets = set()
+    for x in X:
+        nodes |= parents_of(g, x)
+    for F in c_facets_of(g) | q_facets_of(g):
+        if F & X:
+            facets.add(F)
+    return nodes, facets
+
+
+def unrestrict(g1: QmDAG, s: int, X: Tuple[int, ...], hybrids: bool = True) -> Iterable[QmDAG]:
+    """Structures g whose Fritz restriction of s by the predictors X (QmDAG._restrict_targets with the maximal
+    deletion) is g1. In g1 every parent of s is seen by X (a visible parent in X or a parent of a predictor; a
+    facet containing a predictor), otherwise the forward step would have deleted it. g differs by (a) a choice,
+    for each classical facet F of s whose remainder F minus s is a quantum facet of g1 or a single node, of whether
+    F was quantum (then g has Q(F) and neither C(F) nor Q(F minus s)); (b) a nonempty set D of parents of s that X
+    does not see: visible parents that are neither seen nor descendants of s, facets without a predictor that s
+    joins, and new 2-facets {s, u} with u unseen. Over-generates; the caller confirms with the forward Fritz step."""
+    n = g1.number_of_visible
+    C, Q = c_facets_of(g1), q_facets_of(g1)
+    E = edges_of(g1)
+    seen_nodes, seen_facets = _seen_by(g1, X)
+    Pa = parents_of(g1, s)
+    if not Pa <= seen_nodes:
+        return
+    s_facets = {F for F in C | Q if s in F}
+    if not s_facets <= seen_facets:
+        return
+    if any(s in F for F in Q):
+        return                                   # a kept facet is classical for the target
+    desc = descendants_plus(E, s)
+    unseen_nodes = [v for v in range(n) if v != s and v not in seen_nodes and v not in desc]
+    # (a) which classical facets of s were quantum
+    revertible = [F for F in C if s in F and (len(F - {s}) == 1 or (F - {s}) in Q)]
+    for reverted in _subsets(range(len(revertible))):
+        rev = {revertible[i] for i in reverted}
+        base_C = C - rev
+        base_Q = (Q - {F - {s} for F in rev}) | rev
+        # (b) the deleted parents D
+        joinable = [F for F in base_C | base_Q if s not in F and not (F & set(X))]
+        new_pairs = [frozenset((s, u)) for u in range(n) if u != s and u not in X]
+        for P in _subsets(unseen_nodes):
+            for joins in _subsets(range(len(joinable))):
+                for q_pairs in _subsets(range(len(new_pairs))):
+                    for c_pairs in (_subsets(range(len(new_pairs))) if hybrids else [frozenset()]):
+                        if not (P or joins or q_pairs or c_pairs):
+                            continue
+                        if q_pairs & c_pairs:
+                            continue
+                        new_C, new_Q = set(base_C), set(base_Q)
+                        for i in joins:
+                            F = joinable[i]
+                            if F in new_C:
+                                new_C.discard(F)
+                                new_C.add(F | {s})
+                            else:
+                                new_Q.discard(F)
+                                new_Q.add(F | {s})
+                        new_Q |= {new_pairs[i] for i in q_pairs}
+                        new_C |= {new_pairs[i] for i in c_pairs}
+                        new_edges = E | {(p, s) for p in P}
+                        g = assemble(n, new_edges, new_C, new_Q)
+                        if hybrids or g.is_all_quantum:
+                            yield g
+
+
+def fritz_forward_matches(g: QmDAG, key_of: Callable[[QmDAG], UnlabelledId], target_key: UnlabelledId,
+                          s: int, X: Tuple[int, ...], target_mode: str, predictor_mode: str,
+                          use_lp: bool = True, engine: Optional[str] = None) -> List[Tuple[Tuple, QmDAG]]:
+    """The forward Fritz steps of g with predictor X at target s (both pools, the given modes) whose output has the
+    target key: (params, child) pairs as fritz_steps emits them."""
+    out = []
+    for params, child in g.fritz_steps(target_mode=target_mode, predictor_mode=predictor_mode, use_lp=use_lp,
+                                       pool='siblings+parents', max_predictors=len(X), engine=engine):
+        p = dict(params)
+        if p['targets'] != (s,) or tuple(p['predictor']) != tuple(X):
+            continue
+        if child.number_of_visible <= 4 and key_of(child) == target_key:
+            out.append((params, child))
+    return out
+
+
+def inverse_fritz(c: QmDAG, hybrids: bool = True, use_lp: bool = True) -> Iterable[Candidate]:
+    """The Fritz piggyback in reverse, for the modes whose output has at most as many nodes as the input: an
+    unsplit target with the predictor present in c (split predictor mode, childless predictor: g has c's nodes) or
+    removed (unsplit predictor: g1 is an un-marginalization of c with the predictor as the new node); then the
+    un-restriction of the target. The forward params are read off the forward step that confirms the candidate,
+    so the caller must confirm each candidate with `fritz_forward_matches` (the trick name is 'Fritz')."""
+    n = c.number_of_visible
+    # predictor present (split predictor mode, childless predictor)
+    for s in range(n):
+        for x in range(n):
+            if x == s:
+                continue
+            for g in unrestrict(c, s, (x,), hybrids):
+                yield 'Fritz', (('targets', (s,)), ('predictor', (x,)), ('target_mode', 'unsplit'), ('predictor_mode', 'split')), g
+    # predictor removed by (teleportation) marginalization: the new node x = n is the predictor
+    if n < 4:
+        for trick, params, g1 in inverse_marginalization(c, True, hybrids):
+            x = n
+            for s in range(n):
+                for g in unrestrict(g1, s, (x,), hybrids):
+                    yield 'Fritz', (('targets', (s,)), ('predictor', (x,)), ('target_mode', 'unsplit'), ('predictor_mode', 'unsplit')), g
+
+
+NODE_PRESERVING = frozenset(['Fritz'])    # inverses applied at every node count within the cap
+
 INVERSES: Dict[str, Callable[..., Iterable[Candidate]]] = {
     'node_stitching': inverse_node_stitching,
     'PD': inverse_PD,
     'conditioning': inverse_conditioning,
     'naive_marginalization': inverse_naive_marginalization,
     'teleportation_marginalization': inverse_teleportation_marginalization,
+    'Fritz': inverse_fritz,
 }
 
 
@@ -443,13 +556,16 @@ class ReverseClosure:
     duplicates and new keys."""
 
     def __init__(self, index, inverses: Dict[str, Callable[[QmDAG], Iterable[Candidate]]],
-                 max_visible: int = 4, hybrids: bool = True, lookups: bool = True, verbose: bool = False) -> None:
+                 max_visible: int = 4, hybrids: bool = True, lookups: bool = True, verbose: bool = False,
+                 fritz_use_lp: bool = True, fritz_engine: Optional[str] = None) -> None:
         self.index = index
         self.inverses = dict(inverses)
         self.max_visible = max_visible
         self.hybrids = hybrids
         self.lookups = lookups
         self.verbose = verbose
+        self.fritz_use_lp = fritz_use_lp          # certify Fritz candidates beyond d-separation (the closure engine)
+        self.fritz_engine = fritz_engine
         self.known: Dict[UnlabelledId, QmDAG] = {}            # key -> representative
         self.representatives = self.known
         self.structures: Dict[UnlabelledId, QmDAG] = {}       # every labelled structure met, by its own id
@@ -536,6 +652,50 @@ class ReverseClosure:
             return gk
         return None
 
+    def _accept_fritz(self, params: Tuple, g: QmDAG, key: UnlabelledId) -> List[UnlabelledId]:
+        """A Fritz candidate: the forward Fritz steps of g with the candidate's predictor at its target (both pools,
+        the candidate's modes) are run on the stored labelled instance of g, and every step whose output has the
+        known key is recorded with the forward params it emits."""
+        stat = self.stats.setdefault('Fritz', Counter())
+        stat['candidates'] += 1
+        p = dict(params)
+        s, X = p['targets'][0], tuple(p['predictor'])
+        mark = (g.unique_id, 'Fritz', key, s, X, p['target_mode'], p['predictor_mode'])
+        if mark in self._seen:
+            stat['duplicates'] += 1
+            return []
+        self._seen.add(mark)
+        if g.number_of_visible > self.max_visible or (not self.hybrids and not g.is_all_quantum):
+            stat['hybrid skipped'] += 1
+            return []
+        stored = self.structures.get(g.unique_unlabelled_id)
+        if stored is None:
+            stored = g
+        elif stored.unique_id != g.unique_id:
+            perm = permutation_to(g, stored)
+            assert perm is not None
+            new_of = {v: j for j, v in enumerate(perm)}
+            s, X = new_of[s], tuple(new_of[x] for x in X)
+            stat['relabelled'] += 1
+        matches = fritz_forward_matches(stored, self.index.key, key, s, X, p['target_mode'], p['predictor_mode'],
+                                        use_lp=self.fritz_use_lp, engine=self.fritz_engine)
+        if not matches:
+            stat['rejected'] += 1
+            return []
+        stat['confirmed'] += 1
+        gk = self.index.key(stored)
+        if gk == key:
+            stat['same class'] += 1
+            return []
+        self._store(stored)
+        for full_params, child in matches:
+            self._store(child)
+            self._record(Transition('Fritz', full_params, gk, key, stored.unique_unlabelled_id, child.unique_unlabelled_id))
+        if self._add_known(gk, stored, 'Fritz'):
+            stat['new keys'] += 1
+            return [gk]
+        return []
+
     def _reverse_upward(self, key: UnlabelledId, c: QmDAG) -> List[UnlabelledId]:
         """The classes structurally above `key` inside its classical class, through ClassIndex.above_steps; the
         recorded transition is the forward upward lookup, byte for byte."""
@@ -588,11 +748,14 @@ class ReverseClosure:
                     if c.is_all_quantum and self.index.is_class_key(key):
                         queue.extend(self._reverse_upward(key, c))
                     self.seconds['upward'] += time.time() - t0
-                if n >= self.max_visible:
-                    continue
                 for name, inverse in self.inverses.items():
+                    if n >= self.max_visible and name not in NODE_PRESERVING:
+                        continue
                     t0 = time.time()
                     for trick, params, g in inverse(c, hybrids=self.hybrids):
+                        if trick == 'Fritz':
+                            queue.extend(self._accept_fritz(params, g, key))
+                            continue
                         gk = self._accept(trick, params, g, key)
                         if gk is not None:
                             queue.append(gk)

@@ -293,7 +293,15 @@ class ClosureExplorer:
         for uid, g in closure.structures.items():
             self.structures.setdefault(uid, g)
         for key, transitions in closure.edges.items():
-            self._record(key, transitions)
+            fritz = [t for t in transitions if t.trick == 'Fritz']
+            self._record(key, [t for t in transitions if t.trick != 'Fritz'])
+            if fritz and len(self.stage_names) == 1:
+                for name, _ in CASCADE[1:]:          # the cascade's stages, in order, so that the counts stay cumulative
+                    self.begin_stage(name, {})
+                self.current_stage = 0
+            for t in fritz:   # a reversed Fritz step counts in the stage of its rung, as a forward one would
+                self._record(key, [t])
+                self.stage_of[t] = self.stage_names.index(_rung_name(*rung_of(t)))
         self.known_keys.update(closure.known)
         reversed_tricks = set(closure.inverses)
         for key in closure.known:
