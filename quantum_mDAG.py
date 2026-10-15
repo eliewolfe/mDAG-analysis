@@ -6,6 +6,7 @@ import numpy.typing as npt
 from hypergraphs import Hypergraph, LabelledHypergraph, hypergraph_full_cleanup
 from directed_structures import DirectedStructure, LabelledDirectedStructure
 from mDAG_advanced import mDAG
+from canonical_forms import unlabelled_triple
 import semigraphoid as sg
 from sys import version_info
 assert version_info >= (3, 8), "Python 3.8+ is required for cached_property support."
@@ -168,13 +169,21 @@ class QmDAG:
         try:
             return _UNLABELLED_ID_MEMO[key]
         except KeyError:
-            unlabelled_id = (self.number_of_visible,) + min(zip(
+            pass
+        # The permutation-table kernels of canonical_forms (numba when available) give the same minimum as the
+        # three as_integer_permutations tuples, an order of magnitude faster; they need 64-bit integers.
+        triple = unlabelled_triple(self.number_of_visible, self.directed_structure_instance.as_bit_square_matrix,
+                                   self.C_simplicial_complex_instance.compressed_simplicial_complex,
+                                   self.Q_simplicial_complex_instance.compressed_simplicial_complex)
+        if triple is None:
+            triple = min(zip(
                 self.directed_structure_instance.as_integer_permutations,
                 self.C_simplicial_complex_instance.as_integer_permutations,
                 self.Q_simplicial_complex_instance.as_integer_permutations
             ))
-            _UNLABELLED_ID_MEMO[key] = unlabelled_id
-            return unlabelled_id
+        unlabelled_id = (self.number_of_visible,) + tuple(triple)
+        _UNLABELLED_ID_MEMO[key] = unlabelled_id
+        return unlabelled_id
 
     #ON THE POINT DISTRIBUTION TRICK
 

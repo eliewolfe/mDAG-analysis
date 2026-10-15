@@ -33,11 +33,6 @@ def proven_keys(report) -> Set[Tuple[int, int, int, int]]:
     return set(report.proven)
 
 
-def forward_triples(report, tricks) -> Set[Tuple[str, tuple, tuple]]:
-    """(trick, source, target) of the forward transitions of the given tricks recorded from any key."""
-    return {(t.trick, t.source, t.target) for ts in report.explorer.edges.values() for t in ts if t.trick in tricks}
-
-
 def verify(reversed_tricks, hybrids=True, cap=None, verbose=False):
     index = census.build_index(verbose=False)
     t0 = time.time()
@@ -73,7 +68,12 @@ def verify(reversed_tricks, hybrids=True, cap=None, verbose=False):
     print(f"   ladder: {'identical to forward' if lf == lr else (lf, lr)}")
     # 4. generator completeness on the reversed tricks
     if closure is not None:
-        ft = forward_triples(forward, set(reversed_tricks))
+        # forward edges the closure must reproduce: from a structure within the cap (and all-quantum when hybrids
+        # are off) into a known key
+        structures = forward.explorer.structures
+        ft = {(t.trick, t.source, t.target) for ts in forward.explorer.edges.values() for t in ts
+              if t.trick in set(reversed_tricks) and t.source[0] <= closure.max_visible
+              and (hybrids or structures[t.via].is_all_quantum)}
         known = set(closure.known) | set(reverse.explorer.known_keys)
         relevant = {trip for trip in ft if trip[2] in known}
         rt = {(t.trick, t.source, t.target) for ts in closure.edges.values() for t in ts}

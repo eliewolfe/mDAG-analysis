@@ -79,6 +79,13 @@ def is_acyclic(n: int, edges: Iterable[Tuple[int, int]]) -> bool:
         not any(a in descendants_plus(edges, b) for a, b in edges)
 
 
+def emit(trick: str, params: Tuple, n: int, edges, C, Q, hybrids: bool) -> Iterable[Candidate]:
+    """One candidate, unless it has classical facets and hybrids are off."""
+    g = assemble(n, edges, C, Q)
+    if hybrids or g.is_all_quantum:
+        yield trick, params, g
+
+
 def assemble(n: int, edges: Iterable[Tuple[int, int]], C: Iterable[FrozenSet[int]], Q: Iterable[FrozenSet[int]]) -> QmDAG:
     """A QmDAG from plain parts; facets are cleaned (non-maximal faces dropped) before construction."""
     return QmDAG(DirectedStructure(sorted(set(map(tuple, edges))), n),
@@ -196,7 +203,7 @@ def inverse_node_stitching(c: QmDAG, hybrids: bool = True) -> Iterable[Candidate
     E = edges_of(c)
     for y in range(n):
         new_edges = {(x if a == y else a, b) for a, b in E}
-        yield 'node_stitching', ((('sink', y), ('source', x)),), assemble(n + 1, new_edges, c_facets_of(c), q_facets_of(c))
+        yield from emit('node_stitching', ((('sink', y), ('source', x)),), n + 1, new_edges, c_facets_of(c), q_facets_of(c), hybrids)
 
 
 def inverse_degradation(c: QmDAG) -> Iterable[Candidate]:
@@ -259,7 +266,7 @@ def inverse_PD(c: QmDAG, hybrids: bool = True) -> Iterable[Candidate]:
     for parents, children in _edge_patterns(c):
         new_edges = E | {(p, x) for p in parents} | {(x, ch) for ch in children}
         for new_C, new_Q in facet_choices:
-            yield 'PD', params, assemble(n + 1, new_edges, new_C, new_Q)
+            yield from emit('PD', params, n + 1, new_edges, new_C, new_Q, hybrids)
 
 
 def _subsets(items: Iterable[int]) -> Iterable[FrozenSet[int]]:
@@ -335,7 +342,7 @@ def inverse_marginalization(c: QmDAG, apply_teleportation: bool, hybrids: bool =
                             relay = {(p, ch) for p in Pa for ch in Ch}
                             for removed in _subsets(sorted(relay)) if relay else [frozenset()]:
                                 new_edges = (E - set(removed)) | {(p, x) for p in Pa} | {(x, ch) for ch in Ch}
-                                yield trick, params, assemble(n + 1, new_edges, new_C, new_Q)
+                                yield from emit(trick, params, n + 1, new_edges, new_C, new_Q, hybrids)
 
 
 def inverse_naive_marginalization(c: QmDAG, hybrids: bool = True) -> Iterable[Candidate]:
@@ -346,9 +353,77 @@ def inverse_teleportation_marginalization(c: QmDAG, hybrids: bool = True) -> Ite
     return inverse_marginalization(c, True, hybrids)
 
 
+def inverse_conditioning(c: QmDAG, hybrids: bool = True) -> Iterable[Candidate]:
+    """Un-swapping (A.4). Conditioning on x (where justified: every visible grandparent of x is a parent, and every
+    facet meeting a parent of x contains x or lies within the parents) removes x with its edges, adds the classical
+    facet over the parents B and all latent siblings, and the quantum facet over the quantum siblings. Inverse:
+    choose the parents B (closed under visible parents), the children Ch, the bases of x's quantum facets (their
+    union must be a quantum face of G' or a point) and of its classical facets (B with every base must be a face of
+    G' or a point), plus any facets of G absorbed by the two produced facets; no facet of G may meet B without
+    lying inside B. Over-generates; every candidate is confirmed by the forward conditioning."""
+    n = c.number_of_visible
+    x = n
+    C, Q = c_facets_of(c), q_facets_of(c)
+    E = edges_of(c)
+    all_facets = C | Q
+    nodes = frozenset(range(n))
+    desc = {v: descendants_plus(E, v) for v in nodes}
+    params = (('condition', x),)
+
+    def closed_under_parents(B: FrozenSet[int]) -> bool:
+        return all(parents_of(c, b) <= B for b in B)
+
+    def respects_B(F: FrozenSet[int], B: FrozenSet[int]) -> bool:
+        return F.isdisjoint(B) or F <= B
+
+    for B in _subsets(nodes):
+        if not closed_under_parents(B):
+            continue
+        for Ch in _subsets(nodes - B):
+            if any(b in desc[ch] for b in B for ch in Ch):
+                continue
+            new_edges = E | {(b, x) for b in B} | {(x, ch) for ch in Ch}
+            # quantum bases: nonempty subsets of one quantum facet of G', or single nodes
+            q_options = {S for F in Q for S in faces([F], 1)} | {frozenset([v]) for v in nodes}
+            for q_bases in _bases(sorted(q_options, key=lambda f: (len(f), sorted(f)))):
+                Q_all = frozenset().union(*q_bases) if q_bases else frozenset()
+                if len(Q_all) >= 2 and Q_all not in faces(Q, 2):
+                    continue
+                produced_Q = {Q_all} if len(Q_all) >= 2 else set()
+                core = B | Q_all
+                # classical bases: with B and the quantum bases they must fit in one facet of G'
+                hosts = [F for F in all_facets if core <= F] if hybrids else []
+                c_options = {S for F in hosts for S in faces([F], 1)} if hybrids else set()
+                for c_bases in _bases(sorted(c_options, key=lambda f: (len(f), sorted(f)))):
+                    if any(any(S <= T for T in q_bases) for S in c_bases):
+                        continue
+                    BS = core.union(*c_bases) if c_bases else core
+                    if len(BS) >= 2 and BS not in faces(all_facets, 2):
+                        continue
+                    produced_C = {BS} if len(BS) >= 2 else set()
+                    base_Q = Q - produced_Q
+                    base_C = C - produced_C
+                    if not all(respects_B(F, B) for F in base_Q | base_C):
+                        continue
+                    extra_q_options = sorted((faces(produced_Q, 2) - base_Q) if produced_Q else set(), key=lambda f: (len(f), sorted(f)))
+                    extra_c_options = sorted(((faces(produced_C | produced_Q, 2) - base_C) if hybrids else set()), key=lambda f: (len(f), sorted(f)))
+                    x_facets_Q = {S | {x} for S in q_bases}
+                    x_facets_C = {S | {x} for S in c_bases}
+                    for extra_Q in antichains(extra_q_options):
+                        if any(not respects_B(F, B) or _inside(F, base_Q) or any(G < F for G in base_Q) for F in extra_Q):
+                            continue
+                        new_Q = base_Q | set(extra_Q) | x_facets_Q
+                        for extra_C in antichains(extra_c_options):
+                            if any(not respects_B(F, B) or _inside(F, base_C) or any(G < F for G in base_C) for F in extra_C):
+                                continue
+                            new_C = base_C | set(extra_C) | x_facets_C
+                            yield from emit('conditioning', params, n + 1, new_edges, new_C, new_Q, hybrids)
+
+
 INVERSES: Dict[str, Callable[..., Iterable[Candidate]]] = {
     'node_stitching': inverse_node_stitching,
     'PD': inverse_PD,
+    'conditioning': inverse_conditioning,
     'naive_marginalization': inverse_naive_marginalization,
     'teleportation_marginalization': inverse_teleportation_marginalization,
 }

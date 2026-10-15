@@ -82,7 +82,7 @@ STAGE_SECONDS: Dict[str, float] = {}   # wall-clock seconds of each stage in the
 
 # The piggybacks run in reverse by default (reverse_piggybacks): the seeds are closed under their inverses before the
 # census, and the forward search uses the remaining piggybacks. Grows as the piggybacks are reversed one at a time.
-DEFAULT_REVERSED: Tuple[str, ...] = ('node_stitching',)
+DEFAULT_REVERSED: Tuple[str, ...] = ('node_stitching', 'PD')
 LAST_CLOSURE: Optional[ReverseClosure] = None   # the reverse closure of the last run_search (for its summary)
 
 

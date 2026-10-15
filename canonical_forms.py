@@ -15,7 +15,7 @@ five nodes); `fits_int64` says when the tables apply.
 from __future__ import annotations
 
 import itertools
-from typing import Dict, Iterable, List, Sequence, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -299,3 +299,42 @@ class CanonicalForms:
     def lower_neighbours(self, ds_int: int, sc_int: int) -> List[int]:
         """Canonical ids of the mDAGs one edge or one maximal face below (ds_int, sc_int)."""
         return [self.canonical(d, s) for d, s in self.lower_neighbour_parts(ds_int, sc_int)]
+
+
+# --------------------------------------------------------------------------------------------------
+# Unlabelled ids of QmDAGs (directed structure, classical complex, quantum complex) by the same kernels
+# --------------------------------------------------------------------------------------------------
+
+_PERMS: Dict[int, np.ndarray] = {}
+
+
+def _perms(n: int) -> np.ndarray:
+    try:
+        return _PERMS[n]
+    except KeyError:
+        _PERMS[n] = permutations_array(n)
+        return _PERMS[n]
+
+
+def _facets_to_masks(facets: Iterable[Iterable[int]]) -> Tuple[np.ndarray, np.ndarray]:
+    rows = [sum(1 << int(v) for v in f) for f in facets]
+    masks = np.zeros((1, max(len(rows), 1)), dtype=np.int64)
+    masks[0, :len(rows)] = rows
+    return masks, np.array([len(rows)], dtype=np.int64)
+
+
+def unlabelled_triple(n: int, adjacency: np.ndarray, c_facets: Iterable[Iterable[int]],
+                      q_facets: Iterable[Iterable[int]]) -> Optional[Tuple[int, int, int]]:
+    """min over the relabellings p of (ds_int(p), c_int(p), q_int(p)), lexicographically: QmDAG.unique_unlabelled_id
+    without the leading node count. None when the integers do not fit 64 bits (the caller falls back)."""
+    c_facets, q_facets = list(c_facets), list(q_facets)
+    if not fits_int64(n, max(len(c_facets), len(q_facets))):
+        return None
+    perms = _perms(n)
+    d_row = _ds_table(np.asarray(adjacency, dtype=np.bool_).reshape(1, n, n), perms)[0]
+    c_masks, c_count = _facets_to_masks(c_facets)
+    q_masks, q_count = _facets_to_masks(q_facets)
+    c_row = _sc_table(c_masks, c_count, perms, n)[0]
+    q_row = _sc_table(q_masks, q_count, perms, n)[0]
+    best = int(np.lexsort((q_row, c_row, d_row))[0])
+    return int(d_row[best]), int(c_row[best]), int(q_row[best])

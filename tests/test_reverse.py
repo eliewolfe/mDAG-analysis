@@ -146,3 +146,15 @@ def test_un_marginalization_examples_are_confirmed(index):
     triangle = Q([], 3, [], [(0, 1), (1, 2), (0, 2)])
     assert any(same(g, Q([(2, 3)], 4, [], [(0, 1), (0, 2), (1, 2), (2, 3)]))
                for _, _, g in R.inverse_marginalization(triangle, False))
+
+
+def test_un_swapping_examples_are_confirmed(index):
+    inst_C = K.SEEDS['QG_Instrumental_C']                                # 1->2; C{0,1}, Q{1,2}
+    outs = list(R.inverse_conditioning(inst_C))
+    # A.4: Q{1,2} is the swap through x of Q{1,x}, Q{x,2}
+    assert any(same(g, Q([(1, 2)], 4, [(0, 1)], [(1, 3), (3, 2)])) for _, _, g in outs)
+    for trick, params, g in outs:
+        assert g.conditioning_is_justified(3)
+        child = R.forward_child(trick, params, g)
+        assert child is not None and index.key(child) == index.key(inst_C)
+    assert all(g.is_all_quantum for _, _, g in R.inverse_conditioning(inst_C, hybrids=False))
