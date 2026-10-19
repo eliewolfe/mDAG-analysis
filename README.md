@@ -13,12 +13,12 @@ The package is managed with poetry (`poetry install`). Two dependencies deserve 
   (manuscript Appendix B) as an alternative engine: `python "Special Applications/proving_QC_Gaps.py" --engine lp`, or `--engine both` to
   cross-check the two engines on every candidate.
 
-The four-node census: `python "Special Applications/proving_QC_Gaps.py"` (about a minute; `--no-cache` to
+The four-node census: `python "Special Applications/proving_QC_Gaps.py"` (under two minutes; `--no-cache` to
 recompute everything). It searches over quantum observational equivalence classes: `metagraph_advanced.QuantumMetagraph`
-builds the metagraph whose edges are quantum-valid (structural dominance, face splitting, the HLP edge rule when the
-origin node has no visible parent and one latent parent), `ClassicalMetagraph.from_quantum` adds the remaining HLP
-edges for the classical classes, and `equivalence_classes.ClassIndex` keys every structure by its class. The nodes
+builds the metagraph whose edges are quantum-valid (structural dominance, face splitting, and the HLP edge rule in
+its pre-measurement form: the origin node is premeasurable, or every other member of its facets is),
+`ClassicalMetagraph.from_quantum` adds the remaining HLP edges for the classical classes, and `equivalence_classes.ClassIndex` keys every structure by its class. The nodes
 of the metagraph are enumerated by orbits from permutation tables (`canonical_forms.py`: canonical ids on demand,
 no dictionary over the labelled mDAGs) and held as scipy sparse matrices; both five-node metagraphs (1,718,596
-unlabelled mDAGs, 490,800 classical and 595,074 quantum classes) build in about five minutes within 3.5 GB. Tests:
+unlabelled mDAGs, 490,800 classical and 583,674 quantum classes) build in about five minutes within 3.5 GB. Tests:
 `pytest` (fast suite) and `pytest -m slow` (the census pins).

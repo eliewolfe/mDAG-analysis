@@ -221,15 +221,16 @@ class QmDAG:
 
     def lift(self) -> Optional["QmDAG"]:
         """The all-quantum structure with the same quantum model, when there is one by the pre-measurement
-        argument: every classical facet is a 2-facet one of whose members has no visible parent and no other facet
-        (mDAG.is_premeasurable), so that facet's source can measure that member's share itself and the facet is
-        classical and quantum at once. Returns self when all facets are quantum, None when some classical facet
-        does not lift (such a structure is strictly weaker than its all-quantum version)."""
+        argument: in every classical facet all members but at most one have no visible parent and no other facet
+        (mDAG.is_premeasurable), so that facet's source can measure those members' shares itself, the remaining
+        member's share is then a classical mixture labelled by their outcomes, and the facet is classical and
+        quantum at once. Returns self when all facets are quantum, None when some classical facet does not lift
+        (such a structure is strictly weaker than its all-quantum version)."""
         if self.is_all_quantum:
             return self
         md = self.as_mDAG
         for facet in self.C_simplicial_complex_instance.compressed_simplicial_complex:
-            if len(facet) != 2 or not any(md.is_premeasurable(int(v)) for v in facet):
+            if sum(1 for v in facet if not md.is_premeasurable(int(v))) > 1:
                 return None
         return QmDAG(self.directed_structure_instance, Hypergraph([], self.number_of_visible),
                      md.simplicial_complex_instance)

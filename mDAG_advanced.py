@@ -578,12 +578,14 @@ class mDAG:
     # ------------------------------------------------------------------
     # The HLP edge rule (Evans; Henson, Lal and Pusey): an edge a -> b between two members of a facet with
     # Pa(a) <= Pa(b) can be added or dropped without changing the classical model, since b sees everything a is
-    # a function of and the latent can carry a's noise. Quantumly the rule holds exactly when a has no visible
-    # parent and exactly one latent parent (`is_premeasurable`): a's measurement is then fixed, so the facet's
-    # source can perform it and hand the outcome to a and to b. With a visible parent (a setting) or a second facet
-    # (a joint measurement on two independent shares) the source cannot, and the rule fails: Q{A,B,D}, Q{A,C,D},
-    # Q{B,C} with A -> D lets D copy A's CHSH outcome against B, which the monogamy of nonlocality forbids without
-    # the edge.
+    # a function of and the latent can carry a's noise. Quantumly the rule holds when a has no visible parent
+    # and exactly one latent parent (`is_premeasurable`): a's measurement is then fixed, so the facet's
+    # source can perform it and hand the outcome to a and to b. The same argument applied to the *other* members of
+    # a's facets gives the second form of the rule (quantum_hlp_origin_ok): when every other member is premeasurable,
+    # the sources pre-measure them and a's remaining quantum resources are shared with b alone, so b computes a's
+    # output. Otherwise the rule fails: Q{A,B,D}, Q{A,C,D}, Q{B,C} with A -> D lets D copy A's CHSH outcome against
+    # B, which the monogamy of nonlocality forbids without the edge; Q{A,B,C} with S -> A, S -> B, T -> C and
+    # A -> B likewise lets B copy A's outcome while A and C violate CHSH.
     # ------------------------------------------------------------------
 
     def is_premeasurable(self, node: int) -> bool:
@@ -592,11 +594,24 @@ class mDAG:
         pa = int(self.nonsingleton_parents_masks[node])
         return pa & ((1 << self.number_of_visible) - 1) == 0 and bin(pa >> self.number_of_visible).count('1') == 1
 
+    def quantum_hlp_origin_ok(self, a: int, b: int) -> bool:
+        """Is the edge a -> b, with Pa(a) a subset of Pa(b), redundant for quantum model sets? Yes when b can obtain
+        a's value without it, which the pre-measurement argument gives in two forms: a is premeasurable (its facet's
+        source performs a's fixed measurement and hands the outcome to a and to b), or every other member of every
+        facet of a is premeasurable (each source performs those members' fixed measurements first and tells a and b
+        the outcomes; what is left of a's quantum resources is shared with b alone, and b, which knows every input
+        of a, can then compute a's output from shared classical randomness). The second form includes the facet
+        {a, b} with no other member, whatever visible parents a has."""
+        if self.is_premeasurable(a):
+            return True
+        facets = self.simplicial_complex_instance.simplicial_complex_as_sets
+        return all(self.is_premeasurable(v) for F in facets if a in F for v in F if v != a and v != b)
+
     def _hlp_candidates_ok(self, pairs: Iterable[Tuple[int, int]], rule: str) -> List[Tuple[int, int]]:
         assert rule in ('classical', 'quantum'), rule
         pa = self.nonsingleton_parents_masks.tolist()   # visible and latent parents, as as_graph shows them
         return [pair for pair in pairs if pa[pair[0]] & ~pa[pair[1]] == 0
-                and (rule == 'classical' or self.is_premeasurable(pair[0]))]
+                and (rule == 'classical' or self.quantum_hlp_origin_ok(pair[0], pair[1]))]
 
     @cached_property
     def droppable_edges(self) -> List[Tuple[int, int]]:
@@ -611,7 +626,7 @@ class mDAG:
 
     @cached_property
     def quantum_droppable_edges(self) -> List[Tuple[int, int]]:
-        """droppable_edges whose origin is premeasurable: the quantum-valid HLP edges."""
+        """droppable_edges whose origin passes quantum_hlp_origin_ok: the quantum-valid HLP edges."""
         return self._hlp_candidates_ok(self.droppable_edges, 'quantum')
 
     @cached_property

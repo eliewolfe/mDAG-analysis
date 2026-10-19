@@ -113,7 +113,8 @@ class Observable_unlabelled_mDAGs:
 
     `rule` selects the model sets the edges are sound for. 'classical' (the default) uses every rule. 'quantum'
     uses structural dominance and face splitting, which are quantum-valid as they stand, and the HLP edge rule only
-    where its origin node is premeasurable (mDAG.is_premeasurable); its components are proven *quantum*
+    in its pre-measurement form (mDAG.quantum_hlp_origin_ok: the origin node is premeasurable, or every other
+    member of its facets is); its components are proven *quantum*
     observational equivalence classes, each inside one classical class. The two metagraphs share everything but the
     HLP edges: build the quantum one and derive the classical one with `ClassicalMetagraph.from_quantum`.
     """

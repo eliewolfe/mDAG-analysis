@@ -7,15 +7,15 @@ import pytest
 
 HAVE_MOSEK = importlib.util.find_spec("mosek") is not None
 
-# The inputs: the 424 quantum equivalence classes of the four-node mDAGs with every latent quantum that are not
+# The inputs: the 418 quantum equivalence classes of the four-node mDAGs with every latent quantum that are not
 # provably algebraic (996 structures up to relabelling, in 376 classical classes); every seed (three- and four-node)
 # is known from the start and the two Bell seed classes are inputs proven by identity (manuscript/piggybacks.md,
 # Section 1). The lookups (degradation, upward) are part of every group.
 EXPECTED_COUNTS = {
-    'inputs': 424,
-    'proven': 378,
+    'inputs': 418,
+    'proven': 372,
     'remaining': 46,
-    'labelled_inputs': 424,
+    'labelled_inputs': 418,
     'structures': 996,
     'structures proven': 935,
     'structures remaining': 61,
@@ -24,16 +24,16 @@ EXPECTED_COUNTS = {
     'classical classes of remaining': 46,
     'classical classes with proven and unproven': 0,
     'with identity': 2,
-    'with PD': 345,
+    'with PD': 341,
     'with node_stitching': 7,
-    'with conditioning': 65,
-    'with naive_marginalization': 172,
-    'with teleportation_marginalization': 180,
-    'with marginalization (either kind)': 180,
+    'with conditioning': 63,
+    'with naive_marginalization': 170,
+    'with teleportation_marginalization': 178,
+    'with marginalization (either kind)': 178,
     'only via identity': 0,
-    'only via PD': 166,
+    'only via PD': 164,
     'only via node_stitching': 0,
-    'only via conditioning': 17,
+    'only via conditioning': 15,
     'only via naive_marginalization': 0,
     'only via teleportation_marginalization': 9,
     'only via marginalization (either kind)': 11,
@@ -43,16 +43,16 @@ EXPECTED_COUNTS = {
 # four closure Fritz stages. The cumulative stage counts (by the stage in which each transition was recorded) must
 # agree with the rungs of the ladder (by the recorded parameters).
 EXPECTED_STAGES = [
-    ('elementary', 372),
-    ('Fritz, parent predictor', 375),
-    ('Fritz, unsplit target, unsplit predictor, d-separation', 376),
-    ('Fritz, unsplit target, split predictor, d-separation', 376),
-    ('Fritz, split target, unsplit predictor, d-separation', 376),
-    ('Fritz, split target, split predictor, d-separation', 377),
-    ('Fritz, unsplit target, unsplit predictor, semigraphoid closure', 377),
-    ('Fritz, unsplit target, split predictor, semigraphoid closure', 378),
-    ('Fritz, split target, unsplit predictor, semigraphoid closure', 378),
-    ('Fritz, split target, split predictor, semigraphoid closure', 378),
+    ('elementary', 366),
+    ('Fritz, parent predictor', 369),
+    ('Fritz, unsplit target, unsplit predictor, d-separation', 370),
+    ('Fritz, unsplit target, split predictor, d-separation', 370),
+    ('Fritz, split target, unsplit predictor, d-separation', 370),
+    ('Fritz, split target, split predictor, d-separation', 371),
+    ('Fritz, unsplit target, unsplit predictor, semigraphoid closure', 371),
+    ('Fritz, unsplit target, split predictor, semigraphoid closure', 372),
+    ('Fritz, split target, unsplit predictor, semigraphoid closure', 372),
+    ('Fritz, split target, split predictor, semigraphoid closure', 372),
 ]
 EXPECTED_LADDER = [count for _, count in EXPECTED_STAGES]
 

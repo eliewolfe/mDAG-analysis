@@ -23,7 +23,7 @@ def Q(edges, n, C, Qf):
 
 def test_class_counts_and_nesting(index):
     for n, (n_mdags, classical, quantum, latent_free, inputs, structures) in \
-            {3: (46, 8, 8, 5, 3, 5), 4: (2809, 396, 445, 20, 424, 996)}.items():
+            {3: (46, 8, 8, 5, 3, 5), 4: (2809, 396, 438, 20, 418, 996)}.items():
         Qm, Cm = index.quantum[n], index.classical[n]
         assert len(Qm.dict_uniqind_unlabelled_mDAGs) == n_mdags
         assert len(Cm.equivalence_classes_as_ids) == classical and len(Qm.equivalence_classes_as_ids) == quantum
@@ -39,22 +39,36 @@ def test_class_counts_and_nesting(index):
         assert Cm.structural_order is Qm.structural_order   # shared
 
 
-def test_quantum_hlp_rule_fires_only_on_premeasurable_origins(index):
+def test_quantum_hlp_rule_is_the_pre_measurement_rule(index):
     Qm = index.quantum[4]
-    assert len(Qm.hlp_edge_list) == 546 and len(index.classical[4].hlp_edge_list) == 648
+    assert len(Qm.hlp_edge_list) == 528 and len(index.classical[4].hlp_edge_list) == 648
     for md in Qm.dict_uniqind_unlabelled_mDAGs.values():
-        for a, b in md.quantum_droppable_edges:
-            assert md.is_premeasurable(a) and (a, b) in md.droppable_edges
+        facets = md.simplicial_complex_instance.simplicial_complex_as_sets
         for a, b in md.droppable_edges:
-            assert ((a, b) in md.quantum_droppable_edges) == md.is_premeasurable(a)
-    # 0 -> 1 with Q{0,1}: 0 has no visible parent and one facet, so the edge is redundant classically and quantumly;
-    # with a setting 2 of both 0 and 1 (Pa(0) = {2, Q01} is still inside Pa(1)) only the classical rule applies:
-    # 0's measurement depends on 2, which the source of Q{0,1} does not know.
+            others_ok = all(md.is_premeasurable(v) for F in facets if a in F for v in F if v not in (a, b))
+            assert md.quantum_hlp_origin_ok(a, b) == (md.is_premeasurable(a) or others_ok)
+            assert ((a, b) in md.quantum_droppable_edges) == md.quantum_hlp_origin_ok(a, b)
+        assert set(md.quantum_droppable_edges) <= set(md.droppable_edges)
+    # 0 -> 1 with Q{0,1}: 0 is premeasurable, so the edge is redundant classically and quantumly. With a setting 2 of
+    # both 0 and 1 (Pa(0) = {2, Q01} inside Pa(1)) the facet {0,1} has no other member, so 1 holds every input of 0
+    # and the pair's state is shared by the two alone: still quantum-redundant (second form of the rule).
     one = mDAG(DirectedStructure([(0, 1)], 3), Hypergraph([(0, 1)], 3))
     two = mDAG(DirectedStructure([(2, 0), (2, 1), (0, 1)], 3), Hypergraph([(0, 1)], 3))
-    assert one.quantum_droppable_edges == [(0, 1)] and one.droppable_edges == [(0, 1)]
-    assert two.quantum_droppable_edges == [] and two.droppable_edges == [(0, 1)]
+    assert one.quantum_droppable_edges == [(0, 1)] and two.quantum_droppable_edges == [(0, 1)]
     assert not two.is_premeasurable(0) and one.is_premeasurable(0)
+    # the other members of a's facets premeasurable: 2, 3, 4 have no visible parent and one facet each, so 0 -> 1 is
+    # quantum-redundant although 0 has the setting 2 and three facets (2 -> 0 and 2 -> 1 are redundant by the
+    # first form, 2 being premeasurable)
+    five = mDAG(DirectedStructure([(2, 0), (2, 1), (0, 1)], 5), Hypergraph([(0, 1, 2), (0, 1, 3), (0, 1, 4)], 5))
+    assert set(five.quantum_droppable_edges) == {(0, 1), (2, 0), (2, 1)}
+    # a member with two facets blocks the argument: 0 holds shares of Q{0,1,2} and Q{0,3}
+    blocked = mDAG(DirectedStructure([(0, 1), (0, 2), (0, 3), (2, 3), (2, 1)], 4), Hypergraph([(0, 1, 2), (0, 3)], 4))
+    assert (2, 1) in blocked.droppable_edges and (2, 1) not in blocked.quantum_droppable_edges
+    # a setting of a that the source does not know, with a third facet member that has a setting too: not droppable
+    setting = mDAG(DirectedStructure([(0, 1), (0, 2), (1, 2), (0, 3)], 4), Hypergraph([(1, 2, 3)], 4))
+    assert (1, 2) in setting.droppable_edges and (1, 2) not in setting.quantum_droppable_edges
+    # the same with 3 premeasurable: the source of Q{1,2,3} measures 3's share, and 1 -> 2 becomes redundant
+    assert (1, 2) in mDAG(DirectedStructure([(0, 1), (0, 2), (1, 2)], 4), Hypergraph([(1, 2, 3)], 4)).quantum_droppable_edges
 
 
 def test_the_bell_settings_class_collapses_under_quantum_rules(index):
@@ -74,6 +88,11 @@ def test_the_bell_settings_class_collapses_under_quantum_rules(index):
 
 def test_lift_and_seed_classes(index):
     assert K.QG_Triangle.lift() is None
+    # a classical facet lifts when all its members but at most one are premeasurable: C{0,1,2} with 0 and 1 having
+    # no visible parent and no other facet lifts even though 2 has a setting and another facet
+    three = Q([(3, 2)], 4, [(0, 1, 2)], [(2, 3)])
+    assert three.lift() is not None and three.lift().is_all_quantum
+    assert Q([(3, 2)], 4, [(0, 1, 2)], [(1, 3), (2, 3)]).lift() is None    # two members with other facets
     for name, g in K.SEEDS.items():
         if name != 'QG_Triangle':
             lifted = g.lift()
