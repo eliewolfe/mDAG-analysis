@@ -139,7 +139,8 @@ def test_conservative_and_bulk_checks_read_the_verdict_not_the_tuple():
     with_model = st.feasibleQ_from_matrix_CONSERVATIVE(support, min_definite=3, max_definite=3, return_model=True)
     assert isinstance(with_model, tuple) and with_model[0] is False and with_model[1]
     feasible = np.array([[0, 0, 0], [0, 0, 1], [1, 0, 0]])
-    assert st.feasibleQ_from_matrix_CONSERVATIVE(feasible, min_definite=3, max_definite=3, return_model=True) is True
+    assert st.feasibleQ_from_matrix_CONSERVATIVE(feasible, min_definite=3, max_definite=3) is True
+    assert st.feasibleQ_from_matrix_CONSERVATIVE(feasible, min_definite=3, max_definite=3, return_model=True) == (True, [])
     assert verdict(True) and not verdict(False) and not verdict((False, ['x'])) and verdict((True, []))
     # the bulk enumeration gives the same infeasible set with and without models
     stt = SupportTesting(TRIANGLE, (2, 2, 2), 3)
@@ -185,6 +186,7 @@ def test_radix_round_trips_beyond_the_intp_and_uint64_limits():
     batch = np.array([[0, 1, 2 ** 70]], dtype=object)
     bits = radix.to_bits(batch, 71)
     assert bits.shape == (1, 3, 71) and radix.from_bits(bits).tolist() == batch.tolist()
+    assert radix.to_bits(np.empty((0,), dtype=object), 70).shape == (0, 70)      # size-0 input on the >64-bit path
     assert radix.to_bits(np.array([3, 5]), 2, sanity_check=True).tolist() == [[0, 1, 1], [1, 0, 1]]
     assert radix.to_digits(np.array([5, 7]), (2, 2, 2), sanity_check=True).tolist() == [[1, 0, 1], [1, 1, 1]]
     with pytest.raises(AssertionError):
@@ -212,6 +214,7 @@ def test_causal_symmetry_tester_constructs_and_is_a_restriction():
     assert (not r_full or r_sym) and (not r_sym or r_plain)
     assert r_plain is False and r_sym is False and r_full is False
     assert sym.feasibleQ_from_matrix(events, return_model=True)[0] is False
+    assert sym.reverse_var(-sym.var(0, 1, 2)) == "A_[00,01]!=2"       # the parent's decoder cannot parse these names
 
 
 # -- finding 7: one_off --------------------------------------------------------------------------------------------
@@ -224,6 +227,7 @@ def test_one_off_relabels_definite_events_with_the_support():
         one_off(SHARED, support, definite_events=[(2, 4)])
     assert one_off(TRIANGLE, [(1, 0, 0), (0, 1, 0), (0, 0, 1)]) is False
     assert one_off(TRIANGLE, [(5, 0, 0), (0, 5, 0), (0, 0, 5)]) is False
+    assert one_off(TRIANGLE, [(1, 0, 0), (0, 1, 0), (0, 0, 1)], stclass=SupportTesting) is False
 
 
 # -- finding 8 and the small edge cases ------------------------------------------------------------------------------

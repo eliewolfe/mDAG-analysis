@@ -56,6 +56,9 @@ def to_bits(integers: Union[int, IntArray], mantissa: int, sanity_check: bool = 
     Shape: (...,) -> (..., mantissa).
     Threads over leading axes and expands each scalar into a trailing axis of bits of length `mantissa`.
     """
+    as_array = np.asarray(integers)
+    if as_array.size == 0:   # nothing to expand; np.vectorize (the >64-bit path) refuses size-0 input
+        return np.zeros(as_array.shape + (mantissa,), dtype=np.uint8)
     if sanity_check:
         min_mantissa = int(np.amax(integers)).bit_length()
         if min_mantissa>mantissa:
@@ -177,7 +180,7 @@ def _unravel_index_applies(base: Tuple[Any, ...]) -> bool:
 
 
 def _to_digits(integer: Union[int, IntArray], base: Union[Tuple[Any, ...], IntArray]) -> IntArray:
-    if _unravel_index_applies(tuple(int(b) for b in base)):
+    if _unravel_index_applies(tuple(base)):
         return np.stack(np.unravel_index(np.asarray(integer, dtype=np.intp), base), axis=-1)
     else:
         return _to_digits_divmod(integer, base)
@@ -187,8 +190,8 @@ def _to_digits_divmod(integer: Union[int, IntArray], base: Union[Tuple[Any, ...]
     integers, so there is no width limit."""
     arrays = []
     x = np.array(integer, copy=True)
-    if x.dtype.kind in 'ui' and not _unravel_index_applies(tuple(int(b) for b in base)):
-        x = x.astype(object)
+    if x.dtype.kind in 'ui' and math.prod(int(b) for b in base) > np.iinfo(x.dtype).max:
+        x = x.astype(object)   # the digits' value range exceeds the native integer type
     for b in np.flipud(base).flat:
         b = int(b)
         # np.divmod has no object loop; floor_divide and remainder do

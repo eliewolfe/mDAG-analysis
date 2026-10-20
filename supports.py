@@ -380,7 +380,8 @@ class SupportTester(object):
                     print("Rejected the support by requiring the following events to occur in diagonal worlds:")
                     print(definitely_occurring_events)
                     return passes_inflation_test     # False, or (False, explanation) when a model was requested
-        return True
+        # every level passed: the same shape as a rejection when a model was requested (no single model to return)
+        return (True, []) if kwargs.get('return_model') else True
 
 
     def potentially_feasibleQ_from_matrix_pair(self,
@@ -521,7 +522,10 @@ class SupportTesting(SupportTester):
         """Every relabelling of the parties that preserves the cardinalities, the identity first, as event
         permutations. It is the whole group, automorphisms included: the coherent canonical form of
         `convert_integers_into_canonical_under_coherent_relabelling` is a minimum over the images of a list of
-        supports, and leaving out the identity (or the other automorphisms) would leave out the list itself."""
+        supports, and leaving out the identity (or the other automorphisms) would leave out the list itself. The
+        automorphisms are not redundant either: the expanded lists are closed under "automorphism, then outcome
+        canonicalisation", not under the raw automorphism, so their images differ from the list. The cost is |Aut|
+        more columns, at most 24 on four nodes."""
         to_reshape = self.conceivable_events_range.reshape(self.observed_cardinalities)
         perms = [perm for perm in itertools.permutations(range(self.nof_observed))
                  if np.array_equal(self.observed_cardinalities, np.take(self.observed_cardinalities, perm))]
@@ -737,7 +741,7 @@ def one_off(parents_of: Tuple[Sequence[int], ...], support_as_matrix: IntMatrix,
         value_maps.append({int(v): k for k, v in enumerate(unique_vals.tolist())})
     n_definite = len(definite_events)
     if n_definite == 0:
-        st = stclass(parents_of, observed_cardinalities, nof_events=nrows)
+        st = stclass(parents_of, observed_cardinalities, nrows)   # positional: SupportTesting takes *args
         return st.feasibleQ_from_matrix(new_support, **kwargs)
     else:
         definite_as_array = np.asarray(definite_events)
@@ -748,7 +752,7 @@ def one_off(parents_of: Tuple[Sequence[int], ...], support_as_matrix: IntMatrix,
                 new_definite[:, i] = [value_maps[i][int(v)] for v in col]
             except KeyError as absent:
                 raise ValueError(f"Definite event value {absent} of variable {i} does not occur in the support.") from None
-        st = stclass(parents_of, observed_cardinalities, nof_events=n_definite)
+        st = stclass(parents_of, observed_cardinalities, n_definite)
         return st.potentially_feasibleQ_from_matrix_pair(
             definitely_occurring_events_matrix=new_definite,
             potentially_occurring_events_matrix=new_support, **kwargs)
