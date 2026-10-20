@@ -1,5 +1,7 @@
 # Comments for Marina on the QC-gaps draft (`main.tex`)
 
+> Branch: **`main`**. This document describes this branch's rules and results. See the [branch guide](../BRANCHES.md) for the differences between the two maintained branches.
+
 *What has to change in the draft to make it a complete account of the current method, with the semigraphoid-closure version of the Fritz piggyback; and the errors in the present text. Everything referred to as "piggybacks.md" is `manuscript/piggybacks.md` in this repository, whose section numbers are quoted as 6.4, 7.9 and so on. Line numbers refer to the draft as received.*
 
 The draft is a good skeleton: the examples are well chosen, the pDAG/semantics notation is sound, and the appendix proofs for point distribution, marginalization and postselection are essentially right. What it describes, however, is the method as it stood two code rewrites ago. Since then the Fritz piggyback was made self-contained, the search was rebuilt around hybrid (classical and quantum) known gaps with a degradation piggyback, the certificate beyond d-separation (semigraphoid closure, with an entropic LP as the alternative engine) was added, and the census numbers changed. Part A lists the narrative changes that are needed; Part B lists the errors in the present statements and proofs; Part C says where in piggybacks.md the replacement material lives; Part D answers the question about condition 3 of the postselection piggyback, which turns out to cut the other way: the draft's construction shows that *our* condition 3 is unnecessary.
