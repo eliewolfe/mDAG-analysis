@@ -41,7 +41,7 @@ def index_symbols() -> Dict[str, Tuple[str, int]]:
         for fname in sorted(os.listdir(folder)):
             if not fname.endswith(".py"):
                 continue
-            path = os.path.relpath(os.path.join(folder, fname), ROOT)
+            path = os.path.relpath(os.path.join(folder, fname), ROOT).replace(os.sep, "/")
             module = fname[:-3]
             try:
                 tree = ast.parse(open(os.path.join(folder, fname), encoding="utf-8").read())
