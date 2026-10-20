@@ -2,7 +2,7 @@ from __future__ import absolute_import
 import numpy as np
 import numpy.typing as npt
 import itertools
-# import operator
+import math
 from functools import lru_cache
 from typing import Any, Iterable, List, Tuple, Union
 
@@ -57,7 +57,7 @@ def to_bits(integers: Union[int, IntArray], mantissa: int, sanity_check: bool = 
     Threads over leading axes and expands each scalar into a trailing axis of bits of length `mantissa`.
     """
     if sanity_check:
-        min_mantissa = int.bit_length(np.amax(integers))
+        min_mantissa = int(np.amax(integers)).bit_length()
         if min_mantissa>mantissa:
             print("ERROR: Mantissa is too small to accommodate an integer, overriding.")
             mantissa = min_mantissa
@@ -70,10 +70,11 @@ def to_bits(integers: Union[int, IntArray], mantissa: int, sanity_check: bool = 
     elif mantissa <= 64:
         bytes_array = flip_array_last_axis(np.expand_dims(np.asarray(integers, np.uint64), axis=-1).view(np.uint8))
     else:
-        mantissa_for_bytes = np.floor_divide(mantissa, 8) + 1
-        # to_bytes_ufunc = np.frompyfunc(lambda x: np.frombuffer(int.to_bytes(x, length=mantissa_for_bytes, byteorder='big'), dtype=np.uint8), 1, 1)
-        to_bytes_ufunc = np.vectorize(lambda x: np.frombuffer(int.to_bytes(x, length=mantissa_for_bytes, byteorder='big'), dtype=np.uint8), signature='()->(n)')
-        bytes_array = to_bytes_ufunc(integers)
+        # arbitrary precision: Python integers are the reference (a numpy scalar must be converted first)
+        mantissa_for_bytes = -(-mantissa // 8)
+        to_bytes_ufunc = np.vectorize(lambda x: np.frombuffer(int(x).to_bytes(length=mantissa_for_bytes, byteorder='big'), dtype=np.uint8),
+                                      otypes=[np.uint8], signature='()->(n)')
+        bytes_array = to_bytes_ufunc(np.asarray(integers, dtype=object))
     return np.unpackbits(bytes_array, axis=-1, bitorder='big')[..., -mantissa:]
 
 # import numba
@@ -92,12 +93,14 @@ def to_bits(integers: Union[int, IntArray], mantissa: int, sanity_check: bool = 
 # def from_bits(smooshed_bit_array):
 #     return pack_a_bit.reduce(smooshed_bit_array, axis=-1)
 
-def from_littleordered_bytes(byte_array: npt.NDArray[np.uint8]) -> UIntArray:
-    #Assumes numpy array
-    if byte_array.ndim == 1:
-        return np.asarray(int.from_bytes(byte_array.tolist(), byteorder='little', signed=False))
-    else:
-        return np.vstack(list(map(from_littleordered_bytes, byte_array)))
+def from_littleordered_bytes(byte_array: npt.NDArray[np.uint8]) -> npt.NDArray[Any]:
+    """Shape: (..., nbytes) -> (...,) of Python integers (object dtype); every leading axis is preserved."""
+    as_array = np.asarray(byte_array, dtype=np.uint8)
+    rows = as_array.reshape((-1, as_array.shape[-1]))
+    values = np.empty(len(rows), dtype=object)
+    for i, row in enumerate(rows.tolist()):
+        values[i] = int.from_bytes(bytes(row), byteorder='little', signed=False)
+    return values.reshape(as_array.shape[:-1])
 
 def from_bits(smooshed_bit_array: BoolArray) -> IntArray:
     """
@@ -132,9 +135,8 @@ def from_bits(smooshed_bit_array: BoolArray) -> IntArray:
                 return np.squeeze(np.ascontiguousarray(
                     np.pad(ready_for_viewing, pad_width=npad, mode='constant', constant_values=0)
                 ).view(np.uint64), axis=-1)
-        elif mantissa > 64:
-            print("Warning: Integers exceeding 2^64, possible overflow errors.")
-            return np.squeeze(from_littleordered_bytes(ready_for_viewing), axis=-1)
+        else:   # beyond 64 bits: Python integers, exact
+            return from_littleordered_bytes(ready_for_viewing)
     else:
         return np.zeros(smooshed_bit_array.shape[:-2], dtype=int)
 
@@ -168,18 +170,29 @@ def from_string_digits(string_digits_array: Union[str, List[str], IntArray], bas
     return from_digits(array_from_string(string_digits_array), base)
 
 
+@lru_cache(maxsize=16)
+def _unravel_index_applies(base: Tuple[Any, ...]) -> bool:
+    """np.unravel_index needs at most 32 dimensions and a total size that fits in intp."""
+    return len(base) <= 32 and math.prod(int(b) for b in base) <= np.iinfo(np.intp).max
+
+
 def _to_digits(integer: Union[int, IntArray], base: Union[Tuple[Any, ...], IntArray]) -> IntArray:
-    if len(base)<=32:
+    if _unravel_index_applies(tuple(int(b) for b in base)):
         return np.stack(np.unravel_index(np.asarray(integer, dtype=np.intp), base), axis=-1)
     else:
-        return _to_digits_numba(integer, base)
+        return _to_digits_divmod(integer, base)
 
-def _to_digits_numba(integer: Union[int, IntArray], base: Union[Tuple[Any, ...], IntArray]) -> IntArray:
+def _to_digits_divmod(integer: Union[int, IntArray], base: Union[Tuple[Any, ...], IntArray]) -> IntArray:
+    """Digit extraction by repeated divmod, least significant digit first; works on object arrays of Python
+    integers, so there is no width limit."""
     arrays = []
     x = np.array(integer, copy=True)
-    #print(reversed_base(base))
+    if x.dtype.kind in 'ui' and not _unravel_index_applies(tuple(int(b) for b in base)):
+        x = x.astype(object)
     for b in np.flipud(base).flat:
-        x, remainder = np.divmod(x, b)
+        b = int(b)
+        # np.divmod has no object loop; floor_divide and remainder do
+        x, remainder = np.floor_divide(x, b), np.remainder(x, b)
         arrays.append(remainder)
     return flip_array_last_axis(np.stack(arrays, axis=-1))
 
@@ -189,7 +202,7 @@ def to_digits(integer: Union[int, IntArray], base: Union[Tuple[Any, ...], IntArr
     Threads over leading axes and expands scalars into digit vectors of length len(base).
     """
     if sanity_check:
-        does_it_fit = np.amax(integer) < np.multiply.reduce(np.flipud(base).astype(dtype=np.ulonglong))
+        does_it_fit = int(np.amax(integer)) < math.prod(int(b) for b in base)
         assert does_it_fit, "Base is too small to accommodate such large integers."
     if binary_base_test(base):
         return to_bits(integer, len(base))

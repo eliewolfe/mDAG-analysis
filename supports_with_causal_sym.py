@@ -1,3 +1,4 @@
+import itertools
 from supports import SupportTester
 import numpy as np
 import numpy.typing as npt
@@ -15,7 +16,6 @@ class SupportTester_PartyCausalSymmetry(SupportTester):
         self.observed_cardinality = self.observed_cardinalities[0]
         self.visible_outcomes = list(range(self.observed_cardinality))
         self.latent_outcomes = list(range(self.latent_cardinality))
-        del self.var
 
     def var(self, i: int, j: int, val: int) -> int:
         return self.vpool.id(f"A_[{i:02},{j:02}]=={val}")
