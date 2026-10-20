@@ -522,10 +522,8 @@ class SupportTesting(SupportTester):
         """Every relabelling of the parties that preserves the cardinalities, the identity first, as event
         permutations. It is the whole group, automorphisms included: the coherent canonical form of
         `convert_integers_into_canonical_under_coherent_relabelling` is a minimum over the images of a list of
-        supports, and leaving out the identity (or the other automorphisms) would leave out the list itself. The
-        automorphisms are not redundant either: the expanded lists are closed under "automorphism, then outcome
-        canonicalisation", not under the raw automorphism, so their images differ from the list. The cost is |Aut|
-        more columns, at most 24 on four nodes."""
+        supports. Keeping the whole group avoids assumptions about whether the input list is already closed under
+        internal symmetry. Each image is canonicalised under outcome relabelling before comparing the lists."""
         to_reshape = self.conceivable_events_range.reshape(self.observed_cardinalities)
         perms = [perm for perm in itertools.permutations(range(self.nof_observed))
                  if np.array_equal(self.observed_cardinalities, np.take(self.observed_cardinalities, perm))]
@@ -533,9 +531,10 @@ class SupportTesting(SupportTester):
 
     def orbit_under_external_party_relabelling(self, n: int) -> IntArray:
         """
-        The images of the support n under the external group, in the group's order (one entry per permutation,
-        duplicates preserved), so that the columns of a coherent relabelling use the same permutation. The result is
-        cached under n only: the image of another member of the orbit is the same multiset in a different order.
+        The outcome-canonical images of support n under the external group, in the group's order (one entry per
+        permutation, duplicates preserved), so that the columns of a coherent relabelling use the same permutation.
+        Outcome canonicalisation must follow the party permutation: different labellings of the graph can select
+        different outcome representatives for the same support. The result is cached under n only, preserving order.
         """
         try:
             return self._orbit_under_external_party_relabelling[n]
@@ -544,6 +543,7 @@ class SupportTesting(SupportTester):
             l_variants = np.take(self.external_party_relabelling_group, l, axis=-1)
             l_variants.sort(axis=-1)
             n_orbit = self.from_list_to_integer(l_variants)
+            n_orbit = np.array([self.canonical_under_outcome_relabelling(m) for m in n_orbit], dtype=self.int_dtype)
             self._orbit_under_external_party_relabelling[n] = n_orbit
             return n_orbit
 

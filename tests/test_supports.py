@@ -117,7 +117,7 @@ def test_coherent_canonical_form_is_relabelling_invariant(parents_of, automorphi
     cols = np.stack(fresh, axis=1)
     cols.sort(axis=-1)
     assert np.array_equal(canonical, cols[np.lexsort(np.rot90(cols))[0]])
-    # the orbit of a second member is the same multiset in another order, never the first member's array
+    # the outcome-canonical orbit of a second member is the same multiset, with permutation order preserved
     a, b = int(infeasible.flat[0]), int(st.orbit_under_external_party_relabelling(int(infeasible.flat[0]))[1])
     assert sorted(st.orbit_under_external_party_relabelling(a).tolist()) == sorted(st.orbit_under_external_party_relabelling(b).tolist())
     # relabelling the whole list by any permutation leaves the canonical form unchanged
@@ -127,6 +127,34 @@ def test_coherent_canonical_form_is_relabelling_invariant(parents_of, automorphi
     # the explicit example of the review: identity-only symmetry, inputs 10 and 12
     st2 = SupportTesting(([3], [3], [3]), (2, 2, 2), 3, visible_automorphisms=((0, 1, 2),))
     assert st2.convert_integers_into_canonical_under_coherent_relabelling(np.array([10, 12])).tolist() == [10, 12]
+
+
+@pytest.mark.parametrize("n_nodes, edges, facets", [
+    (3, [(0, 1), (1, 2)], []),
+    (3, [], [(0, 1)]),
+    (4, [(0, 3), (1, 2)], [(2, 3)]),
+    (4, [(0, 1), (1, 2), (2, 3)], []),
+    (4, [(0, 1)], [(1, 2), (2, 3)]),
+    (4, [], [(0, 1), (1, 2), (2, 3)]),
+])
+def test_unlabelled_support_signatures_match_for_relabelled_graphs(n_nodes, edges, facets):
+    from directed_structures import DirectedStructure
+    from hypergraphs import Hypergraph
+    from mDAG_advanced import mDAG
+
+    def graph(perm):
+        return mDAG(DirectedStructure([(perm[a], perm[b]) for a, b in edges], n_nodes),
+                    Hypergraph([tuple(perm[a] for a in facet) for facet in facets], n_nodes))
+
+    # Construct each graph anew, exercising enumeration and outcome canonicalisation
+    # before comparing signatures. Relabelling one already-enumerated list misses this.
+    expected = graph(tuple(range(n_nodes))).infeasible_binary_supports_n_events_unlabelled(3)
+    for perm in itertools.permutations(range(n_nodes)):
+        actual = graph(perm).infeasible_binary_supports_n_events_unlabelled(3)
+        assert actual == expected, perm
+    if n_nodes == 3 and edges == [(0, 1), (1, 2)]:
+        # Previously the relabelled chain returned (10, 28, 46).
+        assert expected == (10, 28, 29)
 
 
 # -- finding 3: the verdict of model-returning calls ----------------------------------------------------------------
