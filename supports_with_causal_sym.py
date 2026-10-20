@@ -1,3 +1,4 @@
+import itertools
 from supports import SupportTester
 import numpy as np
 import numpy.typing as npt
@@ -15,10 +16,14 @@ class SupportTester_PartyCausalSymmetry(SupportTester):
         self.observed_cardinality = self.observed_cardinalities[0]
         self.visible_outcomes = list(range(self.observed_cardinality))
         self.latent_outcomes = list(range(self.latent_cardinality))
-        del self.var
 
     def var(self, i: int, j: int, val: int) -> int:
         return self.vpool.id(f"A_[{i:02},{j:02}]=={val}")
+
+    def reverse_var(self, id: int) -> str:
+        """The parent's decoder parses `v[idx]_...` names; these are `A_[i,j]==val`, with no binary shortcut."""
+        name = self.vpool.obj(abs(id))
+        return name if id > 0 else name.replace("==", "!=")
 
     @property
     def at_least_one_outcome(self) -> List[List[int]]:

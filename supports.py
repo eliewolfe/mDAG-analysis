@@ -24,6 +24,12 @@ BoolArray = npt.NDArray[np.bool_]
 IntMatrix = npt.NDArray[np.int_]
 SolverOutput = Union[bool, Tuple[bool, List[str]]]
 
+
+def verdict(result: SolverOutput) -> bool:
+    """The Boolean of a solver output, which is a bare bool or, when a model or an explanation was requested, a
+    (bool, list) pair; the pair is truthy whatever its verdict, so it must never be tested for truth directly."""
+    return bool(result[0]) if isinstance(result, tuple) else bool(result)
+
 def shrink_core(cnf_clauses: List[List[int]], core_assumps: List[int]) -> List[int]:
     """
     cnf_clauses: list of clauses you already gave to the solver
@@ -116,6 +122,7 @@ class SupportTester(object):
         self.binary_variables = set(np.flatnonzero(np.asarray(self.observed_cardinalities, dtype=np.intp) == 2))
         self.nonbinary_variables = set(range(self.nof_observed)).difference(self.binary_variables)
         self.vpool = IDPool(start_from=1)
+        self._selector_ids: set = set()   # activation ids of forbidden-event clauses, over every call so far
 
 
     def var(self, idx: int, val: int, par: Iterable[int]) -> int:
@@ -180,15 +187,16 @@ class SupportTester(object):
 
     def from_list_to_matrix(self, supports_as_lists: IntArray) -> IntMatrix:
         """
-        Shape: (..., n_obs) -> (..., n_obs, n_events).
-        Threads over all leading axes; expands each trailing length-n_obs vector into digits along a new axis of length n_events.
+        Shape: (..., n_events) -> (..., n_events, n_obs).
+        Threads over all leading axes; expands each trailing length-n_events vector of event labels into the events'
+        outcomes along a new axis of length n_obs.
         """
         return to_digits(supports_as_lists, self.observed_cardinalities).astype(self.matrix_dtype)
 
     def from_matrix_to_list(self, supports_as_matrices: IntMatrix) -> IntArray:
         """
-        Shape: (..., n_obs, n_events) -> (..., n_obs).
-        Drops the last axis by converting each length-n_events digit vector back to a scalar per observed variable.
+        Shape: (..., n_events, n_obs) -> (..., n_events).
+        Drops the last axis by converting each event's length-n_obs outcome vector back to its event label.
         """
         transformed = from_digits(supports_as_matrices, self.observed_cardinalities)
         try:
@@ -295,34 +303,36 @@ class SupportTester(object):
                 for clause in self.positive_outcome_clause(world, tuple(outcomes))]
 
 
+    def _solve(self, forbidden_event_clauses: List[List[int]], core_literals: List[int], return_model: bool,
+               **kwargs: Any) -> SolverOutput:
+        """Run the solver on the standing clauses, the forbidden-event clauses and the positive-outcome assumptions.
+        Without `return_model` the result is the Boolean. With it, every forbidden-event clause is guarded by an
+        activation literal (so that an UNSAT core can name the clauses involved) and the result is (True, model) or
+        (False, explanation); activation ids are allocated in the persistent pool, so ids from earlier calls can
+        appear in a later model and are filtered out by the set of every id ever allocated."""
+        if not return_model:
+            with Solver(bootstrap_with=self.at_least_one_outcome + forbidden_event_clauses, **kwargs) as s:
+                return s.solve(assumptions=core_literals)
+        clause_ids = [self.vpool.id(str(clause)) for clause in forbidden_event_clauses]
+        self._selector_ids.update(clause_ids)
+        clause_dict = dict(zip(clause_ids, forbidden_event_clauses))
+        bootstrap_clauses = self.at_least_one_outcome + [clause + [-id] for clause, id in zip(forbidden_event_clauses, clause_ids)]
+        with Solver(bootstrap_with=bootstrap_clauses, **kwargs) as s:
+            sol = s.solve(assumptions=core_literals + clause_ids)
+            if sol:
+                return True, [self.reverse_var(var) for var in s.get_model() if abs(var) not in self._selector_ids]
+            core = set(s.get_core())  # ANY unsat core
+            core = set(shrink_core(bootstrap_clauses, sorted(core)))  # MINIMAL unsat core, comment out if too expensive
+            forbidden_core = core.intersection(clause_ids)
+            positives = core.intersection(core_literals)
+            problematic_clauses = partsextractor(clause_dict, forbidden_core)
+            return False, [self.make_P_from_positives(positives)] + sorted(set(map(self.make_P_from_negatives, problematic_clauses)))
+
     def feasibleQ_from_matrix(self, occurring_events: IntMatrix, return_model: bool = False, **kwargs: Any) -> SolverOutput:
         assert self.nof_events == len(occurring_events), 'The number of events does not match the expected number.'
         forbidden_event_clauses = self.forbidden_events_clauses(occurring_events)
         core_literals = list(itertools.chain.from_iterable(self.array_of_positive_outcomes(occurring_events)))
-        if return_model:
-            clause_ids = [self.vpool.id(str(clause)) for clause in forbidden_event_clauses]
-            clause_dict = dict(zip(clause_ids, forbidden_event_clauses))
-            new_forbidden_clauses = [clause + [-id] for clause, id in zip(forbidden_event_clauses, clause_ids)]
-            bootstrap_clauses = self.at_least_one_outcome + new_forbidden_clauses
-            literals = core_literals + clause_ids
-        else:
-            bootstrap_clauses = self.at_least_one_outcome + forbidden_event_clauses
-            literals = core_literals
-        with (Solver(bootstrap_with=bootstrap_clauses, **kwargs) as s):
-            sol = s.solve(assumptions=literals)
-            if not return_model:
-                return sol
-            if sol:
-                return True, [self.reverse_var(var) for var in s.get_model() if var not in clause_ids]
-            else:
-                core = set(s.get_core()) # ANY unsat core
-                core = set(shrink_core(bootstrap_clauses, sorted(core))) # MINIMAL unsat core, comment out if too expensive
-                forbidden_core = core.intersection(clause_ids)
-                positives = core.intersection(core_literals)
-                # print(f"Number of problematic clauses {len(forbidden_core)} out of {len(clause_ids)}")
-                # print("Returning forbidden events as ANDs")
-                problematic_clauses = partsextractor(clause_dict, forbidden_core)
-                return False, [self.make_P_from_positives(positives)] + sorted(set(map(self.make_P_from_negatives, problematic_clauses)))
+        return self._solve(forbidden_event_clauses, core_literals, return_model, **kwargs)
 
 
     # @methodtools.lru_cache(maxsize=None, typed=False) # Not worth caching.
@@ -365,13 +375,13 @@ class SupportTester(object):
                     definitely_occurring_events_matrix=definitely_occurring_events,
                     potentially_occurring_events_matrix=occurring_events,
                     **kwargs)
-                # bar.update(i)
-                if not passes_inflation_test:
+                if not verdict(passes_inflation_test):
                     print("Got one! Rejected a support of ", self.nof_events, " events using level ", n, " inflation.")
                     print("Rejected the support by requiring the following events to occur in diagonal worlds:")
                     print(definitely_occurring_events)
-                    return False
-        return True
+                    return passes_inflation_test     # False, or (False, explanation) when a model was requested
+        # every level passed: the same shape as a rejection when a model was requested (no single model to return)
+        return (True, []) if kwargs.get('return_model') else True
 
 
     def potentially_feasibleQ_from_matrix_pair(self,
@@ -386,28 +396,7 @@ class SupportTester(object):
         assert definite_events_as_tuples.issubset(new_support_as_tuples), "Input is not of format where definite events are a subset of the potential events."
         forbidden_event_clauses = self.forbidden_events_clauses(potentially_occurring_events_matrix)
         core_literals = list(itertools.chain.from_iterable(self.array_of_positive_outcomes(definitely_occurring_events_matrix)))
-        if return_model:
-            clause_ids = [self.vpool.id(str(clause)) for clause in forbidden_event_clauses]
-            clause_dict = dict(zip(clause_ids, forbidden_event_clauses))
-            new_forbidden_clauses = [clause + [-id] for clause, id in zip(forbidden_event_clauses, clause_ids)]
-            bootstrap_clauses = self.at_least_one_outcome + new_forbidden_clauses
-            literals = core_literals + clause_ids
-        else:
-            bootstrap_clauses = self.at_least_one_outcome + forbidden_event_clauses
-            literals = core_literals
-        with (Solver(bootstrap_with=bootstrap_clauses, **kwargs) as s):
-            sol = s.solve(assumptions=literals)
-            if not return_model:
-                return sol
-            if sol:
-                return True, [self.reverse_var(var) for var in s.get_model() if var not in clause_ids]
-            else:
-                core = set(s.get_core())  # ANY unsat core
-                core = set(shrink_core(bootstrap_clauses, sorted(core)))  # MINIMAL unsat core, comment out if too expensive
-                forbidden_core = core.intersection(clause_ids)
-                positives = core.intersection(core_literals)
-                problematic_clauses = partsextractor(clause_dict, forbidden_core)
-                return False, [self.make_P_from_positives(positives)] + sorted(set(map(self.make_P_from_negatives, problematic_clauses)))
+        return self._solve(forbidden_event_clauses, core_literals, return_model, **kwargs)
 
 
     @staticmethod
@@ -512,17 +501,15 @@ class SupportTesting(SupportTester):
         of the parties consistent with the automorphism of the DAG itself.
         """
         to_reshape = self.conceivable_events_range.reshape(self.observed_cardinalities)
-        perms_as_event_permutations = np.empty(
-            (len(self.visible_automorphisms),
-             self.max_conceivable_events),
-            dtype=self.list_dtype
-        )
-        for i, perm in enumerate(self.visible_automorphisms):
-            if np.array_equal(self.observed_cardinalities,
-                              np.take(self.observed_cardinalities, perm)):
-                perms_as_event_permutations[i] = to_reshape.transpose(
-                    perm).ravel()
-        return perms_as_event_permutations
+        retained = [tuple(perm) for perm in self.visible_automorphisms
+                    if np.array_equal(self.observed_cardinalities, np.take(self.observed_cardinalities, perm))]
+        if not retained:                     # no automorphisms given, or none preserving the cardinalities
+            retained = [tuple(range(self.nof_observed))]
+        return np.array([to_reshape.transpose(perm).ravel() for perm in retained], dtype=self.list_dtype)
+
+    @cached_property
+    def has_internal_party_symmetry(self) -> bool:
+        return len(self.internal_party_relabelling_group) > 1
 
     @cached_property
     def visible_nonautomorphisms(self) -> List[Tuple[int, ...]]:
@@ -532,20 +519,22 @@ class SupportTesting(SupportTester):
 
     @cached_property
     def external_party_relabelling_group(self) -> IntMatrix:
+        """Every relabelling of the parties that preserves the cardinalities, the identity first, as event
+        permutations. It is the whole group, automorphisms included: the coherent canonical form of
+        `convert_integers_into_canonical_under_coherent_relabelling` is a minimum over the images of a list of
+        supports. Keeping the whole group avoids assumptions about whether the input list is already closed under
+        internal symmetry. Each image is canonicalised under outcome relabelling before comparing the lists."""
         to_reshape = self.conceivable_events_range.reshape(self.observed_cardinalities)
-        return np.fromiter(
-            itertools.chain.from_iterable(
-                to_reshape.transpose(perm).ravel()
-                for perm in self.visible_nonautomorphisms
-                if np.array_equal(
-                    self.observed_cardinalities,
-                    np.take(self.observed_cardinalities, perm))
-            ), self.list_dtype
-        ).reshape((-1, self.max_conceivable_events,))
+        perms = [perm for perm in itertools.permutations(range(self.nof_observed))
+                 if np.array_equal(self.observed_cardinalities, np.take(self.observed_cardinalities, perm))]
+        return np.array([to_reshape.transpose(perm).ravel() for perm in perms], dtype=self.list_dtype)
 
     def orbit_under_external_party_relabelling(self, n: int) -> IntArray:
         """
-        Used for selecting optimal group element, so duplicates must be preserved.
+        The outcome-canonical images of support n under the external group, in the group's order (one entry per
+        permutation, duplicates preserved), so that the columns of a coherent relabelling use the same permutation.
+        Outcome canonicalisation must follow the party permutation: different labellings of the graph can select
+        different outcome representatives for the same support. The result is cached under n only, preserving order.
         """
         try:
             return self._orbit_under_external_party_relabelling[n]
@@ -554,8 +543,8 @@ class SupportTesting(SupportTester):
             l_variants = np.take(self.external_party_relabelling_group, l, axis=-1)
             l_variants.sort(axis=-1)
             n_orbit = self.from_list_to_integer(l_variants)
-            for n_new in n_orbit.flat:
-                self._orbit_under_external_party_relabelling[n_new] = n_orbit
+            n_orbit = np.array([self.canonical_under_outcome_relabelling(m) for m in n_orbit], dtype=self.int_dtype)
+            self._orbit_under_external_party_relabelling[n] = n_orbit
             return n_orbit
 
     def orbit_under_internal_party_relabelling(self, n: int) -> IntArray:
@@ -580,7 +569,7 @@ class SupportTesting(SupportTester):
          plus graph symmetry, we use the internal party relabelling group as
          opposed to the full (S_N) party relabelling group.
         """
-        if len(set_of_integers) and (len(self.visible_automorphisms) > 1):
+        if len(set_of_integers) and self.has_internal_party_symmetry:
             compressed = set()
             remaining_to_compress = set_of_integers.copy()
             while len(remaining_to_compress):
@@ -600,7 +589,7 @@ class SupportTesting(SupportTester):
             return np.array(sorted(set_of_integers), dtype=self.int_dtype)
 
     def expand_integers_from_canonical_via_internal_party_relabelling(self, list_of_integers: IntArray) -> IntArray:
-        if len(list_of_integers) and (len(self.visible_automorphisms) > 1):
+        if len(list_of_integers) and self.has_internal_party_symmetry:
             expanded = set()
             remaining_to_expand = set(list_of_integers.flat)
             while len(remaining_to_expand):
@@ -622,10 +611,10 @@ class SupportTesting(SupportTester):
     def convert_integers_into_canonical_under_coherent_relabelling(self, list_of_integers: IntArray) -> IntArray:
         """
         This function is used to compare with other DAGs, so we invoke full S_N
-        in a coherent fashion.
-        Note that we can skip party relabellings which correspond to internal symmetries.
+        in a coherent fashion: every integer of the list is relabelled by the same permutation, and the
+        lexicographically smallest sorted image is returned. It is invariant under relabelling the input list.
         """
-        if len(list_of_integers) and len(self.external_party_relabelling_group):
+        if len(list_of_integers) and len(self.external_party_relabelling_group) > 1:
             variant_lists_of_integers = np.empty(
                 (len(self.external_party_relabelling_group),
                  len(list_of_integers)),
@@ -640,6 +629,9 @@ class SupportTesting(SupportTester):
 
     @cached_property
     def unique_candidate_supports_as_compressed_lists(self) -> IntMatrix:
+        if self.nof_events == 1:
+            # every one-event support is the event 0 up to outcome relabelling
+            return np.zeros((1, 1), dtype=self.list_dtype)
         if self.max_conceivable_events > self.nof_events:
             candidates = np.pad(np.fromiter(itertools.chain.from_iterable(
                 itertools.combinations(self.conceivable_events_range[1:], self.nof_events - 1)), self.list_dtype).reshape(
@@ -677,7 +669,7 @@ class SupportTesting(SupportTester):
         for occurring_events_as_tuple in self.explore_candidates(candidates_as_lists,
                                                                  verbose=verbose,
                                                                  message='Finding an infeasible support'):
-            if not self.feasibleQ_from_tuple(occurring_events_as_tuple):
+            if not verdict(self.feasibleQ_from_tuple(occurring_events_as_tuple, **kwargs)):
                 return self.from_list_to_matrix(occurring_events_as_tuple)
         return np.empty((0, self.nof_observed), dtype=self.matrix_dtype)
 
@@ -697,7 +689,7 @@ class SupportTesting(SupportTester):
         """This function does NOT apply expansion due to self symmetry."""
         return np.fromiter((occurring_events_as_int for occurring_events_as_int in
                             self.explore_candidates(candidates_as_integers, verbose=verbose) if
-                            not self.feasibleQ_from_integer(occurring_events_as_int, **kwargs)), dtype=self.int_dtype)
+                            not verdict(self.feasibleQ_from_integer(occurring_events_as_int, **kwargs))), dtype=self.int_dtype)
 
     def unique_infeasible_supports_as_integers_expanded_among(self,
                                                               *args, **kwargs) -> IntArray:
@@ -741,18 +733,28 @@ def one_off(parents_of: Tuple[Sequence[int], ...], support_as_matrix: IntMatrix,
     (nrows, ncols) = support_as_array.shape
     new_support = np.empty((nrows, ncols), dtype=int)
     observed_cardinalities = np.empty(ncols, dtype=int)
+    value_maps = []
     for i, col in enumerate(support_as_array.T):
         unique_vals, inverse = np.unique(col, return_inverse=True)
         observed_cardinalities[i] = len(unique_vals)
         new_support[:, i] = inverse
+        value_maps.append({int(v): k for k, v in enumerate(unique_vals.tolist())})
     n_definite = len(definite_events)
     if n_definite == 0:
-        st = stclass(parents_of, observed_cardinalities, nof_events=nrows)
+        st = stclass(parents_of, observed_cardinalities, nrows)   # positional: SupportTesting takes *args
         return st.feasibleQ_from_matrix(new_support, **kwargs)
     else:
-        st = stclass(parents_of, observed_cardinalities, nof_events=n_definite)
+        definite_as_array = np.asarray(definite_events)
+        assert definite_as_array.shape[1:] == (ncols,), "Definite events must have one entry per observed variable."
+        new_definite = np.empty(definite_as_array.shape, dtype=int)
+        for i, col in enumerate(definite_as_array.T):
+            try:
+                new_definite[:, i] = [value_maps[i][int(v)] for v in col]
+            except KeyError as absent:
+                raise ValueError(f"Definite event value {absent} of variable {i} does not occur in the support.") from None
+        st = stclass(parents_of, observed_cardinalities, n_definite)
         return st.potentially_feasibleQ_from_matrix_pair(
-            definitely_occurring_events_matrix=np.asarray(definite_events),
+            definitely_occurring_events_matrix=new_definite,
             potentially_occurring_events_matrix=new_support, **kwargs)
 
 
