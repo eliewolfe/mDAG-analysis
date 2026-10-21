@@ -85,7 +85,9 @@ class Hypergraph:
 
 
         if self.number_of_nonsingleton_latent:
-            assert max(map(max, self.compressed_simplicial_complex)) + 1 <= self.number_of_visible, "More nodes referenced than expected."
+            referenced = set(itertools.chain.from_iterable(self.compressed_simplicial_complex))
+            if min(referenced) < 0 or max(referenced) >= self.number_of_visible:
+                raise ValueError(f"facet nodes {sorted(referenced)} are not all in range({self.number_of_visible})")
         self.number_of_visible_plus_latent = self.number_of_visible + self.number_of_latent
         self.number_of_visible_plus_nonsingleton_latent = self.number_of_visible + self.number_of_nonsingleton_latent
 
@@ -254,9 +256,10 @@ class LabelledHypergraph(Hypergraph):
         """
         self.variable_names = tuple(variable_names)
         self.variable_names_as_frozenset = frozenset(self.variable_names)
-        self.number_of_variables = len(variable_names)
+        self.number_of_variables = len(self.variable_names)
         assert self.number_of_variables == len(self.variable_names_as_frozenset), "A variable name appears in duplicate."
 
+        simplicial_complex = [tuple(hyperedge) for hyperedge in simplicial_complex]   # read once: it may be an iterator
         implicit_variable_names = set(itertools.chain.from_iterable(simplicial_complex))
         if implicit_variable_names.issubset(self.variable_names_as_frozenset):
             self.simplicial_complex_with_variable_names = hypergraph_canonicalize_with_deduplication(simplicial_complex)
@@ -288,6 +291,15 @@ class LabelledHypergraph(Hypergraph):
             self.numerical_simplicial_complex = [partsextractor(self.translation_dict, hyperedge) for hyperedge in self.simplicial_complex_with_variable_names]
         super().__init__(self.numerical_simplicial_complex, self.number_of_variables)
         # self.as_string = stringify_in_list(map(stringify_in_tuple, self.simplicial_complex_with_variable_names))
+
+    def reordered(self, variable_names) -> 'LabelledHypergraph':
+        """The same named hypergraph with its numeric translation following `variable_names` (the same names,
+        possibly in another order); self when the order already agrees."""
+        variable_names = tuple(variable_names)
+        if variable_names == self.variable_names:
+            return self
+        assert frozenset(variable_names) == self.variable_names_as_frozenset, 'Error: Inconsistent node names.'
+        return LabelledHypergraph(variable_names, self.simplicial_complex_with_variable_names)
 
     @cached_property
     def as_string(self):

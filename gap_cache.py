@@ -15,6 +15,7 @@ version, since with a class index the keys themselves rest on the metagraph rule
 """
 import json
 import os
+import tempfile
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from qc_gap_search import GapReport, PIGGYBACK_VERSIONS, render_certificate
@@ -150,10 +151,22 @@ class GapCache:
         return added
 
     def save(self) -> None:
-        os.makedirs(os.path.dirname(self.path), exist_ok=True)
-        with open(self.path, 'w') as f:
-            json.dump({'format': CACHE_FORMAT, 'keyed_by': self.keyed_by, 'piggyback_versions': PIGGYBACK_VERSIONS,
-                       'entries': self.entries}, f, indent=1, sort_keys=True)
+        """Writes the cache through a temporary sibling file that replaces the destination atomically, so an
+        interruption cannot leave a truncated file where a valid one stood; a bare filename saves in the
+        current directory."""
+        path = os.path.abspath(self.path)
+        directory = os.path.dirname(path)
+        os.makedirs(directory, exist_ok=True)
+        fd, temporary = tempfile.mkstemp(dir=directory, prefix='.' + os.path.basename(path) + '.', suffix='.tmp')
+        try:
+            with os.fdopen(fd, 'w') as f:
+                json.dump({'format': CACHE_FORMAT, 'keyed_by': self.keyed_by, 'piggyback_versions': PIGGYBACK_VERSIONS,
+                           'entries': self.entries}, f, indent=1, sort_keys=True)
+            os.replace(temporary, path)
+        except BaseException:
+            if os.path.exists(temporary):
+                os.remove(temporary)
+            raise
 
     def __len__(self) -> int:
         return len(self.entries)

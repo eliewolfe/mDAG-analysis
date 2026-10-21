@@ -97,18 +97,12 @@ class QmDAG:
             ), self.number_of_visible)
         if hasattr(self.directed_structure_instance, 'variable_names'):
             self.variable_names = self.directed_structure_instance.variable_names
+            # the directed structure's order is authoritative: a named complex given in another order is
+            # translated again, so that the numeric structure is the named one whatever the orders
             if hasattr(self.C_simplicial_complex_instance, 'variable_names'):
-                assert frozenset(self.variable_names) == frozenset(
-                    self.C_simplicial_complex_instance.variable_names), 'Error: Inconsistent node names.'
-                if not tuple(self.variable_names) == tuple(self.C_simplicial_complex_instance.variable_names):
-                    print('Warning: Inconsistent node ordering. Following ordering of directed structure!')
-        if hasattr(self.directed_structure_instance, 'variable_names'):
-            self.variable_names = self.directed_structure_instance.variable_names
+                self.C_simplicial_complex_instance = self.C_simplicial_complex_instance.reordered(self.variable_names)
             if hasattr(self.Q_simplicial_complex_instance, 'variable_names'):
-                assert frozenset(self.variable_names) == frozenset(
-                    self.Q_simplicial_complex_instance.variable_names), 'Error: Inconsistent node names.'
-                if not tuple(self.variable_names) == tuple(self.Q_simplicial_complex_instance.variable_names):
-                    print('Warning: Inconsistent node ordering. Following ordering of directed structure!')
+                self.Q_simplicial_complex_instance = self.Q_simplicial_complex_instance.reordered(self.variable_names)
         self.visible_nodes = self.directed_structure_instance.visible_nodes
         self.classical_latent_nodes = tuple(
             range(self.number_of_visible, self.C_simplicial_complex_instance.number_of_visible_plus_latent))

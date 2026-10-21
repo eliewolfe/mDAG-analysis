@@ -244,8 +244,10 @@ class EntropicLP:
         self.task.putobjsense(mosek.objsense.minimize)   # feasibility problems only: zero objective
         M = elemental_inequalities(n)
         self._append_rows(M, mosek.boundkey.lo, 0.0, 0.0)
+        self.n_elemental = M.shape[0]
         self.n_fixed_rows = M.shape[0]
         self.n_rows = self.n_fixed_rows
+        self._hypothesis_rows: List[Row] = []      # every hypothesis row in the task, in row order
         self.lp_count = 0
         self.undecided = 0
         self.timeouts = 0
@@ -268,7 +270,9 @@ class EntropicLP:
         """Appends hypothesis rows bounded above by zero (CMIs and conditional entropies are nonnegative on the
         cone, so this forces them to vanish); returns the number of rows before the push (a handle)."""
         handle = self.n_rows
-        self._append_rows(rows_to_csr(list(rows), self.n_columns), self._mosek.boundkey.up, 0.0, 0.0)
+        rows = list(rows)
+        self._append_rows(rows_to_csr(rows, self.n_columns), self._mosek.boundkey.up, 0.0, 0.0)
+        self._hypothesis_rows.extend(rows)
         return handle
 
     def pop_to(self, handle: int) -> None:
@@ -277,6 +281,7 @@ class EntropicLP:
         if self.n_rows > handle:
             self.task.removecons(list(range(handle, self.n_rows)))
             self.n_rows = handle
+            del self._hypothesis_rows[handle - self.n_elemental:]
 
     # -- queries ------------------------------------------------------------------------------
     def _solve_with_target(self, row: Row, lower: float, want_dual: bool = False):
@@ -311,18 +316,47 @@ class EntropicLP:
         return True
 
     def farkas_certificate(self, row: Row):
-        """For an implied target, the dual infeasibility certificate: nonnegative multipliers (y_elemental,
-        y_hypotheses, y_target) with  sum_i y_i * (elemental_i) + sum_j y'_j * (-hypothesis_j) >= y_target * target
-        coefficient-wise, exhibiting the target as a nonnegative combination of elemental inequalities and
-        hypotheses. Returns None when the target is not implied. Numerical; meant for inspection and exact
-        re-verification."""
+        """For an implied target, the dual infeasibility certificate as nonnegative magnitudes (y_elemental,
+        y_hypotheses, y_target), with y_target > 0 and
+
+            sum_i y_i * elemental_i  -  sum_j y'_j * hypothesis_j  +  y_target * target  <=  0   coefficient-wise.
+
+        Read against an entropy vector h >= 0 of the cone (elemental_i . h >= 0) that satisfies the hypotheses
+        (hypothesis_j . h <= 0): the left side is at least y_target * (target . h), so target . h <= 0 and the
+        target row cannot reach 1. Equivalently, -y_target * target is a nonnegative combination of the elemental
+        inequalities, the negated hypotheses and the nonnegativity of the entropies (the slack of the
+        inequality). Returns None when the target is not implied. Numerical: `check_certificate` verifies the
+        inequality to a tolerance; an exact re-verification would rationalise the multipliers first."""
         mosek = self._mosek
         prosta, y = self._solve_with_target(row, 1.0, want_dual=True)
         if prosta not in (mosek.prosta.prim_infeas, mosek.prosta.prim_infeas_or_unbounded):
             return None
         # Mosek's certificate: y_i >= 0 on lower-bounded rows, <= 0 on upper-bounded rows. Report magnitudes.
-        n_el = elemental_inequalities(self.n).shape[0]
+        n_el = self.n_elemental
         return {'elemental': y[:n_el], 'hypotheses': -y[n_el:-1], 'target': y[-1]}
+
+    def certificate_combination(self, row: Row, certificate) -> np.ndarray:
+        """The vector  sum_i y_i * elemental_i - sum_j y'_j * hypothesis_j + y_target * target  of a certificate
+        for `row` (the hypotheses are those in the task now, as when the certificate was computed)."""
+        M = elemental_inequalities(self.n)
+        H = rows_to_csr(self._hypothesis_rows, self.n_columns)
+        combination = M.T @ np.asarray(certificate['elemental'], dtype=float)
+        if H.shape[0]:
+            combination = combination - H.T @ np.asarray(certificate['hypotheses'], dtype=float)
+        cols, vals = row
+        combination[np.asarray(cols)] += float(certificate['target']) * np.asarray(vals, dtype=float)
+        return combination
+
+    def check_certificate(self, row: Row, certificate, tol: float = 1e-7) -> bool:
+        """Numerically verifies a `farkas_certificate` of `row`: nonnegative multipliers, y_target > tol, and the
+        combination of `certificate_combination` at most `tol` in every coordinate."""
+        if certificate is None:
+            return False
+        y_el, y_hyp, y_target = (np.asarray(certificate['elemental'], dtype=float),
+                                 np.asarray(certificate['hypotheses'], dtype=float), float(certificate['target']))
+        if y_target <= tol or (y_el < -tol).any() or (y_hyp < -tol).any():
+            return False
+        return bool((self.certificate_combination(row, certificate) <= tol).all())
 
     def implies(self, row: Row) -> bool:
         """True iff the hypotheses force the functional to zero (for functionals that are nonnegative on the

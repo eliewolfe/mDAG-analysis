@@ -66,6 +66,8 @@ def closure(
     sc_adjmat: BoolMatrix,
     return_bidirectedQ: bool = False,
 ) -> Union[IntVector, Tuple[IntVector, bool]]:
+    # one node or any iterable of nodes, as an index array (a bare tuple would index two dimensions)
+    core_B = np.array([core_B] if isinstance(core_B, (int, np.integer)) else list(core_B), dtype=int)
     return closure_district_step(core_B, np.arange(n+1), ds_adjmat, sc_adjmat, return_bidirectedQ=return_bidirectedQ)
     #Elie: I start with a working set LARGER than the number of visible nodes in order to avoid false termination.
 

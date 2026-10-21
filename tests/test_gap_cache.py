@@ -144,3 +144,18 @@ def test_proven_structure_ids_include_cached_known_gaps():
     report = S.prove_gaps([SQUARE], {}, verbose=False, known=known)
     assert SQUARE.unique_unlabelled_id in report.proven
     assert {SQUARE.unique_unlabelled_id, TRIANGLE.unique_unlabelled_id}.issubset(report.proven_structure_ids())
+
+
+def test_save_accepts_a_bare_filename_and_replaces_the_file_atomically(tmp_path, monkeypatch):
+    import os
+    monkeypatch.chdir(tmp_path)
+    cache = C.GapCache('gaps.json')
+    cache.save()
+    assert os.path.exists('gaps.json') and json.load(open('gaps.json'))['format'] == C.CACHE_FORMAT
+    cache.entries['x'] = {'marker': 1}
+    cache.save()
+    assert json.load(open('gaps.json'))['entries'] == {'x': {'marker': 1}}
+    assert [name for name in os.listdir(tmp_path) if name.endswith('.tmp')] == []       # no temporary left behind
+    nested = C.GapCache(str(tmp_path / 'deeper' / 'still' / 'gaps.json'))
+    nested.save()
+    assert (tmp_path / 'deeper' / 'still' / 'gaps.json').exists()

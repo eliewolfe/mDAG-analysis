@@ -47,7 +47,7 @@ def classify_by_attributes(representatives, attributes, verbose=False):
                 d[tuple(evaluate_property_or_method(mdag, prop) for prop in attributes)].add(mdag)
         return tuple(d.values())
     else:
-        return tuple(representatives)
+        return tuple({mdag} for mdag in representatives)
 
 def further_classify_by_attributes(eqclasses, attributes, verbose=True):
     if verbose:

@@ -66,8 +66,9 @@ class DirectedStructure:
         self.edge_list = sorted(set(self.as_set_of_tuples))
         self.as_tuples = tuple(self.edge_list)
         self.number_of_edges = len(self.edge_list)
-        if self.edge_list:
-            assert max(map(max, self.edge_list)) + 1 <= self.number_of_visible, "More nodes referenced than expected."
+        for a, b in self.edge_list:
+            if not (0 <= a < n and 0 <= b < n) or a == b:
+                raise ValueError(f"edge {(a, b)} is not between two distinct nodes of range({n})")
 
 
     @property
@@ -155,9 +156,10 @@ class DirectedStructure:
     def __hash__(self) -> int:
         return int(self.as_integer)
 
-    def __eq__(self, other: 'DirectedStructure') -> bool:
-        """Whether the Monomial is equal to the ``other`` Monomial."""
-        return self.__hash__() == other.__hash__()
+    def __eq__(self, other: object) -> bool:
+        """Same edges on the same number of nodes (the integer encoding alone does not fix the node count)."""
+        return isinstance(other, DirectedStructure) and self.number_of_visible == other.number_of_visible \
+            and self.as_integer == other.as_integer
 
     def __lt__(self, other: 'DirectedStructure') -> bool:
         """Whether the Monomial is lexicographically smaller than the ``other``
@@ -207,6 +209,7 @@ class LabelledDirectedStructure(DirectedStructure):
         self.number_of_variables = len(variable_names)
         assert self.number_of_variables == len(self.variable_names_as_frozenset), "A variable name appears in duplicate."
 
+        edge_list = [tuple(edge) for edge in edge_list]       # read once: it may be an iterator
         implicit_variable_names = set(itertools.chain.from_iterable(edge_list))
         self.edge_list_with_variable_names = sorted(set(edge_list), key=str)
         if not implicit_variable_names.issubset(self.variable_names_as_frozenset):

@@ -70,9 +70,9 @@ class mDAG:
         if hasattr(self.directed_structure_instance, 'variable_names'):
             self.variable_names = self.directed_structure_instance.variable_names
             if hasattr(self.simplicial_complex_instance, 'variable_names'):
-                assert frozenset(self.variable_names) == frozenset(self.simplicial_complex_instance.variable_names), 'Error: Inconsistent node names.'
-                if not tuple(self.variable_names) == tuple(self.simplicial_complex_instance.variable_names):
-                    print('Warning: Inconsistent node ordering. Following ordering of directed structure!')
+                # the directed structure's order is authoritative: a named hypergraph given in another order is
+                # translated again, so that the numeric graph is the named graph whatever the orders
+                self.simplicial_complex_instance = self.simplicial_complex_instance.reordered(self.variable_names)
         self.number_of_visible = self.directed_structure_instance.number_of_visible
 
     # The attributes below are read off the two parts on demand rather than stored: an mDAG then holds three
@@ -269,7 +269,7 @@ class mDAG:
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, mDAG):
             return False
-        return self.unique_id == other.unique_id
+        return self.number_of_visible == other.number_of_visible and self.unique_id == other.unique_id
 
     @cached_property
     def ids_under_relabelling(self) -> Set[int]:
@@ -285,7 +285,7 @@ class mDAG:
 
     @cached_property
     def skeleton_instance(self) -> Union[LabelledUndirectedGraph, UndirectedGraph]:
-        if hasattr(self, 'variable_names'):
+        if hasattr(self.directed_structure_instance, 'variable_names') and hasattr(self.simplicial_complex_instance, 'variable_names'):
             return LabelledUndirectedGraph(self.variable_names, self.directed_structure_instance.edge_list_with_variable_names + self.simplicial_complex_instance.simplicial_complex_with_variable_names)
         else:
             return UndirectedGraph(self.directed_structure_instance.as_tuples + self.simplicial_complex_instance.as_tuples,
@@ -567,7 +567,7 @@ class mDAG:
     def infeasible_binary_supports_beyond_dsep_as_matrices_up_to(self, max_n: int, **kwargs):
         return list(itertools.chain.from_iterable((self.infeasible_binary_supports_n_events_beyond_dsep_as_matrices(n, **kwargs).astype(int) for n in range(2, max_n + 1))))
     def infeasible_binary_supports_as_matrices_up_to(self, max_n: int, **kwargs):
-        return list(itertools.chain.from_iterable((self.infeasible_binary_supports_n_events(n, **kwargs).astype(int) for n in range(2, max_n + 1))))
+        return list(itertools.chain.from_iterable((self.infeasible_binary_supports_n_events_as_matrices(n, **kwargs).astype(int) for n in range(2, max_n + 1))))
 
     def no_infeasible_binary_supports_n_events(self, n: int, **kwargs):
         return self.support_testing_instance_binary(n).no_infeasible_supports(**kwargs, name='mgh', use_timer=False)
@@ -1024,7 +1024,8 @@ class Unlabelled_mDAG(mDAG):
     def __eq__(self, other: object):
         if not isinstance(other, Unlabelled_mDAG):
             return False
-        return self.unique_id == other.unique_unlabelled_id
+        return self.number_of_visible == other.number_of_visible and \
+            self.unique_unlabelled_id == other.unique_unlabelled_id
 
 # class labelled_mDAG(mDAG):
 #     def __init__(self, labelled_directed_structure_instance, labelled_simplicial_complex_instance):

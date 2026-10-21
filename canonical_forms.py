@@ -168,7 +168,8 @@ class CanonicalForms:
 
     def __init__(self, n: int, ds_ints: Sequence[int], ds_matrices: Sequence[np.ndarray],
                  sc_ints: Sequence[int], sc_facets: Sequence[Iterable[Iterable[int]]]) -> None:
-        max_facets = max((len(list(f)) for f in sc_facets), default=0)
+        sc_facets = [[tuple(facet) for facet in sc] for sc in sc_facets]      # read once: facets may be iterators
+        max_facets = max((len(f) for f in sc_facets), default=0)
         if not fits_int64(n, max_facets):
             raise ValueError(f"the permutation tables need 64-bit integers: n^2 = {n * n} and {max_facets} facets x "
                              f"{n} nodes must both be at most 62 (n <= 5 for all complices)")

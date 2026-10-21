@@ -31,7 +31,9 @@ class AdjMat:
     @staticmethod
     def _children_of(adjmat: BoolMatrix, X_indices: Union[int, IntVector]) -> IntVector:
         if hasattr(X_indices, '__iter__'):
-            return np.flatnonzero(np.any(adjmat[X_indices], axis=0))
+            # any iterable of nodes is an index array (a bare tuple would index two dimensions)
+            rows = X_indices if isinstance(X_indices, np.ndarray) else np.fromiter(X_indices, dtype=int)
+            return np.flatnonzero(np.any(adjmat[rows], axis=0))
         else:
             return np.flatnonzero(adjmat[X_indices])
 

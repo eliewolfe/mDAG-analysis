@@ -574,22 +574,37 @@ class GapReport:
         return (known & set(self.explorer.representatives)) - self.explorer.lookup_only
 
 
+def _reverse_reachable(explorer: ClosureExplorer, goals: Iterable[UnlabelledId],
+                       tricks: Optional[FrozenSet[str]] = None,
+                       keep: Optional[Callable[[Transition], bool]] = None) -> Set[UnlabelledId]:
+    """The ids from which some goal is reachable through transitions of the given tricks (all if None) satisfying
+    `keep` (all if None): one traversal of the recorded transitions in reverse from the goals, instead of one
+    forward reachability per input."""
+    reverse: Dict[UnlabelledId, List[UnlabelledId]] = {}
+    for source, transitions in explorer.edges.items():
+        for t in transitions:
+            if tricks is not None and t.trick not in tricks:
+                continue
+            if keep is not None and not keep(t):
+                continue
+            reverse.setdefault(t.target, []).append(source)
+    reached = set(goals)
+    frontier = deque(reached)
+    while frontier:
+        current = frontier.popleft()
+        for source in reverse.get(current, ()):
+            if source not in reached:
+                reached.add(source)
+                frontier.append(source)
+    return reached
+
+
 def _fixpoint(explorer: ClosureExplorer, input_ids: List[UnlabelledId], seed_ids: Set[UnlabelledId],
               tricks: Optional[FrozenSet[str]], keep: Optional[Callable[[Transition], bool]] = None) -> Set[UnlabelledId]:
     """Inputs provable when every proven input also counts as a known gap (closed under implication), using the
-    given tricks and the transitions satisfying `keep`."""
-    proven = set(seed_ids)
-    reach = {gid: explorer.reachable(gid, tricks, keep) for gid in input_ids}
-    unproven = set(input_ids)
-    changed = True
-    while changed:
-        changed = False
-        for gid in sorted(unproven):
-            if not reach[gid].isdisjoint(proven):
-                proven.add(gid)
-                unproven.discard(gid)
-                changed = True
-    return proven.intersection(input_ids)
+    given tricks and the transitions satisfying `keep`. These are exactly the inputs from which a seed is
+    reachable: an input that reaches a proven input reaches, through it, a seed."""
+    return _reverse_reachable(explorer, seed_ids, tricks, keep).intersection(input_ids)
 
 
 def _trick_groups_for(explorer: ClosureExplorer, trick_groups):
@@ -824,33 +839,9 @@ LADDER: List[Tuple[str, Callable[[Transition], bool]]] = [('elementary', CASCADE
     [('+ ' + name, keep) for name, keep in CASCADE[1:]]
 
 
-def _reachable_if(explorer: ClosureExplorer, root: UnlabelledId, keep: Callable[[Transition], bool]) -> Set[UnlabelledId]:
-    seen = {root}
-    frontier = deque([root])
-    while frontier:
-        current = frontier.popleft()
-        for t in explorer.edges.get(current, ()):
-            if keep(t) and t.target not in seen:
-                seen.add(t.target)
-                frontier.append(t.target)
-    return seen
-
-
 def _fixpoint_if(report: GapReport, keep: Callable[[Transition], bool]) -> Set[UnlabelledId]:
-    goals = set(report.seed_keys)
-    input_ids = report.input_ids
-    reach = {gid: _reachable_if(report.explorer, gid, keep) for gid in input_ids}
-    proven = set(goals)
-    unproven = set(input_ids)
-    changed = True
-    while changed:
-        changed = False
-        for gid in sorted(unproven):
-            if not reach[gid].isdisjoint(proven):
-                proven.add(gid)
-                unproven.discard(gid)
-                changed = True
-    return proven.intersection(input_ids)
+    """The inputs proven through the transitions satisfying `keep` alone (see _fixpoint)."""
+    return _fixpoint(report.explorer, report.input_ids, set(report.seed_keys), None, keep)
 
 
 def ladder(report: GapReport) -> List[Tuple[str, int, int]]:

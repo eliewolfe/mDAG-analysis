@@ -140,14 +140,34 @@ def esep_valid_cells(m: int) -> np.ndarray:
     return valid
 
 
-def _permutation_index_maps(m: int) -> Iterable[Tuple[np.ndarray, np.ndarray]]:
-    """For every permutation p of range(m): (p as an index array, the induced map on bitmasks), generated lazily."""
+def _generate_permutation_index_maps(m: int) -> Iterable[Tuple[np.ndarray, np.ndarray]]:
     masks = np.arange(1 << m, dtype=np.int64)
     for perm in itertools.permutations(range(m)):
         pm = np.zeros(1 << m, dtype=np.int64)
         for v, target in enumerate(perm):
             pm |= ((masks >> v) & 1) << target
         yield np.array(perm, dtype=np.int64), pm
+
+
+_PERMUTATION_MAPS_CACHED_UP_TO = 6      # 720 permutations x (6 + 64) int64 = 400 KB; 7 would be 7 MB, 8 over 80 MB
+
+
+@functools.lru_cache(maxsize=None)
+def _cached_permutation_index_maps(m: int) -> Tuple[Tuple[np.ndarray, np.ndarray], ...]:
+    maps = tuple(_generate_permutation_index_maps(m))
+    for p, pm in maps:
+        p.flags.writeable = False
+        pm.flags.writeable = False
+    return maps
+
+
+def _permutation_index_maps(m: int) -> Iterable[Tuple[np.ndarray, np.ndarray]]:
+    """For every permutation p of range(m): (p as an index array, the induced map on bitmasks). The maps are
+    built once and shared (read-only) for small m, where canonical_form is called once per model of the census;
+    for larger m they are generated lazily, since all m! maps would not fit."""
+    if m <= _PERMUTATION_MAPS_CACHED_UP_TO:
+        return _cached_permutation_index_maps(m)
+    return _generate_permutation_index_maps(m)
 
 
 def canonical_form(model: np.ndarray, m: int) -> np.ndarray:
