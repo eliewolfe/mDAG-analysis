@@ -278,6 +278,8 @@ def test_class_lookups_accept_any_labelling_and_partition_supplied_objects():
     assert all(g in copies for block in blocks for g in block)        # the supplied objects, not the stored ones
     with pytest.raises(ValueError):
         M.eqclass_of_mDAG(mDAG(DirectedStructure([], 4), Hypergraph([], 4)))
+    with pytest.raises(ValueError):
+        M.eqclasses_of_subset([copies[0], mDAG(DirectedStructure([], 4), Hypergraph([], 4))])
     assert len(M.latent_free_DAG_ids_and_CI_labelled) == len(M.all_directed_structures)
 
 

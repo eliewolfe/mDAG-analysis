@@ -7,7 +7,7 @@ assert version_info >= (3, 8), "Python 3.8+ is required for cached_property supp
 
 from functools import cached_property
 
-from adjmat_class import AdjMat
+from adjmat_class import AdjMat, node_index_array
 from scipy.sparse.csgraph import connected_components
 
 
@@ -66,8 +66,8 @@ def closure(
     sc_adjmat: BoolMatrix,
     return_bidirectedQ: bool = False,
 ) -> Union[IntVector, Tuple[IntVector, bool]]:
-    # one node or any iterable of nodes, as an index array (a bare tuple would index two dimensions)
-    core_B = np.array([core_B] if isinstance(core_B, (int, np.integer)) else list(core_B), dtype=int)
+    # one node, an index array, a boolean mask or any iterable of nodes (a bare tuple would index two dimensions)
+    core_B = node_index_array(core_B)
     return closure_district_step(core_B, np.arange(n+1), ds_adjmat, sc_adjmat, return_bidirectedQ=return_bidirectedQ)
     #Elie: I start with a working set LARGER than the number of visible nodes in order to avoid false termination.
 

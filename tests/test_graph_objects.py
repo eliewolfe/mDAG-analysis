@@ -36,7 +36,7 @@ def test_named_components_in_any_order_give_the_same_numeric_graph():
         assert q.unique_id == q_reference.unique_id
         assert q.C_simplicial_complex_instance.as_tuples == q_reference.C_simplicial_complex_instance.as_tuples
         assert q.Q_simplicial_complex_instance.as_tuples == q_reference.Q_simplicial_complex_instance.as_tuples
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         mDAG(ds, LabelledHypergraph(('A', 'B', 'C', 'E'), FACETS))     # different names, not just another order
 
 
@@ -44,6 +44,9 @@ def test_mixed_named_and_numeric_components_have_a_skeleton():
     named = mDAG(LabelledDirectedStructure(('A', 'B', 'C'), [('A', 'B')]), Hypergraph([(1, 2)], 3))
     numeric = mDAG(DirectedStructure([(0, 1)], 3), Hypergraph([(1, 2)], 3))
     assert named.skeleton == numeric.skeleton and named.skeleton_unlabelled == numeric.skeleton_unlabelled
+    labelled = mDAG(LabelledDirectedStructure(('A', 'B', 'C'), [('A', 'B')]), LabelledHypergraph(('A', 'B', 'C'), [('B', 'C')]))
+    assert labelled.skeleton == numeric.skeleton and labelled.skeleton_unlabelled == numeric.skeleton_unlabelled
+    assert set(labelled.skeleton_instance.edges_with_variable_names) == {('A', 'B'), ('B', 'C')}
 
 
 # -- finding 2: equality and hashing ------------------------------------------------------------------------------

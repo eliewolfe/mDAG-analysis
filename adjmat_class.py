@@ -3,12 +3,26 @@ import numpy as np
 import numpy.typing as npt
 from sys import version_info
 assert version_info >= (3, 8), "Python 3.8+ is required for cached_property support."
-from typing import List, Tuple, Union
+from typing import Iterable, List, Tuple, Union
 
 from functools import cached_property
 
 BoolMatrix = npt.NDArray[np.bool_]
 IntVector = npt.NDArray[np.int_]
+
+
+def node_index_array(nodes: Union[int, Iterable[int], IntVector, BoolMatrix]) -> Union[IntVector, BoolMatrix]:
+    """One node, an index array, a boolean mask or any iterable of nodes, as an array that indexes one axis (a bare
+    tuple would index several axes; an iterator is read once). A numpy array, and a list or tuple of bools, keep
+    their meaning as a mask."""
+    if isinstance(nodes, np.ndarray):
+        return np.atleast_1d(nodes)
+    if isinstance(nodes, (int, np.integer)):
+        return np.array([nodes], dtype=int)
+    if isinstance(nodes, (list, tuple)):
+        nodes = np.asarray(nodes)
+        return nodes if nodes.dtype == bool else nodes.astype(int)      # an empty list would be float64
+    return np.fromiter(nodes, dtype=int)
 
 
 # Acknowledgement to https://digitalcommons.njit.edu/cgi/viewcontent.cgi?article=2820&context=theses
@@ -30,12 +44,7 @@ class AdjMat:
 
     @staticmethod
     def _children_of(adjmat: BoolMatrix, X_indices: Union[int, IntVector]) -> IntVector:
-        if hasattr(X_indices, '__iter__'):
-            # any iterable of nodes is an index array (a bare tuple would index two dimensions)
-            rows = X_indices if isinstance(X_indices, np.ndarray) else np.fromiter(X_indices, dtype=int)
-            return np.flatnonzero(np.any(adjmat[rows], axis=0))
-        else:
-            return np.flatnonzero(adjmat[X_indices])
+        return np.flatnonzero(np.any(adjmat[node_index_array(X_indices)], axis=0))
 
     def _parents_of(self, adjmat: BoolMatrix, X_indices: Union[int, IntVector]) -> IntVector:
         return self._children_of(np.transpose(adjmat), X_indices)

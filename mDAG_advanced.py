@@ -286,7 +286,8 @@ class mDAG:
     @cached_property
     def skeleton_instance(self) -> Union[LabelledUndirectedGraph, UndirectedGraph]:
         if hasattr(self.directed_structure_instance, 'variable_names') and hasattr(self.simplicial_complex_instance, 'variable_names'):
-            return LabelledUndirectedGraph(self.variable_names, self.directed_structure_instance.edge_list_with_variable_names + self.simplicial_complex_instance.simplicial_complex_with_variable_names)
+            return LabelledUndirectedGraph(self.variable_names, list(self.directed_structure_instance.edge_list_with_variable_names)
+                                           + list(self.simplicial_complex_instance.simplicial_complex_with_variable_names))
         else:
             return UndirectedGraph(self.directed_structure_instance.as_tuples + self.simplicial_complex_instance.as_tuples,
                                self.number_of_visible)

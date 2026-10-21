@@ -558,53 +558,54 @@ class GapReport:
         piggybacks from it to a seed; nothing is inferred from a structure to a weaker variant of it. Structures
         registered only as lookup targets (degradations) are not counted: a non-seed among them never reaches a
         seed, and a seed among them is a seed."""
-        seed_ids = set(self.seed_keys)
-        reverse: Dict[UnlabelledId, List[UnlabelledId]] = {}
-        for transitions in self.explorer.edges.values():
-            for t in transitions:
-                reverse.setdefault(t.target, []).append(t.source)
-        known = set(seed_ids)
-        frontier = deque(known)
-        while frontier:
-            current = frontier.popleft()
-            for source in reverse.get(current, ()):
-                if source not in known:
-                    known.add(source)
-                    frontier.append(source)
+        known = _reverse_reachable(self.explorer, set(self.seed_keys))
         return (known & set(self.explorer.representatives)) - self.explorer.lookup_only
+
+
+ReverseEdges = Dict[UnlabelledId, List[Transition]]     # the recorded transitions, grouped by target
+
+
+def _reverse_edges(explorer: ClosureExplorer) -> ReverseEdges:
+    """The recorded transitions grouped by their target: the index one reverse traversal walks. A report builds
+    it once and shares it between its provability counts."""
+    reverse: ReverseEdges = {}
+    for transitions in explorer.edges.values():
+        for t in transitions:
+            reverse.setdefault(t.target, []).append(t)
+    return reverse
 
 
 def _reverse_reachable(explorer: ClosureExplorer, goals: Iterable[UnlabelledId],
                        tricks: Optional[FrozenSet[str]] = None,
-                       keep: Optional[Callable[[Transition], bool]] = None) -> Set[UnlabelledId]:
+                       keep: Optional[Callable[[Transition], bool]] = None,
+                       reverse: Optional[ReverseEdges] = None) -> Set[UnlabelledId]:
     """The ids from which some goal is reachable through transitions of the given tricks (all if None) satisfying
     `keep` (all if None): one traversal of the recorded transitions in reverse from the goals, instead of one
-    forward reachability per input."""
-    reverse: Dict[UnlabelledId, List[UnlabelledId]] = {}
-    for source, transitions in explorer.edges.items():
-        for t in transitions:
-            if tricks is not None and t.trick not in tricks:
-                continue
-            if keep is not None and not keep(t):
-                continue
-            reverse.setdefault(t.target, []).append(source)
+    forward reachability per input. `reverse` is the explorer's _reverse_edges, built here when not given."""
+    if reverse is None:
+        reverse = _reverse_edges(explorer)
     reached = set(goals)
     frontier = deque(reached)
     while frontier:
         current = frontier.popleft()
-        for source in reverse.get(current, ()):
-            if source not in reached:
-                reached.add(source)
-                frontier.append(source)
+        for t in reverse.get(current, ()):
+            if tricks is not None and t.trick not in tricks:
+                continue
+            if keep is not None and not keep(t):
+                continue
+            if t.source not in reached:
+                reached.add(t.source)
+                frontier.append(t.source)
     return reached
 
 
 def _fixpoint(explorer: ClosureExplorer, input_ids: List[UnlabelledId], seed_ids: Set[UnlabelledId],
-              tricks: Optional[FrozenSet[str]], keep: Optional[Callable[[Transition], bool]] = None) -> Set[UnlabelledId]:
+              tricks: Optional[FrozenSet[str]], keep: Optional[Callable[[Transition], bool]] = None,
+              reverse: Optional[ReverseEdges] = None) -> Set[UnlabelledId]:
     """Inputs provable when every proven input also counts as a known gap (closed under implication), using the
     given tricks and the transitions satisfying `keep`. These are exactly the inputs from which a seed is
     reachable: an input that reaches a proven input reaches, through it, a seed."""
-    return _reverse_reachable(explorer, seed_ids, tricks, keep).intersection(input_ids)
+    return _reverse_reachable(explorer, seed_ids, tricks, keep, reverse).intersection(input_ids)
 
 
 def _trick_groups_for(explorer: ClosureExplorer, trick_groups):
@@ -711,10 +712,12 @@ def build_report(explorer: ClosureExplorer, inputs: List[QmDAG], seeds: Dict[str
         return len(ids)   # up to relabelling
 
     all_tricks = frozenset(tricks)
-    proven_all = _fixpoint(explorer, unique_input_ids, set(seed_ids), all_tricks)
-    provable_with = {name: count(_fixpoint(explorer, unique_input_ids, set(seed_ids), group))
+    reverse = _reverse_edges(explorer)      # one reverse index for every provability count of the report
+    proven_all = _fixpoint(explorer, unique_input_ids, set(seed_ids), all_tricks, reverse=reverse)
+    provable_with = {name: count(_fixpoint(explorer, unique_input_ids, set(seed_ids), group, reverse=reverse))
                      for name, (group, _) in trick_groups.items()}
-    only_via = {name: count(proven_all) - count(_fixpoint(explorer, unique_input_ids, set(seed_ids), all_tricks - removed))
+    only_via = {name: count(proven_all) - count(_fixpoint(explorer, unique_input_ids, set(seed_ids), all_tricks - removed,
+                                                          reverse=reverse))
                 for name, (_, removed) in trick_groups.items()}
 
     # Certificates: a path to the nearest known gap (seed or already-certified input), chained down to a seed.
@@ -750,7 +753,8 @@ def build_report(explorer: ClosureExplorer, inputs: List[QmDAG], seeds: Dict[str
     remaining = list(remaining_by_id.values())
     # Cumulative: proven using the transitions recorded in stages up to k (a stage's elementary follow-up
     # transitions belong to that stage).
-    stage_counts = [(name, count(_fixpoint(explorer, unique_input_ids, set(seed_ids), None, explorer.stage_filter(k))))
+    stage_counts = [(name, count(_fixpoint(explorer, unique_input_ids, set(seed_ids), None, explorer.stage_filter(k),
+                                           reverse=reverse)))
                     for k, name in enumerate(explorer.stage_names)]
     return GapReport(inputs, seeds, proven, seed_hit, remaining, provable_with, only_via, explorer, stage_counts, known,
                      _seed_keys=seed_ids)

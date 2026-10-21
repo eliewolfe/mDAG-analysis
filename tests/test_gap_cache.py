@@ -156,6 +156,9 @@ def test_save_accepts_a_bare_filename_and_replaces_the_file_atomically(tmp_path,
     cache.save()
     assert json.load(open('gaps.json'))['entries'] == {'x': {'marker': 1}}
     assert [name for name in os.listdir(tmp_path) if name.endswith('.tmp')] == []       # no temporary left behind
+    import stat
+    open('reference', 'w').close()                                                       # the mode of a plain write
+    assert stat.S_IMODE(os.stat('gaps.json').st_mode) == stat.S_IMODE(os.stat('reference').st_mode)
     nested = C.GapCache(str(tmp_path / 'deeper' / 'still' / 'gaps.json'))
     nested.save()
     assert (tmp_path / 'deeper' / 'still' / 'gaps.json').exists()

@@ -15,6 +15,7 @@ version, since with a class index the keys themselves rest on the metagraph rule
 """
 import json
 import os
+import stat
 import tempfile
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
@@ -51,6 +52,17 @@ def structure_record(g) -> Dict[str, Any]:
         'classical_facets': _plain(sorted(sorted(f) for f in g.C_simplicial_complex_instance.simplicial_complex_as_sets)),
         'quantum_facets': _plain(sorted(sorted(f) for f in g.Q_simplicial_complex_instance.simplicial_complex_as_sets)),
     }
+
+
+def _file_mode_for(path: str) -> int:
+    """The permission bits a fresh write to `path` would carry: those of the existing file, else the default for
+    a new file under the current umask (mkstemp creates its file readable by its owner alone)."""
+    try:
+        return stat.S_IMODE(os.stat(path).st_mode)
+    except FileNotFoundError:
+        umask = os.umask(0)
+        os.umask(umask)
+        return 0o666 & ~umask
 
 
 class GapCache:
@@ -162,6 +174,7 @@ class GapCache:
             with os.fdopen(fd, 'w') as f:
                 json.dump({'format': CACHE_FORMAT, 'keyed_by': self.keyed_by, 'piggyback_versions': PIGGYBACK_VERSIONS,
                            'entries': self.entries}, f, indent=1, sort_keys=True)
+            os.chmod(temporary, _file_mode_for(path))
             os.replace(temporary, path)
         except BaseException:
             if os.path.exists(temporary):

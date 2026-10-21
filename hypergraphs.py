@@ -298,7 +298,8 @@ class LabelledHypergraph(Hypergraph):
         variable_names = tuple(variable_names)
         if variable_names == self.variable_names:
             return self
-        assert frozenset(variable_names) == self.variable_names_as_frozenset, 'Error: Inconsistent node names.'
+        if frozenset(variable_names) != self.variable_names_as_frozenset:
+            raise ValueError(f"inconsistent node names: {variable_names} is not a reordering of {self.variable_names}")
         return LabelledHypergraph(variable_names, self.simplicial_complex_with_variable_names)
 
     @cached_property
@@ -412,7 +413,7 @@ class LabelledUndirectedGraph(UndirectedGraph):
         """
         self.variable_names = tuple(variable_names)
         self.variable_names_as_frozenset = frozenset(self.variable_names)
-        self.number_of_variables = len(variable_names)
+        self.number_of_variables = len(self.variable_names)
         assert self.number_of_variables == len(
             self.variable_names_as_frozenset), "A variable name appears in duplicate."
         self.edges_with_variable_names = tuple(set(itertools.chain.from_iterable(

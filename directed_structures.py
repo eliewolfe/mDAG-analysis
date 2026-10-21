@@ -206,7 +206,7 @@ class LabelledDirectedStructure(DirectedStructure):
     def __init__(self, variable_names: Tuple[Any, ...], edge_list: List[Tuple[Any, Any]]) -> None:
         self.variable_names = tuple(variable_names)
         self.variable_names_as_frozenset = frozenset(self.variable_names)
-        self.number_of_variables = len(variable_names)
+        self.number_of_variables = len(self.variable_names)
         assert self.number_of_variables == len(self.variable_names_as_frozenset), "A variable name appears in duplicate."
 
         edge_list = [tuple(edge) for edge in edge_list]       # read once: it may be an iterator

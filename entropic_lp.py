@@ -344,7 +344,7 @@ class EntropicLP:
         if H.shape[0]:
             combination = combination - H.T @ np.asarray(certificate['hypotheses'], dtype=float)
         cols, vals = row
-        combination[np.asarray(cols)] += float(certificate['target']) * np.asarray(vals, dtype=float)
+        np.add.at(combination, np.asarray(cols), float(certificate['target']) * np.asarray(vals, dtype=float))
         return combination
 
     def check_certificate(self, row: Row, certificate, tol: float = 1e-7) -> bool:

@@ -707,12 +707,13 @@ class Observable_unlabelled_mDAGs:
     @cached_property
     def HLP_meta_adjmat_closure(self):
         """The reachability (transitive closure, self-loops included) of HLP_meta_adjmat, by repeated squaring of
-        the Boolean matrix: the product, not the elementwise product, which would reproduce the matrix itself."""
-        closure_mat = (self.HLP_meta_adjmat.tocsr() != 0).astype(np.int32)
+        the Boolean matrix: the matrix product (on a bool matrix scipy computes the Boolean product, an or of
+        ands, storing no False), not the elementwise product, which would reproduce the matrix itself."""
+        closure_mat = self.HLP_meta_adjmat.tocsr() != 0
         while True:
-            next_closure_mat = ((closure_mat @ closure_mat) != 0).astype(np.int32)
+            next_closure_mat = closure_mat @ closure_mat
             if next_closure_mat.nnz == closure_mat.nnz:      # reachability only grows, so equal sizes mean equal
-                return closure_mat.astype(bool)
+                return closure_mat
             closure_mat = next_closure_mat
 
     @cached_property
@@ -859,22 +860,27 @@ class Observable_unlabelled_mDAGs:
     def equivalence_classes_as_mDAGs(self):
         return [self.lookup_mDAG(eqclass) for eqclass in self.equivalence_classes_as_ids]
     
+    def _node_id(self, mdag):
+        """The unlabelled id of an mDAG that is a node of this metagraph, in any labelling. Another node count is
+        refused rather than looked up: ids of mDAGs on different numbers of nodes can coincide."""
+        if mdag.number_of_visible != self.n:
+            raise ValueError(f"{mdag} has {mdag.number_of_visible} nodes, this metagraph covers {self.n}")
+        uid = mdag.unique_unlabelled_id
+        if uid not in self.class_index_of:
+            raise KeyError(f"{mdag} is not a node of the metagraph")
+        return uid
+
     def eqclass_of_mDAG(self, mDAG):
         """The stored representatives of the equivalence class of an mDAG on this metagraph's number of nodes,
         found by its unlabelled id (any labelling of a node of the metagraph is accepted)."""
-        if mDAG.number_of_visible != self.n:
-            raise ValueError(f"{mDAG} has {mDAG.number_of_visible} nodes, this metagraph covers {self.n}")
-        uid = mDAG.unique_unlabelled_id
-        if uid not in self.class_index_of:
-            raise KeyError(f"{mDAG} is not a node of the metagraph")
-        return self.lookup_mDAG(self.class_of(uid))
+        return self.lookup_mDAG(self.class_of(self._node_id(mDAG)))
 
     def eqclasses_of_subset(self, subset):
         """The partition of the given mDAGs (nodes of the metagraph in any labelling) by equivalence class, as
         lists of the objects supplied, in their order of first appearance."""
         blocks = {}
-        for mDAG in subset:
-            blocks.setdefault(self.class_index_of[mDAG.unique_unlabelled_id], []).append(mDAG)
+        for mdag in subset:
+            blocks.setdefault(self.class_index_of[self._node_id(mdag)], []).append(mdag)
         return list(blocks.values())
 
     def partial_order_of_subset(self, subset):
