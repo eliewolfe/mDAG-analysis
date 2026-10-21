@@ -49,7 +49,7 @@ def test_mixed_named_and_numeric_components_have_a_skeleton():
     assert set(labelled.skeleton_instance.edges_with_variable_names) == {('A', 'B'), ('B', 'C')}
 
 
-@pytest.mark.parametrize('named_c,named_q', itertools.product((False, True), repeat=2))
+@pytest.mark.parametrize('named_c,named_q', list(itertools.product((False, True), repeat=2)))
 def test_quantum_dominance_uses_aligned_numeric_components(named_c, named_q):
     names = ('A', 'B', 'C')
     ds = LabelledDirectedStructure(names, [])

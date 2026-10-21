@@ -123,6 +123,24 @@ def test_time_limit_is_passed_to_mosek_and_counted():
         assert lp.timeouts == 0
 
 
+def test_manual_solver_cache_cleanup_allows_a_fresh_task(monkeypatch):
+    import quantum_mDAG as QM
+    from directed_structures import DirectedStructure
+    from hypergraphs import Hypergraph
+    monkeypatch.setattr(QM, '_ENTROPIC_LP_CACHE', {})
+    graph = QM.QmDAG(DirectedStructure([(0, 1), (1, 2)], 3), Hypergraph([], 3), Hypergraph([], 3))
+    target = E.cmi_row([0], [2], [1])
+    try:
+        previous = graph._entropic_lp()
+        assert previous.implies(target)
+        QM.clear_search_caches(canonical_ids=False, piggyback_children=False, semigraphoid_models=False)
+        assert not QM._ENTROPIC_LP_CACHE
+        current = graph._entropic_lp()
+        assert current is not previous and current.implies(target)
+    finally:
+        QM.clear_search_caches(canonical_ids=False, piggyback_children=False, semigraphoid_models=False)
+
+
 def _dense(row, n):
     v = np.zeros((1 << n) - 1)
     cols, vals = row

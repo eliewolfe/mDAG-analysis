@@ -19,7 +19,7 @@ from functools import cached_property
 from hypergraphs import Hypergraph
 from directed_structures import DirectedStructure
 from mDAG_advanced import mDAG
-from canonical_forms import CanonicalForms
+from canonical_forms import CanonicalForms, MAX_FULL_ENUMERATION_NODES
 # from functools import lru_cache
 from supports import explore_candidates
 
@@ -148,6 +148,13 @@ class Observable_unlabelled_mDAGs:
             classical graph without the CI filter of `boring_dominances`, which prunes edges that can never lie
             on a cycle and so leaves the components unchanged while costing a d-separation enumeration per node.
         """
+        # The full family over n nodes has complices of up to C(n, n // 2) facets (canonical_forms.largest_complex):
+        # 20 for six nodes, 120 encoded bits, beyond the 62-bit tables of canonical_forms.fits_int64. Reject before
+        # any family is enumerated, including callers that request complices before canonical_forms.
+        if n > MAX_FULL_ENUMERATION_NODES:
+            raise ValueError(f'Full metagraph enumeration supports at most {MAX_FULL_ENUMERATION_NODES} visible '
+                             'nodes with the current 64-bit permutation tables. Use CanonicalForms with explicitly '
+                             'supplied families for larger node counts that fit its bit limits.')
         assert rule in ('classical', 'quantum'), rule
         self.n = n
         self.rule = rule

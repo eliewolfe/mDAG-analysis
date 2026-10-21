@@ -4,7 +4,7 @@ import numpy.typing as npt
 import itertools
 from sys import version_info
 assert version_info >= (3, 8), "Python 3.8+ is required for cached_property support."
-from typing import Any, FrozenSet, Iterable, List, Set, Tuple, Union
+from typing import Any, Dict, FrozenSet, Iterable, List, Set, Tuple, Union
 
 from functools import cached_property
 
@@ -21,6 +21,21 @@ from utilities import stringify_in_tuple, stringify_in_list, partsextractor
 # from scipy.special import comb
 import networkx as nx
 from functools import lru_cache
+
+
+# Share immutable results between equal parts, without retaining Hypergraph instances. Keep useful results until
+# the caller explicitly finishes with them: evicting them during a search would repeat factorial work.
+_INTEGER_PERMUTATIONS_CACHE: Dict[Tuple[int, Tuple[Tuple[int, ...], ...]], Tuple[int, ...]] = {}
+
+
+def clear_permutation_cache() -> None:
+    """Release shared hypergraph permutation results after a finished batch that will not reuse its parts.
+
+    Never called automatically. Existing Hypergraph objects retain their own cached tuples; new equal objects
+    will recompute them. Keep this cache for related searches, which often reuse the same hypergraph parts.
+    """
+    _INTEGER_PERMUTATIONS_CACHE.clear()
+
 
 @lru_cache(maxsize=5)
 def empty_graph(n: int) -> nx.Graph:
@@ -188,7 +203,18 @@ class Hypergraph:
 
     @cached_property
     def as_integer_permutations(self) -> Tuple[int, ...]:
-        return tuple(bitarray_to_int(ba) for ba in self.bit_array_permutations)
+        key = (self.number_of_visible, self.as_tuples)
+        result = _INTEGER_PERMUTATIONS_CACHE.get(key)
+        if result is None:
+            # The identity is first and as_bit_array is already sorted. Reuse its integer, then bind the array
+            # once for the remaining permutations, avoiding first-time sorting and generator overhead.
+            bits = self.as_bit_array
+            permutations = itertools.permutations(range(self.number_of_visible))
+            next(permutations)
+            result = (self.as_integer,) + tuple(bitarray_to_int(permute_bit_array(bits, perm))
+                                                for perm in permutations)
+            _INTEGER_PERMUTATIONS_CACHE[key] = result
+        return result
 
     @cached_property
     def as_unlabelled_integer(self) -> int:
