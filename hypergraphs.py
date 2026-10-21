@@ -212,7 +212,7 @@ class Hypergraph:
             permutations = itertools.permutations(range(self.number_of_visible))
             next(permutations)
             result = (self.as_integer,) + tuple(bitarray_to_int(permute_bit_array(bits, perm))
-                                                for perm in map(list, permutations))
+                                                for perm in permutations)
             _INTEGER_PERMUTATIONS_CACHE[key] = result
         return result
 

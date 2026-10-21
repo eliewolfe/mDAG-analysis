@@ -15,6 +15,7 @@ five nodes); `fits_int64` says when the tables apply.
 from __future__ import annotations
 
 import itertools
+import math
 from typing import Dict, Iterable, List, Sequence, Tuple
 
 import numpy as np
@@ -29,6 +30,17 @@ def permutations_array(n: int) -> np.ndarray:
 
 def fits_int64(n: int, max_facets: int) -> bool:
     return n * n <= 62 and max_facets * n <= 62
+
+
+def largest_complex(n: int) -> int:
+    """An upper bound on the facets of a simplicial complex over n nodes: the facets form an antichain, so by
+    Sperner's theorem there are at most C(n, n // 2) of them (the middle layer attains it for n >= 3)."""
+    return math.comb(n, n // 2)
+
+
+# The largest node count whose full family of complices fits the tables: 5 (10 facets x 5 nodes = 50 bits; six
+# nodes allow 20 facets, 120 bits). The metagraph refuses a full enumeration above it.
+MAX_FULL_ENUMERATION_NODES = max(n for n in range(1, 8) if fits_int64(n, largest_complex(n)))
 
 
 # --------------------------------------------------------------------------------------------------

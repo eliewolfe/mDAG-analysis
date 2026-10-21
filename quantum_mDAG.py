@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import contextlib
 import itertools
 import warnings
 import numpy as np
@@ -83,9 +84,10 @@ def clear_search_caches(*, canonical_ids: bool = True, piggyback_children: bool 
     if piggyback_children:
         _PIGGYBACK_CHILDREN_MEMO.clear()
     if lp_models:
-        while _ENTROPIC_LP_CACHE:
-            _, lp = _ENTROPIC_LP_CACHE.popitem()
-            lp.close()
+        # Every task leaves the cache and is closed even when one close() raises; the stack re-raises afterwards.
+        with contextlib.ExitStack() as closing:
+            while _ENTROPIC_LP_CACHE:
+                closing.callback(_ENTROPIC_LP_CACHE.popitem()[1].close)
     if semigraphoid_models:
         _SEMIGRAPHOID_CACHE.clear()
 

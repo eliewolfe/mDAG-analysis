@@ -32,14 +32,25 @@ def reference_permutations(self):
     return tuple(bitarray_to_int(bits) for bits in self.bit_array_permutations)
 
 
+def install_reference_permutations(H):
+    """Replace the shared implementation on Hypergraph with the previous per-object one, for the whole process."""
+    descriptor = cached_property(reference_permutations)
+    descriptor.__set_name__(H.Hypergraph, 'as_integer_permutations')
+    H.Hypergraph.as_integer_permutations = descriptor
+
+
+def run_worker(mode, *flags):
+    """Run one worker in a fresh process and return its JSON result."""
+    command = [sys.executable, str(Path(__file__).resolve()), '--worker', mode, *flags]
+    return json.loads(subprocess.check_output(command, text=True, env=dict(os.environ, PYTHONHASHSEED='0')))
+
+
 def worker(mode, census):
     import hypergraphs as H
     from metagraph_advanced import Observable_unlabelled_mDAGs
 
     if mode == 'reference':
-        descriptor = cached_property(reference_permutations)
-        descriptor.__set_name__(H.Hypergraph, 'as_integer_permutations')
-        H.Hypergraph.as_integer_permutations = descriptor
+        install_reference_permutations(H)
     samples = list(Observable_unlabelled_mDAGs(4, verbose=False).all_simplicial_complices)
 
     def run_permutations(graphs):
@@ -60,17 +71,14 @@ def worker(mode, census):
     if census:
         # Start with only the normal import-time cache state, independent of the microbenchmark above.
         # A second worker handles the census, so neither mode gets an artificial warm-up advantage.
-        command = [sys.executable, str(Path(__file__).resolve()), '--worker', mode, '--census-only']
-        result.update(json.loads(subprocess.check_output(command, text=True, env=dict(os.environ, PYTHONHASHSEED='0'))))
+        result.update(run_worker(mode, '--census-only'))
     return result
 
 
 def census_worker(mode):
     import hypergraphs as H
     if mode == 'reference':
-        descriptor = cached_property(reference_permutations)
-        descriptor.__set_name__(H.Hypergraph, 'as_integer_permutations')
-        H.Hypergraph.as_integer_permutations = descriptor
+        install_reference_permutations(H)
     spec = importlib.util.spec_from_file_location('census', ROOT / 'Special Applications' / 'proving_QC_Gaps.py')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -102,17 +110,19 @@ def main():
     parser.add_argument('--census-only', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.worker:
-        print(json.dumps(census_worker(args.worker) if args.census_only else worker(args.worker, args.census)))
+        # The parent parses this process's stdout as JSON: whatever the imports print (mDAG_advanced reports a
+        # missing matplotlib on stdout) goes to stderr instead.
+        stdout = sys.stdout
+        with contextlib.redirect_stdout(sys.stderr):
+            result = census_worker(args.worker) if args.census_only else worker(args.worker, args.census)
+        print(json.dumps(result), file=stdout)
         return
     if args.repeat < 1:
         parser.error('--repeat must be positive')
     runs = {'reference': [], 'shared': []}
     for repeat in range(args.repeat):
         for mode in (('reference', 'shared') if repeat % 2 == 0 else ('shared', 'reference')):
-            command = [sys.executable, str(Path(__file__).resolve()), '--worker', mode]
-            if args.census:
-                command.append('--census')
-            sample = json.loads(subprocess.check_output(command, text=True, env=dict(os.environ, PYTHONHASHSEED='0')))
+            sample = run_worker(mode, *(['--census'] if args.census else []))
             runs[mode].append(sample)
             print(f'{mode} sample {repeat + 1}: ' + ', '.join(f'{key}={value:.6f}' for key, value in sample.items()
                                                             if key.endswith('_seconds')), file=sys.stderr, flush=True)

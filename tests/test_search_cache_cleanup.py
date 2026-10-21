@@ -1,5 +1,6 @@
 """Manual cleanup releases only the cache groups explicitly selected by the caller."""
 import numpy as np
+import pytest
 
 import hypergraphs as H
 import quantum_mDAG as QM
@@ -17,13 +18,15 @@ class SolverTask:
         self.closed = True
 
 
-def isolate_search_caches(monkeypatch):
+@pytest.fixture
+def isolated_search_caches(monkeypatch):
     for name in ('_UNLABELLED_ID_MEMO', '_PIGGYBACK_CHILDREN_MEMO', '_ENTROPIC_LP_CACHE', '_SEMIGRAPHOID_CACHE'):
         monkeypatch.setattr(QM, name, {})
+    yield
+    QM.clear_search_caches()     # closes any solver task the test left behind, before the originals come back
 
 
-def test_cleanup_is_selective_closes_tasks_and_keeps_permutations(monkeypatch):
-    isolate_search_caches(monkeypatch)
+def test_cleanup_is_selective_closes_tasks_and_keeps_permutations(isolated_search_caches, monkeypatch):
     monkeypatch.setattr(H, '_INTEGER_PERMUTATIONS_CACHE', {})
     uid = (3, 0, 0, 0)
     child = object()
@@ -48,8 +51,7 @@ def test_cleanup_is_selective_closes_tasks_and_keeps_permutations(monkeypatch):
     QM.clear_search_caches()     # idempotent, with no double-close
 
 
-def test_completed_report_survives_manual_cleanup_and_new_search_agrees(monkeypatch):
-    isolate_search_caches(monkeypatch)
+def test_completed_report_survives_manual_cleanup_and_new_search_agrees(isolated_search_caches):
     square = QM.QmDAG(DirectedStructure([], 4), H.Hypergraph([], 4),
                      H.Hypergraph([(0, 1), (0, 2), (1, 3), (2, 3)], 4))
     report = S.prove_gaps([square], SEEDS, tricks=S.elementary_tricks(), verbose=False)
