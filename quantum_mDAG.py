@@ -68,6 +68,28 @@ ENGINE_DISAGREEMENTS: List[Tuple] = []   # (unique_id, predictors, target, kept 
 ENTROPIC_STATS: Dict[Tuple[str, str], int] = dict()
 
 
+def clear_search_caches(*, canonical_ids: bool = True, piggyback_children: bool = True,
+                        lp_models: bool = True, semigraphoid_models: bool = True) -> None:
+    """Manually release derived search results after a completed batch that will not reuse them.
+
+    Never called automatically: stages, report extensions and related searches reuse these results. Call only
+    between searches, when no LP task is in use. Keyword switches allow retaining groups that remain useful.
+    Cached LP tasks are closed to release solver resources. Existing objects and recorded proofs are unchanged;
+    subsequent searches recompute discarded results. Shared hypergraph permutations are deliberately retained;
+    hypergraphs.clear_permutation_cache releases those separately when their parts will no longer be reused.
+    """
+    if canonical_ids:
+        _UNLABELLED_ID_MEMO.clear()
+    if piggyback_children:
+        _PIGGYBACK_CHILDREN_MEMO.clear()
+    if lp_models:
+        while _ENTROPIC_LP_CACHE:
+            _, lp = _ENTROPIC_LP_CACHE.popitem()
+            lp.close()
+    if semigraphoid_models:
+        _SEMIGRAPHOID_CACHE.clear()
+
+
 def _tally(kind: str, outcome: str) -> None:
     ENTROPIC_STATS[(kind, outcome)] = ENTROPIC_STATS.get((kind, outcome), 0) + 1
 

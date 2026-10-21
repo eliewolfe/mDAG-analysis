@@ -148,6 +148,12 @@ class Observable_unlabelled_mDAGs:
             classical graph without the CI filter of `boring_dominances`, which prunes edges that can never lie
             on a cycle and so leaves the components unchanged while costing a d-separation enumeration per node.
         """
+        # A full six-node family includes 20-facet complexes (120 encoded bits), beyond the 62-bit table limit.
+        # Reject before any family is enumerated, including callers that request complices before canonical_forms.
+        if n > 5:
+            raise ValueError('Full metagraph enumeration supports at most 5 visible nodes with the current '
+                             '64-bit permutation tables. Use CanonicalForms with explicitly supplied families '
+                             'for larger node counts that fit its bit limits.')
         assert rule in ('classical', 'quantum'), rule
         self.n = n
         self.rule = rule
