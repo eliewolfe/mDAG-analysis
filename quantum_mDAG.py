@@ -82,33 +82,22 @@ class QmDAG:
         assert directed_structure_instance.number_of_visible == C_simplicial_complex_instance.number_of_visible, 'Different number of nodes in directed structure vs classical simplicial complex.'
         assert directed_structure_instance.number_of_visible == Q_simplicial_complex_instance.number_of_visible, 'Different number of nodes in directed structure vs quantum simplicial complex.'
 
+        if hasattr(self.directed_structure_instance, 'variable_names'):
+            self.variable_names = self.directed_structure_instance.variable_names
+            # Align named parts before comparing facets. Numeric parts already use the directed node indices.
+            if hasattr(C_simplicial_complex_instance, 'variable_names'):
+                C_simplicial_complex_instance = C_simplicial_complex_instance.reordered(self.variable_names)
+            if hasattr(Q_simplicial_complex_instance, 'variable_names'):
+                Q_simplicial_complex_instance = Q_simplicial_complex_instance.reordered(self.variable_names)
         self.Q_simplicial_complex_instance = Q_simplicial_complex_instance
+        c_facets = C_facets_not_dominated_by_Q(C_simplicial_complex_instance.simplicial_complex_as_sets,
+                                               Q_simplicial_complex_instance.simplicial_complex_as_sets)
         if hasattr(C_simplicial_complex_instance, 'variable_names'):
+            names = C_simplicial_complex_instance.variable_names
             self.C_simplicial_complex_instance = LabelledHypergraph(
-                C_simplicial_complex_instance.variable_names,
-                C_facets_not_dominated_by_Q(
-                C_simplicial_complex_instance.translated_simplicial_complex,
-                Q_simplicial_complex_instance.translated_simplicial_complex
-            ))
+                names, [tuple(names[v] for v in facet) for facet in c_facets])
         else:
-            self.C_simplicial_complex_instance = Hypergraph(C_facets_not_dominated_by_Q(
-                C_simplicial_complex_instance.simplicial_complex_as_sets,
-                Q_simplicial_complex_instance.simplicial_complex_as_sets
-            ), self.number_of_visible)
-        if hasattr(self.directed_structure_instance, 'variable_names'):
-            self.variable_names = self.directed_structure_instance.variable_names
-            if hasattr(self.C_simplicial_complex_instance, 'variable_names'):
-                assert frozenset(self.variable_names) == frozenset(
-                    self.C_simplicial_complex_instance.variable_names), 'Error: Inconsistent node names.'
-                if not tuple(self.variable_names) == tuple(self.C_simplicial_complex_instance.variable_names):
-                    print('Warning: Inconsistent node ordering. Following ordering of directed structure!')
-        if hasattr(self.directed_structure_instance, 'variable_names'):
-            self.variable_names = self.directed_structure_instance.variable_names
-            if hasattr(self.Q_simplicial_complex_instance, 'variable_names'):
-                assert frozenset(self.variable_names) == frozenset(
-                    self.Q_simplicial_complex_instance.variable_names), 'Error: Inconsistent node names.'
-                if not tuple(self.variable_names) == tuple(self.Q_simplicial_complex_instance.variable_names):
-                    print('Warning: Inconsistent node ordering. Following ordering of directed structure!')
+            self.C_simplicial_complex_instance = Hypergraph(c_facets, self.number_of_visible)
         self.visible_nodes = self.directed_structure_instance.visible_nodes
         self.classical_latent_nodes = tuple(
             range(self.number_of_visible, self.C_simplicial_complex_instance.number_of_visible_plus_latent))

@@ -198,3 +198,33 @@ def test_upward_rule_is_a_recorded_lookup(index):
     C4 = index.classical[4]
     assert dict(chain[0].params)['above'] == str(C4.dict_uniqind_unlabelled_mDAGs[report.explorer.structures[chain[0].via].as_mDAG.unique_unlabelled_id])
     assert 'upward' in report.certificate(index.representative(above_key))
+
+
+def test_reverse_fixpoint_equals_the_forward_fixpoint():
+    """The provable sets are now computed by one reverse traversal from the seeds per filter; they must equal the
+    former per-input forward computation, closed under implication, for every filter the report uses."""
+    report = S.prove_gaps([SQUARE, LOST, TRIANGLE, EDGE_EXAMPLE], SEEDS, max_visible=5, verbose=False)
+    explorer, input_ids, seed_ids = report.explorer, list(dict.fromkeys(report.input_ids)), set(report.seed_keys)
+
+    def forward(tricks, keep=None):
+        proven, unproven = set(seed_ids), set(input_ids)
+        reach = {gid: explorer.reachable(gid, tricks, keep) for gid in input_ids}
+        changed = True
+        while changed:
+            changed = False
+            for gid in sorted(unproven):
+                if not reach[gid].isdisjoint(proven):
+                    proven.add(gid); unproven.discard(gid); changed = True
+        return proven & set(input_ids)
+
+    all_tricks = frozenset(dict(explorer.tricks)) | {t.trick for ts in explorer.edges.values() for t in ts}
+    filters = [(all_tricks, None), (frozenset(), None)]
+    filters += [(group, None) for group, _ in S.TRICK_GROUPS_FOR_REPORT.values()]
+    filters += [(all_tricks - removed, None) for _, removed in S.TRICK_GROUPS_FOR_REPORT.values()]
+    filters += [(None, explorer.stage_filter(k)) for k in range(len(explorer.stage_names))]
+    filters += [(None, keep) for _, keep in S.LADDER]
+    for tricks, keep in filters:
+        assert S._fixpoint(explorer, input_ids, seed_ids, tricks, keep) == forward(tricks, keep)
+    for _, keep in S.LADDER:
+        assert S._fixpoint_if(report, keep) == forward(None, keep)
+    assert len(report.proven) == len(forward(all_tricks)) == 4

@@ -38,7 +38,7 @@ def classify_by_attributes(representatives, attributes, verbose=False):
     :param choice of either self.safe_representative_mDAGs_list or self.representative_mDAGs_list:
     :param attributes: list of attributes to classify mDAGs by. For a single attribute, use a list with one item.
     Attributes are given as STRINGS, e.g. ['all_CI_unlabelled', 'skeleton_unlabelled']
-    :return: dictionary of mDAGS according to attributes.
+    :return: tuple of blocks (sets of mDAGs) with equal attribute values; a single object gives one block of one.
     """
     if len(representatives)>1:
         d = defaultdict(set)
@@ -51,7 +51,7 @@ def classify_by_attributes(representatives, attributes, verbose=False):
                 d[tuple(evaluate_property_or_method(mdag, prop) for prop in attributes)].add(mdag)
         return tuple(d.values())
     else:
-        return tuple(representatives)
+        return tuple({mdag} for mdag in representatives)
 
 def further_classify_by_attributes(eqclasses, attributes, verbose=True):
     if verbose:
@@ -343,7 +343,7 @@ class Observable_unlabelled_mDAGs:
     @cached_property
     def latent_free_DAG_ids_and_CI_labelled(self):
         return {m.unique_id: m.all_CI for m in sorted(
-            self.latent_free_DAGs,
+            self.latent_free_DAGs_labelled,
             key=lambda m: m.CI_count,
             reverse=False)}
 
@@ -706,16 +706,15 @@ class Observable_unlabelled_mDAGs:
 
     @cached_property
     def HLP_meta_adjmat_closure(self):
-        n = self.num_metagraph_nodes
-        closure_mat = self.HLP_meta_adjmat.tocsr()
-        while n > 0:
-            n = np.floor_divide(n, 2)
-            next_closure_mat = closure_mat.multiply(closure_mat)
-            if np.array_equal(closure_mat.indices, next_closure_mat.indices) and np.array_equal(closure_mat.indptr, next_closure_mat.indptr):
-                break
-            else:
-                closure_mat = next_closure_mat
-        return closure_mat
+        """The reachability (transitive closure, self-loops included) of HLP_meta_adjmat, by repeated squaring of
+        the Boolean matrix: the matrix product (on a bool matrix scipy computes the Boolean product, an or of
+        ands, storing no False), not the elementwise product, which would reproduce the matrix itself."""
+        closure_mat = self.HLP_meta_adjmat.tocsr() != 0
+        while True:
+            next_closure_mat = closure_mat @ closure_mat
+            if next_closure_mat.nnz == closure_mat.nnz:      # reachability only grows, so equal sizes mean equal
+                return closure_mat
+            closure_mat = next_closure_mat
 
     @cached_property
     def boring_by_virtue_of_HLP(self):
@@ -861,18 +860,28 @@ class Observable_unlabelled_mDAGs:
     def equivalence_classes_as_mDAGs(self):
         return [self.lookup_mDAG(eqclass) for eqclass in self.equivalence_classes_as_ids]
     
+    def _node_id(self, mdag):
+        """The unlabelled id of an mDAG that is a node of this metagraph, in any labelling. Another node count is
+        refused rather than looked up: ids of mDAGs on different numbers of nodes can coincide."""
+        if mdag.number_of_visible != self.n:
+            raise ValueError(f"{mdag} has {mdag.number_of_visible} nodes, this metagraph covers {self.n}")
+        uid = mdag.unique_unlabelled_id
+        if uid not in self.class_index_of:
+            raise KeyError(f"{mdag} is not a node of the metagraph")
+        return uid
+
     def eqclass_of_mDAG(self, mDAG):
-        for eqclass in self.equivalence_classes_as_mDAGs:
-            if mDAG in eqclass:
-                return eqclass
-            
-    def eqclasses_of_subset(self, subset):       #subset is a set of mDAGs (i.e. nodes of the metagraph)
-        partition_into_eqclasses=[]
-        for mDAG in subset:
-            element=[G for G in self.eqclass_of_mDAG(mDAG) if G in subset]
-            if element not in partition_into_eqclasses:
-                partition_into_eqclasses.append(element)
-        return partition_into_eqclasses
+        """The stored representatives of the equivalence class of an mDAG on this metagraph's number of nodes,
+        found by its unlabelled id (any labelling of a node of the metagraph is accepted)."""
+        return self.lookup_mDAG(self.class_of(self._node_id(mDAG)))
+
+    def eqclasses_of_subset(self, subset):
+        """The partition of the given mDAGs (nodes of the metagraph in any labelling) by equivalence class, as
+        lists of the objects supplied, in their order of first appearance."""
+        blocks = {}
+        for mdag in subset:
+            blocks.setdefault(self.class_index_of[self._node_id(mdag)], []).append(mdag)
+        return list(blocks.values())
 
     def partial_order_of_subset(self, subset):
         """The reachability order of meta_graph restricted to `subset` (mDAGs that are nodes of the metagraph),

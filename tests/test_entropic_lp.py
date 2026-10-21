@@ -121,3 +121,79 @@ def test_time_limit_is_passed_to_mosek_and_counted():
     with E.EntropicLP(4, max_time=7.5) as lp:
         assert lp.task.getdouparam(mosek.dparam.optimizer_max_time) == 7.5
         assert lp.timeouts == 0
+
+
+def _dense(row, n):
+    v = np.zeros((1 << n) - 1)
+    cols, vals = row
+    v[np.asarray(cols)] += vals
+    return v
+
+
+def test_certificate_hypotheses_match_the_solver_after_caller_mutation():
+    target = E.cmi_row([0], [1], [])
+    hypothesis = tuple(a.copy() for a in target)
+    pushed = E.cond_entropy_row([0], [1])
+    with E.EntropicLP(2, [hypothesis]) as lp:
+        handle = lp.push_hypotheses([pushed])
+        certificate = lp.farkas_certificate(target)
+        assert lp.check_certificate(target, certificate)
+        hypothesis[0][:] = 0
+        hypothesis[1][:] = 0
+        pushed[0][:] = 0
+        pushed[1][:] = 0
+        assert lp.implies(target) and lp.check_certificate(target, certificate)
+        lp.pop_to(handle)
+        assert lp.check_certificate(target, lp.farkas_certificate(target))
+
+
+def test_certificate_checker_rejects_nonfinite_and_mismatched_multipliers():
+    row = E.cmi_row([0], [1], [])
+    with E.EntropicLP(2, [row]) as lp:
+        valid = lp.farkas_certificate(row)
+        assert lp.check_certificate(row, valid)
+        for target in (np.nan, np.inf, -np.inf):
+            assert not lp.check_certificate(row, dict(valid, target=target))
+        assert not lp.check_certificate(row, dict(valid, hypotheses=[]))
+        assert not lp.check_certificate(row, dict(valid, elemental=[[0] * lp.n_elemental]))
+    # Even a vacuous target must not accept malformed multipliers or a NaN target weight.
+    empty = (np.array([], dtype=int), np.array([], dtype=float))
+    with E.EntropicLP(2) as lp:
+        valid = {'elemental': np.zeros(lp.n_elemental), 'hypotheses': [], 'target': 1.0}
+        assert lp.check_certificate(empty, valid)
+        assert not lp.check_certificate(empty, dict(valid, hypotheses=[1.0]))
+        assert not lp.check_certificate(empty, dict(valid, target=np.nan))
+
+
+def test_farkas_certificate_reconstructs_the_implication():
+    """The certificate of an implied target satisfies  y_E E - y_H H + y_T T <= 0  coefficient-wise with y_T > 0
+    (the documented convention); the opposite sign on the target, as once documented, fails."""
+    x, y, z = 0, 1, 2
+    cases = [
+        (2, [E.cmi_row([x], [y], [])], E.cmi_row([x], [y], [])),                                  # itself
+        (3, [E.cmi_row([x], [y], []), E.cmi_row([x], [z], [y])], E.cmi_row([x], [z], [])),         # contraction
+        (3, [row for _, row in E.local_markov_rows({1: frozenset({0}), 2: frozenset({1})}, [0, 1, 2])],
+         E.cmi_row([x], [z], [y])),                                                               # chain: 0 _||_ 2 | 1
+    ]
+    for n, hypotheses, target in cases:
+        lp = E.EntropicLP(n, hypotheses)
+        assert lp.implies(target)
+        certificate = lp.farkas_certificate(target)
+        assert certificate is not None and certificate['target'] > 1e-6
+        assert (certificate['elemental'] > -1e-9).all() and (certificate['hypotheses'] > -1e-9).all()
+        assert lp.check_certificate(target, certificate)
+        M = E.elemental_inequalities(n).toarray()
+        H = np.array([_dense(h, n) for h in hypotheses])
+        combination = certificate['elemental'] @ M - certificate['hypotheses'] @ H + certificate['target'] * _dense(target, n)
+        assert (combination <= 1e-7).all()
+        assert np.allclose(combination, lp.certificate_combination(target, certificate))
+        assert not (combination - 2 * certificate['target'] * _dense(target, n) >= -1e-7).all()    # the old sign
+    # a target that is not implied has no certificate, and a pushed block is part of the reconstruction
+    lp = E.EntropicLP(3, [E.cmi_row([x], [y], [z])])
+    assert lp.farkas_certificate(E.cmi_row([x], [y], [])) is None
+    assert not lp.check_certificate(E.cmi_row([x], [y], []), None)
+    handle = lp.push_hypotheses([E.cmi_row([x], [z], [])])
+    certificate = lp.farkas_certificate(E.cmi_row([x], [y], []))              # I(x:y|z) = 0 and I(x:z) = 0 force I(x:y) = 0
+    assert certificate is not None and lp.check_certificate(E.cmi_row([x], [y], []), certificate)
+    lp.pop_to(handle)
+    assert lp.farkas_certificate(E.cmi_row([x], [y], [])) is None and len(lp._hypothesis_rows) == 1

@@ -1,6 +1,8 @@
 """Tests for the on-disk cache of proven gaps and its version-based invalidation."""
 import json
 
+import pytest
+
 from hypergraphs import Hypergraph
 from directed_structures import DirectedStructure
 from quantum_mDAG import QmDAG
@@ -144,3 +146,41 @@ def test_proven_structure_ids_include_cached_known_gaps():
     report = S.prove_gaps([SQUARE], {}, verbose=False, known=known)
     assert SQUARE.unique_unlabelled_id in report.proven
     assert {SQUARE.unique_unlabelled_id, TRIANGLE.unique_unlabelled_id}.issubset(report.proven_structure_ids())
+
+
+def test_save_accepts_a_bare_filename_and_replaces_the_file_atomically(tmp_path, monkeypatch):
+    import os
+    monkeypatch.chdir(tmp_path)
+    cache = C.GapCache('gaps.json')
+    cache.save()
+    assert os.path.exists('gaps.json') and json.load(open('gaps.json'))['format'] == C.CACHE_FORMAT
+    cache.entries['x'] = {'marker': 1}
+    cache.save()
+    assert json.load(open('gaps.json'))['entries'] == {'x': {'marker': 1}}
+    assert [name for name in os.listdir(tmp_path) if name.endswith('.tmp')] == []       # no temporary left behind
+    import stat
+    open('reference', 'w').close()                                                       # the mode of a plain write
+    assert stat.S_IMODE(os.stat('gaps.json').st_mode) == stat.S_IMODE(os.stat('reference').st_mode)
+    nested = C.GapCache(str(tmp_path / 'deeper' / 'still' / 'gaps.json'))
+    nested.save()
+    assert (tmp_path / 'deeper' / 'still' / 'gaps.json').exists()
+
+
+@pytest.mark.parametrize('failure', ['serialization', 'replacement'])
+def test_failed_save_preserves_the_previous_cache_and_cleans_temporary_files(tmp_path, monkeypatch, failure):
+    path = tmp_path / 'gaps.json'
+    cache = C.GapCache(path)
+    cache.save()
+    original = path.read_bytes()
+    if failure == 'serialization':
+        cache.entries['invalid'] = object()
+        error = TypeError
+    else:
+        def fail_replace(source, destination):
+            raise OSError('injected replacement failure')
+        monkeypatch.setattr(C.os, 'replace', fail_replace)
+        error = OSError
+    with pytest.raises(error):
+        cache.save()
+    assert path.read_bytes() == original
+    assert list(tmp_path.iterdir()) == [path]

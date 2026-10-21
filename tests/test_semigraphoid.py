@@ -2,9 +2,11 @@
 agreement with networkx and with the entropic LP."""
 import importlib.util
 import itertools
+import math
 import random
 
 import networkx as nx
+
 import numpy as np
 import pytest
 
@@ -270,3 +272,18 @@ def test_observable_rows_match_the_networkx_oracle():
         new = {(tuple(r[0]), tuple(r[1])) for r in observable_dseparation_rows(parents, range(n), range(4))}
         old = {(tuple(r[0]), tuple(r[1])) for r in _observable_dseparation_rows_nx(parents, range(n), range(4))}
         assert new == old
+
+
+def test_permutation_index_maps_are_cached_read_only_for_small_m_and_generated_beyond():
+    for m in (3, 4):
+        cached = sg._permutation_index_maps(m)
+        assert isinstance(cached, tuple) and cached is sg._permutation_index_maps(m)
+        generated = list(sg._generate_permutation_index_maps(m))
+        assert len(cached) == len(generated) == math.factorial(m)
+        for (p, pm), (q, qm) in zip(cached, generated):
+            assert np.array_equal(p, q) and np.array_equal(pm, qm)
+            assert not p.flags.writeable and not pm.flags.writeable
+    beyond = sg._permutation_index_maps(sg._PERMUTATION_MAPS_CACHED_UP_TO + 1)
+    assert not isinstance(beyond, tuple)
+    p, pm = next(iter(beyond))
+    assert p.shape == (sg._PERMUTATION_MAPS_CACHED_UP_TO + 1,)

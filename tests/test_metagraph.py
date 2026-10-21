@@ -196,6 +196,20 @@ def test_facet_removals_and_automorphisms():
     assert len(forms.sc_orbits(0)) == len(M.all_unlabelled_simplicial_complices)
 
 
+def test_canonical_forms_preserve_nested_iterator_facets():
+    from canonical_forms import CanonicalForms
+    M = Observable_unlabelled_mDAGs(3, verbose=False)
+    directed = list(M.all_directed_structures)
+    complexes = list(M.all_simplicial_complices)
+    forms = CanonicalForms(3, [d.as_integer for d in directed], [d.as_bit_square_matrix for d in directed],
+                           [h.as_integer for h in complexes],
+                           (iter([iter(facet) for facet in h.compressed_simplicial_complex]) for h in complexes))
+    assert np.array_equal(forms.sc_table, M.canonical_forms.sc_table)
+    for d in directed:
+        for h in complexes:
+            assert forms.canonical(d.as_integer, h.as_integer) == mDAG(d, h).unique_unlabelled_id
+
+
 # -- the sparse metagraph (scipy) ---------------------------------------------------------------------------------
 
 def test_sparse_metagraph_queries_and_compact_mode():
@@ -247,3 +261,52 @@ def test_mdag_release_cache_and_derived_attributes():
     md.release_cache()
     assert set(md.__dict__) <= mDAG._CORE_ATTRIBUTES
     assert (md.unique_unlabelled_id, md.droppable_edges, md.CI_count, list(md.weaker_mDAG_HLP('classical'))) == before
+
+
+# -- the October 2026 review: the HLP closure, class lookups by canonical id, singleton classification ----------------
+
+def test_hlp_closure_is_the_reachability_of_the_hlp_graph():
+    from scipy.sparse import csgraph
+    M = Observable_unlabelled_mDAGs(3, verbose=False)
+    closure = M.HLP_meta_adjmat_closure
+    reachable = np.isfinite(csgraph.shortest_path(M.HLP_meta_adjmat.tocsr(), directed=True, unweighted=True))
+    assert closure.dtype == bool and np.array_equal(closure.toarray(), reachable)
+    assert closure.nnz > M.HLP_meta_adjmat.nnz            # paths of two or more edges are reached
+    four = Observable_unlabelled_mDAGs(4, verbose=False).HLP_meta_adjmat_closure
+    assert ((four.astype(np.int32) @ four.astype(np.int32)) != 0).nnz == four.nnz     # idempotent: a closure
+
+
+def test_class_lookups_accept_any_labelling_and_partition_supplied_objects():
+    M = Observable_unlabelled_mDAGs(3, verbose=False)
+    copies = []
+    for uid, md in M.dict_uniqind_unlabelled_mDAGs.items():
+        perm = (2, 1, 0)
+        copy = mDAG(DirectedStructure([(perm[a], perm[b]) for a, b in md.directed_structure_instance.edge_list], 3),
+                    Hypergraph([tuple(perm[v] for v in f) for f in md.simplicial_complex_instance.compressed_simplicial_complex], 3))
+        found = M.eqclass_of_mDAG(copy)
+        assert {m.unique_unlabelled_id for m in found} == M.class_of(uid)
+        copies.append(copy)
+    blocks = M.eqclasses_of_subset(copies)
+    assert sum(map(len, blocks)) == len(copies) and len(blocks) == len(M.equivalence_classes_as_ids)
+    assert all(len({M.class_index_of[g.unique_unlabelled_id] for g in block}) == 1 for block in blocks)
+    assert all(g in copies for block in blocks for g in block)        # the supplied objects, not the stored ones
+    with pytest.raises(ValueError):
+        M.eqclass_of_mDAG(mDAG(DirectedStructure([], 4), Hypergraph([], 4)))
+    with pytest.raises(ValueError):
+        M.eqclasses_of_subset([copies[0], mDAG(DirectedStructure([], 4), Hypergraph([], 4))])
+    assert len(M.latent_free_DAG_ids_and_CI_labelled) == len(M.all_directed_structures)
+
+
+def test_classification_always_returns_blocks():
+    from metagraph_advanced import classify_by_attributes, further_classify_by_attributes
+    import metagraph_temporally_ordered as T
+    M = Observable_unlabelled_mDAGs(3, verbose=False)
+    one, two = list(M.dict_uniqind_unlabelled_mDAGs.values())[:2]
+    for classify in (classify_by_attributes, T.classify_by_attributes):
+        assert classify([one], ['all_CI_unlabelled']) == ({one},)
+        assert classify([], ['all_CI_unlabelled']) == ()
+        assert all(isinstance(block, set) for block in classify([one, two], ['all_CI_unlabelled']))
+    refined = further_classify_by_attributes([{one}, {one, two}], ['all_CI_unlabelled'], verbose=False)
+    assert all(isinstance(block, set) for block in refined) and sum(map(len, refined)) == 3
+    again = further_classify_by_attributes(refined, ['skeleton_unlabelled'], verbose=False)
+    assert sum(map(len, again)) == 3
