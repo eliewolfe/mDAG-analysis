@@ -196,6 +196,20 @@ def test_facet_removals_and_automorphisms():
     assert len(forms.sc_orbits(0)) == len(M.all_unlabelled_simplicial_complices)
 
 
+def test_canonical_forms_preserve_nested_iterator_facets():
+    from canonical_forms import CanonicalForms
+    M = Observable_unlabelled_mDAGs(3, verbose=False)
+    directed = list(M.all_directed_structures)
+    complexes = list(M.all_simplicial_complices)
+    forms = CanonicalForms(3, [d.as_integer for d in directed], [d.as_bit_square_matrix for d in directed],
+                           [h.as_integer for h in complexes],
+                           (iter([iter(facet) for facet in h.compressed_simplicial_complex]) for h in complexes))
+    assert np.array_equal(forms.sc_table, M.canonical_forms.sc_table)
+    for d in directed:
+        for h in complexes:
+            assert forms.canonical(d.as_integer, h.as_integer) == mDAG(d, h).unique_unlabelled_id
+
+
 # -- the sparse metagraph (scipy) ---------------------------------------------------------------------------------
 
 def test_sparse_metagraph_queries_and_compact_mode():

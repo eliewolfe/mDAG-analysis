@@ -130,6 +130,41 @@ def _dense(row, n):
     return v
 
 
+def test_certificate_hypotheses_match_the_solver_after_caller_mutation():
+    target = E.cmi_row([0], [1], [])
+    hypothesis = tuple(a.copy() for a in target)
+    pushed = E.cond_entropy_row([0], [1])
+    with E.EntropicLP(2, [hypothesis]) as lp:
+        handle = lp.push_hypotheses([pushed])
+        certificate = lp.farkas_certificate(target)
+        assert lp.check_certificate(target, certificate)
+        hypothesis[0][:] = 0
+        hypothesis[1][:] = 0
+        pushed[0][:] = 0
+        pushed[1][:] = 0
+        assert lp.implies(target) and lp.check_certificate(target, certificate)
+        lp.pop_to(handle)
+        assert lp.check_certificate(target, lp.farkas_certificate(target))
+
+
+def test_certificate_checker_rejects_nonfinite_and_mismatched_multipliers():
+    row = E.cmi_row([0], [1], [])
+    with E.EntropicLP(2, [row]) as lp:
+        valid = lp.farkas_certificate(row)
+        assert lp.check_certificate(row, valid)
+        for target in (np.nan, np.inf, -np.inf):
+            assert not lp.check_certificate(row, dict(valid, target=target))
+        assert not lp.check_certificate(row, dict(valid, hypotheses=[]))
+        assert not lp.check_certificate(row, dict(valid, elemental=[[0] * lp.n_elemental]))
+    # Even a vacuous target must not accept malformed multipliers or a NaN target weight.
+    empty = (np.array([], dtype=int), np.array([], dtype=float))
+    with E.EntropicLP(2) as lp:
+        valid = {'elemental': np.zeros(lp.n_elemental), 'hypotheses': [], 'target': 1.0}
+        assert lp.check_certificate(empty, valid)
+        assert not lp.check_certificate(empty, dict(valid, hypotheses=[1.0]))
+        assert not lp.check_certificate(empty, dict(valid, target=np.nan))
+
+
 def test_farkas_certificate_reconstructs_the_implication():
     """The certificate of an implied target satisfies  y_E E - y_H H + y_T T <= 0  coefficient-wise with y_T > 0
     (the documented convention); the opposite sign on the target, as once documented, fails."""

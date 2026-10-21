@@ -49,6 +49,30 @@ def test_mixed_named_and_numeric_components_have_a_skeleton():
     assert set(labelled.skeleton_instance.edges_with_variable_names) == {('A', 'B'), ('B', 'C')}
 
 
+@pytest.mark.parametrize('named_c,named_q', itertools.product((False, True), repeat=2))
+def test_quantum_dominance_uses_aligned_numeric_components(named_c, named_q):
+    names = ('A', 'B', 'C')
+    ds = LabelledDirectedStructure(names, [])
+    reference = QmDAG(ds, Hypergraph([(0, 1), (1, 2)], 3), Hypergraph([(0, 1)], 3))
+    for c_order in itertools.permutations(names):
+        for q_order in itertools.permutations(names):
+            c = (LabelledHypergraph(c_order, [('A', 'B'), ('B', 'C')]) if named_c
+                 else Hypergraph([(0, 1), (1, 2)], 3))
+            q = LabelledHypergraph(q_order, [('A', 'B')]) if named_q else Hypergraph([(0, 1)], 3)
+            actual = QmDAG(ds, c, q)
+            assert actual.unique_id == reference.unique_id
+            assert actual.C_simplicial_complex_instance.as_tuples == ((1, 2),)
+            if named_c:
+                assert actual.C_simplicial_complex_instance.simplicial_complex_with_variable_names == {frozenset(('B', 'C'))}
+
+
+def test_named_mdag_converts_to_a_classical_quantum_structure():
+    from quantum_mDAG import as_classical_QmDAG
+    md = mDAG(LabelledDirectedStructure(('A', 'B', 'C'), [('A', 'B')]),
+              LabelledHypergraph(('A', 'B', 'C'), [('B', 'C')]))
+    assert as_classical_QmDAG(md).as_mDAG == md
+
+
 # -- finding 2: equality and hashing ------------------------------------------------------------------------------
 
 def test_unlabelled_mdag_equality_is_an_equivalence_on_canonical_ids():
@@ -69,6 +93,15 @@ def test_mdag_and_directed_structure_equality_are_typed_and_node_count_aware():
     assert DirectedStructure([(0, 1)], 3) == DirectedStructure([(0, 1)], 3)
     assert DirectedStructure([(0, 1)], 3) < DirectedStructure([(0, 1), (1, 2)], 3)     # the order still works
     assert mDAG(DirectedStructure([], 3), Hypergraph([], 3)) != 0
+
+
+def test_directed_structure_order_agrees_with_node_count_aware_equality():
+    small, large = DirectedStructure([], 2), DirectedStructure([], 3)
+    assert small < large and large > small
+    assert not large < small and not small > large
+    assert sorted([large, small]) == [small, large]
+    with pytest.raises(TypeError):
+        small < 0
 
 
 # -- finding 3: iterator inputs -----------------------------------------------------------------------------------
@@ -105,6 +138,15 @@ def test_closures_and_adjacency_accept_any_node_sequence():
     assert A.children_of((0, 1)).tolist() == A.children_of([0, 1]).tolist() == [1, 2]
     assert A.parents_of(frozenset({1, 2})).tolist() == [0, 1] and A.children_of(()).tolist() == []
     assert A.children_of(0).tolist() == [1]
+
+
+def test_fractional_node_indices_are_rejected_instead_of_truncated():
+    graph = mDAG(DirectedStructure([(0, 1), (1, 2)], 3), Hypergraph([(0, 2)], 3))
+    for nodes in ([0.5], (0.5,), np.array([0.5])):
+        with pytest.raises(IndexError):
+            graph.directed_structure_instance.adjMat.children_of(nodes)
+        with pytest.raises(IndexError):
+            graph.set_closure(nodes)
 
 
 # -- finding 9: the matrix-returning support wrapper --------------------------------------------------------------

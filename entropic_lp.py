@@ -270,7 +270,9 @@ class EntropicLP:
         """Appends hypothesis rows bounded above by zero (CMIs and conditional entropies are nonnegative on the
         cone, so this forces them to vanish); returns the number of rows before the push (a handle)."""
         handle = self.n_rows
-        rows = list(rows)
+        # The task copies the coefficients; retain the same snapshot for certificate reconstruction.
+        rows = [(np.array(cols, dtype=np.int64, copy=True), np.array(vals, dtype=float, copy=True))
+                for cols, vals in rows]
         self._append_rows(rows_to_csr(rows, self.n_columns), self._mosek.boundkey.up, 0.0, 0.0)
         self._hypothesis_rows.extend(rows)
         return handle
@@ -349,14 +351,25 @@ class EntropicLP:
 
     def check_certificate(self, row: Row, certificate, tol: float = 1e-7) -> bool:
         """Numerically verifies a `farkas_certificate` of `row`: nonnegative multipliers, y_target > tol, and the
-        combination of `certificate_combination` at most `tol` in every coordinate."""
+        combination of `certificate_combination` at most `tol` in every coordinate. Malformed or nonfinite
+        multipliers are rejected, including certificates with a different number of hypotheses."""
+        if not np.isfinite(tol) or tol < 0:
+            raise ValueError('certificate tolerance must be finite and nonnegative')
         if certificate is None:
             return False
-        y_el, y_hyp, y_target = (np.asarray(certificate['elemental'], dtype=float),
-                                 np.asarray(certificate['hypotheses'], dtype=float), float(certificate['target']))
+        try:
+            y_el, y_hyp, y_target = (np.asarray(certificate['elemental'], dtype=float),
+                                     np.asarray(certificate['hypotheses'], dtype=float), float(certificate['target']))
+        except (KeyError, TypeError, ValueError):
+            return False
+        if y_el.shape != (self.n_elemental,) or y_hyp.shape != (len(self._hypothesis_rows),):
+            return False
+        if not (np.isfinite(y_target) and np.isfinite(y_el).all() and np.isfinite(y_hyp).all()):
+            return False
         if y_target <= tol or (y_el < -tol).any() or (y_hyp < -tol).any():
             return False
-        return bool((self.certificate_combination(row, certificate) <= tol).all())
+        combination = self.certificate_combination(row, certificate)
+        return bool(np.isfinite(combination).all() and (combination <= tol).all())
 
     def implies(self, row: Row) -> bool:
         """True iff the hypotheses force the functional to zero (for functionals that are nonnegative on the

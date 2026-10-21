@@ -162,10 +162,10 @@ class DirectedStructure:
             and self.as_integer == other.as_integer
 
     def __lt__(self, other: 'DirectedStructure') -> bool:
-        """Whether the Monomial is lexicographically smaller than the ``other``
-        Monomial.
-        """
-        return self.__hash__() < other.__hash__()
+        """Order by node count, then by the fixed-size integer encoding, consistently with equality."""
+        if not isinstance(other, DirectedStructure):
+            return NotImplemented
+        return (self.number_of_visible, self.as_integer) < (other.number_of_visible, other.as_integer)
 
     # @cached_property
     # def parents_of_for_supports_analysis(self):

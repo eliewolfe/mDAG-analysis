@@ -21,7 +21,7 @@ def node_index_array(nodes: Union[int, Iterable[int], IntVector, BoolMatrix]) ->
         return np.array([nodes], dtype=int)
     if isinstance(nodes, (list, tuple)):
         nodes = np.asarray(nodes)
-        return nodes if nodes.dtype == bool else nodes.astype(int)      # an empty list would be float64
+        return nodes.astype(int) if not nodes.size else nodes      # an empty list would be float64
     return np.fromiter(nodes, dtype=int)
 
 

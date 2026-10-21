@@ -1,6 +1,8 @@
 """Tests for the on-disk cache of proven gaps and its version-based invalidation."""
 import json
 
+import pytest
+
 from hypergraphs import Hypergraph
 from directed_structures import DirectedStructure
 from quantum_mDAG import QmDAG
@@ -162,3 +164,23 @@ def test_save_accepts_a_bare_filename_and_replaces_the_file_atomically(tmp_path,
     nested = C.GapCache(str(tmp_path / 'deeper' / 'still' / 'gaps.json'))
     nested.save()
     assert (tmp_path / 'deeper' / 'still' / 'gaps.json').exists()
+
+
+@pytest.mark.parametrize('failure', ['serialization', 'replacement'])
+def test_failed_save_preserves_the_previous_cache_and_cleans_temporary_files(tmp_path, monkeypatch, failure):
+    path = tmp_path / 'gaps.json'
+    cache = C.GapCache(path)
+    cache.save()
+    original = path.read_bytes()
+    if failure == 'serialization':
+        cache.entries['invalid'] = object()
+        error = TypeError
+    else:
+        def fail_replace(source, destination):
+            raise OSError('injected replacement failure')
+        monkeypatch.setattr(C.os, 'replace', fail_replace)
+        error = OSError
+    with pytest.raises(error):
+        cache.save()
+    assert path.read_bytes() == original
+    assert list(tmp_path.iterdir()) == [path]
