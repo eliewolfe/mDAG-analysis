@@ -19,6 +19,7 @@ def rules(text):
 def test_every_tracked_document_is_clean():
     tracked = subprocess.run(['git', 'ls-files', '*.md'], cwd=ROOT, capture_output=True, text=True).stdout.split('\n')
     problems = {name: check_math.lint_text((ROOT / name).read_text(encoding='utf8'))
+                + check_math.lint_anchors((ROOT / name).read_text(encoding='utf8'), ROOT / name)
                 for name in tracked if name and not name.startswith('Older versions')}
     assert {name: found for name, found in problems.items() if found} == {}
 
@@ -69,3 +70,31 @@ def test_punctuation_is_moved_inside_formulas():
     assert count == 3
     assert moved == 'use of $E\\perp CD,$ then $A.$ Also $`x_{i};`$ but $F$: stays, `code $x$,` stays, $x.$. stays\n```\n$y$,\n```'
     assert check_math.lint_text(moved.split('`code')[0]) == []
+
+
+
+def test_links_to_headings():
+    text = '# Title\n\n## 5.1 Is it so?\n\n## The code\'s `step`\n\nsee [this](#51-is-it-so), [that](#the-codes-step) and [gone](#52-nothing).\n'
+    assert [(rule, message) for _, rule, message, _ in check_math.lint_anchors(text)] == [('anchor', 'no heading has the anchor #52-nothing')]
+
+
+def test_tables_of_contents_are_current():
+    """manuscript/refresh_links.py rebuilds the list between `<!-- contents -->` and `<!-- /contents -->` from the
+    headings; a note whose headings changed without a refresh fails here."""
+    spec = importlib.util.spec_from_file_location("refresh_links", ROOT / "manuscript" / "refresh_links.py")
+    refresh_links = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(refresh_links)
+    sample = ["# Title", "## 1. First, with `code`", "### 1.1 A part?", "```", "## not a heading", "```", "## 1. First, with `code`"]
+    assert refresh_links.contents_list(sample) == ["- [1. First, with `code`](#1-first-with-code)",
+                                                   "  - [1.1 A part?](#11-a-part)",
+                                                   "- [1. First, with `code`](#1-first-with-code-1)"]
+    found = 0
+    for path in sorted((ROOT / "manuscript").glob("*.md")):
+        text = path.read_text(encoding="utf8")
+        if refresh_links.CONTENTS_OPEN not in text:
+            continue
+        found += 1
+        head, rest = text.split(refresh_links.CONTENTS_OPEN, 1)
+        stored, tail = rest.split(refresh_links.CONTENTS_CLOSE, 1)
+        assert stored.strip().split("\n") == refresh_links.contents_list((head + tail).split("\n")), path.name
+    assert found >= 2

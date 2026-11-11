@@ -11,6 +11,10 @@ stripped and rebuilt, so re-running after the code or the headings change refres
    defined (`#L<n>`), relative to the manuscript so that they work on GitHub and in local renderers. A backticked
    span that names no file or symbol of the repository is left alone.
 Headings, fenced code blocks and inline math are never touched.
+
+3. Tables of contents. In any note of this directory, the lines between `<!-- contents -->` and
+   `<!-- /contents -->` are replaced by a nested list of the note's level-2 and level-3 headings, each a link to
+   its anchor. A note without the two markers is left alone.
 """
 import ast
 import builtins
@@ -159,6 +163,8 @@ def heading_anchors(lines: List[str]) -> Dict[str, str]:
 # Rewriting
 # --------------------------------------------------------------------------------------------------
 
+CONTENTS_OPEN, CONTENTS_CLOSE = "<!-- contents -->", "<!-- /contents -->"
+
 def strip_links(text: str) -> str:
     text = re.sub(r"\[((?:Sections? )?(?:\d{1,2}(?:\.\d{1,2})?|[A-Z]\.\d{1,2}|Appendix [A-Z]))\]\(#[^)]*\)", r"\1", text)
     text = re.sub(r"\[(`[^`]*`)\]\(\.\./[^)]*\)", r"\1", text)
@@ -224,6 +230,18 @@ def link_code(line: str, index: Dict[str, Tuple[str, int]]) -> str:
 
 
 def refresh(text: str, index: Dict[str, Tuple[str, int]]) -> str:
+    contents = None
+    if CONTENTS_OPEN in text and CONTENTS_CLOSE in text:     # the table of contents is refresh_contents's: set aside
+        head, rest = text.split(CONTENTS_OPEN, 1)
+        contents, tail = rest.split(CONTENTS_CLOSE, 1)
+        text = head + CONTENTS_OPEN + CONTENTS_CLOSE + tail
+    text = _refresh_body(text, index)
+    if contents is not None:
+        text = text.replace(CONTENTS_OPEN + CONTENTS_CLOSE, CONTENTS_OPEN + contents + CONTENTS_CLOSE)
+    return text
+
+
+def _refresh_body(text: str, index: Dict[str, Tuple[str, int]]) -> str:
     text = strip_links(text)
     lines = text.split("\n")
     anchors = heading_anchors(lines)
@@ -243,7 +261,50 @@ def refresh(text: str, index: Dict[str, Tuple[str, int]]) -> str:
     return "\n".join(out)
 
 
+def contents_list(lines: List[str]) -> List[str]:
+    """The level-2 and level-3 headings as a nested list of links to the anchors GitHub generates (a repeated
+    heading gets the suffix -1, -2, ... as on GitHub). Headings inside code fences are ignored."""
+    out: List[str] = []
+    seen: Dict[str, int] = {}
+    in_fence = False
+    for line in lines:
+        if line.startswith("```"):
+            in_fence = not in_fence
+        m = None if in_fence else re.match(r"^(#{2,3}) (.+)$", line)
+        if not m:
+            continue
+        title = m.group(2).strip()
+        slug = github_slug(title)
+        if slug in seen:
+            seen[slug] += 1
+            slug = f"{slug}-{seen[slug]}"
+        else:
+            seen[slug] = 0
+        out.append(f"{'  ' if m.group(1) == '###' else ''}- [{title}](#{slug})")
+    return out
+
+
+def refresh_contents(path: str) -> Optional[int]:
+    """Rebuilds the table of contents of a note: the lines between CONTENTS_OPEN and CONTENTS_CLOSE are replaced
+    by contents_list. Returns the number of entries, or None for a file without the two markers."""
+    text = open(path, encoding="utf-8").read()
+    if CONTENTS_OPEN not in text or CONTENTS_CLOSE not in text:
+        return None
+    head, rest = text.split(CONTENTS_OPEN, 1)
+    _, tail = rest.split(CONTENTS_CLOSE, 1)
+    entries = contents_list((head + tail).split("\n"))
+    new = head + CONTENTS_OPEN + "\n" + "\n".join(entries) + "\n" + CONTENTS_CLOSE + tail
+    if new != text:
+        open(path, "w", encoding="utf-8").write(new)
+    return len(entries)
+
+
 def main(path: str = MANUSCRIPT) -> None:
+    for name in sorted(os.listdir(HERE)):
+        if name.endswith(".md"):
+            entries = refresh_contents(os.path.join(HERE, name))
+            if entries is not None:
+                print(f"{name}: table of contents with {entries} entries")
     index = index_symbols()
     text = open(path, encoding="utf-8").read()
     new = refresh(text, index)

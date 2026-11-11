@@ -29,6 +29,7 @@ Rules for inline `$...$` (codes as printed):
   pipe      "|" inside a table splits the cell; write \\mid or \\vert.
   link      "](" inside a formula becomes a link.
   dollars   an odd number of unescaped $ in a paragraph.
+  anchor    a link `](#fragment)` or `](other.md#fragment)` whose fragment is the anchor of no heading.
 Rules for display math:
   display   $$...$$ must be a paragraph of its own (blank lines around) and is subject to `escape`, `star`
             and `angle`; a ```math fence is verbatim and needs none of this.
@@ -263,6 +264,54 @@ def lint_text(text, repairs=None):
     return sorted(set(problems))
 
 
+def heading_slugs(text):
+    """The anchors GitHub gives the headings of a Markdown source: lower case, punctuation dropped, spaces to
+    hyphens, and -1, -2, ... appended to a repeated heading."""
+    slugs, seen, fence = set(), {}, False
+    for line in text.split('\n'):
+        if re.match(r'^\s*(```|~~~)', line):
+            fence = not fence
+        m = None if fence else re.match(r'^#{1,6} (.+)$', line)
+        if not m:
+            continue
+        title = re.sub(r'\[([^\]]*)\]\([^)]*\)', r'\1', re.sub(r'`([^`]*)`', r'\1', m.group(1)))
+        slug = re.sub(r'[^\w\- ]', '', title.strip().lower()).replace(' ', '-')
+        if slug in seen:
+            seen[slug] += 1
+            slug = f'{slug}-{seen[slug]}'
+        else:
+            seen[slug] = 0
+        slugs.add(slug)
+    return slugs
+
+
+def lint_anchors(text, path=None):
+    """Links to a heading that does not exist, as (line, 'anchor', message, snippet): `](#fragment)` is looked up
+    in the source itself and, when `path` is given, `](other.md#fragment)` in that other file."""
+    problems, own, others, fence = [], heading_slugs(text), {}, False
+    for number, line in enumerate(text.split('\n'), 1):
+        if re.match(r'^\s*(```|~~~)', line):
+            fence = not fence
+        if fence:
+            continue
+        line = CODE_SPAN.sub(lambda m: ' ' * len(m.group(0)), line)      # a link written inside a code span is an example
+        for m in re.finditer(r'\]\(([^)#\s]*)#([^)\s]+)\)', line):
+            target, fragment = m.group(1), m.group(2)
+            if not target:
+                known = own
+            elif path is not None and target.endswith('.md') and '://' not in target:
+                other = (Path(path).parent / target.replace('%20', ' ')).resolve()
+                if other not in others:
+                    others[other] = heading_slugs(other.read_text(encoding='utf8')) if other.exists() else None
+                known = others[other]
+            else:
+                continue
+            if known is None or fragment not in known:
+                problems.append((number, 'anchor', f'no heading has the anchor #{fragment}' + (f' in {target}' if target else ''),
+                                 line[max(0, m.start() - 40):m.end()][:70]))
+    return problems
+
+
 # -- comparison with GitHub's own rendering ----------------------------------------------------------------------
 
 def repository_slug():
@@ -292,6 +341,8 @@ def compare_with_github(slug, ref, path, source):
     missed = [m.group(0).strip() for line in plain.split('\n') for m in re.finditer(r'[^\u27e7]{0,40}\$[^\u27e6]{0,80}', line)]
     missed += ['```math shown as code: ' + html.unescape(m)[:80]
                for m in re.findall(r'<pre lang="math"[^>]*><code>(.*?)</code>', rich, flags=re.S)]
+    anchors = set(re.findall(r'id="user-content-([^"]+)"', rich))
+    missed += [f'link to a heading GitHub does not have: #{frag}' for frag in sorted(set(re.findall(r'href="#([^"]+)"', rich)) - anchors)]
     squeezed = re.sub(r'\s+', '', source)
     changed = [s for s in rendered if re.sub(r'\s+', '', s.strip('$')) not in squeezed]
     return len(rendered), missed, changed
@@ -361,7 +412,7 @@ def run_check_math():
             if repairs:
                 path.write_text(source, encoding='utf8')
                 print(f'{name}: {len(repairs)} formulas rewritten as $`...`$')
-        problems = lint_text(source)
+        problems = sorted(lint_text(source) + lint_anchors(source, path))
         for line, rule, message, snippet in problems:
             print(f'{name}:{line}: [{rule}] {message}\n      {snippet}')
         failures += len(problems)

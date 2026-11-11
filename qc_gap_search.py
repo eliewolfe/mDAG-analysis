@@ -162,7 +162,7 @@ def default_stages(max_visible: int = 5, with_entropic: bool = True, with_split_
     exit); with_entropic=False omits them. The engine tries the `relabel` target set only (lp_markov_target=True
     turns the `markov` set back on; it never decided an input in the four-node census).
     The predictor pool of the certified stages is the latent siblings of the target that are not its visible parents
-    nor its descendants (`pool`); allow_descendants=True keeps the descendants (the experiment of manuscript 1.2).
+    nor its descendants (`pool`); allow_descendants=True keeps the descendants (the experiment of manuscript 8.4).
     Joint predictor sets are available (max_predictors) but off; max_targets bounds the joint target sets."""
     if pool != 'siblings':
         raise ValueError("the certified stages draw on the latent siblings only (pool='siblings'); the visible parents "

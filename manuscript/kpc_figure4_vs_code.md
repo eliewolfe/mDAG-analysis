@@ -1,14 +1,39 @@
 # The KPC structure, step by step: Figure 4 of the draft and the route the code records
 
-A note for Roger Colbeck and Elie Wolfe. It answers the remark that the step-by-step derivation of Figure 4 of the Khanna–Pusey–Colbeck draft (the "sequence of piggybacks" that takes the structure $G_1$ to the Bell causal structure) goes through entropically but not with the semigraphoid axioms, and it says how that derivation relates to the single step our code records for the same structure. Section numbers such as 7.5 refer to [`piggybacks.md`](piggybacks.md). Every number below is printed by [`Special Applications/kpc_figure4_checks.py`](../Special%20Applications/kpc_figure4_checks.py); see Section 9.
+A note for Roger Colbeck and Elie Wolfe. It answers the remark that the step-by-step derivation of Figure 4 of the Khanna–Pusey–Colbeck draft (the "sequence of piggybacks" that takes the structure $G_1$ to the Bell causal structure) goes through entropically but not with the semigraphoid axioms, and it says how that derivation relates to the single step our code records for the same structure. Section numbers such as 7.5 refer to [`piggybacks.md`](piggybacks.md). Every number below is printed by [`Special Applications/kpc_figure4_checks.py`](../Special%20Applications/kpc_figure4_checks.py); see [Section 9](#9-reproducing).
+
+**Contents**
+
+<!-- contents -->
+- [Short answers](#short-answers)
+- [1. The structure, and what a proof of this kind has to show](#1-the-structure-and-what-a-proof-of-this-kind-has-to-show)
+- [2. Figure 4, arrow by arrow](#2-figure-4-arrow-by-arrow)
+- [3. The code's single step](#3-the-codes-single-step)
+- [4. The one difference: equality or prediction](#4-the-one-difference-equality-or-prediction)
+- [5. What the two tests certify](#5-what-the-two-tests-certify)
+  - [5.1 Is there a difference between the entropic and the semigraphoid test?](#51-is-there-a-difference-between-the-entropic-and-the-semigraphoid-test)
+  - [5.2 Row 1: with the original latent, the step as written is false](#52-row-1-with-the-original-latent-the-step-as-written-is-false)
+  - [5.3 Rows 8 to 12: why one half of the equality is enough for the code](#53-rows-8-to-12-why-one-half-of-the-equality-is-enough-for-the-code)
+- [6. Why the code uses prediction and not the equality](#6-why-the-code-uses-prediction-and-not-the-equality)
+- [7. One proof or two?](#7-one-proof-or-two)
+- [8. What would make Figure 4 go through as drawn](#8-what-would-make-figure-4-go-through-as-drawn)
+- [9. Reproducing](#9-reproducing)
+- [Appendix. Deleting arrows into both equal nodes: what goes wrong](#appendix-deleting-arrows-into-both-equal-nodes-what-goes-wrong)
+  - [A.1 What has to hold](#a1-what-has-to-hold)
+  - [A.2 A structure with no gap](#a2-a-structure-with-no-gap)
+  - [A.3 The step: node 1 predicts node 0](#a3-the-step-node-1-predicts-node-0)
+  - [A.4 The two results](#a4-the-two-results)
+  - [A.5 Which half failed](#a5-which-half-failed)
+  - [A.6 When deleting into both nodes is harmless](#a6-when-deleting-into-both-nodes-is-harmless)
+<!-- /contents -->
 
 ## Short answers
 
 1. **Does the code go directly to Bell?** Yes. It records one step from $G_1$ to the Bell structure and never builds the intermediate graphs of Figure 4.
-2. **Is that a different proof?** No. It is the same argument cut differently, and one difference accounts for everything: Figure 4 uses $F_S=E$ as an **equality**, each node a function of the other, and deletes arrows into both nodes; the code uses only that $F$ **predicts** $E,$ and deletes arrows into $E$ alone. A graph that still contains $F_S$ as a node needs the equality. The code discards the predicting part of $F$ inside the step, so it never has such a graph (Section 4).
-3. **Does the Corollary 5 step hold entropically and fail with the semigraphoid axioms?** We cannot reproduce a difference. An equality is entered into a semigraphoid as two statements, "given $F_S,$ $E$ is independent of everything else" and the same with the roles exchanged. With both entered, the semigraphoid test certifies the step exactly when the entropic test does. A semigraphoid test that was given one of the two statements, or neither, fails. So a difference between the two tests on this step is a difference in what they were told (Section 5.1).
-4. **One correction to the step as written.** Proposition 6 tests the Markov conditions of the third graph of Figure 4 with the original latent $A.$ That implication is false: a three-bit model satisfies every hypothesis and violates the conclusion, and our entropic test rejects it too. The common parent in the third graph has to be read as a new latent whose value is $E$ (Section 5.2).
-5. **Why does the code not use the equality?** It would certify no additional step: across all four-node structures both premises certify the same 2,491 of 4,482 candidate steps. The one new thing the equality permits is to delete the arrows into the second node as well, and that is harmless only when that node has no children, as $F_S$ here. When it has children, the result can have a quantum-classical gap that the starting structure does not have, and no test notices (Section 6 and the appendix).
+2. **Is that a different proof?** No. It is the same argument cut differently, and one difference accounts for everything: Figure 4 uses $F_S=E$ as an **equality**, each node a function of the other, and deletes arrows into both nodes; the code uses only that $F$ **predicts** $E,$ and deletes arrows into $E$ alone. A graph that still contains $F_S$ as a node needs the equality. The code discards the predicting part of $F$ inside the step, so it never has such a graph ([Section 4](#4-the-one-difference-equality-or-prediction)).
+3. **Does the Corollary 5 step hold entropically and fail with the semigraphoid axioms?** We cannot reproduce a difference. An equality is entered into a semigraphoid as two statements, "given $F_S,$ $E$ is independent of everything else" and the same with the roles exchanged. With both entered, the semigraphoid test certifies the step exactly when the entropic test does. A semigraphoid test that was given one of the two statements, or neither, fails. So a difference between the two tests on this step is a difference in what they were told ([Section 5.1](#51-is-there-a-difference-between-the-entropic-and-the-semigraphoid-test)).
+4. **One correction to the step as written.** Proposition 6 tests the Markov conditions of the third graph of Figure 4 with the original latent $A.$ That implication is false: a three-bit model satisfies every hypothesis and violates the conclusion, and our entropic test rejects it too. The common parent in the third graph has to be read as a new latent whose value is $E$ ([Section 5.2](#52-row-1-with-the-original-latent-the-step-as-written-is-false)).
+5. **Why does the code not use the equality?** It would certify no additional step: across all four-node structures both premises certify the same 2,491 of 4,482 candidate steps. The one new thing the equality permits is to delete the arrows into the second node as well, and that is harmless only when that node has no children, as $F_S$ here. When it has children, the result can have a quantum-classical gap that the starting structure does not have, and no test notices ([Section 6](#6-why-the-code-uses-prediction-and-not-the-equality) and [the appendix](#appendix-deleting-arrows-into-both-equal-nodes-what-goes-wrong)).
 
 ## 1. The structure, and what a proof of this kind has to show
 
@@ -159,7 +184,7 @@ What each half of the equality buys:
 * $H(E\mid F_S)=0,$ the copy determines $E.$ It lets $E$ inherit the independences of $F,$ and that deletes $C\to E$ and $D\to E.$
 * $H(F_S\mid E)=0,$ $E$ determines the copy. It says that the copy carries nothing beyond $E.$ That is what deletes $B\to F_S,$ and it is needed for **any** graph that keeps $F_S$ as a node: without it $F_S$ may carry more of $A$ and $B$ than $E$ does, and then it stays correlated with $F_O$ given its new parents.
 
-So the question "why does Figure 4 pass through an intermediate graph and the code not" has a short answer. Corollary 5 holds the second half, and its third graph, with $F_S$ present and its arrow from $B$ deleted, cannot be had without it. The code asks nothing of $F_S$ as a node: the copy is gone before the conclusion is tested, and then the first half is all that is needed. The table of Section 5 shows this on $G_1$ (rows 3, 4 and 5; rows 9 and 10; row 11). It holds at large as well: among the 2,491 candidate steps that are certified on the four-node structures, the graph of the Corollary 5 shape, with both nodes restricted, is certified in all 2,491 when both halves are given and in 540 when one is.
+So the question "why does Figure 4 pass through an intermediate graph and the code not" has a short answer. Corollary 5 holds the second half, and its third graph, with $F_S$ present and its arrow from $B$ deleted, cannot be had without it. The code asks nothing of $F_S$ as a node: the copy is gone before the conclusion is tested, and then the first half is all that is needed. The table of [Section 5](#5-what-the-two-tests-certify) shows this on $G_1$ (rows 3, 4 and 5; rows 9 and 10; row 11). It holds at large as well: among the 2,491 candidate steps that are certified on the four-node structures, the graph of the Corollary 5 shape, with both nodes restricted, is certified in all 2,491 when both halves are given and in 540 when one is.
 
 ## 5. What the two tests certify
 
@@ -204,16 +229,7 @@ I(F_S : B \mid E) \;=\; H(F_S,E)+H(B,E)-H(F_S,B,E)-H(E) \;=\; H(E)+H(B,E)-H(B,E)
 
 In either case an entropic test holding the full equality succeeds on the amended target and the semigraphoid test fails. Given the same information, they agree.
 
-**Are the two tests equally strong in general?** No, and for completeness: the entropic test is stronger in principle, in two ways that do not matter here.
-
-* The Shannon inequalities prove implications among conditional independences that no chain of semigraphoid steps proves. The smallest example has four variables. Because of the identity
-
-```math
-I(A:B\mid CD)+I(C:D\mid A)+I(C:D\mid B)+I(A:B) \;=\; I(C:D\mid AB)+I(A:B\mid C)+I(A:B\mid D)+I(C:D),
-```
-
-  the four independences on the left imply the four on the right. Our entropic test derives them; our semigraphoid test derives none of them.
-* The statement the semigraphoid holds, "given $X,$ $s$ is independent of everything else", follows from $H(s\mid X)=0$ and is weaker than it.
+**Are the two tests equally strong in general?** No. The entropic test is stronger in principle, in two ways that do not matter here. First, the Shannon inequalities prove implications among conditional independences that no chain of semigraphoid steps proves. The smallest example has four variables: four independences that imply four others through one entropy identity, which our entropic test derives and our semigraphoid test does not. It is worked out in [Section 7.9 of the manuscript](piggybacks.md#79-strength-agreement-with-the-lp-and-cost). Second, the statement the semigraphoid holds, that given $X$ the node $s$ is independent of everything else, follows from $H(s\mid X)=0$ and is weaker than it.
 
 Neither gap has shown up in practice. In the census of four-node structures the two tests are run side by side on every candidate step that needs them, and they have never disagreed.
 
@@ -243,7 +259,7 @@ These are exactly the three statements on which both tests fail in row 1. $E$ is
 
 ### 5.3 Rows 8 to 12: why one half of the equality is enough for the code
 
-The code gives its tests the prediction in one direction only, the predictor determines the predicted node. Asked for a conclusion in which the predicting node is still present, it fails with both tests (rows 8 and 9), for the reason of Section 4: $F_S$ may carry more than $E.$ Its actual conclusion has the predicting copy removed, and then one direction suffices (row 11). That is the content of Lemma 1: the paper's proof substitutes $e$ for $f_S$ and never needs $F_S$ again.
+The code gives its tests the prediction in one direction only, the predictor determines the predicted node. Asked for a conclusion in which the predicting node is still present, it fails with both tests (rows 8 and 9), for the reason of [Section 4](#4-the-one-difference-equality-or-prediction): $F_S$ may carry more than $E.$ Its actual conclusion has the predicting copy removed, and then one direction suffices (row 11). That is the content of Lemma 1: the paper's proof substitutes $e$ for $f_S$ and never needs $F_S$ again.
 
 The same can be seen by running the code on the structure with $F$ split by hand: with the copy as predictor of $E,$ or with $F$ as predictor of $E,$ both tests refuse. Splitting first and predicting afterwards is not a route the code can take. Splitting, predicting and discarding the copy in one step is.
 
@@ -275,14 +291,14 @@ None of this touches Figure 4. There $F_S$ is childless, the two ways of deletin
 
 ## 7. One proof or two?
 
-One. Figure 4 and the code's step are the same argument: the same quantum strategy, the same use of $E\perp CD,$ the same final exchange of $A$ for $E.$ The differences are those of the table in Section 4, and they matter only when each arrow has to be tested on its own.
+One. Figure 4 and the code's step are the same argument: the same quantum strategy, the same use of $E\perp CD,$ the same final exchange of $A$ for $E.$ The differences are those of the table in [Section 4](#4-the-one-difference-equality-or-prediction), and they matter only when each arrow has to be tested on its own.
 
 For $G_1$ the search finds exactly one useful route. The steps beyond d-separation that the semigraphoid test certifies on it are $E$ predicted by $F$ (the route above) and $F$ predicted by $E,$ whose result has no quantum source. Other structures do have different routes depending on which node is split: the example of 6.10 in the manuscript is proven in two independent ways (7.8).
 
 ## 8. What would make Figure 4 go through as drawn
 
 1. In the third and fourth graphs, read the common parent of $E,$ $F_S$ and $F_O$ as a new latent $A'$ whose value is $E,$ not as the original $A;$ equivalently, test the Markov conditions of the graph with $E$ in the place of $A.$ Condition 1 of Proposition 6 is then true and checkable.
-2. Give the test $F_S=E$ in both directions: as two vanishing conditional entropies in the entropic test, or as the two statements of Section 5.1 in a semigraphoid test. Or merge arrows (ii) and (iii), so that $F_S$ is gone before anything is asked of it; then $H(E\mid F_S)=0$ alone is enough.
+2. Give the test $F_S=E$ in both directions: as two vanishing conditional entropies in the entropic test, or as the two statements of [Section 5.1](#51-is-there-a-difference-between-the-entropic-and-the-semigraphoid-test) in a semigraphoid test. Or merge arrows (ii) and (iii), so that $F_S$ is gone before anything is asked of it; then $H(E\mid F_S)=0$ alone is enough.
 
 ## 9. Reproducing
 
@@ -291,7 +307,7 @@ python "Special Applications/kpc_figure4_checks.py"
 python "Special Applications/kpc_figure4_checks.py" --census
 ```
 
-The first command takes a few seconds. Part 1 prints the twelve rows with the statements on which each fails, and the four-variable example of Section 5.1; Part 2 the entropies of the three-bit model; Part 3 the code's own verdicts on $G_1$ and on the hand-split structure, and the recorded step. The entropic column needs Mosek; without it the script prints the semigraphoid column alone. With `--census` (five minutes) Part 4 prints the comparison of prediction with equality across all structures, and Part 5 the example of the appendix, the verdicts of the three tests on it, and the check of the code's own rule.
+The first command takes a few seconds. Part 1 prints the twelve rows with the statements on which each fails, and the four-variable example mentioned in [Section 5.1](#51-is-there-a-difference-between-the-entropic-and-the-semigraphoid-test); Part 2 the entropies of the three-bit model; Part 3 the code's own verdicts on $G_1$ and on the hand-split structure, and the recorded step. The entropic column needs Mosek; without it the script prints the semigraphoid column alone. With `--census` (five minutes) Part 4 prints the comparison of prediction with equality across all structures, and Part 5 the example of [the appendix](#appendix-deleting-arrows-into-both-equal-nodes-what-goes-wrong), the verdicts of the three tests on it, and the check of the code's own rule.
 
 ## Appendix. Deleting arrows into both equal nodes: what goes wrong
 
@@ -299,7 +315,7 @@ This appendix is self-contained. It shows, on the smallest example we found, why
 
 ### A.1 What has to hold
 
-We want a rule that turns a structure $G$ into a structure $G'$ such that **if $G'$ has a quantum-classical gap, so does $G$**, for any gap of $G'$ whatsoever, because the search only knows that $G'$ is on a list of structures with a gap. As in Section 1, that needs two things.
+We want a rule that turns a structure $G$ into a structure $G'$ such that **if $G'$ has a quantum-classical gap, so does $G$**, for any gap of $G'$ whatsoever, because the search only knows that $G'$ is on a list of structures with a gap. As in [Section 1](#1-the-structure-and-what-a-proof-of-this-kind-has-to-show), that needs two things.
 
 * **The quantum direction.** Whatever quantum distribution of $G'$ exhibits the gap, a quantum model of $G$ can produce it, in the form the rule assumes. For the rule examined here, that form is: two particular nodes are perfectly correlated.
 * **The classical direction.** If a distribution of that form were classical in $G,$ the corresponding distribution would be classical in $G'.$

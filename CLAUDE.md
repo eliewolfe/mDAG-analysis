@@ -90,6 +90,14 @@ the rule `QmDAG.lift` (a classical source replaced by a quantum one).
 Mermaid blocks render on GitHub. Keep each diagram small (under about ten nodes), quote any label that contains
 punctuation (`FS["F_S"]`), and prefer several small diagrams to one large one.
 
+## Tables of contents and links to sections
+
+A note gets a table of contents by containing the two lines `<!-- contents -->` and `<!-- /contents -->`;
+`python manuscript/refresh_links.py` fills the space between them with a nested list of the headings, each linked
+to its anchor, and refreshes it whenever the headings change. `manuscript/check_math.py` reports every link
+`](#anchor)` or `](other.md#anchor)` that matches no heading (rule `anchor`), so a renamed heading cannot leave a
+dead link behind. Do not put a formula in a heading: its anchor is unpredictable.
+
 ## The manuscript's links
 
 `manuscript/refresh_links.py` turns backticked names in `manuscript/piggybacks.md` into links to the code. It
