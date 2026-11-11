@@ -9,6 +9,15 @@ statements over the visible nodes and the latents, with both certificate engines
 closure (semigraphoid.py) and the entropic LP (entropic_lp.py, needs mosek; skipped without it). Part 2 verifies the
 three-bit model that refutes the step as literally stated. Part 3 runs the repository's own Fritz step on the KPC
 structure, and on the structure with F split by hand, and prints the certificate the census records.
+
+    python "Special Applications/kpc_figure4_checks.py" --census
+
+adds the two census-wide comparisons of "perfect prediction" with "perfect correlation" (five minutes). Part 4:
+for every structure of the census and every (predictor, predicted node) pair the search tries, the predictor is
+split into an explicit copy and the closure is given the equality in one direction and in both; the pairs certified
+are compared with the pairs the census's own step certifies. Part 5: the surgery that restricts the predicting copy
+as well as the predicted node (arrows dropped into both equal nodes, the shape of Corollary 5) before the copy is
+marginalized; it is applied to structures that provably have no gap, and its outputs are tested for known gaps.
 """
 from __future__ import absolute_import
 import collections
@@ -248,7 +257,201 @@ def part_3():
              "copy returns the KPC structure, which the census proves)"))
 
 
+# -- Parts 4 and 5: prediction against correlation, across the census ------------------------------------------------
+
+def closure_with_dependences(work, dependences, kept, s):
+    """QmDAG._semigraphoid_certificate with any set of functional dependences (node, determining set): 'relabel',
+    'markov' or None for the candidate whose parent map is `kept`."""
+    nodes, _ = work.lp_structure
+    n, nv = len(nodes), work.number_of_visible
+    model = work._semigraphoid_model().copy()
+    for node, given in dependences:
+        sg.add_functional_dependence(model, node, sg.mask_of(given))
+    kept_masks = sg.parents_to_masks(kept, n)
+    model[:nv, :nv, :1 << nv] |= sg.dsep_all(n, kept_masks, m=nv)        # the observable d-separations of the candidate
+    sg.close(model)
+    common = kept[s]
+    if len(common) == 1 and min(common) >= nv:
+        lam = min(common)
+        relabelled = {v: (ps - {lam}) | {s} if lam in ps else ps for v, ps in kept.items() if v != lam}
+        relabelled[s] = relabelled[lam] = frozenset()
+        target = sg.restrict(sg.dsep_all(n, sg.parents_to_masks(relabelled, n)), ((1 << n) - 1) & ~(1 << lam))
+        if sg.contains(model, target):
+            return 'relabel'
+    return 'markov' if sg.contains(model, sg.dsep_all(n, kept_masks)) else None
+
+
+def fritz_pairs(g):
+    """The (predictor, predicted node) pairs the search tries on g, latent siblings as predictors."""
+    pools = {s: g.fritz_pool(s) for s in g.visible_nodes}
+    for x in sorted({x for candidates in pools.values() for x in candidates}):
+        for s in g.fritz_targets((x,), pools=pools):
+            yield x, s
+
+
+def explicit_copy(g, x, s, target_mode):
+    """g with the predictor x split into x and an explicit copy (and the target split in split mode): the structure,
+    the predicted node, the copy, the kept set K of the predicted node, and K as parents of the copy."""
+    work = g.split_node(x)
+    copy = work.number_of_visible - 1
+    t = s
+    if target_mode == 'split':
+        work = work.split_node(s)
+        t = work.number_of_visible - 1
+    deletion = work.fritz_deletion(t, {copy})
+    if deletion is None:
+        return None
+    K = deletion[0]
+    effective, _ = work.effective_DAG_data
+    return work, t, copy, K, frozenset(p for p in effective.predecessors(copy) if p in K)
+
+
+def census_certifies(g, x, s, target_mode):
+    """Does the census's own step certify (x predicts s)? The hypothesis is the one direction H(s | predictor) = 0.
+    The predicting node is x itself (an unsplit predictor, or a childless split one, which is left as it stands)
+    or, for a childful x, its copy (manuscript 6.2); the first certificate found is returned."""
+    work = g if target_mode == 'unsplit' else g.split_node(s)
+    t = s if target_mode == 'unsplit' else work.number_of_visible - 1
+    attempts = [(work, t, x)]
+    if x not in g.vis_nodes_with_no_children:
+        made = explicit_copy(g, x, s, target_mode)
+        if made is not None:
+            attempts.append(made[:3])
+    for work, t, predictor in attempts:
+        deletion = work.fritz_deletion(t, {predictor})
+        if deletion is not None:
+            certificate = work.fritz_certificate(t, deletion[0], {predictor}, use_lp=True, engine='semigraphoid', tally=False)
+            if certificate is not None:
+                return certificate
+    return None
+
+
+def part_4(index, groups):
+    print("\n" + "=" * 100)
+    print("PART 4. Prediction or correlation: which (predictor, predicted node) pairs each hypothesis certifies.")
+    print("The predictor is split into an explicit copy x'; s is the predicted node. 'One direction' is H(s|x') = 0,")
+    print("'both' adds H(x'|s) = 0. Two candidates: x' keeps its parents; x' is restricted to K as well (Corollary 5).")
+    tallies = {}
+    for label, keys in groups:
+        tally = tallies[label] = collections.Counter()
+        for key in keys:
+            for g in index.members(key):
+                for x, s in fritz_pairs(g):
+                    for target_mode in ('unsplit', 'split'):
+                        made = explicit_copy(g, x, s, target_mode)
+                        if made is None:
+                            continue
+                        work, t, copy, K, K_copy = made
+                        _, parents = work.lp_structure
+                        keeps = dict(parents)
+                        keeps[t] = frozenset(k for k in K if k in parents)
+                        restricted = dict(keeps)
+                        restricted[copy] = frozenset(p for p in parents[copy] if p in keeps[t])
+                        census = census_certifies(g, x, s, target_mode) is not None
+                        verdict = {(name, shape): closure_with_dependences(work, dependences, kept, t) is not None
+                                   for name, dependences in (('one', [(t, {copy})]), ('both', [(t, {copy}), (copy, {t})]))
+                                   for shape, kept in (('keeps', keeps), ('restricted', restricted))}
+                        both = verdict[('both', 'keeps')] or verdict[('both', 'restricted')]
+                        tally['pairs'] += 1
+                        tally['the census step certifies'] += census
+                        tally['both directions certify (either candidate)'] += both
+                        tally['both directions and the census step disagree'] += both != census
+                        for (name, shape), ok in verdict.items():
+                            tally[f"{name} direction{'s' if name == 'both' else ''}, copy {shape}"] += ok
+        print(f"\n  {label}:")
+        for name, count in tally.items():
+            print(f"    {count:>6}  {name}")
+        assert tally['both directions and the census step disagree'] == 0
+    return tallies
+
+
+def part_5(index, explorer, seed_keys, gap_free, open_keys):
+    import qc_gap_search as S
+    from hypergraphs import Hypergraph
+    from directed_structures import DirectedStructure
+    from quantum_mDAG import QmDAG
+    from known_QC_gaps import SEEDS
+    print("\n" + "=" * 100)
+    print("PART 5. Restricting the predicting copy too, then marginalizing it: is that a piggyback?")
+    g = QmDAG(DirectedStructure([(0, 3), (1, 2)], 4), Hypergraph([], 4), Hypergraph([(0, 1), (0, 3), (1, 3)], 4))
+    work, t, copy, K, K_copy = explicit_copy(g, 1, 0, 'split')
+    theirs = [child for _, child in work.fritz_realise({t: K, copy: K_copy}, {copy})]
+    ours = [child for _, child in work.fritz_realise({t: K}, {copy})]
+    print("  A structure with no gap:", text(g), "| classically equivalent to a latent-free DAG:",
+          index.is_latent_free_equivalent(index.key(g)))
+    print("  node 1 predicts a copy of node 0; certificate of the census step:", census_certifies(g, 1, 0, 'split'))
+    for label, children in (("copy keeps its parents (the code)", ours), ("copy restricted too", theirs)):
+        for child in children:
+            explorer.expand(child)
+            known = explorer.key(child) in S._reverse_reachable(explorer, seed_keys)
+            print(f"    output, {label}: {text(child)}  | reaches a known gap: {known}")
+    reduced = theirs[0].subgraph((0, 2, 3))
+    print("  the second output with nodes 1 and 4 fixed (point distribution twice):", text(reduced),
+          "| is the seed QG_Instrumental_C:", reduced.unique_unlabelled_id == SEEDS['QG_Instrumental_C'].unique_unlabelled_id)
+
+    elementary = frozenset(S.elementary_tricks(5))
+    for label, keys in (("classes with no gap (latent-free equivalent, four nodes)", gap_free), ("open classes", open_keys)):
+        differing, outputs = 0, set()
+        for key in keys:
+            for g in index.members(key):
+                for x, s in fritz_pairs(g):
+                    for target_mode in ('unsplit', 'split'):
+                        if census_certifies(g, x, s, target_mode) is None:
+                            continue
+                        work, t, copy, K, K_copy = explicit_copy(g, x, s, target_mode)
+                        ours = {child.unique_unlabelled_id for _, child in work.fritz_realise({t: K}, {copy})}
+                        new = [child for _, child in work.fritz_realise({t: K, copy: K_copy}, {copy})
+                               if child.unique_unlabelled_id not in ours and 3 <= child.number_of_visible <= 5]
+                        differing += bool(new)
+                        for child in new:
+                            explorer.expand(child, only=elementary)
+                            outputs.add(explorer.key(child))
+        known = S._reverse_reachable(explorer, seed_keys)
+        print(f"  {label}: {differing} certified pairs give a different output when the copy is restricted too; "
+              f"{len(outputs & known)} of the {len(outputs)} distinct new outputs reach a known gap")
+
+    steps, outputs = 0, set()
+    for key in gap_free:
+        for g in index.members(key):
+            for target_mode in ('unsplit', 'split'):
+                for predictor_mode in ('unsplit', 'split'):
+                    for pool in ('siblings', 'parents'):
+                        for _, child in g.fritz_steps(target_mode=target_mode, predictor_mode=predictor_mode, pool=pool,
+                                                      use_lp=(pool == 'siblings'), engine='semigraphoid'):
+                            steps += 1
+                            if 3 <= child.number_of_visible <= 5:
+                                explorer.expand(child, only=elementary)
+                                outputs.add(explorer.key(child))
+    known = S._reverse_reachable(explorer, seed_keys)
+    print(f"  The same test of the code's own step: {steps} Fritz steps on the classes with no gap, {len(outputs)} "
+          f"distinct outputs, {len(outputs & known)} of which reach a known gap")
+
+
+def text(g):
+    edges = ', '.join(f'{a}→{b}' for a, b in sorted(map(tuple, g.directed_structure_instance.edge_list))) or 'no edges'
+    facets = ['C{' + ','.join(map(str, f)) + '}' for f in sorted(map(tuple, g.C_simplicial_complex_instance.as_tuples))] \
+        + ['Q{' + ','.join(map(str, f)) + '}' for f in sorted(map(tuple, g.Q_simplicial_complex_instance.as_tuples))]
+    return f"{edges}; {', '.join(facets)}"
+
+
+def census_parts():
+    import qc_gap_search as S
+    from known_QC_gaps import SEEDS
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import proving_QC_Gaps as census
+    report, _ = census.run_search(verbose=False, use_cache=False)
+    explorer, index = report.explorer, report.explorer.index
+    open_keys = [report.key(g) for g in report.remaining]
+    inputs = list(dict.fromkeys(report.input_ids))
+    gap_free = [key for key, members in index._members.items()
+                if members and members[0].number_of_visible == 4 and index.is_latent_free_equivalent(key)]
+    part_4(index, (("the 46 open classes", open_keys), (f"all {len(inputs)} classes of the census", inputs)))
+    part_5(index, explorer, set(report.seed_keys), gap_free, open_keys)
+
+
 if __name__ == '__main__':
     part_1()
     part_2()
     part_3()
+    if '--census' in sys.argv[1:]:
+        census_parts()

@@ -71,3 +71,5 @@ its rules change. The cache validates piggyback versions but does not encode the
 branch name, so use `--no-cache` when comparing branches or after switching rules.
 Refresh manuscript code links with `python manuscript/refresh_links.py` after
 changing code or headings, and validate changes against the branch's own tests.
+On `main`, check every edited Markdown file with `python manuscript/check_math.py`,
+which enforces the rules for mathematics that GitHub renders ([CLAUDE.md](CLAUDE.md)).

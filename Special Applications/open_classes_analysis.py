@@ -14,7 +14,8 @@ minutes, 3.2 GB) to screen the five-node intermediates; without it they are repo
 Part 3 (a second depth). The unscreened-out intermediates are given to the cascade as inputs.
 Part 4 (equivalences). The classical class of each open class; hybrids whose all-quantum upgrade is proven; and
 pairs (open structure, proven or open structure structurally below it) whose classical inequivalence the
-invariants do not establish, tested with binary infeasible supports up to `--events` events.
+invariants do not establish, tested with binary infeasible supports up to `--events` events. For the seven hard
+graphs of arXiv:2308.02380, where binary supports are uninformative, the partition proven in that paper is applied.
 """
 from __future__ import absolute_import
 import argparse
@@ -326,7 +327,35 @@ def part_4(rec, candidates, payoff, max_events):
     over_open = sorted({(number, who) for number, upper, lower, kind, who in alive if kind == 'open'})
     print(f"\n  Pairs of open classes (upper, lower) not separated classically (up to {max_events} events): {len(over_open)}")
     print("    ", over_open)
+    seven_hard_graphs(rec, over_open)
     return alive
+
+
+def seven_hard_graphs(rec, over_open):
+    """The seven mDAGs of arXiv:2308.02380 (Remark 47, Tables 2 and 3) among the open classes. No binary support is
+    incompatible with any of them, so the binary test above says nothing about their pairs; the paper's support
+    with a ternary node is incompatible with the four of its Table 2 and compatible with the three of its Table 3,
+    which separates every pair across the two groups. The partition is taken from the paper; the stored support
+    (the_7_hard_graphs.advanced_support) is run only to confirm that the class numbers are matched correctly."""
+    from the_7_hard_graphs import the_7_hard_graphs, advanced_support
+    index = rec.explorer.index
+    numbers = [rec.number[index.key(S_upgrade(g))] for g in the_7_hard_graphs]
+    four, three = set(numbers[:4]), set(numbers[4:])
+    inside = [pair for pair in over_open if set(pair) <= four | three]
+    across = [pair for pair in inside if (pair[0] in three) != (pair[1] in three)]
+    remaining = [pair for pair in over_open if pair not in across]
+    print(f"\n  The seven hard graphs (arXiv:2308.02380): Table 2 = classes {sorted(four)}, Table 3 = classes {sorted(three)}.")
+    print(f"    {len(inside)} of the {len(over_open)} pairs lie inside this family; the paper's ternary support separates the "
+          f"{len(across)} pairs across its two tables: {across}")
+    print(f"    pairs left: {len(remaining)}; inside the family: {[pair for pair in remaining if pair in inside]}")
+    upper = sorted({u for u, l in remaining if not (u == 1 and l == 7)})
+    print(f"    upper classes that would follow from a lower one if every remaining equivalence held: {len(upper)}: {upper}")
+    compatible = [g.support_testing_instance((3, 2, 2, 2), 7).feasibleQ_from_matrix(occurring_events=advanced_support)
+                  for g in the_7_hard_graphs]
+    print(f"    check of the matching: the stored support is compatible with classes "
+          f"{sorted(n for n, ok in zip(numbers, compatible) if ok)} and incompatible with "
+          f"{sorted(n for n, ok in zip(numbers, compatible) if not ok)}")
+    assert {n for n, ok in zip(numbers, compatible) if ok} == three
 
 
 def S_upgrade(md):

@@ -41,3 +41,33 @@ def test_the_three_bit_model_refutes_the_step_as_stated(checks):
     assert not sg.holds(model, 1 << E, sg.mask_of([B]), sg.mask_of([A]))
     assert sg.holds(model, 1 << E, sg.mask_of([B, C, D]), 0)           # E is independent of B, C, D jointly
     assert sg.holds(model, 1 << FO, sg.mask_of([C, D, FS]), sg.mask_of([E, B]))
+
+
+def test_restricting_the_predicting_copy_too_is_not_a_piggyback(checks):
+    """manuscript/kpc_figure4_vs_code.md, Section 6 (and piggybacks.md, Section 10): 0→3, 1→2; Q{0,1}, Q{0,3},
+    Q{1,3} has no gap, yet the surgery that restricts the copy of a childful predictor as well as the predicted node
+    before marginalizing the copy outputs a structure containing the instrumental seed. The code's surgery, in which
+    the copy keeps its parents, outputs a structure that reaches no seed."""
+    import qc_gap_search as S
+    from directed_structures import DirectedStructure
+    from equivalence_classes import ClassIndex
+    from hypergraphs import Hypergraph
+    from known_QC_gaps import SEEDS
+    from quantum_mDAG import QmDAG
+    index = ClassIndex((3, 4))
+    g = QmDAG(DirectedStructure([(0, 3), (1, 2)], 4), Hypergraph([], 4), Hypergraph([(0, 1), (0, 3), (1, 3)], 4))
+    assert index.is_latent_free_equivalent(index.key(g))                  # so Q = C: no gap
+    assert checks.census_certifies(g, 1, 0, 'split') == 'dsep'
+    work, t, copy, K, K_copy = checks.explicit_copy(g, 1, 0, 'split')
+    (ours,) = [child for _, child in work.fritz_realise({t: K}, {copy})]
+    (theirs,) = [child for _, child in work.fritz_realise({t: K, copy: K_copy}, {copy})]
+    assert theirs.subgraph((0, 2, 3)).unique_unlabelled_id == SEEDS['QG_Instrumental_C'].unique_unlabelled_id
+    report = S.prove_gaps([theirs, ours], SEEDS, tricks=S.elementary_tricks(5), max_visible=5, verbose=False, index=index)
+    assert report.key(theirs) in report.proven and report.key(ours) not in report.proven
+    # with the equality in both directions the closure certifies the unsound candidate too: nothing flags it
+    _, parents = work.lp_structure
+    restricted = dict(parents)
+    restricted[t] = frozenset(k for k in K if k in parents)
+    restricted[copy] = frozenset(p for p in parents[copy] if p in restricted[t])
+    assert checks.closure_with_dependences(work, [(t, {copy}), (copy, {t})], restricted, t) is not None
+    assert checks.closure_with_dependences(work, [(t, {copy})], restricted, t) is None

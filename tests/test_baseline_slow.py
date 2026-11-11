@@ -121,3 +121,25 @@ def test_open_class_hierarchy(proving_QC_Gaps):
     follows = {i + 1: sorted(j + 1 for j, other in enumerate(open_keys) if other != key and key in reach[other])
                for i, key in enumerate(open_keys)}
     assert {i: lower for i, lower in follows.items() if lower} == {1: [2, 3, 6, 7]}
+
+
+@pytest.mark.slow
+def test_census_is_closed_and_the_equality_adds_nothing(proving_QC_Gaps):
+    """manuscript/piggybacks.md 9.2 ("any known gap, in any order"): rerunning the census with every proven class
+    and structure declared known from the start leaves the same classes open, so nothing is gained by restarting
+    as gaps become known. And manuscript/kpc_figure4_vs_code.md, Section 6: on the open classes, giving the closure
+    the perfect correlation in both directions certifies exactly the steps the one-directional prediction does."""
+    import qc_gap_search as S
+    from conftest import load_special_application
+    from known_QC_gaps import SEEDS
+    report, _ = proving_QC_Gaps.run_search(verbose=False, with_entropic=True, use_cache=False, engine='semigraphoid')
+    open_keys = [report.key(g) for g in report.remaining]
+    index = report.explorer.index
+    known = {f'known:{i}': key for i, key in enumerate(sorted(report.proven_structure_ids()))}
+    again = S.prove_gaps(proving_QC_Gaps.census_inputs(index), SEEDS, stages=S.default_stages(max_visible=5),
+                         max_visible=5, verbose=False, known=known, index=index)
+    assert {again.key(g) for g in again.remaining} == set(open_keys)
+    checks = load_special_application("kpc_figure4_checks")
+    (tally,) = checks.part_4(index, (("the 46 open classes", open_keys),)).values()
+    assert (tally['pairs'], tally['the census step certifies'], tally['both directions certify (either candidate)']) == (504, 184, 184)
+    assert tally['both directions and the census step disagree'] == 0
