@@ -71,3 +71,18 @@ def test_restricting_the_predicting_copy_too_is_not_a_piggyback(checks):
     restricted[copy] = frozenset(p for p in parents[copy] if p in restricted[t])
     assert checks.closure_with_dependences(work, [(t, {copy}), (copy, {t})], restricted, t) is not None
     assert checks.closure_with_dependences(work, [(t, {copy})], restricted, t) is None
+    # every test of the classical direction accepts the deletion into both nodes; none sees the quantum direction
+    verdicts = checks.tests_of_both_deletions(work, t, copy, K)
+    assert verdicts["d-separation, the copy predicts the node"] == verdicts["d-separation, the node predicts the copy"] == 'dsep'
+    assert verdicts["closure, both directions"] == 'markov' and verdicts["closure, one direction"] is None
+    if HAVE_MOSEK:
+        assert verdicts["LP, both directions"] == 'markov' and verdicts["LP, one direction"] is None
+
+
+def test_the_entropic_test_is_stronger_in_principle(checks):
+    """manuscript/kpc_figure4_vs_code.md, 5.1: a four-variable implication that follows from an entropy identity
+    and from no semigraphoid derivation."""
+    by_closure, by_lp = checks.four_variable_example()
+    assert by_closure == [False] * 4
+    if HAVE_MOSEK:
+        assert by_lp == [True] * 4

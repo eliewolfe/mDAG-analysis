@@ -45,6 +45,9 @@ def test_every_tracked_document_is_clean():
     ('glued$`x`$ here', ['glued']),
     ('*italic ending in $`x`$*', ['italic']),
     ('```math\n\\{a\\}_{b} \\\\ c*d < e\n```', []),
+    ('1. an item,\n   ```math\n   a+b\n   ```\n', ['listmath']),
+    ('1. an item,\n\n   $$a+b$$\n\n   continues', []),
+    ('1. an item,\n\n   $$\n   a+b\n   $$\n', ['listmath']),
 ])
 def test_rules(text, expected):
     assert rules(text) == expected
@@ -58,3 +61,11 @@ def test_fix_rewrites_in_the_verbatim_form():
         text = text[:a] + '$`' + text[a + 1:b - 1] + '`$' + text[b:]
     assert text == 'the set $`\\{a,b\\}`$ in "$`x`$" and (see $`f(y)`$) here'
     assert check_math.lint_text(text) == []
+
+
+def test_punctuation_is_moved_inside_formulas():
+    text = 'use of $E\\perp CD$, then $A$. Also $`x_{i}`$; but $F$: stays, `code $x$,` stays, $x.$. stays\n```\n$y$,\n```'
+    moved, count = check_math.attach_punctuation(text)
+    assert count == 3
+    assert moved == 'use of $E\\perp CD,$ then $A.$ Also $`x_{i};`$ but $F$: stays, `code $x$,` stays, $x.$. stays\n```\n$y$,\n```'
+    assert check_math.lint_text(moved.split('`code')[0]) == []

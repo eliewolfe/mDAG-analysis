@@ -59,7 +59,31 @@ limits: it must not be glued to a letter or digit on its left, and it must not b
 `$$...$$` is accepted only as a paragraph of its own (blank lines before and after) and is still subject to the
 backslash rule, so `\\` and `\,` are lost in it.
 
+Inside a list item the fence does not work: GitHub shows a fenced formula there as code. In a list, write the
+formula as `$$...$$` on a single line, indented with the item, with a blank line before and after. A `$$...$$`
+that spans several lines is not rendered there either.
+
+**Punctuation after a formula.** GitHub lays each formula out as a box, and a browser may break the line on either
+side of a box, so a comma written after the closing dollar can start the next line. Write a comma, full stop or
+semicolon that follows a formula inside it: `$E\perp CD,$ the same`. Leave a colon outside (inside a formula TeX
+spaces it as a relation). `python manuscript/check_math.py --attach-punctuation FILE` does this for a file.
+
 **A literal dollar sign** is written `\$`.
+
+## Words
+
+Every proof that one structure inherits a quantum-classical gap from another has two halves. Name them in full and
+say what they mean where they first appear; do not write "lift" or "pull-back".
+
+* **The quantum direction**: a quantum model of the first structure can produce every quantum distribution of the
+  structure with the known gap, in a form that has the extra observable properties the step relies on (for
+  instance, one node perfectly predicts another).
+* **The classical direction**: if a distribution with those properties were classical in the first structure, the
+  corresponding distribution would be classical in the structure with the known gap.
+
+Keep every explanation self-contained: define a term of the manuscript (seed, census, candidate, facet) in a clause
+when a note for other readers uses it, or use plain words instead. The word "lift" remains only as the name of
+the rule `QmDAG.lift` (a classical source replaced by a quantum one).
 
 ## Diagrams
 

@@ -6,7 +6,8 @@ Everything quoted in manuscript/kpc_figure4_vs_code.md is printed by this script
 
 Part 1 tests the "Corollary 5" step of Figure 4 (and its variants) as an implication between conditional-independence
 statements over the visible nodes and the latents, with both certificate engines of the repository: the semigraphoid
-closure (semigraphoid.py) and the entropic LP (entropic_lp.py, needs mosek; skipped without it). Part 2 verifies the
+closure (semigraphoid.py) and the entropic LP (entropic_lp.py, needs mosek; skipped without it), and prints a
+four-variable implication that the LP derives and the closure does not. Part 2 verifies the
 three-bit model that refutes the step as literally stated. Part 3 runs the repository's own Fritz step on the KPC
 structure, and on the structure with F split by hand, and prints the certificate the census records.
 
@@ -170,6 +171,30 @@ def part_1():
         disagreements = [i + 1 for i, (lp_ok, closure_ok) in enumerate(results) if lp_ok != closure_ok]
         print(f"\nRows on which the two engines disagree: {disagreements or 'none'}")
     return results
+
+
+def four_variable_example():
+    """The entropic test is in principle the stronger one: for four variables A, B, C, D the independences
+    A _||_ B | CD, C _||_ D | A, C _||_ D | B and A _||_ B imply C _||_ D | AB, A _||_ B | C, A _||_ B | D and
+    C _||_ D (the two sums of conditional mutual informations are equal as entropy expressions), and no chain of
+    semigraphoid steps derives any of the four. Returns (closure verdicts, LP verdicts or None without mosek)."""
+    a, b, c, d = range(4)
+    given = [([a], [b], [c, d]), ([c], [d], [a]), ([c], [d], [b]), ([a], [b], [])]
+    wanted = [([c], [d], [a, b]), ([a], [b], [c]), ([a], [b], [d]), ([c], [d], [])]
+    model = sg.empty_model(4)
+    for x, y, z in given:
+        sg.add_triplet(model, sg.mask_of(x), sg.mask_of(y), sg.mask_of(z))
+    sg.close(model)
+    by_closure = [bool(sg.holds(model, sg.mask_of(x), sg.mask_of(y), sg.mask_of(z))) for x, y, z in wanted]
+    by_lp = None
+    if HAVE_MOSEK:
+        lp = L.EntropicLP(4, [L.cmi_row(x, y, z) for x, y, z in given])
+        by_lp = [bool(lp.implies(L.cmi_row(x, y, z))) for x, y, z in wanted]
+        lp.close()
+    print("\nThe four-variable example (the entropic test is the stronger one in principle): of the four implied "
+          f"independences the semigraphoid closure derives {sum(by_closure)}, the LP "
+          + ("was skipped (no mosek)" if by_lp is None else f"derives {sum(by_lp)}"))
+    return by_closure, by_lp
 
 
 def part_2():
@@ -388,6 +413,9 @@ def part_5(index, explorer, seed_keys, gap_free, open_keys):
     reduced = theirs[0].subgraph((0, 2, 3))
     print("  the second output with nodes 1 and 4 fixed (point distribution twice):", text(reduced),
           "| is the seed QG_Instrumental_C:", reduced.unique_unlabelled_id == SEEDS['QG_Instrumental_C'].unique_unlabelled_id)
+    print("  Do the three tests accept the deletion of arrows into both nodes? (They test the classical direction.)")
+    for name, verdict in tests_of_both_deletions(work, t, copy, K).items():
+        print(f"    {name}: {verdict}")
 
     elementary = frozenset(S.elementary_tricks(5))
     for label, keys in (("classes with no gap (latent-free equivalent, four nodes)", gap_free), ("open classes", open_keys)):
@@ -427,6 +455,34 @@ def part_5(index, explorer, seed_keys, gap_free, open_keys):
           f"distinct outputs, {len(outputs & known)} of which reach a known gap")
 
 
+def tests_of_both_deletions(work, t, copy, K):
+    """The candidate in which the predicted node t and the predicting copy are both restricted to K, put to the
+    three tests of the classical direction: d-separation with each of the two nodes as the predictor of the other,
+    the semigraphoid closure and the entropic LP (needs mosek), the last two with the equality in one direction
+    and in both."""
+    _, parents = work.lp_structure
+    nodes = work.lp_structure[0]
+    both_restricted = dict(parents)
+    both_restricted[t] = frozenset(k for k in K if k in parents)
+    both_restricted[copy] = frozenset(p for p in parents[copy] if p in both_restricted[t])
+    verdicts = {"d-separation, the copy predicts the node": work.fritz_certificate(t, K, {copy}, use_lp=False, tally=False)}
+    reverse = work.fritz_deletion(copy, {t})
+    verdicts["d-separation, the node predicts the copy"] = \
+        None if reverse is None else work.fritz_certificate(copy, reverse[0], {t}, use_lp=False, tally=False)
+    for label, dependences in (("one direction", [(t, {copy})]), ("both directions", [(t, {copy}), (copy, {t})])):
+        verdicts[f"closure, {label}"] = closure_with_dependences(work, dependences, both_restricted, t)
+        if HAVE_MOSEK:
+            lp = work._entropic_lp()
+            handle = lp.push_hypotheses([L.cond_entropy_row([s], given) for s, given in dependences]
+                                        + L.observable_dseparation_rows(both_restricted, nodes, work.visible_nodes))
+            try:
+                certified = lp.implies_all(row for _, row in L.local_markov_rows(both_restricted, nodes))
+            finally:
+                lp.pop_to(handle)
+            verdicts[f"LP, {label}"] = 'markov' if certified else None
+    return verdicts
+
+
 def text(g):
     edges = ', '.join(f'{a}→{b}' for a, b in sorted(map(tuple, g.directed_structure_instance.edge_list))) or 'no edges'
     facets = ['C{' + ','.join(map(str, f)) + '}' for f in sorted(map(tuple, g.C_simplicial_complex_instance.as_tuples))] \
@@ -451,6 +507,7 @@ def census_parts():
 
 if __name__ == '__main__':
     part_1()
+    four_variable_example()
     part_2()
     part_3()
     if '--census' in sys.argv[1:]:

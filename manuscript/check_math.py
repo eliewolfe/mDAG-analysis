@@ -3,6 +3,7 @@ Checks the mathematics of the repository's Markdown against what GitHub's render
 
     python manuscript/check_math.py                 # lint every tracked .md file (or the files given)
     python manuscript/check_math.py --fix           # rewrite the offending $...$ as $`...`$ where that repairs them
+    python manuscript/check_math.py --attach-punctuation FILE   # "$x$," becomes "$x,$" (see Line breaks below)
     python manuscript/check_math.py --github        # after pushing: compare with GitHub's own rendering of main
     python manuscript/check_math.py --github --ref some-branch manuscript/open_classes.md
 
@@ -31,8 +32,16 @@ Rules for inline `$...$` (codes as printed):
 Rules for display math:
   display   $$...$$ must be a paragraph of its own (blank lines around) and is subject to `escape`, `star`
             and `angle`; a ```math fence is verbatim and needs none of this.
+  listmath  inside a list item a ```math fence is shown as code, and so is a $$...$$ that spans several lines:
+            there, write the formula as $$...$$ on a single indented line with a blank line before and after.
 The form $`...`$ is verbatim and works next to punctuation; it fails only glued to a letter or digit on its left
 (`glued`) or as the last thing inside italics (`italic`).
+
+Line breaks. GitHub lays each formula out as a box, and a browser may break the line on either side of a box, so
+a comma or full stop written after the closing $ can start the next line. A word joiner does not prevent it
+(tested in Chromium); writing the punctuation inside the formula does. `--attach-punctuation` moves a comma, full
+stop or semicolon that directly follows a formula inside it (not a colon, which TeX would space as a relation).
+It is a rewrite, not a rule: nothing is reported when the punctuation is outside.
 """
 from __future__ import absolute_import
 import argparse
@@ -79,6 +88,8 @@ def containers(lines):
         if marker:
             flush()
             fence = marker.group(1)
+            if line[:1].isspace() and re.match(r'^\s*```+\s*math\s*$', line):
+                out.append((number, line, -1))          # reported as `listmath` by the caller
             continue
         if not stripped:
             flush()
@@ -166,6 +177,9 @@ def lint_text(text, repairs=None):
         if base is None:
             report(0, 'pipe', 'a formula in a table row contains "|"; write \\mid or \\vert', body.strip())
             continue
+        if base == -1:
+            report(0, 'listmath', 'an indented ```math fence (inside a list item) is shown as code; write $$...$$ on one indented line', body.strip())
+            continue
         masked = list(body)
         formulas = []                                     # (start, end, tex) of every `$...$` the author meant
 
@@ -184,6 +198,8 @@ def lint_text(text, repairs=None):
         for m in DISPLAY.finditer(''.join(masked)):
             if ''.join(masked).strip() != m.group(0).strip():
                 report(m.start(), 'display', '$$...$$ needs a paragraph of its own (blank lines around)', m.group(0))
+            elif body[:1].isspace() and '\n' in m.group(0):
+                report(m.start(), 'listmath', 'inside a list item $$...$$ must be on a single line', m.group(0))
             for rule, message in check_content(m.group(1), 'in $$...$$; use a ```math fence'):
                 report(m.start(), 'display' if rule == 'escape' else rule, message, m.group(0))
             mask(m.start(), m.end(), DISPLAYED)
@@ -274,9 +290,44 @@ def compare_with_github(slug, ref, path, source):
     rest = re.sub(r'<pre.*?</pre>|<code.*?</code>|<section class="js-render-needs-enrichment.*?</section>', '', rest, flags=re.S)
     plain = html.unescape(re.sub(r'<[^>]+>', '', rest))
     missed = [m.group(0).strip() for line in plain.split('\n') for m in re.finditer(r'[^\u27e7]{0,40}\$[^\u27e6]{0,80}', line)]
+    missed += ['```math shown as code: ' + html.unescape(m)[:80]
+               for m in re.findall(r'<pre lang="math"[^>]*><code>(.*?)</code>', rich, flags=re.S)]
     squeezed = re.sub(r'\s+', '', source)
     changed = [s for s in rendered if re.sub(r'\s+', '', s.strip('$')) not in squeezed]
     return len(rendered), missed, changed
+
+
+def attach_punctuation(text):
+    """Moves a comma, full stop or semicolon that directly follows a formula inside the formula, so that the
+    browser cannot start a line with it. A colon stays outside: inside a formula TeX spaces it as a relation. Code
+    fences, code spans and display formulas are left alone, and so is a formula that already ends with that
+    character. Returns the new text and the number of formulas changed."""
+    out, count, fence = [], 0, None
+    for line in text.split('\n'):
+        marker = re.match(r'^\s*(```+|~~~+)', line)
+        if fence:
+            if marker and marker.group(1)[0] == fence[0] and len(marker.group(1)) >= len(fence):
+                fence = None
+            out.append(line)
+            continue
+        if marker:
+            fence = marker.group(1)
+            out.append(line)
+            continue
+        pieces = re.split(r'(\$`[^`\n]+`\$|`+[^`\n]+`+|\$\$[^\n]*?\$\$|(?<![\\$])\$(?![\s$`])[^$\n]*?(?<![\s\\])\$(?!\$))', line)
+        for k in range(1, len(pieces), 2):
+            piece, after = pieces[k], pieces[k + 1]
+            verbatim = piece.startswith('$`')
+            if not (verbatim or (piece.startswith('$') and not piece.startswith('$$'))):
+                continue
+            inner_end = -2 if verbatim else -1
+            if after[:1] in tuple(',.;') and (len(after) == 1 or after[1] in ' \n)*"') and piece[inner_end - 1] != after[0] \
+                    and not after.startswith('..'):
+                pieces[k] = piece[:inner_end] + after[0] + piece[inner_end:]
+                pieces[k + 1] = after[1:]
+                count += 1
+        out.append(''.join(pieces))
+    return '\n'.join(out), count
 
 
 def run_check_math():
@@ -285,6 +336,8 @@ def run_check_math():
     parser.add_argument('--github', action='store_true', help="compare with GitHub's rendering of the pushed files")
     parser.add_argument('--ref', default='main', help='branch or commit to compare with (default main)')
     parser.add_argument('--fix', action='store_true', help='rewrite the offending $...$ as $`...`$ where that repairs them')
+    parser.add_argument('--attach-punctuation', action='store_true',
+                        help='move a comma, full stop or semicolon that follows a formula inside it (files must be named)')
     args = parser.parse_args()
     if args.files:
         paths = [Path(f).resolve() for f in args.files]
@@ -295,6 +348,11 @@ def run_check_math():
     for path in paths:
         source = path.read_text(encoding='utf8')
         name = path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else str(path)
+        if args.attach_punctuation and args.files:
+            source, moved = attach_punctuation(source)
+            if moved:
+                path.write_text(source, encoding='utf8')
+            print(f'{name}: punctuation moved inside {moved} formulas')
         if args.fix:
             repairs = set()
             lint_text(source, repairs)
