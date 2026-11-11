@@ -108,3 +108,16 @@ def test_search_counts_with_both_engines_agree(proving_QC_Gaps):
     assert QM.ENGINE_DISAGREEMENTS == []
     assert ('engine', 'entropic') not in QM.ENTROPIC_STATS     # the LP never certified what the closure had not
     assert entropic_lp.TIMEOUTS[0] == 0
+
+@pytest.mark.slow
+def test_open_class_hierarchy(proving_QC_Gaps):
+    """manuscript/open_classes.md, 1.2: with each open class declared a known gap in turn, the open classes that
+    become proven. Only class 1 (the numbering of manuscript Section 10, the order of report.remaining) has any:
+    classes 2, 3, 6 and 7. The census records every transition out of an unproven class, so this is reachability."""
+    report, _ = proving_QC_Gaps.run_search(verbose=False, with_entropic=True, use_cache=False, engine='semigraphoid')
+    open_keys = [report.key(g) for g in report.remaining]
+    assert len(open_keys) == 46
+    reach = {key: report.explorer.reachable(key) for key in open_keys}
+    follows = {i + 1: sorted(j + 1 for j, other in enumerate(open_keys) if other != key and key in reach[other])
+               for i, key in enumerate(open_keys)}
+    assert {i: lower for i, lower in follows.items() if lower} == {1: [2, 3, 6, 7]}
