@@ -155,6 +155,12 @@ def test_census_experiments():
     baseline = experiments.census_with_tally(index, engine='semigraphoid')
     assert baseline[1] == {'parent': 805, 'dsep': 388, 'relabel': 37, 'failed': 659}
 
+    # "only via" of 1.1: (whole record, of which proven through a Fritz step, elementary stage alone)
+    assert experiments.only_via_by_stage(baseline[0]) == {
+        'PD': (164, 0, 164), 'node_stitching': (0, 0, 0), 'conditioning': (15, 1, 14),
+        'naive_marginalization': (0, 0, 0), 'teleportation_marginalization': (9, 4, 5),
+        'marginalization (either kind)': (11, 4, 7)}
+
     cost = experiments.experiment_closure_cost(index)
     assert (cost['closure calls'], cost['relabel applicable']) == (696, 688)
     assert cost['seconds in the closure'] < 5            # 0.8 on the reference machine

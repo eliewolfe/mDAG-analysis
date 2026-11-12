@@ -166,6 +166,28 @@ def experiment_recolourings(index, baseline=None):
             'database keys': len(database)}
 
 
+def only_via_by_stage(report):
+    """The "only via" column of manuscript 1.1, split: for each elementary trick (and for the two marginalizations
+    together), the classes no longer proven when it is removed from the whole record, how many of those are proven
+    through a Fritz step, and the classes lost when only the elementary stage is considered."""
+    explorer, seeds = report.explorer, set(report.seed_keys)
+    tricks = frozenset(t.trick for transitions in explorer.edges.values() for t in transitions)
+    elementary = tricks - {'Fritz'}
+    proven = search._fixpoint(explorer, report.input_ids, seeds, tricks)
+    proven_elementary = search._fixpoint(explorer, report.input_ids, seeds, elementary)
+    through_fritz = proven - proven_elementary
+    groups = {'PD': {'PD'}, 'node_stitching': {'node_stitching'}, 'conditioning': {'conditioning'},
+              'naive_marginalization': {'naive_marginalization'},
+              'teleportation_marginalization': {'teleportation_marginalization'},
+              'marginalization (either kind)': {'naive_marginalization', 'teleportation_marginalization'}}
+    out = {}
+    for name, removed in groups.items():
+        lost = proven - search._fixpoint(explorer, report.input_ids, seeds, tricks - removed)
+        lost_elementary = proven_elementary - search._fixpoint(explorer, report.input_ids, seeds, elementary - removed)
+        out[name] = (len(lost), len(lost & through_fritz), len(lost_elementary))
+    return out
+
+
 def experiment_lp_solves(index, descendants=False):
     """The census with the LP as the engine (manuscript B.4): candidates sent to it, LP solves, time-outs, seconds."""
     entropic_lp.SOLVES[0] = 0
@@ -183,6 +205,9 @@ def print_census_experiments():
     index = census.build_index(verbose=False)
     baseline = census_with_tally(index, engine='semigraphoid')
     print(f'census: {len(baseline[0].proven)} classes proven; certificates {baseline[1]}')
+    print('\n"only via" (1.1): whole record, of which proven through a Fritz step, elementary stage alone')
+    for name, counts in only_via_by_stage(baseline[0]).items():
+        print(f'  {name}: {counts}')
     for title, result in (
             ('closure cost (7.9)', experiment_closure_cost(index)),
             ('descendants as predictors (8.10)', experiment_descendants(index, baseline)),
