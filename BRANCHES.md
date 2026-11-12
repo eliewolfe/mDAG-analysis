@@ -3,11 +3,12 @@
 This repository maintains two independent development branches:
 
 * [`main`](https://github.com/eliewolfe/mDAG-analysis/tree/main): the forward census,
-  with the generalized pre-measurement HLP rule and hybrid lifting rule.
+  with the generalized pre-measurement HLP rule and the generalized rule `QmDAG.lift`
+  (a classical source replaced by a quantum one).
 * [`reversed-piggybacks`](https://github.com/eliewolfe/mDAG-analysis/tree/reversed-piggybacks):
   the elementary inverse closure of the seeds, followed by the forward Fritz cascade.
   Its display name is **reversed piggybacks**; Git branch names cannot contain spaces.
-  It retains the earlier HLP and lifting rules.
+  It retains the earlier versions of those two rules.
 
 The reverse branch is the renamed `claude/pensive-cray-v991bo` branch from
 [PR #16](https://github.com/eliewolfe/mDAG-analysis/pull/16). That work is maintained

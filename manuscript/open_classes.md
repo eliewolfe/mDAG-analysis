@@ -1,6 +1,6 @@
 # The 46 open classes: what would follow from what
 
-*A working record for directing effort at the four-node classes the census leaves open. Class numbers are those of the list in Section 10 of [`piggybacks.md`](piggybacks.md) (reprinted in 1.2 below); section numbers such as 6.3 refer to that manuscript. Every count is printed by [`Special Applications/open_classes_analysis.py`](../Special%20Applications/open_classes_analysis.py); see Section 4. Structures are written as edges, then sources: `Q{a,b}` is a quantum source shared by nodes a and b, `C{...}` a classical one.*
+*A working record for directing effort at the four-node classes the census leaves open. Class numbers are those of the list in Section 10 of [`piggybacks.md`](piggybacks.md) (reprinted in 1.2 below); section numbers such as 6.5 refer to that manuscript. Every count is printed by [`Special Applications/open_classes_analysis.py`](../Special%20Applications/open_classes_analysis.py); see Section 4. Structures are written as edges, then sources: `Q{a,b}` is a quantum source shared by nodes a and b, `C{...}` a classical one.*
 
 ## Summary
 
@@ -24,7 +24,7 @@ Section 3 records a separate question that the hierarchy does not need: which *c
 
 ### 1.1 The experiment, and why the recorded graph answers it
 
-The census records every transition it finds: a labelled edge from a structure (or class) to the structure a piggyback produces, meaning *a gap of the target is a gap of the source*. For a class that stays unproven, nothing is cut short: every elementary reduction of every member, closed over everything reachable, and every Fritz step of every member in all nine stages, each followed by the elementary reductions (9.2). So "which classes would be proven if class $i$ were known" is a question about this graph, and it has the same answer as rerunning the census with class $i$ as an extra seed, since a rerun explores a subset of what is already recorded.
+The census records every transition it finds: a labelled edge from a structure (or class) to the structure a piggyback produces, meaning *a gap of the target is a gap of the source*. For a class that stays unproven, nothing is cut short: every elementary reduction of every member, closed over everything reachable, and every Fritz step of every member in all nine stages, each followed by the elementary reductions (9.1). So "which classes would be proven if class $i$ were known" is a question about this graph, and it has the same answer as rerunning the census with class $i$ as an extra seed, since a rerun explores a subset of what is already recorded.
 
 The script does the experiment literally: for each of the 46 classes it rebuilds the report with that class added to the known gaps and lists the open classes that become proven (46 reports, 15 seconds), and checks that this agrees with reachability in the graph.
 
@@ -44,7 +44,7 @@ An arrow $x\to y$ reads "a gap of $y$ would prove $x$". These four are the only 
 
 | From | Steps to class 1 |
 |---|---|
-| class 2 | one Fritz step by d-separation (node 2 predicted by node 0, split target, unsplit predictor); the output `1→3, 2→3; C{1,2}, Q{0,2}, Q{0,3}, Q{2,3}` is a member of class 1 once its classical source is made quantum, which is free here (0.4) |
+| class 2 | one Fritz step by d-separation (node 2 predicted by node 0, split target, unsplit predictor); the output `1→3, 2→3; C{1,2}, Q{0,2}, Q{0,3}, Q{2,3}` is a member of class 1 once its classical source is made quantum, which is free here (0.5) |
 | class 3 | parent-predictor Fritz step (2 predicted by its parent 1, split target, split predictor), then point distribution on the copy; lands on `1→2, 2→3; Q{0,2}, Q{0,3}, Q{1,2,3}` |
 | class 6 | parent-predictor Fritz step (3 predicted by its parent 2), then point distribution; lands on `1→3, 2→3; Q{0,2}, Q{0,3}, Q{1,2,3}` |
 | class 7 | parent-predictor Fritz step (2 predicted by its parent 1), then point distribution; lands on `1→2, 1→3, 2→3; Q{0,2}, Q{0,3}, Q{1,2,3}` |
@@ -207,7 +207,7 @@ The open classes reach 15,057 structures; none is a known gap, by definition of 
 | 4 | 13,628 | 20 | 12,541 | 10 | **1,057** |
 | 5 | 1,336 | 0 | 915 | 5 | **416** |
 
-The second criterion uses the classical metagraphs, the five-node one included (a structure classically equivalent to a latent-free DAG has $\mathcal Q=\mathcal C,$ 1.0). The third is the pre-measurement argument of 0.4 read backwards: a quantum source all of whose members but one have no parent and no other source is the same as a classical source.
+The second criterion uses the classical metagraphs, the five-node one included (a structure classically equivalent to a latent-free DAG has $\mathcal Q=\mathcal C,$ 0.6). The third is the pre-measurement argument of 0.5 read backwards: a quantum source all of whose members but one have no parent and no other source is the same as a classical source.
 
 The screening matters. Before it, five-node Fritz outputs look like promising common targets: 775 of them are reached from two or more classes, some from nine (classes 38 to 46). Outside the two families of 1.4, every one of them (398 structures) is classically equivalent to a latent-free DAG, so it has no gap and proves nothing.
 
@@ -254,8 +254,8 @@ Nothing above depends on this section. It asks a different question from Roger's
 Three facts turn equivalences into gap transfers.
 
 * **Quantum equivalence** ($\mathcal Q$ and $\mathcal C$ both equal) merges two classes into one problem. The census already counts by proven quantum classes (1.0).
-* **The upward rule** (1.0): if $r$ is structurally above $b$ (more edges or sources) then $\mathcal Q(r)\supseteq\mathcal Q(b)$ for free; if in addition $\mathcal C(r)=\mathcal C(b),$ a gap of $b$ is a gap of $r.$ Only the *classical* equivalence has to be proven.
-* **Upgrading a source for free**: if a hybrid $H$ has the same quantum model as a structure $U$ obtained by making some of its classical sources quantum, then a gap of $U$ is a gap of $H$ ($\mathcal C(H)=\mathcal C(U)$ always). The proven instance is the rule of 0.4: a classical source may be made quantum when all of its members but one have no parent and no other source.
+* **The upward rule** (0.6): if $r$ is structurally above $b$ (more edges or sources) then $\mathcal Q(r)\supseteq\mathcal Q(b)$ for free; if in addition $\mathcal C(r)=\mathcal C(b),$ a gap of $b$ is a gap of $r.$ Only the *classical* equivalence has to be proven.
+* **Upgrading a source for free**: if a hybrid $H$ has the same quantum model as a structure $U$ obtained by making some of its classical sources quantum, then a gap of $U$ is a gap of $H$ ($\mathcal C(H)=\mathcal C(U)$ always). The proven instance is the rule of 0.5: a classical source may be made quantum when all of its members but one have no parent and no other source.
 
 ### 3.2 Classical equivalences the metagraph already has: nothing to gain
 
@@ -329,13 +329,13 @@ A dashed arrow $x\to y$ reads "if $\mathcal C(x)=\mathcal C(y),$ a gap of $y$ pr
 | 35 | 30 | Q{0,3} on 0→3 |
 | 37 | 34 | Q{0,3} on 0→3 |
 
-The metagraph removes a source $\lbrace a,b\rbrace$ on an edge $a\to b$ only when $a$ has no other parent (1.0). Here $a$ has one, so the rule does not apply, yet no binary support through 7 events tells the two structures apart. The lesson of the seven hard graphs applies: a larger alphabet may separate them, and none has been tried. A proof that such a source is classically redundant in these nine cases would make eight classes consequences of others. The pair (1, 7) is special: class 7 already follows from class 1 by piggyback (1.2), so the classical equivalence would make them equivalent as problems.
+The metagraph removes a source $\lbrace a,b\rbrace$ on an edge $a\to b$ only when $a$ has no other parent (0.6). Here $a$ has one, so the rule does not apply, yet no binary support through 7 events tells the two structures apart. The lesson of the seven hard graphs applies: a larger alphabet may separate them, and none has been tried. A proof that such a source is classically redundant in these nine cases would make eight classes consequences of others. The pair (1, 7) is special: class 7 already follows from class 1 by piggyback (1.2), so the classical equivalence would make them equivalent as problems.
 
 *Counting.* With the four piggyback relations of 1.2, 42 problems are independent. If all fourteen remaining classical equivalences hold, the twelve upper classes 10, 17, 21, 24, 29, 31, 35, 37, 41, 44, 45 and 46 follow from lower ones, leaving **30**. These are open questions, not conjectures we have reason to believe. Their value is that each is a purely classical statement about two explicit structures.
 
 ### 3.4 Upgrading a classical source for free
 
-A hybrid is a candidate for this when its all-quantum upgrade is a proven class. Among the structures the open classes reach, that happens for 39 hybrids, reached from classes 4, 5 and 14 only. Showing that the classical sources of one of them can be made quantum without enlarging the quantum model, an extension of that rule of 0.4, would give it a gap.
+A hybrid is a candidate for this when its all-quantum upgrade is a proven class. Among the structures the open classes reach, that happens for 39 hybrids, reached from classes 4, 5 and 14 only. Showing that the classical sources of one of them can be made quantum without enlarging the quantum model, an extension of that rule of 0.5, would give it a gap.
 
 | reached from | hybrid | its all-quantum upgrade (proven) |
 |---|---|---|

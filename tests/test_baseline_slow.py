@@ -125,7 +125,7 @@ def test_open_class_hierarchy(proving_QC_Gaps):
 
 @pytest.mark.slow
 def test_census_is_closed_and_the_equality_adds_nothing(proving_QC_Gaps):
-    """manuscript/piggybacks.md 9.2 ("any known gap, in any order"): rerunning the census with every proven class
+    """manuscript/piggybacks.md 9.1 ("any known gap, in any order"): rerunning the census with every proven class
     and structure declared known from the start leaves the same classes open, so nothing is gained by restarting
     as gaps become known. And manuscript/kpc_figure4_vs_code.md, Section 6: on the open classes, giving the closure
     the perfect correlation in both directions certifies exactly the steps the one-directional prediction does."""

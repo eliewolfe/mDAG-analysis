@@ -49,7 +49,7 @@ def test_effective_DAG_has_one_noise_node_per_visible_node():
 def test_pools_separate_visible_parents_from_latent_siblings():
     g = Q([(0, 1), (3, 1)], 4, [], [(1, 2), (1, 3), (2, 3)])
     # Siblings of 1: 2 (one facet) and 3 (one facet); 3 is also a parent, so it belongs to the parent pool, where
-    # the deletion needs no certificate (manuscript 6.3). 0 is a parent only.
+    # the deletion needs no certificate (manuscript 6.5). 0 is a parent only.
     assert g.fritz_pool(1) == [2]
     assert g.fritz_pool(1, pool='parents') == [3, 0]           # 3 shares a facet with 1, 0 does not
     assert g.fritz_pool(1, pool='siblings+parents') == [2, 3, 0]
@@ -111,7 +111,7 @@ def test_parent_predictor_needs_no_certificate_and_deletes_maximally():
     assert K == {0} and latent_index(g, 'Q', {1, 2}) in D
     assert g.fritz_certificate(1, K, {0}, use_lp=False) == 'parent'
     # A parent that also shares a facet with the target: the target keeps the edge only, the shared facet goes too
-    # (s = g(X) is a legal kernel for s as it stands, manuscript 6.3).
+    # (s = g(X) is a legal kernel for s as it stands, manuscript 6.5).
     g = Q([(0, 1)], 3, [], [(0, 1), (1, 2)])
     K, D = g.fritz_deletion(1, {0})
     assert K == {0} and D == {latent_index(g, 'Q', {0, 1}), latent_index(g, 'Q', {1, 2}), latent_index(g, 'noise', {1})}

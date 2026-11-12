@@ -99,10 +99,10 @@ def fritz_tricks(max_visible: int = 5, predictor_mode: str = 'unsplit', target_m
                  predictor_modes: Optional[Tuple[str, ...]] = None) -> Dict[str, Trick]:
     """The Fritz trick (name 'Fritz'): QmDAG.fritz_steps once per target mode in `target_modes` ('unsplit', 'split')
     and per predictor mode in `predictor_modes` (default: the single `predictor_mode`, 'unsplit' or 'split'); `pool`
-    is 'siblings' (the certified piggybacks, manuscript 6.4 to 7), 'parents' (the parent piggyback, 6.3) or
-    'siblings+parents', and `allow_descendants` widens the pool (manuscript 8.4); `max_predictors` allows joint predictor sets; `max_targets` bounds the joint target sets of
+    is 'siblings' (the certified piggybacks, manuscript 6.6 and Section 7), 'parents' (the parent piggyback, 6.5) or
+    'siblings+parents', and `allow_descendants` widens the pool (manuscript 8.1, 8.10); `max_predictors` allows joint predictor sets; `max_targets` bounds the joint target sets of
     one predictor (all by default; 1 disables them); lp_markov_target=True also tries the
-    `markov` target set after `relabel` fails (it never decided an input in the four-node census, 9.7);
+    `markov` target set after `relabel` fails (it never decided an input in the four-node census, 9.3);
     lp_only=True emits only the single steps the beyond-d-separation engine certifies (the entropic stages of the
     cascade); `engine` is 'semigraphoid' (default), 'lp' or 'both' (quantum_mDAG.DEFAULT_ENGINE, manuscript 7.9)."""
     from quantum_mDAG import DEFAULT_ENGINE, ENGINES
@@ -146,10 +146,10 @@ def default_stages(max_visible: int = 5, with_entropic: bool = True, with_split_
                    max_predictors: int = 1, districts_check: bool = False, strict_conditioning: bool = True,
                    pool: str = 'siblings', allow_descendants: bool = False, max_targets: Optional[int] = None,
                    lp_markov_target: bool = False, engine: Optional[str] = None) -> List[Stage]:
-    """The cascade (manuscript 9.2), cheapest first; each stage runs only on the inputs the earlier ones left
+    """The cascade (manuscript 9.1), cheapest first; each stage runs only on the inputs the earlier ones left
     unproven, and every structure proven in a stage is a known gap for the next.
     (1) The elementary reductions, closed over everything reachable from every input.
-    (2) The parent piggyback (manuscript 6.3): a visible parent predicts the target, the target keeps that edge
+    (2) The parent piggyback (manuscript 6.5): a visible parent predicts the target, the target keeps that edge
     only, no certificate; both target modes and both predictor modes in one stage, every root recorded in full.
     (3-6) Four d-separation Fritz stages over the latent siblings, one per pair of modes (unsplit target & unsplit
     predictor, unsplit target & split predictor, split target & unsplit predictor, split target & split predictor),
@@ -162,7 +162,7 @@ def default_stages(max_visible: int = 5, with_entropic: bool = True, with_split_
     exit); with_entropic=False omits them. The engine tries the `relabel` target set only (lp_markov_target=True
     turns the `markov` set back on; it never decided an input in the four-node census).
     The predictor pool of the certified stages is the latent siblings of the target that are not its visible parents
-    nor its descendants (`pool`); allow_descendants=True keeps the descendants (the experiment of manuscript 8.4).
+    nor its descendants (`pool`); allow_descendants=True keeps the descendants (the experiment of manuscript 8.10).
     Joint predictor sets are available (max_predictors) but off; max_targets bounds the joint target sets."""
     if pool != 'siblings':
         raise ValueError("the certified stages draw on the latent siblings only (pool='siblings'); the visible parents "

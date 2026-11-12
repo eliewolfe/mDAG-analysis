@@ -334,7 +334,7 @@ def explicit_copy(g, x, s, target_mode):
 def census_certifies(g, x, s, target_mode):
     """Does the census's own step certify (x predicts s)? The hypothesis is the one direction H(s | predictor) = 0.
     The predicting node is x itself (an unsplit predictor, or a childless split one, which is left as it stands)
-    or, for a childful x, its copy (manuscript 6.2); the first certificate found is returned."""
+    or, for a childful x, its copy (manuscript 6.4); the first certificate found is returned."""
     work = g if target_mode == 'unsplit' else g.split_node(s)
     t = s if target_mode == 'unsplit' else work.number_of_visible - 1
     attempts = [(work, t, x)]

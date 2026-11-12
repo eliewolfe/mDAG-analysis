@@ -63,7 +63,7 @@ def underlying_mdag(g):
 def quantum_part_is_free(g):
     """Every quantum facet has at most one member that is not premeasurable (no visible parent and exactly one
     facet of either colour). Such a facet is equivalent to a classical one (the pre-measurement argument,
-    manuscript 0.4), so the structure has the quantum model of an all-classical structure: no gap."""
+    manuscript 0.5), so the structure has the quantum model of an all-classical structure: no gap."""
     n, edges, C, Q = parts(g)
     has_parent = {b for _, b in edges}
     count = collections.Counter(v for f in C + Q for v in f)

@@ -159,7 +159,7 @@ flowchart BT
 
 This output is `1→2; C{0,3}, Q{0,2}`. Its classical source is shared with $E,$ which has no parent and no other source. Such a source does the same work as the edge $E\to F$: this is arrow (iv) of Figure 4 read backwards. So the output is the Bell structure, with settings $E,C$ and outcomes $F,D,$ and no second step is needed.
 
-What the single step contains (6.2, 7.3 to 7.6 of the manuscript):
+What the single step contains (6.4, 7.3 to 7.7 of the manuscript):
 
 * **A predicting copy.** $F$ is treated as itself plus a copy $F'$ with the same parents. The copy does the predicting, $H(E\mid F')=0.$ It is the draft's $F_S;$ the draft's $F_O$ is $F$ itself.
 * **The predicted node is restricted.** $E$ keeps the parents the predictor can see, here $A$ alone, and loses $C,$ $D$ and its private noise. The predictor keeps all of its parents, $B$ included.

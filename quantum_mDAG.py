@@ -63,7 +63,7 @@ ENGINES = ('semigraphoid', 'lp', 'both')
 DEFAULT_ENGINE = 'semigraphoid'
 ENGINE_DISAGREEMENTS: List[Tuple] = []   # (unique_id, predictors, target, kept parents of the target, lp, closure)
 # Outcome tally of the Fritz certificates (QmDAG.fritz_certificate), keyed by ('certificate', outcome) with outcome
-# 'parent' (every predictor a visible parent of the target: no certificate needed, manuscript 6.3), 'dsep', 'relabel',
+# 'parent' (every predictor a visible parent of the target: no certificate needed, manuscript 6.5), 'dsep', 'relabel',
 # 'markov' or 'failed' (the engine certified nothing); ('engine', name) counts which engine certified,
 # ('disagreement', kind) the engine='both' disagreements.
 ENTROPIC_STATS: Dict[Tuple[str, str], int] = dict()
@@ -739,7 +739,7 @@ class QmDAG:
     def fritz_pool(self, s: int, pool: str = 'siblings', allow_descendants: bool = False) -> List[int]:
         """Candidate predictors of the target s, in the order the search tries them. The lift must hand s its private
         randomness through a channel the predictor also sees: a facet shared with s (latent sibling) or the edge
-        X -> s (visible parent); nothing else is sound. The two channels are two piggybacks (manuscript 6.3, 6.4):
+        X -> s (visible parent); nothing else is sound. The two channels are two piggybacks (manuscript 6.5, 6.6):
         pool='parents' lists the visible parents of s, for which the deletion needs no certificate; pool='siblings'
         lists the latent siblings that are not visible parents, for which a certificate is needed;
         pool='siblings+parents' lists both. Descendants of s are removed unless allow_descendants (the d-separation
@@ -768,7 +768,7 @@ class QmDAG:
 
     def fritz_deletion(self, s: int, X: Iterable[int]) -> Optional[Tuple[frozenset, frozenset]]:
         """The deletion the predictor set X dictates at the target s. When every predictor is a visible parent of s
-        (the parent piggyback, manuscript 6.3), s keeps the edges from the predictors and nothing else: K = X,
+        (the parent piggyback, manuscript 6.5), s keeps the edges from the predictors and nothing else: K = X,
         D = Pa(s) minus X, since s = g(X) is a legal kernel for s as it stands. Otherwise K = Pa(s) ∩ seen(X) (what X
         sees: the predictors themselves and their parents), D = Pa(s) minus K. Returns (K, D), or None when the pair
         is useless: K holds no channel (a facet containing a predictor, or a predictor itself), or D contains nothing
@@ -797,11 +797,11 @@ class QmDAG:
                           lp_markov_target: bool = False, tally: bool = True,
                           engine: Optional[str] = None) -> Optional[str]:
         """Is restricting s to K justified by the predictors X? 'parent' when every predictor is a visible parent of
-        s (then s = g(X) is a legal kernel for s outright: no certificate is needed, manuscript 6.3); 'dsep' when
-        X minus K is d-separated from Pa(s) minus K given K in the effective DAG (Theorem 6.4); otherwise, with
+        s (then s = g(X) is a legal kernel for s outright: no certificate is needed, manuscript 6.5); 'dsep' when
+        X minus K is d-separated from Pa(s) minus K given K in the effective DAG (Theorem 6.6); otherwise, with
         use_lp, the engine ('semigraphoid', 'lp' or 'both', default DEFAULT_ENGINE) is asked to certify the same
         deletion with the `relabel` target set (and `markov` too if lp_markov_target): 'semigraphoid' when the closure
-        certifies it, 'entropic' when the LP does (Theorem 7.6); None otherwise (manuscript 8.3, 7.9)."""
+        certifies it, 'entropic' when the LP does (Theorem 7.7); None otherwise (manuscript 8.3, 7.9)."""
         g, latent_nodes = self.effective_DAG_data
         X = frozenset(X)
         count = _tally if tally else (lambda kind, outcome: None)   # joint re-checks are not counted (ENTROPIC_STATS)
@@ -930,14 +930,14 @@ class QmDAG:
         of Bell from the triangle is one such step. All d-separation steps, single and joint, are emitted before any
         closure step, so a search that stops at the first success never pays for a closure it does not need; the
         closure certifies single targets only. With lp_only the d-separation steps are not emitted at all (the census
-        records them in its d-separation stages first, manuscript 9.2) and no joint sets are formed: only the single
+        records them in its d-separation stages first, manuscript 9.1) and no joint sets are formed: only the single
         targets the closure certifies come out.
-        target_mode 'split' splits each target first and restricts the copy (6.2); predictor_mode 'split' splits each
+        target_mode 'split' splits each target first and restricts the copy (6.4); predictor_mode 'split' splits each
         childful predictor and removes the copy, 'unsplit' removes the predictors themselves. Justification and surgery run
         on the structure that carries the splits; copies are the indices >= self.number_of_visible, in splitting
         order (predictor copies first), and params are stated in self's indices with a prime for a copy.
         `pool` is 'parents' (the parent piggyback: the predictor is a visible parent of the target and the deletion
-        needs no certificate, manuscript 6.3), 'siblings' (latent siblings that are not visible parents: the
+        needs no certificate, manuscript 6.5), 'siblings' (latent siblings that are not visible parents: the
         certified piggybacks) or 'siblings+parents'. `engine` names the beyond-d-separation certificate engine
         (DEFAULT_ENGINE: 'semigraphoid', 'lp' or 'both').
         params: (('targets', (s, ...)), ('target_mode', 'unsplit' | 'split'), ('deleted', (labels of D_s, ...)),
@@ -1047,7 +1047,7 @@ class QmDAG:
                         if kept is None:
                             continue
                         item = (X, T, work, kept, deleted, X_eff, remove, copy_of)
-                        # 'parent' when every member is a parent step (6.3), 'dsep' otherwise (Theorem 6.4 for the set)
+                        # 'parent' when every member is a parent step (6.5), 'dsep' otherwise (Theorem 6.6 for the set)
                         yield from self._fritz_emit(item, target_mode, predictor_mode, 'parent' if labels == {'parent'} else 'dsep', labels_of)
         for item in deferred:
             X, T, work, kept, deleted, X_eff, remove, copy_of = item
