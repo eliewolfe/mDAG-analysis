@@ -143,3 +143,42 @@ def test_census_is_closed_and_the_equality_adds_nothing(proving_QC_Gaps):
     (tally,) = checks.part_4(index, (("the 46 open classes", open_keys),)).values()
     assert (tally['pairs'], tally['the census step certifies'], tally['both directions certify (either candidate)']) == (504, 184, 184)
     assert tally['both directions and the census step disagree'] == 0
+
+
+@pytest.mark.slow
+def test_census_experiments():
+    """The experiments quoted beside the census (manuscript/piggybacks.md 1.1, 7.9, 8.10, 9.3, 9.5 and 10.2), as
+    measured by Special Applications/census_experiments.py."""
+    from conftest import load_special_application
+    experiments = load_special_application("census_experiments")
+    index = experiments.census.build_index(verbose=False)
+    baseline = experiments.census_with_tally(index, engine='semigraphoid')
+    assert baseline[1] == {'parent': 805, 'dsep': 388, 'relabel': 37, 'failed': 659}
+
+    cost = experiments.experiment_closure_cost(index)
+    assert (cost['closure calls'], cost['relabel applicable']) == (696, 688)
+    assert cost['seconds in the closure'] < 5            # 0.8 on the reference machine
+
+    descendants = experiments.experiment_descendants(index, baseline)
+    assert descendants['same proven classes']
+    assert (descendants['checks beyond d-separation'], descendants['checks without descendants']) == (1332, 696)
+    assert len(descendants['steps only a descendant certifies']) == 6
+    assert {(s, x) for _, s, x, *_ in descendants['steps only a descendant certifies']} == {(1, 3)}
+    assert (descendants['structures'], descendants['classes'], descendants['class sizes']) == (3, 1, [5])
+    assert descendants['classes proven'] == [False]
+
+    exit_off = experiments.experiment_early_exit(index, baseline)
+    assert (exit_off['checks with the exit'], exit_off['checks without']) == (696, 706)
+    assert (exit_off['certified with the exit'], exit_off['certified without']) == (37, 46)
+    assert exit_off['same proven classes'] and exit_off['same database'] and exit_off['database keys'] == 393
+
+    assert experiments.experiment_markov_target_set(index)['certified by markov'] == 0
+
+    deletions = experiments.experiment_sub_maximal_deletions(index)
+    assert (deletions['structures'], deletions['pairs']) == (996, 2241)
+    assert deletions['by parents deleted'] == {1: 1276, 2: 790, 3: 162, 4: 13}
+    assert (deletions['pairs with a strict sub-deletion'], deletions['structures with one']) == (965, 507)
+
+    recolourings = experiments.experiment_recolourings(index, baseline)
+    assert (recolourings['recolourings'], recolourings['proven by the elementary tricks'],
+            recolourings['of these not in the database']) == (8756, 5082, 3829)
