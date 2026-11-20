@@ -60,14 +60,14 @@ Two companion notes: [open_classes.md](open_classes.md) on how the 46 open class
   - [8.2 What a predictor sees, and the deletion it dictates (`QmDAG.fritz_deletion`)](#82-what-a-predictor-sees-and-the-deletion-it-dictates-qmdagfritz_deletion)
   - [8.3 Justifying the deletion: one set, two certificates (`QmDAG.fritz_certificate`)](#83-justifying-the-deletion-one-set-two-certificates-qmdagfritz_certificate)
   - [8.4 Parent predictors: the free piggyback as its own stage](#84-parent-predictors-the-free-piggyback-as-its-own-stage)
-  - [8.5 Joint steps, and why not a second Fritz depth](#85-joint-steps-and-why-not-a-second-fritz-depth)
+  - [8.5 Joint steps and Fritz depth](#85-joint-steps-and-fritz-depth)
   - [8.6 Modes and the surgery (`QmDAG._restrict_targets`, `QmDAG.fritz_realise`)](#86-modes-and-the-surgery-qmdag_restrict_targets-qmdagfritz_realise)
   - [8.7 Two kinds of stage: d-separation breadth-first, then the semigraphoid closure with early exit](#87-two-kinds-of-stage-d-separation-breadth-first-then-the-semigraphoid-closure-with-early-exit)
   - [8.8 What the procedure decides, and what it does not](#88-what-the-procedure-decides-and-what-it-does-not)
   - [8.9 The six classes that need a Fritz step](#89-the-six-classes-that-need-a-fritz-step)
   - [8.10 Experiment: descendants as predictors](#810-experiment-descendants-as-predictors)
 - [9. Search, certificates and the four-node census (`qc_gap_search.py`, `Special Applications/proving_QC_Gaps.py`)](#9-search-certificates-and-the-four-node-census-qc_gap_searchpy-special-applicationsproving_qc_gapspy)
-  - [9.1 The ten stages](#91-the-ten-stages)
+  - [9.1 The cascade and the deeper census](#91-the-cascade-and-the-deeper-census)
   - [9.2 Reading the tables, and why the seeds matter](#92-reading-the-tables-and-why-the-seeds-matter)
   - [9.3 Certificates beyond d-separation attempted](#93-certificates-beyond-d-separation-attempted)
   - [9.4 Why node stitching and naive marginalization show few exclusive proofs](#94-why-node-stitching-and-naive-marginalization-show-few-exclusive-proofs)
@@ -250,7 +250,7 @@ The seeds, as named in [`known_QC_gaps.py`](../known_QC_gaps.py). In the instrum
 | | [`QG_Bell_Edge_Edge_SettingsC`](../known_QC_gaps.py#L85): 0→2, 1→3; C{0,1}, Q{2,3} | |
 | | [`QG_Bell_Edge_Edge_SettingsEdgeC`](../known_QC_gaps.py#L86): 0→1, 0→2, 1→3; C{0,1}, Q{2,3} | |
 
-**The order of the search.** The census runs in one phase ([9.1](#91-the-ten-stages)): the elementary reductions first, closed over everything reachable from every input class, then the Fritz piggybacks in nine stages of increasing cost, each applied to whatever the earlier stages left.
+**The order of the search.** After the historical cascade over all four-node input classes, the primary census explores deeper Fritz paths with a single growing step and at most six visible nodes. It screens provably gap-free branches, retains the earlier witnesses, and runs bounded forward and reverse queries on the result. The default certificates use d-separation and the semigraphoid closure, alongside the certificate-free parent rule. Section [9](#9-search-certificates-and-the-four-node-census-qc_gap_searchpy-special-applicationsproving_qc_gapspy).1 gives the search and timings.
 
 **Siblings.** Two nodes are **latent siblings** when they share a facet, **quantum siblings** when they share a quantum facet.
 
@@ -263,10 +263,10 @@ Every term below is defined where it is first used; this subsection collects the
 | words | how they differ |
 |---|---|
 | **target**, **target set** | The *target* is a node: the predicted node of a Fritz step, whose unseen parents are deleted (Section [6](#6-the-fritz-piggyback-fritz)). A *target set* is a set of conditional independences that a certificate beyond d-separation has to derive: `relabel` or `markov` ([7.4](#74-the-two-target-sets-as-containment-of-d-separation-models-qmdag_semigraphoid_certificate)). |
-| **certificate** (three meanings) | Of a Fritz step: the test that justifies its deletion, recorded as `parent`, `dsep`, `semigraphoid` or `entropic` ([6.5](#65-the-parent-predictor-deletion-without-a-certificate), [6.6](#66-theorem-d-separation-certificate), Section [7](#7-the-semigraphoid-closure-certificate-for-the-fritz-piggyback-semigraphoidpy-qmdag_semigraphoid_certificate), [Appendix B](#appendix-b-the-entropic-lp-as-an-alternative-certificate-engine-entropic_lppy-qmdag_entropic_certificate)). Of a proven class: the printed chain of recorded steps from the class down to a seed ([9.1](#91-the-ten-stages)). Of one LP: the Farkas certificate, a dual vector that proves one implication ([B.1](#b1-entropy-vectors-as-the-proof-system-entropic_lppy)). |
+| **certificate** (three meanings) | Of a Fritz step: the test that justifies its deletion, recorded as `parent`, `dsep`, `semigraphoid` or `entropic` ([6.5](#65-the-parent-predictor-deletion-without-a-certificate), [6.6](#66-theorem-d-separation-certificate), Section [7](#7-the-semigraphoid-closure-certificate-for-the-fritz-piggyback-semigraphoidpy-qmdag_semigraphoid_certificate), [Appendix B](#appendix-b-the-entropic-lp-as-an-alternative-certificate-engine-entropic_lppy-qmdag_entropic_certificate)). Of a proven class: the printed chain of recorded steps from the class down to a seed ([9.1](#91-the-cascade-and-the-deeper-census)). Of one LP: the Farkas certificate, a dual vector that proves one implication ([B.1](#b1-entropy-vectors-as-the-proof-system-entropic_lppy)). |
 | **structure**, **class**, **input** | A *structure* is one QmDAG up to relabelling. A *class* is a set of structures proven to have the same quantum model set ([0.6](#06-quantum-observational-equivalence-and-the-two-metagraphs)). An *input* is a class that the census tries to prove ([0.7](#07-the-census-the-seeds-and-the-names-of-the-tricks)); a step is applied to a member structure, and a gap of one member is a gap of the class. |
 | **piggyback**, **trick**, **reduction** | A *piggyback* is a map from $G$ to $G'$ with a proof that a gap of $G'$ implies a gap of $G$ ([0.2](#02-piggybacks)). A *trick* is a piggyback as the search applies it, under its code name ([0.7](#07-the-census-the-seeds-and-the-names-of-the-tricks)). An *elementary reduction* is a trick that lowers the number of visible nodes: point distribution, the two marginalizations, postselection, node stitching ([0.7](#07-the-census-the-seeds-and-the-names-of-the-tricks)). |
-| **stage**, **cascade**, **ladder**, **rung** | A *stage* is one pass of the search with one set of tricks; the census has ten, the elementary stage and nine Fritz stages ([9.1](#91-the-ten-stages)). The *cascade* is the nine Fritz stages in order of cost. The *ladder* is the list of ten cumulative counts of proven classes, computed from the recorded parameters, and a *rung* is one entry of it ([9.1](#91-the-ten-stages)). |
+| **stage**, **cascade**, **ladder**, **rung** | A *stage* is one pass of the search with one set of tricks; the historical cascade has ten, the elementary stage and nine Fritz stages ([9.1](#91-the-cascade-and-the-deeper-census)). The *cascade* is the nine Fritz stages in order of cost. The *ladder* is the list of ten cumulative counts of proven classes, computed from the recorded parameters, and a *rung* is one entry of it ([9.1](#91-the-cascade-and-the-deeper-census)). |
 
 **Structures and classes.**
 
@@ -294,11 +294,11 @@ Every term below is defined where it is first used; this subsection collects the
 | seed | a class whose gap is established outside this note; known from the start ([0.7](#07-the-census-the-seeds-and-the-names-of-the-tricks)) |
 | proven, known gap | a class from which a chain of piggybacks leads to a seed ([0.7](#07-the-census-the-seeds-and-the-names-of-the-tricks)) |
 | open class | an input that the census does not prove ([10.1](#101-the-46-open-classes)) |
-| lookup | [`degradation`](../qc_gap_search.py#L77) and `upward`: transitions registered without expanding their ends ([0.4](#04-the-degradation-piggyback-quantum-source-to-classical-source), [0.6](#06-quantum-observational-equivalence-and-the-two-metagraphs), [9.1](#91-the-ten-stages)) |
+| lookup | [`degradation`](../qc_gap_search.py#L77) and `upward`: transitions registered without expanding their ends ([0.4](#04-the-degradation-piggyback-quantum-source-to-classical-source), [0.6](#06-quantum-observational-equivalence-and-the-two-metagraphs), [9.1](#91-the-cascade-and-the-deeper-census)) |
 | `identity` | the trick that proves an input which is itself a seed class ([0.7](#07-the-census-the-seeds-and-the-names-of-the-tricks)) |
 | explorer, transition | the object that applies the tricks and records every step; one recorded step ([9.6](#96-bookkeeping-the-explorer-the-cache-and-the-record)) |
 | "via", "only via" | provable with one elementary trick alone; lost when that trick alone is removed ([9.2](#92-reading-the-tables-and-why-the-seeds-matter)) |
-| depth one | a Fritz step is applied once, and its outputs are reduced by elementary tricks only ([9.1](#91-the-ten-stages)) |
+| depth one | the historical cascade tries Fritz on input members and follows its outputs with elementary reductions ([9.1](#91-the-cascade-and-the-deeper-census)) |
 | root of the search | a structure that a stage is applied to ([8.7](#87-two-kinds-of-stage-d-separation-breadth-first-then-the-semigraphoid-closure-with-early-exit)) |
 | early exit | a closure stage stops working on a class at the first step that reaches a known gap ([8.7](#87-two-kinds-of-stage-d-separation-breadth-first-then-the-semigraphoid-closure-with-early-exit)) |
 | database | every class or structure the search met that reaches a seed, hybrids included ([9.5](#95-the-known-gap-database-the-search-establishes)) |
@@ -328,7 +328,7 @@ Every term below is defined where it is first used; this subsection collects the
 | output $G'$ | the candidate with the predictors removed ([6.1](#61-the-mechanism)) |
 | childless, childful | said of a predictor without, with visible children ([6.1](#61-the-mechanism)) |
 | split, unsplit (target mode, predictor mode) | whether the target, the predictor, is first split into itself and a copy ([6.4](#64-node-splitting-split-and-unsplit-predictors-split-and-unsplit-targets-qmdagsplit_node)) |
-| joint step | one predictor set restricting several targets at once ([6.2](#62-the-unit-a-predictor-and-its-targets), [8.5](#85-joint-steps-and-why-not-a-second-fritz-depth)) |
+| joint step | one predictor set restricting several targets at once ([6.2](#62-the-unit-a-predictor-and-its-targets), [8.5](#85-joint-steps-and-fritz-depth)) |
 | sufficiency, determinism | the two halves of perfect prediction as conditional independences; the closure uses the first ([7.3](#73-the-hypotheses-and-how-perfect-prediction-enters-qmdag_semigraphoid_model-semigraphoidadd_functional_dependence)) |
 
 ---
@@ -374,9 +374,9 @@ The five are one classical class by face splitting and the HLP rule, and one qua
 
 ### 1.1 The census over quantum classes
 
-The inputs are the 418 quantum equivalence classes of [1.0](#10-the-four-node-counts-and-why-results-are-counted-by-class) (996 structures up to relabelling, in 376 classical classes). Every seed is known from the start: the three-node seed classes (instrumental, 3 structures; Evans; the triangle through its hybrid seed) and the two Bell classes, which are inputs. The census runs in one phase, cheapest stage first ([9.1](#91-the-ten-stages)); [`tests/test_baseline_slow.py`](../tests/test_baseline_slow.py) pins every number below and [`Special Applications/census_breakdowns.py`](../Special%20Applications/census_breakdowns.py) prints one certificate per row of the tables.
+The inputs are the 418 quantum equivalence classes of [1.0](#10-the-four-node-counts-and-why-results-are-counted-by-class) (996 structures up to relabelling, in 376 classical classes). Every seed is known from the start: the three-node seed classes (instrumental, 3 structures; Evans; the triangle through its hybrid seed) and the two Bell classes, which are inputs. The primary census first builds the historical ten-stage record and then searches it more deeply with a single growth allowance. The stage and engine breakdowns below describe the historical part ([9.1](#91-the-cascade-and-the-deeper-census)); [`tests/test_baseline_slow.py`](../tests/test_baseline_slow.py) pins every number below and [`Special Applications/census_breakdowns.py`](../Special%20Applications/census_breakdowns.py) prints one certificate per row of the tables.
 
-**The elementary stage.** The elementary reductions act on every member of every input class, closed over everything reachable, with `identity` and the two lookups, degradation and upward ([9.1](#91-the-ten-stages)). "Via" is the number of input classes provable using only that trick (lookups included), closed under implication among the inputs; "only via" is the number no longer provable when that trick alone is removed from the recorded transitions, everything else kept.
+**The elementary stage.** The elementary reductions act on every member of every input class, closed over everything reachable, with `identity` and the two lookups, degradation and upward ([9.1](#91-the-cascade-and-the-deeper-census)). "Via" is the number of input classes provable using only that trick (lookups included), closed under implication among the inputs; "only via" is the number no longer provable when that trick alone is removed from the recorded transitions, everything else kept.
 
 | elementary piggyback | via | only via |
 |---|---|---|
@@ -391,7 +391,7 @@ The inputs are the 418 quantum equivalence classes of [1.0](#10-the-four-node-co
 
 Of the 418 input classes, 366 are proven by the elementary stage and 52 are left for the Fritz stages. Node stitching, whose characteristic product is a Bell variant derived from an instrumental variant, has no exclusive proof: the Bell classes it reaches are seeds ([9.4](#94-why-node-stitching-and-naive-marginalization-show-few-exclusive-proofs)). Removing the naive marginalization alone loses nothing, since the two marginalizations coincide wherever the removed node has no quantum facet; removing the teleportation one loses 9 classes, those where the relayed entanglement is what the proof needs; removing both loses 11.
 
-The "only via" column is counted over the whole record, the Fritz stages included. It therefore also counts a class that is proven through a Fritz step when the chain after that step needs the trick ([8.9](#89-the-six-classes-that-need-a-fritz-step)): one of the 15 classes for postselection, four of the 9 for teleportation marginalization and four of the 11 for marginalization of either kind. Within the elementary stage alone these three counts are 14, 5 and 7, and point distribution keeps its 164.
+The "only via" column above is measured on the historical ten-stage record, including its Fritz stages. The deeper bounded record gives 14 for postselection, 5 for teleportation marginalization and 7 for either marginalization. The other entries agree. The historical count includes Fritz proofs that need a subsequent elementary trick. Among the six historical Fritz certificates, one contributes to the 15 classes for postselection, four to the 9 for teleportation marginalization and four to the 11 for marginalization of either kind ([8.9](#89-the-six-classes-that-need-a-fritz-step)). Within the elementary stage alone these three counts are 14, 5 and 7, and point distribution keeps its 164.
 
 **The four Fritz piggybacks** are then applied to the 52 classes that are left, cheapest first: the parent predictor ([6.5](#65-the-parent-predictor-deletion-without-a-certificate)), the d-separation certificate ([6.6](#66-theorem-d-separation-certificate)), the semigraphoid closure (Section [7](#7-the-semigraphoid-closure-certificate-for-the-fritz-piggyback-semigraphoidpy-qmdag_semigraphoid_certificate)) and, as the alternative engine of the same hypotheses, the entropic LP ([Appendix B](#appendix-b-the-entropic-lp-as-an-alternative-certificate-engine-entropic_lppy-qmdag_entropic_certificate)). Six classes are proven, 46 remain. The first table says what each piggyback proved after the cheaper ones had failed, and through which of the splittings of [6.4](#64-node-splitting-split-and-unsplit-predictors-split-and-unsplit-targets-qmdagsplit_node).
 
@@ -402,7 +402,7 @@ The "only via" column is counted over the whole record, the Fritz stages include
 | semigraphoid closure (Section [7](#7-the-semigraphoid-closure-certificate-for-the-fritz-piggyback-semigraphoidpy-qmdag_semigraphoid_certificate)) | 1 | 0 | 0 | 1 | 0 |
 | entropic LP ([Appendix B](#appendix-b-the-entropic-lp-as-an-alternative-certificate-engine-entropic_lppy-qmdag_entropic_certificate)) | 0 beyond the closure: it certifies the same steps | | | | |
 
-The second table names the six classes explicitly, one row per class with every member structure written out, and the version of the Fritz piggyback that witnesses each (the stage of [9.1](#91-the-ten-stages) that proved it; every stage not listed proved nothing). Three are witnessed by the **parent predictor** (the free piggyback of [6.5](#65-the-parent-predictor-deletion-without-a-certificate): the predictor is a visible parent of the predicted node, no certificate), two by the **d-separation certificate** ([6.6](#66-theorem-d-separation-certificate)) and one by the **semigraphoid closure** (Section [7](#7-the-semigraphoid-closure-certificate-for-the-fritz-piggyback-semigraphoidpy-qmdag_semigraphoid_certificate)). In every row the predictor is node 0.
+The second table names the six classes explicitly, one row per class with every member structure written out, and the version of the Fritz piggyback that witnesses each (the stage of [9.1](#91-the-cascade-and-the-deeper-census) that proved it; every stage not listed proved nothing). Three are witnessed by the **parent predictor** (the free piggyback of [6.5](#65-the-parent-predictor-deletion-without-a-certificate): the predictor is a visible parent of the predicted node, no certificate), two by the **d-separation certificate** ([6.6](#66-theorem-d-separation-certificate)) and one by the **semigraphoid closure** (Section [7](#7-the-semigraphoid-closure-certificate-for-the-fritz-piggyback-semigraphoidpy-qmdag_semigraphoid_certificate)). In every row the predictor is node 0.
 
 | class (every member; edges, quantum facets) | Fritz version | predicted node, predictor; splitting | stage | seed class reached |
 |---|---|---|---|---|
@@ -413,13 +413,13 @@ The second table names the six classes explicitly, one row per class with every 
 | 1→2→3; Q{0,1}, Q{0,2}, Q{1,3} ([6.10](#610-example-a-split-predictor-and-a-split-target-worked-out-in-full); 1 structure) | d-separation certificate | 1 ← 0 (latent siblings through Q{0,1}); split target, split predictor (0 is childless, so untouched) | 6 | instrumental |
 | 1→2, 1→3, 2→3; Q{0,2}, Q{0,3} (KPC, [7.5](#75-worked-example-the-kpc-structure)) and its quantum-equivalent relatives 1→3, 2→3; Q{0,2}, Q{0,3}, Q{1,2}; 1→2, 1→3, 2→3; Q{0,2}, Q{0,3}, Q{1,2}; 1→2, 2→3; Q{0,2}, Q{0,3}, Q{1,3}; 1→2, 1→3, 2→3; Q{0,2}, Q{0,3}, Q{1,3} (5 structures) | semigraphoid closure | 3 ← 0 (latent siblings through Q{0,3}); unsplit target, split predictor (0 childless, untouched) | 8 | Bell (no settings link) |
 
-[8.9](#89-the-six-classes-that-need-a-fritz-step) gives each step in full (predictor, target, deletion, follow-up); the cumulative counts after each of the ten stages, with their times, are in [9.1](#91-the-ten-stages). The five structures of the last row are one quantum class: they differ by a facet or an edge on a premeasurable node, so one closure certificate serves all of them.
+[8.9](#89-the-six-classes-that-need-a-fritz-step) gives each step in full (predictor, target, deletion, follow-up); the cumulative counts after each of the ten stages, with their times, are in [9.1](#91-the-cascade-and-the-deeper-census). The five structures of the last row are one quantum class: they differ by a facet or an edge on a premeasurable node, so one closure certificate serves all of them.
 
 **In terms of structures.** The 372 proven classes contain 935 of the 996 structures; the 46 open classes contain 61 structures and lie in 46 distinct classical classes, none of which contains a proven class. Of the 46 open classes, 44 consist of a single structure; the largest open class has 12 (no edges but 2→3; Q{0,2}, Q{0,3}, Q{1,2,3}, with the facet Q{1,2,3} redundant for several of its members). Section [10](#10-open-questions) lists all 46, and [open_classes.md](open_classes.md) works out how they relate: four of them would follow from a gap in the largest one, no other open class from any other.
 
 **The parent piggyback** was applied to the members of the 52 classes left by the elementary stage with both target modes and both predictor modes: 805 candidate steps, every one justified for free, three classes proven: 0→1→2→3; Q{0,1}, Q{0,2}, Q{1,3}, the same with the edge 0→2 added, and 0→2, 1→2, 2→3; Q{0,1}, Q{0,2}, Q{1,3} (the family of [6.9](#69-example-a-split-target-with-a-childful-unsplit-predictor)). In all three the predictor 0 is a parent of the predicted node (1, 1 and 2 respectively) that also shares a quantum facet with it: the copy of the predicted node keeps the edge from the predictor only, and the teleportation marginalization that follows carries the predictor's quantum share to the node that survives into the seed. [8.9](#89-the-six-classes-that-need-a-fritz-step) walks through each.
 
-**The d-separation certificate** proves two classes: the tetrahedron with no splitting ([6.7](#67-example-the-tetrahedron-unsplit-target-and-unsplit-predictor)), and the class of [6.10](#610-example-a-split-predictor-and-a-split-target-worked-out-in-full), proven with a split target and a split predictor. Two such routes are recorded at that stage: the one in the table above, whose predictor is childless and so left untouched, and the one worked out in [6.10](#610-example-a-split-predictor-and-a-split-target-worked-out-in-full), whose predictor has a child and is split. That last class also has a closure route with an unsplit target ([7.8](#78-further-examples-from-the-census)); with the d-separation stages run first the census records the d-separation route. Joint steps ([8.5](#85-joint-steps-and-why-not-a-second-fritz-depth)), in which one predictor restricts several targets at once, are enumerated in all four d-separation stages and prove no four-node class that single targets do not.
+**The d-separation certificate** proves two classes: the tetrahedron with no splitting ([6.7](#67-example-the-tetrahedron-unsplit-target-and-unsplit-predictor)), and the class of [6.10](#610-example-a-split-predictor-and-a-split-target-worked-out-in-full), proven with a split target and a split predictor. Two such routes are recorded at that stage: the one in the table above, whose predictor is childless and so left untouched, and the one worked out in [6.10](#610-example-a-split-predictor-and-a-split-target-worked-out-in-full), whose predictor has a child and is split. That last class also has a closure route with an unsplit target ([7.8](#78-further-examples-from-the-census)); with the d-separation stages run first the census records the d-separation route. Joint steps ([8.5](#85-joint-steps-and-fritz-depth)), in which one predictor restricts several targets at once, are enumerated in all four d-separation stages and prove no four-node class that single targets do not.
 
 **The semigraphoid closure** proves one more class, with a childless predictor split (hence untouched, [6.4](#64-node-splitting-split-and-unsplit-predictors-split-and-unsplit-targets-qmdagsplit_node)), an unsplit target and the `relabel` target set ([7.8](#78-further-examples-from-the-census)). With unsplit predictors the closure adds nothing beyond d-separation in four nodes, and with split targets nothing at all. It costs about a millisecond per candidate: the 696 candidates that d-separation rejects (37 certified, 659 not) take under a second in all.
 
@@ -604,7 +604,7 @@ Example: 1→3, 2→3; Q{0,2}, Q{0,3}, Q{1,2}. Predictor 0 deletes 1→3 and 2�
 
 **Several predictors.** Joint predictor *sets*, on the other hand, are not reducible to single predictors: a set sees more than any member.
 
-Which joint steps the search tries, and why it tries them, is the subject of [8.5](#85-joint-steps-and-why-not-a-second-fritz-depth).
+Which joint steps the search tries, and why it tries them, is the subject of [8.5](#85-joint-steps-and-fritz-depth).
 
 ### 6.3 Example: the triangle, Fritz's original argument
 
@@ -689,7 +689,7 @@ Compared with the certified piggybacks of [6.6](#66-theorem-d-separation-certifi
 * The deletion is **maximal**: $s$ keeps the edges from the predictors only, so a facet shared by $s$ and a predictor is deleted as well, where a sibling predictor would keep it (classical for $s$). Nothing is lost by this: the predictor has the child $s,$ so it (or its copy) is always marginalized, and the marginalization re-creates the classical facet over the facet's other members and the predictor's children, $s$ included, that the sub-maximal deletion would have kept; on the census the two deletions give identical output structures for every pair.
 * There is **no certificate**: the hypothesis the certified piggybacks must establish, that the function $g(\mathbf X)$ factors through parents $s$ keeps, is immediate because $\mathbf X$ consists of such parents.
 
-In the code the pool `'parents'` lists the visible parents of a target ([`QmDAG.fritz_pool`](../quantum_mDAG.py#L739)), [`QmDAG.fritz_deletion`](../quantum_mDAG.py#L769) performs the maximal deletion for them, and [`QmDAG.fritz_certificate`](../quantum_mDAG.py#L796) returns the label `parent` without a test; the census runs this piggyback as its own stage, before every certified one ([9.1](#91-the-ten-stages)). A predictor that is both a visible parent and a latent sibling of $s$ belongs here, not to the certified pools.
+In the code the pool `'parents'` lists the visible parents of a target ([`QmDAG.fritz_pool`](../quantum_mDAG.py#L739)), [`QmDAG.fritz_deletion`](../quantum_mDAG.py#L769) performs the maximal deletion for them, and [`QmDAG.fritz_certificate`](../quantum_mDAG.py#L796) returns the label `parent` without a test; the census runs this piggyback as its own stage, before every certified one ([9.1](#91-the-cascade-and-the-deeper-census)). A predictor that is both a visible parent and a latent sibling of $s$ belongs here, not to the certified pools.
 
 **What the step achieves.** What the step does to $s$ is a real reduction: the parents of $s$ other than the predictors are gone for good, and no elementary piggyback deletes them. What the predictor's departure adds back is a classical version of the predictor's own inputs: unsplit, the predictor is marginalized (it has the child $s$) and relays its parents to $s$ and to its other children as edges and a classical facet; split, the copy $x'$ is a twin parent of $s,$ $s$ keeps the edge from $x'$ only, and marginalizing $x'$ relays $\mathrm{Pa}(x)$ to $s$ together with a classical facet over $x$'s children. The third route of [6.8](#68-example-deleting-a-visible-edge-three-routes) is the smallest example: 1 loses 0→1 and Q{1,2} and gains C{0,1,3}. After the step $s$ has no quantum parent at all.
 
@@ -920,7 +920,7 @@ Here $s$ is the predicted node and $\mathbf X$ the predicting set (for a split p
    * For an unsplit predictor it is literally what the quantum direction provides: $x$ outputs its own value and the prediction, so $H(s\mid x)=0$ while $x$ is not a function of $s.$
    * For a split predictor the quantum construction can make the copy $x'$ perfectly correlated with $s,$ $H(s\mid x')=0$ *and* $H(x'\mid s)=0,$ but the piggyback hypothesises only the first direction, in the same sufficiency form, and treats $x'$ as a predictor that keeps all of its parents; the second direction is deliberately left unused ([6.4](#64-node-splitting-split-and-unsplit-predictors-split-and-unsplit-targets-qmdagsplit_node), Section [10](#10-open-questions)).
 
-   *Several predicted nodes.* Several predicted nodes of one $\mathbf X$ would each contribute their own triplets (the engine accepts a set); beyond d-separation the search certifies one predicted node at a time ([8.5](#85-joint-steps-and-why-not-a-second-fritz-depth)).
+   *Several predicted nodes.* Several predicted nodes of one $\mathbf X$ would each contribute their own triplets (the engine accepts a set); beyond d-separation the search certifies one predicted node at a time ([8.5](#85-joint-steps-and-fritz-depth)).
 
 3. **The observable d-separations of the candidate, $\mathcal I(G_1).$** The d-separation model of $G_1$ restricted to the visible nodes ([`semigraphoid.dsep_all`](../semigraphoid.py#L507) with the kept parent sets, visible block only). Every one of these triplets holds for the constructed distribution by (F2), hence for the joint of any classical model of $G$ producing it. Note that they are facts about $G_1,$ the graph *after* the deletion; nothing in the graph of $G$ provides them.
 
@@ -933,7 +933,7 @@ The closure of the union of the three is computed once per candidate (one call o
 * The **target** of a Fritz step is a node: the predicted node $s$ (Section [6](#6-the-fritz-piggyback-fritz)).
 * A **target set** is a set of conditional independence statements, the **target triplets**, that are to be derived from the hypotheses of [7.3](#73-the-hypotheses-and-how-perfect-prediction-enters-qmdag_semigraphoid_model-semigraphoidadd_functional_dependence). The candidate is certified when the closure contains every one of them.
 
-So a target set is not a set of targets. Several predicted nodes restricted in one step (a joint step, [6.2](#62-the-unit-a-predictor-and-its-targets) and [8.5](#85-joint-steps-and-why-not-a-second-fritz-depth)) are called "a set of predicted nodes" in this section.
+So a target set is not a set of targets. Several predicted nodes restricted in one step (a joint step, [6.2](#62-the-unit-a-predictor-and-its-targets) and [8.5](#85-joint-steps-and-fritz-depth)) are called "a set of predicted nodes" in this section.
 
 **The two target sets.** Two target sets are implemented, `relabel` and `markov`. Each target set is the local Markov property of a DAG over $G$'s variables, and a closed model contains a DAG's local Markov triplets iff it contains its whole d-separation model ([7.2](#72-conditional-independence-as-the-proof-system-semigraphoids-and-the-exchange-rule-semigraphoidpy)), so each check is the containment of one d-separation model in the closure, one call of [`semigraphoid.contains`](../semigraphoid.py#L241).
 
@@ -944,7 +944,7 @@ Each target set is one d-separation model, so it is also called a target model, 
 
 **Which one runs.** The census runs only `relabel`, the one that reaches beyond d-separation in practice ([1.1](#11-the-census-over-quantum-classes)). `markov` is an option that is off, since it never decided an input ([9.3](#93-certificates-beyond-d-separation-attempted)); [`default_stages(lp_markov_target=True)`](../qc_gap_search.py#L145) turns it on, and it is then tried only where `relabel` is inapplicable or fails.
 
-**Place in the search.** In the search ([9.1](#91-the-ten-stages)) the d-separation test of [6.6](#66-theorem-d-separation-certificate) is run first on every candidate and the closure only where it fails, so a transition's certificate, `dsep` or `semigraphoid`, says which justification the step needs (`entropic` when the LP of [Appendix B](#appendix-b-the-entropic-lp-as-an-alternative-certificate-engine-entropic_lppy-qmdag_entropic_certificate) is the engine, [B.2](#b2-the-hypotheses-and-the-target-sets-as-lp-rows-qmdag_entropic_certificate)). Every step beyond d-separation predicts a single node ([8.5](#85-joint-steps-and-why-not-a-second-fritz-depth)).
+**Place in the search.** In the search ([9.1](#91-the-cascade-and-the-deeper-census)) the d-separation test of [6.6](#66-theorem-d-separation-certificate) is run first on every candidate and the closure only where it fails, so a transition's certificate, `dsep` or `semigraphoid`, says which justification the step needs (`entropic` when the LP of [Appendix B](#appendix-b-the-entropic-lp-as-an-alternative-certificate-engine-entropic_lppy-qmdag_entropic_certificate) is the engine, [B.2](#b2-the-hypotheses-and-the-target-sets-as-lp-rows-qmdag_entropic_certificate)). Every step beyond d-separation predicts a single node ([8.5](#85-joint-steps-and-fritz-depth)).
 
 ### 7.5 Worked example: the KPC structure
 
@@ -1017,13 +1017,13 @@ The `markov` rows of the deleted parents, whose non-descendant sets grow in $G_1
 
 *The classical direction.* Let $M$ be a classical model of $G$ for $P$ and $Q$ its joint over the visible nodes and the facets. $Q$ is Markov to $G,$ so it satisfies the d-separation model of $G$ (F2 for classical models); it satisfies the sufficiency triplets, since $I(s{:}j\mid K)\le H(s\mid\mathbf X)=0$ for $K\supseteq\mathbf X;$ and it satisfies $\mathcal I(G_1).$ The independences of $Q$ form a semigraphoid, so they include the closure of these hypotheses and with it every target triplet: $Q$ is Markov to $G_1$ (or to $G'',$ and then [7.6](#76-why-relabel-is-justified) gives a model of $G_1$ with the same observed marginal). Removing the predictors as in [6.6](#66-theorem-d-separation-certificate), by deletion or marginalization, gives $P'\in\mathcal C(G').$ $\square$
 
-The same argument read for a set of predicted nodes, one sufficiency hypothesis per node, one candidate $G_1$ restricting all of them and the `markov` target set, is sound as well (the `relabel` substitution is per predicted node, and the relabelled certificates of two predicted nodes do not obviously compose). The code certifies sets of predicted nodes by d-separation only (the joint steps of [6.2](#62-the-unit-a-predictor-and-its-targets) and [8.5](#85-joint-steps-and-why-not-a-second-fritz-depth)); the joint closure certificate was never decisive in four nodes, and it is listed in Section [10](#10-open-questions).
+The same argument read for a set of predicted nodes, one sufficiency hypothesis per node, one candidate $G_1$ restricting all of them and the `markov` target set, is sound as well (the `relabel` substitution is per predicted node, and the relabelled certificates of two predicted nodes do not obviously compose). The code certifies sets of predicted nodes by d-separation only (the joint steps of [6.2](#62-the-unit-a-predictor-and-its-targets) and [8.5](#85-joint-steps-and-fritz-depth)); the joint closure certificate was never decisive in four nodes, and it is listed in Section [10](#10-open-questions).
 
 ### 7.8 Further examples from the census
 
 **Which structures.** Six structures among the inputs have a semigraphoid-closure certificate with a split predictor and an unsplit target (the LP of [Appendix B](#appendix-b-the-entropic-lp-as-an-alternative-certificate-engine-entropic_lppy-qmdag_entropic_certificate) certifies the same steps), and no input has one at any other closure stage (a closure stage runs the closure where d-separation fails, [8.7](#87-two-kinds-of-stage-d-separation-breadth-first-then-the-semigraphoid-closure-with-early-exit)). Of the six:
 
-* five are the five members of the KPC class ([1.1](#11-the-census-over-quantum-classes)), which is proven only this way, at the second closure stage of the cascade (the cascade is the fixed sequence of search stages, [9.1](#91-the-ten-stages));
+* five are the five members of the KPC class ([1.1](#11-the-census-over-quantum-classes)), which is proven only this way, at the second closure stage of the cascade (the cascade is the fixed sequence of search stages, [9.1](#91-the-cascade-and-the-deeper-census));
 * the sixth, the split-predictor example of [6.10](#610-example-a-split-predictor-and-a-split-target-worked-out-in-full), also has a d-separation route with a split target, which the census records since every d-separation stage runs first.
 
 **What the six share.** All six use a childless predictor $X$ that is split, and the `relabel` target set for the predicted node $s.$ Examples 1 to 5 are written in the labels of [7.5](#75-worked-example-the-kpc-structure), so that $X=0$ and $s=3$ (example 3 is the KPC structure itself); example 6 is written in the labels of [6.10](#610-example-a-split-predictor-and-a-split-target-worked-out-in-full), with $X=3$ and $s=1.$
@@ -1116,7 +1116,7 @@ This shows what a piggyback would have to look like for the LP to justify it and
 
 **In four nodes there is none.** Run with both engines on every candidate (`--engine both`, which records every disagreement in either direction, [`ENGINE_DISAGREEMENTS`](../quantum_mDAG.py#L64)), the 696 candidate steps that d-separation rejects give 37 `relabel` certificates from each engine, the same 37, and 659 failures from both ([1.1](#11-the-census-over-quantum-classes), [9.3](#93-certificates-beyond-d-separation-attempted); [`tests/test_baseline_slow.py`](../tests/test_baseline_slow.py) pins the agreement). So on the census the dropped half of the perfect prediction and the non-semigraphoid Shannon inferences never matter, and the closure is the engine of record; a five-node candidate where they do matter would be worth having (Section [10](#10-open-questions)).
 
-**Cost.** The census's 696 closures and the d-separation models they need take under a second in all, against about a minute and a half of LP solves for the same candidates with the LP as the engine, so the closure stages cost no more than the surgery and bookkeeping of the search ([9.1](#91-the-ten-stages)). The order of the search is unchanged by the engine: one check per (predictor, target) pair whatever the loop order, and the per-structure model is cached, so the closure stages stay predictor-first ([8.7](#87-two-kinds-of-stage-d-separation-breadth-first-then-the-semigraphoid-closure-with-early-exit)). The closure certifies by containment and keeps no derivation; a trace of the rule instances that set each target cell, the analogue of the LP's Farkas certificate ([B.1](#b1-entropy-vectors-as-the-proof-system-entropic_lppy)), is a possible addition (Section [10](#10-open-questions)).
+**Cost.** The census's 696 closures and the d-separation models they need take under a second in all, against about a minute and a half of LP solves for the same candidates with the LP as the engine, so the closure stages cost no more than the surgery and bookkeeping of the search ([9.1](#91-the-cascade-and-the-deeper-census)). The order of the search is unchanged by the engine: one check per (predictor, target) pair whatever the loop order, and the per-structure model is cached, so the closure stages stay predictor-first ([8.7](#87-two-kinds-of-stage-d-separation-breadth-first-then-the-semigraphoid-closure-with-early-exit)). The closure certifies by containment and keeps no derivation; a trace of the rule instances that set each target cell, the analogue of the LP's Farkas certificate ([B.1](#b1-entropy-vectors-as-the-proof-system-entropic_lppy)), is a possible addition (Section [10](#10-open-questions)).
 
 ---
 
@@ -1132,7 +1132,7 @@ The subsections follow the procedure as it runs:
 2. [8.2](#82-what-a-predictor-sees-and-the-deletion-it-dictates-qmdagfritz_deletion): the deletion that a predictor dictates at a target.
 3. [8.3](#83-justifying-the-deletion-one-set-two-certificates-qmdagfritz_certificate): whether that deletion is justified, by d-separation or by the semigraphoid closure.
 4. [8.4](#84-parent-predictors-the-free-piggyback-as-its-own-stage): predictors that are visible parents of their target, which need no certificate and have a stage of their own.
-5. [8.5](#85-joint-steps-and-why-not-a-second-fritz-depth): joint steps. Once the targets of $\mathbf X$ are settled singly, every set of two or more of those that d-separation certified is emitted as one joint step, which is how Fritz's triangle reaches Bell.
+5. [8.5](#85-joint-steps-and-fritz-depth): joint steps. Once the targets of $\mathbf X$ are settled singly, every set of two or more of those that d-separation certified is emitted as one joint step, which is how Fritz's triangle reaches Bell.
 6. [8.6](#86-modes-and-the-surgery-qmdag_restrict_targets-qmdagfritz_realise): the splitting modes, and the surgery that carries a step out.
 7. [8.7](#87-two-kinds-of-stage-d-separation-breadth-first-then-the-semigraphoid-closure-with-early-exit): the two kinds of stage in which the search runs the procedure.
 8. [8.8](#88-what-the-procedure-decides-and-what-it-does-not): which of these choices decide the certificate an input gets, and what none of them changes.
@@ -1211,7 +1211,7 @@ The three examples of [8.2](#82-what-a-predictor-sees-and-the-deletion-it-dictat
 
 **Why no certificate, and why the deletion is larger.** Let $X$ be a visible parent of $s$ (with or without a shared facet). The soundness statement of [8.3](#83-justifying-the-deletion-one-set-two-certificates-qmdagfritz_certificate) asks that in every classical model with $s=g(X),$ $s$ be a function of the parents it keeps. If $s$ keeps $X,$ that is already true, with nothing to show: this is the parent piggyback of [6.5](#65-the-parent-predictor-deletion-without-a-certificate), and [`fritz_certificate`](../quantum_mDAG.py#L796) returns `parent` without a test. For the same reason the deletion is larger than for a sibling: [`fritz_deletion`](../quantum_mDAG.py#L769) lets $s$ keep the edge from $X$ alone, a facet shared by $X$ and $s$ included in the deletion, where a sibling predictor keeps the shared facets ([8.2](#82-what-a-predictor-sees-and-the-deletion-it-dictates-qmdagfritz_deletion)).
 
-**The parent stage.** The parent piggyback is run as the first Fritz stage of the cascade ([9.1](#91-the-ten-stages)), over the pool of visible parents, with both target modes and both predictor modes ([6.4](#64-node-splitting-split-and-unsplit-predictors-split-and-unsplit-targets-qmdagsplit_node)). Everything that each root of the search (a structure the stage is applied to) produces is recorded ([9.1](#91-the-ten-stages)). The certified stages never see a parent predictor, since their pool is the latent siblings that are not visible parents ([8.1](#81-the-pool-and-its-order-qmdagfritz_pool-qmdagfritz_targets)). (The `relabel` target set would not even apply to a parent predictor, since the kept set is not a single facet.)
+**The parent stage.** The parent piggyback is run as the first Fritz stage of the cascade ([9.1](#91-the-cascade-and-the-deeper-census)), over the pool of visible parents, with both target modes and both predictor modes ([6.4](#64-node-splitting-split-and-unsplit-predictors-split-and-unsplit-targets-qmdagsplit_node)). Everything that each root of the search (a structure the stage is applied to) produces is recorded ([9.1](#91-the-cascade-and-the-deeper-census)). The certified stages never see a parent predictor, since their pool is the latent siblings that are not visible parents ([8.1](#81-the-pool-and-its-order-qmdagfritz_pool-qmdagfritz_targets)). (The `relabel` target set would not even apply to a parent predictor, since the kept set is not a single facet.)
 
 **What the step does for the target** is a genuine deletion followed by a partial refund. The parents of $s$ other than $X$ are gone for good, and no elementary piggyback removes them. Then $X$ must leave, in one of two ways:
 
@@ -1220,9 +1220,9 @@ The three examples of [8.2](#82-what-a-predictor-sees-and-the-deletion-it-dictat
 
 The third route of [6.8](#68-example-deleting-a-visible-edge-three-routes) shows the net effect: 1 loses 0→1 and Q{1,2} and gains C{0,1,3}. After the step $s$ has no quantum parent at all.
 
-**In the census.** In the four-node census the stage produces 265 structures and proves three inputs, the family of [6.9](#69-example-a-split-target-with-a-childful-unsplit-predictor), in each of which the parent predictor also shares a facet with the target ([1.1](#11-the-census-over-quantum-classes)); it takes 8 seconds ([9.1](#91-the-ten-stages)).
+**In the census.** In the four-node census the stage produces 265 structures and proves three inputs, the family of [6.9](#69-example-a-split-target-with-a-childful-unsplit-predictor), in each of which the parent predictor also shares a facet with the target ([1.1](#11-the-census-over-quantum-classes)); it takes 8 seconds ([9.1](#91-the-cascade-and-the-deeper-census)).
 
-### 8.5 Joint steps, and why not a second Fritz depth
+### 8.5 Joint steps and Fritz depth
 
 **What is emitted.** For one predictor set and one pair of modes (a target mode and a predictor mode, [6.4](#64-node-splitting-split-and-unsplit-predictors-split-and-unsplit-targets-qmdagsplit_node)), the targets that d-separation certifies singly are known once the single steps are done. Every subset of two or more of them is then emitted as a **joint step**:
 
@@ -1235,9 +1235,9 @@ The third route of [6.8](#68-example-deleting-a-visible-edge-three-routes) shows
 
 **Only d-separation members are admitted**: the `relabel` certificate substitutes the target for one of its latents, and two such substitutions for two targets do not obviously compose into a model of the joint candidate (a joint closure over the joint candidate with the `markov` target set would; it is sound but not implemented, and when it was tried it decided no input, Section [10](#10-open-questions)).
 
-**Why joint steps rather than a deeper search.** With the predictor *unsplit*, the joint step of the triangle ([6.3](#63-example-the-triangle-fritzs-original-argument)) has no sequential counterpart at all, since after one copy is predicted the predictor is gone; the sequential route needs two *split*-predictor steps and a point distribution. The cascade of [9.1](#91-the-ten-stages) applies the Fritz trick once per input ("depth one"), so without joint steps the search would miss the paradigmatic derivation of Bell from the triangle, and would in general miss every output that needs a predictor to serve two targets.
+**Why joint steps remain available.** With the predictor *unsplit*, the joint step of the triangle ([6.3](#63-example-the-triangle-fritzs-original-argument)) has no sequential counterpart at all, since after one copy is predicted the predictor is gone; the sequential route needs two *split*-predictor steps and a point distribution. The historical cascade of [9.1](#91-the-cascade-and-the-deeper-census) applies the Fritz trick once per input ("depth one"), so without joint steps the search would miss the paradigmatic derivation of Bell from the triangle, and would in general miss every output that needs a predictor to serve two targets.
 
-A second Fritz depth would recover them at the cost of re-expanding every Fritz output under the trick, which was measured to cost far more than everything else combined; the joint steps recover them for one extra surgery per subset of already-certified targets and no closure at all. In four nodes a predictor has at most three certified targets, so at most four joint subsets are added per predictor and modes.
+Unrestricted expansion can revisit large intermediates at substantial cost; the joint steps recover them for one extra surgery per subset of already-certified targets and no closure at all. In four nodes a predictor has at most three certified targets, so at most four joint subsets are added per predictor and modes.
 
 **Where joint steps run, and what they cost.** Joint steps belong to the d-separation stages of the cascade only ([8.7](#87-two-kinds-of-stage-d-separation-breadth-first-then-the-semigraphoid-closure-with-early-exit)); `max_targets` bounds the subsets (all by default; 1 switches joint steps off), and the census shows them to be cheap: the four d-separation stages take about a second each or less, joint steps included, and they prove no four-node class that single steps did not.
 
@@ -1248,7 +1248,7 @@ A second Fritz depth would recover them at the cost of re-expanding every Fritz 
 * with split targets each target is split first and the copies are the targets;
 * with split predictors each childful predictor (a predictor that has children) is split and the copy predicts.
 
-**What the modes cost.** Both target modes and both predictor modes are available to both certificates. Split predictors reach strictly more (the KPC construction of [7.5](#75-worked-example-the-kpc-structure) keeps its childless predictor), but an output with a split predictor has as many visible nodes as its source, so an exhaustive closure under split predictors is far larger than under unsplit ones; the search applies the split-predictor stages at depth one, once to each input the cheaper stages leave unproven (Section [9](#9-search-certificates-and-the-four-node-census-qc_gap_searchpy-special-applicationsproving_qc_gapspy)). The cascade of [1.1](#11-the-census-over-quantum-classes) separates the contributions of the predictor mode, the target mode and the certificate, and says where split predictors prove something unsplit predictors cannot.
+**What the modes cost.** Both target modes and both predictor modes are available to both certificates. Split predictors reach strictly more (the KPC construction of [7.5](#75-worked-example-the-kpc-structure) keeps its childless predictor), but an output with a split predictor has as many visible nodes as its source, so an exhaustive closure under split predictors is far larger than under unsplit ones; the historical cascade applies the split-predictor stages at depth one, once to each input the cheaper stages leave unproven (Section [9](#9-search-certificates-and-the-four-node-census-qc_gap_searchpy-special-applicationsproving_qc_gapspy)). The cascade of [1.1](#11-the-census-over-quantum-classes) separates the contributions of the predictor mode, the target mode and the certificate, and says where split predictors prove something unsplit predictors cannot.
 
 **The surgery** itself has no certificate logic. It has two parts:
 
@@ -1265,14 +1265,14 @@ A second Fritz depth would recover them at the cost of re-expanding every Fritz 
 
 ### 8.7 Two kinds of stage: d-separation breadth-first, then the semigraphoid closure with early exit
 
-The cascade of [9.1](#91-the-ten-stages) runs the Fritz trick in the parent stage ([8.4](#84-parent-predictors-the-free-piggyback-as-its-own-stage)) and then in two groups of four stages, one stage per pair of modes in each group. A structure that a stage is applied to is a **root of the search**. The parent stage behaves like a d-separation stage: every root of the search is recorded in full.
+The historical cascade of [9.1](#91-the-cascade-and-the-deeper-census) runs the Fritz trick in the parent stage ([8.4](#84-parent-predictors-the-free-piggyback-as-its-own-stage)) and then in two groups of four stages, one stage per pair of modes in each group. A structure that a stage is applied to is a **root of the search**. The parent stage behaves like a d-separation stage: every root of the search is recorded in full.
 
 **The d-separation stages.** [`fritz_steps`](../quantum_mDAG.py#L920) runs with the closure off (`use_lp=False`; the flag is named after the LP of [Appendix B](#appendix-b-the-entropic-lp-as-an-alternative-certificate-engine-entropic_lppy-qmdag_entropic_certificate), the alternative engine). For every predictor set it
 
 1. visits every target, reads off the deletion and runs the d-separation test;
 2. emits the single steps and then the joint steps of that predictor set.
 
-The explorer records everything the root of the search produces, breadth-first, with no early exit (it never stops before the root of the search is recorded in full). The test is cheap, so there is nothing to save (the four d-separation stages take about a second each or less in the census, [9.1](#91-the-ten-stages)), and recording every d-separation route keeps what is recorded, and with it the database of proven structures ([9.5](#95-the-known-gap-database-the-search-establishes)), independent of the order in which the predictors of a root of the search happen to be tried. (The joint steps themselves would survive early exit either way: [`fritz_steps`](../quantum_mDAG.py#L920) collects a predictor's certified targets before emitting any of its joint steps.)
+The explorer records everything the root of the search produces, breadth-first, with no early exit (it never stops before the root of the search is recorded in full). The test is cheap, so there is nothing to save (the four d-separation stages take about a second each or less in the census, [9.1](#91-the-cascade-and-the-deeper-census)), and recording every d-separation route keeps what is recorded, and with it the database of proven structures ([9.5](#95-the-known-gap-database-the-search-establishes)), independent of the order in which the predictors of a root of the search happen to be tried. (The joint steps themselves would survive early exit either way: [`fritz_steps`](../quantum_mDAG.py#L920) collects a predictor's certified targets before emitting any of its joint steps.)
 
 **The closure stages.** [`fritz_steps`](../quantum_mDAG.py#L920) runs with `lp_only` (a flag likewise named after the LP). The loop is the same, with four differences:
 
@@ -1289,7 +1289,7 @@ The early exit is there for the LP, where every candidate costs a solve; with th
 
 Three choices of the procedure influence *which* certificate an input gets, and none influences *whether* it gets one.
 
-* **Stage order** ([9.1](#91-the-ten-stages)): the parent stage first, every d-separation stage before every closure stage, and within each group unsplit targets before split targets, unsplit predictors before split ones; each stage is applied only to the inputs the earlier stages left unproven. An input proven at stage $k$ never sees stage $k+1,$ so a closure proof is never recorded for an input that any d-separation route settles. The split-predictor example of [6.10](#610-example-a-split-predictor-and-a-split-target-worked-out-in-full) is the case in point: it has a d-separation route (split target, split predictor) and a closure route (unsplit target, split predictor); the census records the former.
+* **Stage order** ([9.1](#91-the-cascade-and-the-deeper-census)): the parent stage first, every d-separation stage before every closure stage, and within each group unsplit targets before split targets, unsplit predictors before split ones; each stage is applied only to the inputs the earlier stages left unproven. An input proven at stage $k$ never sees stage $k+1,$ so a closure proof is never recorded for an input that any d-separation route settles. The split-predictor example of [6.10](#610-example-a-split-predictor-and-a-split-target-worked-out-in-full) is the case in point: it has a d-separation route (split target, split predictor) and a closure route (unsplit target, split predictor); the census records the former.
 * **Early exit** ([8.7](#87-two-kinds-of-stage-d-separation-breadth-first-then-the-semigraphoid-closure-with-early-exit)): within a closure stage, the first child structure whose elementary reduction reaches a known gap ends the input, so later alternatives of the same stage are not recorded; the d-separation stages record everything.
 * **Shortest chain, earliest stage** ([`build_report`](../qc_gap_search.py#L699)): among the recorded routes, the certificate is the shortest chain of transitions using the transitions of the earliest stage that has one, ending at a seed (a class whose gap is taken as known, [0.7](#07-the-census-the-seeds-and-the-names-of-the-tricks)) or at an input already certified.
 
@@ -1299,7 +1299,7 @@ Three choices of the procedure influence *which* certificate an input gets, and 
 * the cumulative count after each stage;
 * the ladder of [1.1](#11-the-census-over-quantum-classes).
 
-The ladder is computed from the recorded transitions by the rung each one belongs to (its certificate, target mode and predictor mode, [9.1](#91-the-ten-stages)), and an input proven at some rung has recorded the step that proves it there in every variant of the procedure (an unproven input records everything; a proven input is proven at the rung of the step that proved it).
+The ladder is computed from the recorded transitions by the rung each one belongs to (its certificate, target mode and predictor mode, [9.1](#91-the-cascade-and-the-deeper-census)), and an input proven at some rung has recorded the step that proves it there in every variant of the procedure (an unproven input records everything; a proven input is proven at the rung of the step that proved it).
 
 **What varies:**
 
@@ -1395,7 +1395,7 @@ From these it derives the `relabel` targets, Markov($G_1$) with 1 in the role of
 
 This section describes the census as a computation: the search over every four-node input class ([0.7](#07-the-census-the-seeds-and-the-names-of-the-tricks)) that produces the results of Section [1](#1-results-the-four-node-census). The results come first and the bookkeeping last:
 
-* [9.1](#91-the-ten-stages): the ten stages of the search, and how many classes each of them proves;
+* [9.1](#91-the-cascade-and-the-deeper-census): the ten stages of the search, and how many classes each of them proves;
 * [9.2](#92-reading-the-tables-and-why-the-seeds-matter): how to read the tables of [1.1](#11-the-census-over-quantum-classes), why only the elementary tricks are assessed one at a time, and why the Bell classes are seeds;
 * [9.3](#93-certificates-beyond-d-separation-attempted): how many candidate Fritz steps the search tests, and how each is justified;
 * [9.4](#94-why-node-stitching-and-naive-marginalization-show-few-exclusive-proofs): why node stitching and naive marginalization show few exclusive proofs, with worked examples;
@@ -1405,11 +1405,27 @@ This section describes the census as a computation: the search over every four-n
 
 The word "certificate" has two uses in this section. The certificate of a Fritz step is the test that justifies its deletion: d-separation ([6.6](#66-theorem-d-separation-certificate)) or the semigraphoid closure (Section [7](#7-the-semigraphoid-closure-certificate-for-the-fritz-piggyback-semigraphoidpy-qmdag_semigraphoid_certificate)), and no test at all for a parent predictor ([6.5](#65-the-parent-predictor-deletion-without-a-certificate)). The certificate of a proven class is its printed proof: the chain of recorded steps from the class down to a seed.
 
-### 9.1 The ten stages
+### 9.1 The cascade and the deeper census
 
-The census is one run of one explorer, in ten stages: the elementary stage, then nine Fritz stages of increasing cost. The explorer ([`ClosureExplorer`](../qc_gap_search.py#L222), [9.6](#96-bookkeeping-the-explorer-the-cache-and-the-record)) is the object that applies the tricks to the classes and records every step. Every seed class (a class whose gap is taken as known, [0.7](#07-the-census-the-seeds-and-the-names-of-the-tricks)) is known from the start.
+**The primary search.** The four-node inputs, seeds, class index, predictor pools and certificates also apply to the deeper search. First the census retains the depth-one proofs and their intermediates. It then expands surviving branches under elementary reductions and non-growing Fritz moves to a fixed point. One Fritz move on a path may grow, including a joint split that adds two visible nodes. The search checks its output and lookup targets for a seed immediately. To continue the path it must reduce the visible count, by an elementary move or a reducing Fritz move. A reduction never restores the allowance. The bounded search stores the underlying move once and tracks the allowance when traversing it. Section [1](#1-results-the-four-node-census).6 of [the open-class analysis](open_classes.md) gives the measured cap comparison.
 
-The table gives the counts: the number of classes proven after each stage, with what each stage added, how many classes it was applied to and its wall-clock time on one core (the whole run takes about 17 seconds). The first row is the elementary stage. Each row below it adds one Fritz stage, named by its target mode and predictor mode (split or unsplit, [6.4](#64-node-splitting-split-and-unsplit-predictors-split-and-unsplit-targets-qmdagsplit_node)) and by its certificate. The stages themselves are described after the table.
+For one predictor and one target, removing the predictor gives a net change of −1 with an unsplit target and 0 with a split target. Keeping the predictor gives 0 and +1 respectively. A predictor with children is kept by splitting it and marginalizing its copy. The inexpensive parent rule, d-separation and semigraphoid certification all use this same accounting. The LP remains available as an alternative engine.
+
+**Screening.** A hybrid has the classical model of the mDAG obtained by forgetting source colours and removing dominated facets. If its classical equivalence class contains a latent-free DAG, the hybrid has no QC gap. The search records how the branch was reached and skips its expansion. It also screens a structure whose quantum sources can all be made classical by premeasurement. At six nodes it also recognizes saturated structures in which a complete visible DAG broadcasts to every member of a shared source (open-class analysis, 1.5). Through five nodes it reuses the classical membership sets across colourings. The five-node set contains 708,635 IDs ([Appendix C](#appendix-c-five-nodes-the-two-metagraphs-and-their-counts)). A warm run can load this set independently of the proof cache. Bounded certificates always run to named seeds.
+
+
+**Choice of default.** The cap-five census finished in 201 seconds from a cold start, including its five-node classical screen. The primary cap-six command finished in 281 seconds (4 minutes 41 seconds) with closure through five after the required reduction. Its peak resident memory was 3.13 GiB, compared with 2.82 GiB at cap five. Both figures include input metagraphs, screening, the historical proof record and bounded certificates. The hierarchy and the optional binary supports analysis run separately. Wall times are individual measurements on the benchmark host.
+
+| Output cap | Largest size for non-growing closure after reduction | Extra search states expanded at 3 / 4 / 5 / 6 visibles | Input gaps | All proven keys |
+|---|---:|---|---:|---:|
+| 5 | 4 | 2 / 146 / 129 / 0 | 372 | 426 |
+| 6 | 5 | 2 / 148 / 233 / 54 | 372 | 469 |
+
+The states count the deeper stage after screening, once per structure key and remaining growth allowance. The historical pass has its own counts below. Cap six met the ten-minute criterion with closure through five, so this is the default configuration.
+
+The historical part of the run uses ten stages: the elementary stage, then nine Fritz stages of increasing cost. The explorer ([`ClosureExplorer`](../qc_gap_search.py#L222), [9.6](#96-bookkeeping-the-explorer-the-cache-and-the-record)) is the object that applies the tricks to the classes and records every step. Every seed class (a class whose gap is taken as known, [0.7](#07-the-census-the-seeds-and-the-names-of-the-tricks)) is known from the start.
+
+The table gives the counts: the number of classes proven after each stage, with what each stage added, how many classes it was applied to and its wall-clock time on one core (the historical stages together take about 17 seconds). The first row is the elementary stage. Each row below it adds one Fritz stage, named by its target mode and predictor mode (split or unsplit, [6.4](#64-node-splitting-split-and-unsplit-predictors-split-and-unsplit-targets-qmdagsplit_node)) and by its certificate. The stages themselves are described after the table.
 
 | stage | proven (cumulative) | new | applied to | seconds |
 |---|---|---|---|---|
@@ -1425,7 +1441,7 @@ The table gives the counts: the number of classes proven after each stage, with 
 | + `Fritz`, split target, split predictor, semigraphoid closure | 372 | 0 | 46 | 1.1 |
 | remaining | | 46 | | |
 
-**How the counts are obtained.** The explorer records the stage in which each transition (a recorded step) was found, so the cumulative count of classes proven after each stage is a graph query ([`GapReport.stage_counts`](../qc_gap_search.py#L505)). The **ladder** ([`ladder`](../qc_gap_search.py#L851)) computes the same ten counts from the recorded parameters (certificate, target mode, predictor mode) instead of the recorded stage, and the slow test checks that the two agree. A stage identified in this way by its parameters is a **rung** of the ladder.
+**How the counts are obtained.** The explorer records the stage in which each transition (a recorded step) was found, so the cumulative count of classes proven after each stage is a graph query ([`GapReport.stage_counts`](../qc_gap_search.py#L505)). The **ladder** ([`ladder`](../qc_gap_search.py#L858)) computes the same ten counts from the recorded parameters (certificate, target mode, predictor mode) instead of the recorded stage, and the slow test checks that the two agree. A stage identified in this way by its parameters is a **rung** of the ladder.
 
 **The elementary stage.** The elementary reductions act on every member of every input class, closed over everything reachable. Two more things belong to this stage:
 
@@ -1434,7 +1450,7 @@ The table gives the counts: the number of classes proven after each stage, with 
 
 Reachability is transitive within this stage, so the set of classes it proves does not depend on the order in which the tricks are applied, and [`_fixpoint`](../qc_gap_search.py#L602) iterates the implication closure among the inputs until nothing changes. What each elementary trick proves on its own is read off the same record ([9.2](#92-reading-the-tables-and-why-the-seeds-matter)).
 
-**The Fritz stages.** The classes the elementary stage left unproven are attacked by a cascade of **nine Fritz stages of increasing cost** ([`default_stages`](../qc_gap_search.py#L145), [`CASCADE`](../qc_gap_search.py#L840)), each applied once to every member of each class the previous stages left unproven. The first is the parent piggyback ([6.5](#65-the-parent-predictor-deletion-without-a-certificate)), over the visible parents of each target, with both target modes and both predictor modes and no certificate. The next four certify by d-separation over the latent siblings, in the order
+**The Fritz stages.** The classes the elementary stage left unproven are attacked by a cascade of **nine Fritz stages of increasing cost** ([`default_stages`](../qc_gap_search.py#L145), [`CASCADE`](../qc_gap_search.py#L843)), each applied once to every member of each class the previous stages left unproven. The first is the parent piggyback ([6.5](#65-the-parent-predictor-deletion-without-a-certificate)), over the visible parents of each target, with both target modes and both predictor modes and no certificate. The next four certify by d-separation over the latent siblings, in the order
 
 1. unsplit targets, unsplit predictors;
 2. unsplit targets, split predictors (childless untouched, childful split and the copy marginalized, [6.4](#64-node-splitting-split-and-unsplit-predictors-split-and-unsplit-targets-qmdagsplit_node));
@@ -1454,7 +1470,7 @@ and the last four repeat the same modes with the semigraphoid closure of Section
 
 Every recorded transition is a sound step, so the partial record is sound. The cumulative counts and the ladder do not depend on where an input stops, since an unproven input records everything and a proven input is proven at the stage of the step that proved it either way. In the four-node census early exit saves ten of 706 checks, all in the one class that the closure proves ([1.1](#11-the-census-over-quantum-classes)), which is nothing measurable. Early exit is there for larger inputs with the LP as the engine, where a stage has more candidates per root (a structure the stage is applied to) than four-node structures offer.
 
-**Depth one.** Each stage applies the trick once to each member of each class still unproven, and the outputs are then reduced with the elementary tricks only, never with another Fritz step ("depth one"). The cascade thus loses proofs that would need two Fritz steps, which is accepted: a Fritz output has at least as many visible nodes as its source, and re-expanding every such output under the Fritz trick was found to be far slower than everything else combined. The counts of [1.1](#11-the-census-over-quantum-classes) are therefore lower bounds for what the tricks can prove, exact for the elementary stage.
+**Depth one in the historical comparison.** Each Fritz stage enumerates its eligible moves on every still-open input member. Its outputs receive elementary follow-up. The primary search subsequently revisits intermediates under the growth budget above. A Fritz output can have fewer, the same number, or more visible nodes than its input.
 
 **What the order decides.** The order decides cost (the closure runs only where the cheap stages failed) and which tricks a certificate prefers ([`build_report`](../qc_gap_search.py#L699) takes the shortest chain that uses only transitions recorded up to some stage, for the earliest stage at which such a chain exists). [`prove_gaps`](../qc_gap_search.py#L631) closes the proven set under implication from the seeds and attaches to every proven input a certificate, the shortest chain of transitions down to a named seed.
 
@@ -1464,14 +1480,14 @@ Nor does it matter in which order gaps become known, and nothing is restarted wh
 
 Elementary tricks before a Fritz step are covered in the same way: an all-quantum four-node structure they reach is itself an input, with its own Fritz stages. As a check, rerunning the census from scratch with all 372 proven classes declared known from the start, or with the whole database of [9.5](#95-the-known-gap-database-the-search-establishes), leaves the same 46 classes open.
 
-What the census does not try is a Fritz step on an intermediate that is not an input, that is, on a hybrid (a structure with some facets classical) or on a five-node Fritz output. This is the second depth of the paragraph "Depth one" above; for the open classes it was measured separately and proves none of their 94 intermediates ([open_classes.md](open_classes.md), 1.6).
+The primary search tries Fritz directly on hybrid intermediates. A path found by composing two completed implications also proves a gap, but may use two growing moves. The hierarchy records such consequences separately from implications with a single bounded witness.
 
 ### 9.2 Reading the tables, and why the seeds matter
 
 **The counts are queries on the record.** Reachability restricted to any subset of tricks, or to any predicate on the recorded parameters, is a graph query over the recorded transitions. The tables of [1.1](#11-the-census-over-quantum-classes) hold two kinds of count:
 
 * For each elementary trick, "via" counts the input classes provable with that one elementary trick alone (the two lookups, degradation and upward, always allowed) and "only via" the classes lost when that trick is removed and everything else kept.
-* For the Fritz stages, the counts are cumulative over the rungs of the ladder ([9.1](#91-the-ten-stages)).
+* For the Fritz stages, the counts are cumulative over the rungs of the ladder ([9.1](#91-the-cascade-and-the-deeper-census)).
 
 **Why only the elementary tricks are assessed alone.** Every elementary trick is cheap and the elementary stage is exhaustive, so it is the one stage where "what does this trick prove alone, and what is lost without it" is a meaningful and affordable question, and [1.1](#11-the-census-over-quantum-classes) reports exactly that, per elementary trick. The search never asks how many inputs an expensive piggyback proves *alone*: that would mean closing the search under that piggyback over everything reachable, which is exactly the cost the cascade avoids, and it would answer a question nobody needs answered. The expensive steps are assessed by the cumulative ladder of [1.1](#11-the-census-over-quantum-classes) alone: what each successive stage adds to everything cheaper.
 
@@ -1480,6 +1496,8 @@ What the census does not try is a Fritz step on an intermediate that is not an i
 **Why the Bell classes are seeds.** Every piggyback except Fritz reduces the number of visible nodes or leaves the structure's nodes alone (degradation, upward), so for a four-node class a four-node seed class can only be reached by a Fritz step, a degradation or the identity. The Bell classes have to be seeds, on the strength of the direct Bell argument: deleting a facet is never a piggyback, so the Bell scenario without a settings link is not reached from the three-node seeds, and the one with correlated settings is not reached from any other class. Making the seeds inputs costs nothing and makes the counting uniform: the census starts from 418 classes and the identity piggyback proves two of them.
 
 ### 9.3 Certificates beyond d-separation attempted
+
+The tallies in this subsection are for the historical nine Fritz stages.
 
 The census counts every candidate step with a single target (a predictor set, a target and the deletion read off) over the nine Fritz stages, split structures included; the re-checks made for joint steps are not counted ([`ENTROPIC_STATS`](../quantum_mDAG.py#L69)). The two target sets named below, `relabel` and `markov`, are those of [7.4](#74-the-two-target-sets-as-containment-of-d-separation-models-qmdag_semigraphoid_certificate).
 
@@ -1498,6 +1516,8 @@ Among candidates that d-separation rejects, the closure succeeds for roughly one
 
 ### 9.4 Why node stitching and naive marginalization show few exclusive proofs
 
+The exclusive counts and examples in this subsection describe the historical record.
+
 **Node stitching.** Its characteristic product is a Bell variant derived from an instrumental variant. In an earlier census, which started from the three-node seeds alone, it was the sole route for exactly the three Bell variants that could be proven at all. Now that the Bell classes are seeds, every class it proves (seven in all) is also reachable by PD or postselection ([1.1](#11-the-census-over-quantum-classes)). Node stitching is the only reduction that re-uses an outcome as a setting; how much it contributes is bounded by how many Bell-type structures the input set contains that the seed list does not already hold.
 
 **The two marginalizations.** They coincide at a node without a quantum facet, so naive marginalization alone is never exclusive: wherever it applies, the teleportation version makes the same move. The 9 classes lost without teleportation marginalization are where the removed node holds a quantum share and relaying it to the node's children is what the proof needs. Postselection covers part of the same ground, since postselecting on a node $v$ without visible parents adds a quantum facet over all quantum siblings of $v$ (entanglement swapping), the same connection teleportation relays to the children of $v,$ only not restricted to children; what postselection cannot provide is the relayed visible input of $v,$ and where that input matters, or where postselection is blocked by a grandparent, teleportation marginalization is the route. An earlier census, which closed the unsplit-predictor Fritz trick over everything reachable, found alternative routes for all of these; the elementary stage alone does not.
@@ -1507,6 +1527,8 @@ Among candidates that d-separation rejects, the closure succeeds for roughly one
 **Example** (only via marginalization, either kind). Input: 2→3; Q{0,1}, Q{0,3}, Q{1,2}. Node 2 holds one share, of Q{1,2}, and feeds 3. Marginalizing 2 relays that share to 3 as a classical facet: Q{0,1}, Q{0,3}, C{1,3}, which degrades (Q{0,3} made classical) to [`QG_Triangle`](../known_QC_gaps.py#L42). Teleportation has nothing to add here, because 3 shares no quantum facet with 2 and so there is no entangled pair to teleport through (Section [3](#3-marginalization-naive-and-with-teleportation-naive_marginalization-teleportation_marginalization)); both marginalizations give the same structure, and the input counts in the "either kind" row but in neither single row. PD on 2 or postselecting on 2 leaves Q{0,1}, Q{0,3} without the third side of the triangle.
 
 ### 9.5 The known-gap database the search establishes
+
+The depth-one record proves 393 keys including the seeds. The deeper cap-five record proves 426, adding nine four-node and 24 five-node keys. Cap six adds another two four-node, 16 five-node and 25 six-node keys, bringing the total to 469. All three runs prove the same 372 input classes. These counts include each class or unlabelled intermediate once. For any such key, `report.bounded.forward(key, set(report.seed_keys))` returns a witness to a named seed on the primary record.
 
 Every class or structure the search touches, inputs, intermediates and the hybrid structures with classical facets that the Fritz steps create, is a proven QC gap as soon as it reaches a seed, and [`GapReport.proven_structure_ids`](../qc_gap_search.py#L555) returns that set of keys. This is the database to keep: the census inputs have every latent quantum, but a structure with some facets classical is a *weaker* structure, its gap is not implied by the gap of the all-quantum version (making a facet classical shrinks the quantum set and leaves the classical set), and it is a gap only if a chain of piggybacks from it reaches a seed. Fritz steps are indifferent to whether the shared facet is classical or quantum, so chains often transfer; postselection and teleportation are not, since they create quantum facets only among quantum siblings.
 
@@ -1552,7 +1574,7 @@ The order dependence of Section [3](#3-marginalization-naive-and-with-teleportat
 
 **Indices, copies and what a certificate prints.** Every transformation returns a plainly indexed structure. A copy made by node splitting is the next free index, and the recorded parameters print it with a prime (0′ is the copy of 0). Certificates print the member a step was applied to above the step and, when the structure the last step produced is not the representative of the known gap's class, the representative beside it.
 
-**The record of a run.** [`run_search`](../Special%20Applications/proving_QC_Gaps.py#L83) returns a [`GapReport`](../qc_gap_search.py#L493) (and the cache). Its explorer holds everything the search did:
+**The record of a run.** [`run_search`](../Special%20Applications/proving_QC_Gaps.py#L79) returns a [`GapReport`](../qc_gap_search.py#L493) (and the cache). Its explorer holds everything the search did:
 
 * `report.explorer.edges[key]` is the list of transitions recorded from the class `key`;
 * `report.explorer.structures[uid]` is every labelled structure met, by its own unlabelled id;
@@ -1564,7 +1586,7 @@ The report itself holds the proofs:
 * `report.seed_hit[key]` is the seed class the chain ends at;
 * `report.certificate(g)` renders the chain as the text printed in [8.9](#89-the-six-classes-that-need-a-fritz-step): each step with the structure it was applied to, then the known gap reached.
 
-**The cache** ([`gap_cache.py`](../gap_cache.py), [`cache/known_gaps.json`](../cache/known_gaps.json)). The cache stores the same chain per class as JSON. Every proven input class is stored with:
+**The cache** ([`gap_cache.py`](../gap_cache.py), [`cache/known_gaps.json`](../cache/known_gaps.json)). The cache stores the proof chain per input class as JSON. A bounded run regenerates its witnesses from named seeds and uses a separate versioned file for the five-node screening IDs. The following shortcut for cached proof goals applies to the historical cascade. Every proven input class is stored with:
 
 * its key;
 * the structure of its representative and of its other members, as node, edge and facet lists;
@@ -1577,13 +1599,18 @@ The file carries a format version that changes when the meaning of the keys does
 
 ### 9.7 Reproducing the results
 
-**Running the census.** Everything in Section [1](#1-results-the-four-node-census) comes from one command, run from the repository root:
+Run the primary census from the repository root. The cap and closure threshold are selectable independently.
 
-```
+```sh
 python "Special Applications/proving_QC_Gaps.py" --no-cache
+python "Special Applications/proving_QC_Gaps.py" --no-cache --max-visible 5 --resume-at 4
+python "Special Applications/proving_QC_Gaps.py" --no-cache --depth-one
 ```
 
-It builds the two metagraphs, runs the cascade of [9.1](#91-the-ten-stages), and prints the counts of [1.1](#11-the-census-over-quantum-classes), the stage table, the ladder and one certificate per class proven through a Fritz step. Without `--no-cache` the classes stored in [`cache/known_gaps.json`](../cache/known_gaps.json) count as known and only the rest is searched ([9.6](#96-bookkeeping-the-explorer-the-cache-and-the-record)).
+The last command reproduces the historical breakdowns below. On the primary record, use the report's bounded reachability for hypotheses and its seed certificates for gap claims.
+
+
+The historical ladder uses `--depth-one`. Its gap cache can supply previously established goals. The primary run rebuilds its proof paths from named seeds and can reuse the five-node screening table. To measure a cold process including screening and certificate construction, run `python "Special Applications/fritz_growth_experiment.py" --cold-cap 6 --resume-at 5`.
 
 The options:
 
@@ -1593,7 +1620,7 @@ The options:
 Two more entry points:
 
 * `python "Special Applications/census_breakdowns.py"` prints, for every elementary piggyback, classes that are lost without it and, for every rung of the ladder, the classes it adds with a certificate each (the rows of the tables of [1.1](#11-the-census-over-quantum-classes) and [8.9](#89-the-six-classes-that-need-a-fritz-step) were read off its output);
-* `pytest -m slow` pins every number of [1.1](#11-the-census-over-quantum-classes) and [9.1](#91-the-ten-stages) in [`tests/test_baseline_slow.py`](../tests/test_baseline_slow.py).
+* `pytest -m slow` pins every number of [1.1](#11-the-census-over-quantum-classes) and [9.1](#91-the-cascade-and-the-deeper-census) in [`tests/test_baseline_slow.py`](../tests/test_baseline_slow.py).
 * `python "Special Applications/census_experiments.py"` prints the figures of the experiments quoted beside the census: the split of the "only via" counts ([1.1](#11-the-census-over-quantum-classes)), the cost of the closure ([7.9](#79-strength-agreement-with-the-lp-and-cost)), descendants as predictors ([8.10](#810-experiment-descendants-as-predictors)), the early exit and the `markov` target set ([9.3](#93-certificates-beyond-d-separation-attempted)), the recolourings ([9.5](#95-the-known-gap-database-the-search-establishes)) and the sub-maximal deletions ([10.2](#102-open-questions)); with `--lp` it also counts the LP solves ([B.4](#b4-lp-size-and-time)). The slow tests pin all of them but the LP counts.
 
 **Which classes a given set of piggybacks proves.** The counts "via" and "only via" of [1.1](#11-the-census-over-quantum-classes) are reachability over the recorded transitions, closed under implication among the inputs ([`_fixpoint`](../qc_gap_search.py#L602)). The two lookups ([`LOOKUP_TRICKS`](../qc_gap_search.py#L202): degradation and the upward rule) are always allowed, since they are part of what "known" means. The same function answers any other combination, for instance the classes provable with point distribution and teleportation marginalization together, and those among them that need the teleportation:
@@ -1601,7 +1628,7 @@ Two more entry points:
 ```python
 import proving_QC_Gaps as census                       # from "Special Applications"
 from qc_gap_search import _fixpoint, LOOKUP_TRICKS
-report, cache = census.run_search(use_cache=False, verbose=False)
+report, cache = census.run_search(use_cache=False, verbose=False, deep=False)
 ex, seeds = report.explorer, set(report.seed_keys)
 with_both = _fixpoint(ex, report.input_ids, seeds, frozenset({'PD', 'teleportation_marginalization'}) | LOOKUP_TRICKS)
 only_tele = with_both - _fixpoint(ex, report.input_ids, seeds, frozenset({'PD'}) | LOOKUP_TRICKS)
@@ -1611,10 +1638,10 @@ only_tele = with_both - _fixpoint(ex, report.input_ids, seeds, frozenset({'PD'})
 
 **Further queries on the same report.**
 
-* *Certificates.* `report.certificate(ex.representatives[key])` prints the recorded certificate of a class, which is the shortest chain among the transitions of the earliest stages that suffice ([9.1](#91-the-ten-stages)); a certificate restricted to a chosen set is [`census_breakdowns.full_certificate(report, key, keep)`](../Special%20Applications/census_breakdowns.py#L58) with `keep` a predicate on transitions, e.g. `lambda t: t.trick in tricks`.
+* *Certificates.* `report.certificate(ex.representatives[key])` prints the recorded certificate of a class, which is the shortest chain among the transitions of the earliest stages that suffice ([9.1](#91-the-cascade-and-the-deeper-census)); a certificate restricted to a chosen set is [`census_breakdowns.full_certificate(report, key, keep)`](../Special%20Applications/census_breakdowns.py#L58) with `keep` a predicate on transitions, e.g. `lambda t: t.trick in tricks`.
 * *The structures behind a count of classes.* They are [`index.members(key)`](../qc_gap_search.py#L236) for `index = ex.index` (the class's all-quantum members) and [`index.size(key)`](../qc_gap_search.py#L236); `report.proven_structure_ids()` is the set of every structure the search touched that reaches a seed, hybrids included ([9.5](#95-the-known-gap-database-the-search-establishes)).
 * *The rows the census prints.* To change the "via" and "only via" rows, edit [`TRICK_GROUPS_FOR_REPORT`](../qc_gap_search.py#L206) in [`qc_gap_search.py`](../qc_gap_search.py): each entry names a group of tricks to count (the lookups are added) and the tricks whose removal defines "only via".
-* *The Fritz modes.* To assess them, [`ladder`](../qc_gap_search.py#L851) classifies the Fritz transitions by their recorded [`certificate`](../tests/test_fritz_entropic.py#L28), `target_mode` and `predictor_mode`, and `census.proven_through_fritz(report)` lists the classes whose certificate uses a Fritz step.
+* *The Fritz modes.* To assess them, [`ladder`](../qc_gap_search.py#L858) classifies the Fritz transitions by their recorded [`certificate`](../tests/test_fritz_entropic.py#L28), `target_mode` and `predictor_mode`, and `census.proven_through_fritz(report)` lists the classes whose certificate uses a Fritz step.
 
 ---
 
@@ -1632,7 +1659,7 @@ A separate record, [open_classes.md](open_classes.md), says where effort on them
 
 * which open classes would follow from a gap in which (classes 2, 3, 6 and 7 from class 1, and nothing else);
 * which hybrid structures (structures with at least one classical facet, [0.1](#01-structures-and-model-sets)) would settle several classes at once;
-* what a second Fritz depth adds, that is, a Fritz step applied to an intermediate structure that is not an input ([9.1](#91-the-ten-stages)): nothing;
+* how many additional hybrid gaps the screened search proves and which open classes share candidate targets;
 * and, as a separate question, which classical equivalences would shorten the list if proven.
 
 <details><summary>The 46 remaining classes (edges; quantum facets; structures in the class)</summary>
@@ -1702,7 +1729,7 @@ The first three questions concern the Fritz piggyback and its certificates, the 
 
   There is a sound way around it. Let $U=K\setminus\mathrm{seen}(\mathbf X)$ be the kept parents the predictors cannot see. In the quantum direction, $s$ computes $f(\mathrm{common}(s),U)$ and each predictor announces the *table* $u\mapsto f(\mathrm{common}(s),u),$ a subvariable from which $s$ is recovered given $U;$ the hypothesis becomes $H(s\mid\mathbf X,U)=0,$ and the classical direction has to show that a classical model of $G$ satisfying it is a model of the candidate in which $s$ keeps $K.$ Neither Theorem [6.6](#66-theorem-d-separation-certificate) nor Theorem [7.7](#77-theorem-semigraphoid-closure-certificate) covers this hypothesis as stated, so it is a new theorem to prove, not an option to switch on in the code.
 
-  Sub-maximal deletions are available for many pairs. Of the 2241 (sibling predictor, target) pairs the certified stages consider in the four-node census (up to relabelling), 1276 delete one non-noise parent, 790 two, 162 three and 13 four, so 965 pairs, on 507 of the 996 structures of the input classes, admit a strict sub-deletion. (A sibling predictor shares a facet with its target, [6.1](#61-the-mechanism); the certified stages are the Fritz stages that need a certificate, [9.1](#91-the-ten-stages).) Whether any of them proves one of the open classes has not been tried.
+  Sub-maximal deletions are available for many pairs. Of the 2241 (sibling predictor, target) pairs the certified stages consider in the four-node census (up to relabelling), 1276 delete one non-noise parent, 790 two, 162 three and 13 four, so 965 pairs, on 507 of the 996 structures of the input classes, admit a strict sub-deletion. (A sibling predictor shares a facet with its target, [6.1](#61-the-mechanism); the certified stages are the Fritz stages that need a certificate, [9.1](#91-the-cascade-and-the-deeper-census).) Whether any of them proves one of the open classes has not been tried.
 
 * **Semigraphoid against Shannon, and the dropped half of the perfect prediction.** The closure of Section [7](#7-the-semigraphoid-closure-certificate-for-the-fritz-piggyback-semigraphoidpy-qmdag_semigraphoid_certificate) certifies a subset of what the LP of [Appendix B](#appendix-b-the-entropic-lp-as-an-alternative-certificate-engine-entropic_lppy-qmdag_entropic_certificate) certifies, for two reasons ([7.9](#79-strength-agreement-with-the-lp-and-cost)):
 
@@ -1715,7 +1742,7 @@ The first three questions concern the Fritz piggyback and its certificates, the 
 
 * **Hybrid inputs.** A hybrid is a structure with at least one classical facet ([0.1](#01-structures-and-model-sets)). The census inputs have every facet quantum, and [9.5](#95-the-known-gap-database-the-search-establishes) shows that this leaves out thousands of four-node structures with classical facets that the elementary tricks prove in seconds. Among them are structures whose quantum facets lie inside classical ones, which no recolouring of an all-quantum input produces (a recolouring makes each facet of the input classical or quantum, [9.5](#95-the-known-gap-database-the-search-establishes)).
 
-  There are two fixes. The direct one is to enumerate all pairs (classical complex, quantum complex) on four nodes and to run the elementary stage of the census ([9.1](#91-the-ten-stages)) on them. The other is to run the piggybacks in reverse from the seeds ([Appendix A](#appendix-a-the-piggybacks-in-reverse)).
+  There are two fixes. The direct one is to enumerate all pairs (classical complex, quantum complex) on four nodes and to run the elementary stage of the census ([9.1](#91-the-cascade-and-the-deeper-census)) on them. The other is to run the piggybacks in reverse from the seeds ([Appendix A](#appendix-a-the-piggybacks-in-reverse)).
 
 * **Derivation traces.** The closure certifies by containment, that is, by checking that the closed set of independences contains the targets ([7.4](#74-the-two-target-sets-as-containment-of-d-separation-models-qmdag_semigraphoid_certificate)), and records no derivation. A trace of the rule instances that set each target cell would make every closure step a human-checkable proof, the analogue of the LP's Farkas certificate ([B.6](#b6-relation-to-the-closure-and-what-is-specific-to-the-lp), which also records what an exact version of that certificate would take).
 
@@ -1750,7 +1777,7 @@ This subsection lists four variants of the Fritz piggyback or of its certificate
 
   Nor would anything be gained. With the copy left alone, the second equality certifies exactly the pairs the first does (2,491 of 4,482), and from the open classes the stronger surgery yields 80 new outputs, none of which reaches a known gap. For a childless predictor the question does not arise: the copy is deleted and the two surgeries coincide. The example is worked through with diagrams in the appendix of [kpc_figure4_vs_code.md](kpc_figure4_vs_code.md); the numbers are printed by [`Special Applications/kpc_figure4_checks.py`](../Special%20Applications/kpc_figure4_checks.py) with `--census`.
 
-* **Joint steps certified beyond d-separation.** A joint step restricts several targets of one predictor set at once, and joint steps are admitted on d-separation certificates only ([8.5](#85-joint-steps-and-why-not-a-second-fritz-depth)). A joint closure (one candidate restricting every target of the set, one sufficiency hypothesis per target and the `markov` target set) is sound by Theorem [7.7](#77-theorem-semigraphoid-closure-certificate) read for a set of targets. It was tried, as a joint LP, and never decided a four-node input; the code does not run it.
+* **Joint steps certified beyond d-separation.** A joint step restricts several targets of one predictor set at once, and joint steps are admitted on d-separation certificates only ([8.5](#85-joint-steps-and-fritz-depth)). A joint closure (one candidate restricting every target of the set, one sufficiency hypothesis per target and the `markov` target set) is sound by Theorem [7.7](#77-theorem-semigraphoid-closure-certificate) read for a set of targets. It was tried, as a joint LP, and never decided a four-node input; the code does not run it.
 
   Whether the `relabel` certificates of two targets can be composed, so that a set with closure-certified members could be admitted without the joint certificate, is open.
 
@@ -1877,9 +1904,9 @@ Node splitting is never run on its own forward and would not be in reverse eithe
 
 Starting from the weakest seeds and closing under [A.1](#a1-degradation-in-reverse-quantumification) to [A.7](#a7-node-splitting-in-reverse-merging) with the number of visible nodes bounded by $n$ (and $n+1$ for the intermediate of [A.6](#a6-the-fritz-piggyback-in-reverse)) gives every structure on at most $n$ nodes that the toolkit can prove, hybrid structures included, each with a certificate read off the inverse steps. The inverse images of [A.1](#a1-degradation-in-reverse-quantumification), [A.2](#a2-point-distribution-in-reverse-node-insertion) and [A.3](#a3-marginalization-in-reverse-node-insertion-along-edges-and-facets) are the large ones; [A.4](#a4-postselection-in-reverse-un-swapping-entanglement) to [A.7](#a7-node-splitting-in-reverse-merging) are small. Because the degradation inverse ([A.1](#a1-degradation-in-reverse-quantumification)) is cheap and closes upward, the closure can again be stored in weakest form only.
 
-Two things the reverse closure does not change, as long as it is restricted to the steps the forward census takes, with the Fritz piggyback at depth one ([9.1](#91-the-ten-stages)): the set of all-quantum four-node gaps proven, which is the 372 classes of [1.1](#11-the-census-over-quantum-classes) by construction, and the 46 classes left open. The reason is that forward and reverse use the same implications: an input is proven forward iff it lies in the reverse closure under the same steps.
+Two things the reverse closure does not change, as long as it is restricted to the steps the forward census takes, with the Fritz piggyback at depth one ([9.1](#91-the-cascade-and-the-deeper-census)): the set of all-quantum four-node gaps proven, which is the 372 classes of [1.1](#11-the-census-over-quantum-classes) by construction, and the 46 classes left open. The reason is that forward and reverse use the same implications: an input is proven forward iff it lies in the reverse closure under the same steps.
 
-This agrees with the statement of [9.1](#91-the-ten-stages) that the counts of [1.1](#11-the-census-over-quantum-classes) are lower bounds for what the tricks can prove. That statement is about chains with more Fritz steps than the census tries; such chains could add proofs, forward and in reverse alike.
+This agrees with the statement of [9.1](#91-the-cascade-and-the-deeper-census) that the counts of [1.1](#11-the-census-over-quantum-classes) are lower bounds for what the tricks can prove. That statement is about chains with more Fritz steps than the census tries; such chains could add proofs, forward and in reverse alike.
 
 ---
 
@@ -1951,7 +1978,7 @@ An LP over $n$ variables (visible nodes plus facets, after any splitting) has $2
 
 The number of variables is not capped. Instead every solve carries a Mosek time limit of 60 seconds ([`EntropicLP(max_time=60.0)`](../entropic_lp.py#L216), `optimizer_max_time`); a solve that hits it is counted ([`entropic_lp.TIMEOUTS`](../entropic_lp.py#L85)) and treated as undecided, which is the conservative answer: the implication is then not claimed. The census report states how many solves timed out (none, [9.3](#93-certificates-beyond-d-separation-attempted)).
 
-On the census the LP stages take 7, 16, 20 and 51 seconds (696 candidates and 688 LP solves, one per candidate: for eight candidates the `relabel` target set does not apply and nothing is solved; a split target adds a variable and costs more per solve) and the whole census 104 seconds, against 17 with the closure ([9.1](#91-the-ten-stages)). The per-structure part of the LP, the Shannon cone with the Markov rows of the structure that carries the splits, is built once per structure and cached, like the closure's d-separation model. The descendants experiment ([1.1](#11-the-census-over-quantum-classes), [8.10](#810-experiment-descendants-as-predictors)) was timed with this engine, where its cost shows: 1280 solves and 176 seconds, against 688 and 107.
+On the census the LP stages take 7, 16, 20 and 51 seconds (696 candidates and 688 LP solves, one per candidate: for eight candidates the `relabel` target set does not apply and nothing is solved; a split target adds a variable and costs more per solve) and the whole census 104 seconds, against 17 with the closure ([9.1](#91-the-cascade-and-the-deeper-census)). The per-structure part of the LP, the Shannon cone with the Markov rows of the structure that carries the splits, is built once per structure and cached, like the closure's d-separation model. The descendants experiment ([1.1](#11-the-census-over-quantum-classes), [8.10](#810-experiment-descendants-as-predictors)) was timed with this engine, where its cost shows: 1280 solves and 176 seconds, against 688 and 107.
 
 ### B.5 The KPC example and the "decisive" diagnostic
 

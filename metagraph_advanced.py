@@ -794,7 +794,7 @@ class Observable_unlabelled_mDAGs:
         classical rule these are the provably algebraic structures, for which Q(G) = C(G)."""
         idx = self._dict_id_to_idx
         labels = self.class_labels
-        hit = np.zeros(len(self.equivalence_classes_as_ids), dtype=bool)
+        hit = np.zeros(int(labels.max()) + 1 if len(labels) else 0, dtype=bool)
         hit[[labels[idx[m.unique_unlabelled_id]] for m in self.latent_free_DAGs_unlabelled]] = True
         return set(self.metagraph_nodes[hit[labels]].tolist())
 

@@ -558,7 +558,7 @@ class GapReport:
         piggybacks from it to a seed; nothing is inferred from a structure to a weaker variant of it. Structures
         registered only as lookup targets (degradations) are not counted: a non-seed among them never reaches a
         seed, and a seed among them is a seed."""
-        known = _reverse_reachable(self.explorer, set(self.seed_keys))
+        known = self.bounded_keys if hasattr(self, "bounded_keys") else _reverse_reachable(self.explorer, set(self.seed_keys))
         return (known & set(self.explorer.representatives)) - self.explorer.lookup_only
 
 
@@ -700,6 +700,9 @@ def build_report(explorer: ClosureExplorer, inputs: List[QmDAG], seeds: Dict[str
                  trick_groups: Dict[str, Tuple[FrozenSet[str], FrozenSet[str]]],
                  known: Optional[Dict[str, UnlabelledId]] = None) -> GapReport:
     """`known` are further known gaps given by key (e.g. from the cache); they act as seeds."""
+    if hasattr(explorer, 'bounded'):
+        from growth_census import bounded_report
+        return bounded_report(explorer.bounded, inputs, seeds, trick_groups, known)
     known = known or {}
     seed_ids = _seed_keys(explorer, seeds, known)
     input_ids = [explorer.key(g) for g in inputs]
@@ -845,6 +848,10 @@ LADDER: List[Tuple[str, Callable[[Transition], bool]]] = [('elementary', CASCADE
 
 def _fixpoint_if(report: GapReport, keep: Callable[[Transition], bool]) -> Set[UnlabelledId]:
     """The inputs proven through the transitions satisfying `keep` alone (see _fixpoint)."""
+    if hasattr(report, 'bounded'):
+        from growth_census import Phase
+        routes = report.bounded.to_goals(report.seed_keys, keep=keep)
+        return {k for k in report.input_ids if (k, Phase.AVAILABLE) in routes}
     return _fixpoint(report.explorer, report.input_ids, set(report.seed_keys), None, keep)
 
 
