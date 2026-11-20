@@ -4,24 +4,17 @@ and which equivalences would settle them. Everything quoted in manuscript/open_c
 
     python "Special Applications/open_classes_analysis.py" --five --events 5
 
-Part 1 (the proof hierarchy). For every open class in turn, the class is declared a known gap and the report is
-rebuilt on the recorded transition graph: the other open classes that become proven are the ones that piggyback
-onto it. The census records every transition out of every member of an unproven class (elementary closure, one
-Fritz step with elementary follow-up), so this is what a rerun with the class as an extra seed would prove.
-Part 2 (shared intermediates). The structures the open classes reduce to, screened for provable gap-freeness, and
-the sets of open classes that reach a common structure. `--five` builds the five-node classical metagraph (three
-minutes, 3.2 GB) to screen the five-node intermediates; without it they are reported unscreened.
-Part 3 (a second depth). The unscreened-out intermediates are given to the cascade as inputs.
-Part 4 (equivalences). The classical class of each open class; hybrids whose all-quantum upgrade is proven; and
-pairs (open structure, proven or open structure structurally below it) whose classical inequivalence the
-invariants do not establish, tested with binary infeasible supports up to `--events` events. For the seven hard
-graphs of arXiv:2308.02380, where binary supports are uninformative, the partition proven in that paper is applied.
+The hierarchy is computed from bounded forward paths and independently checked by
+seeding each open class in the reverse search. The report also lists consequences
+of composing recorded implications. Shared targets use the same screen as the census.
+The final section evaluates classical equivalences and binary support invariants.
 """
 from __future__ import absolute_import
 import argparse
 import collections
 import sys
 import time
+from functools import lru_cache
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -30,10 +23,7 @@ for path in (str(PROJECT_ROOT), str(Path(__file__).resolve().parent)):
     if path not in sys.path:
         sys.path.insert(0, path)
 
-from directed_structures import DirectedStructure
-from hypergraphs import Hypergraph, hypergraph_full_cleanup
-from known_QC_gaps import SEEDS
-from mDAG_advanced import mDAG
+from growth_census import GapFreeScreen, Phase, advance, five_node_screen, underlying_mdag
 import qc_gap_search as S
 import proving_QC_Gaps as census
 
@@ -53,22 +43,6 @@ def fmt(g):
     return f'{e}; {f or "no facets"}'
 
 
-def underlying_mdag(g):
-    """The mDAG with the facets of both colours (dominated ones dropped): its classical model is that of g."""
-    n, edges, C, Q = parts(g)
-    facets = hypergraph_full_cleanup([frozenset(f) for f in C + Q])
-    return mDAG(DirectedStructure(edges, n), Hypergraph([tuple(sorted(f)) for f in facets if len(f) > 1], n))
-
-
-def quantum_part_is_free(g):
-    """Every quantum facet has at most one member that is not premeasurable (no visible parent and exactly one
-    facet of either colour). Such a facet is equivalent to a classical one (the pre-measurement argument,
-    manuscript 0.5), so the structure has the quantum model of an all-classical structure: no gap."""
-    n, edges, C, Q = parts(g)
-    has_parent = {b for _, b in edges}
-    count = collections.Counter(v for f in C + Q for v in f)
-    premeasurable = {v for v in range(n) if v not in has_parent and count[v] == 1}
-    return all(sum(1 for v in f if v not in premeasurable) <= 1 for f in Q)
 
 
 # -- the recorded transition graph ------------------------------------------------------------------------------
@@ -78,9 +52,12 @@ def recorded_graph(report):
     order of the report (the numbering of manuscript Section 10) and the two lookups every part needs."""
     explorer = report.explorer
     open_keys = [report.key(g) for g in report.remaining]
+    numbers = getattr(report, "original_open_numbers", {k: i for i, k in enumerate(open_keys, 1)})
+    forward = report.bounded.forward if hasattr(report, 'bounded') else explorer.reachable
     return SimpleNamespace(report=report, explorer=explorer, open_keys=open_keys,
-                           number={key: i + 1 for i, key in enumerate(open_keys)},
-                           reachable_from=explorer.reachable,
+                           number={k: numbers[k] for k in open_keys},
+                           reachable_from=lru_cache(len(open_keys))(forward),
+                           composed_from=lru_cache(len(open_keys))(explorer.reachable),
                            structure=explorer.representatives.__getitem__)
 
 
@@ -94,6 +71,30 @@ def step_text(explorer, t):
     return f"{t.trick} ({detail}): {fmt(explorer.structures[t.via])}  =>  {fmt(explorer.structures[t.produced])}"
 
 
+def target_witnesses(rec, target):
+    """Explain a candidate's payoff, showing exactly where a composed path uses another allowance."""
+    print(f"Target {fmt(rec.structure(target))}")
+    for source in rec.open_keys:
+        if target not in rec.composed_from(source):
+            continue
+        path = rec.report.bounded.forward(source, {target})
+        if path is None:
+            path = rec.explorer.path(source, {target})
+            kind = 'composed'
+        else:
+            kind = 'bounded'
+        print(f"  class {rec.number[source]} ({kind})")
+        phase = Phase.AVAILABLE
+        for edge in path:
+            nxt = advance(phase, edge, rec.report.bounded.resume_at)
+            if nxt is None:
+                print(f"     via the independently established implication from {fmt(rec.structure(edge.source))}")
+                nxt = advance(Phase.AVAILABLE, edge, rec.report.bounded.resume_at)
+                assert nxt is not None
+            print("     ", step_text(rec.explorer, edge))
+            phase = nxt
+
+
 # -- Part 1 -----------------------------------------------------------------------------------------------------
 
 def part_1(rec):
@@ -104,27 +105,36 @@ def part_1(rec):
     print(f"\n{len(rec.open_keys)} open classes (number, structures in the class, representative):")
     for key in rec.open_keys:
         print(f"  {rec.number[key]:>2}  [{index.size(key):>2}]  {fmt(rec.structure(key))}")
-    groups = S._trick_groups_for(explorer, None)
+    # Independent seed-injection check: reverse traversal with each open key as
+    # a goal must agree with forward reachability from each open class.
+    bounded = getattr(report, "bounded", None)
+    forward = {key: rec.reachable_from(key) for key in rec.open_keys}
+    unrestricted = {key: rec.composed_from(key) for key in rec.open_keys}
     relations = {}
-    t0 = time.time()
-    for key in rec.open_keys:
-        hypothetical = S.build_report(explorer, report.inputs, report.seeds, groups,
-                                      known={**report.known, 'hypothesis': key})
-        newly = sorted(rec.number[k] for k in hypothetical.proven if k in rec.number and k != key)
-        assert set(newly) == {rec.number[k] for k in rec.open_keys if k != key and key in rec.reachable_from(k)}
-        if newly:
-            relations[rec.number[key]] = newly
-    print(f"\n[{len(rec.open_keys)} hypothetical reports in {time.time() - t0:.0f}s]")
-    if not relations:
-        print("No open class would follow from another.")
-    for top, lower in relations.items():
-        top_key = rec.open_keys[top - 1]
-        structures = index.size(top_key) + sum(index.size(rec.open_keys[j - 1]) for j in lower)
-        print(f"\nIf class {top} had a gap, classes {lower} would follow: {1 + len(lower)} classes, {structures} structures.")
-        for j in lower:
-            print(f"  class {j} -> class {top}:")
-            for t in explorer.path(rec.open_keys[j - 1], {top_key}):
+    seeds = set(report.seed_keys)
+    composed_gaps = [key for key in rec.open_keys if unrestricted[key] & seeds]
+    print("Additional input gaps by composition:", [rec.number[k] for k in composed_gaps])
+    for key in composed_gaps:
+        for edge in explorer.path(key, seeds):
+            print("     ", step_text(explorer, edge))
+    for goal in rec.open_keys:
+        seeded = ({k for k, phase in bounded.to_goals({goal}) if phase == Phase.AVAILABLE}
+                  if bounded else S._reverse_reachable(explorer, {goal}))
+        sources = [k for k in rec.open_keys if k != goal and goal in forward[k]]
+        assert set(sources) == {k for k in rec.open_keys if k != goal and k in seeded}
+        if sources:
+            relations[rec.number[goal]] = sorted(rec.number[k] for k in sources)
+        for source in sources:
+            print(f"  bounded: class {rec.number[source]} -> class {rec.number[goal]}")
+            path = bounded.forward(source, {goal}) if bounded else explorer.path(source, {goal})
+            for t in path:
                 print("     ", step_text(explorer, t))
+        for source in rec.open_keys:
+            if goal in unrestricted[source] and goal not in forward[source]:
+                print(f"  composed only: class {rec.number[source]} -> class {rec.number[goal]}")
+                for t in explorer.path(source, {goal}):
+                    print("     ", step_text(explorer, t))
+    print("Bounded hierarchy (hypothesis -> classes proven):", relations)
     related = set(relations) | {j for lower in relations.values() for j in lower}
     print(f"\nOpen classes in no such relation: {len(rec.open_keys) - len(related)}.")
     return relations
@@ -132,44 +142,21 @@ def part_1(rec):
 
 # -- Part 2 -----------------------------------------------------------------------------------------------------
 
-def five_node_latent_free_ids():
-    from metagraph_advanced import ClassicalMetagraph, QuantumMetagraph
-    t0 = time.time()
-    classical = ClassicalMetagraph.from_quantum(QuantumMetagraph(5, verbose=False))
-    ids = classical.latent_free_equivalent_ids
-    print(f"[five-node classical metagraph in {time.time() - t0:.0f}s: {len(ids)} mDAGs classically equivalent to a latent-free DAG]")
-    return ids
-
-
 def part_2(rec, five):
     print("\n" + "=" * 110)
     print("PART 2. The structures the open classes reduce to, and the ones they share.")
-    explorer, index = rec.explorer, rec.explorer.index
+    explorer = rec.explorer
     reach = {key: rec.reachable_from(key) for key in rec.open_keys}
     reached = set().union(*reach.values())
     payoff = collections.defaultdict(set)          # structure -> open classes that reduce to it
     for key in rec.open_keys:
         for x in reach[key]:
             payoff[x].add(rec.number[key])
-    known = S._reverse_reachable(explorer, set(rec.report.seed_keys))
-    assert not (reached & known), "an open class reaches a known gap"
-    lf5 = five_node_latent_free_ids() if five else None
-    verdict = {}
-    for x in reached:
-        g = rec.structure(x)
-        n = g.number_of_visible
-        if not parts(g)[3]:
-            verdict[x] = 'gap-free: no quantum facet'
-            continue
-        uid = underlying_mdag(g).unique_unlabelled_id
-        latent_free = (uid in index.classical[n].latent_free_equivalent_ids) if n in index.classical \
-            else (None if lf5 is None else uid in lf5)
-        if latent_free:
-            verdict[x] = 'gap-free: classically equivalent to a latent-free DAG'
-        elif quantum_part_is_free(g):
-            verdict[x] = 'gap-free: every quantum facet is equivalent to a classical one'
-        else:
-            verdict[x] = 'candidate' if latent_free is not None else 'unscreened (five nodes)'
+    assert not (reached & set(rec.report.seed_keys)), "an open class reaches a named seed"
+    screening = getattr(rec.report, 'screening', None)
+    if screening is None:
+        screening = GapFreeScreen(explorer.index, five_node_screen() if five else None)
+    verdict = {x: screening.verdict(rec.structure(x)) for x in reached}
     table = collections.Counter((rec.structure(x).number_of_visible, verdict[x]) for x in reached)
     print(f"\n{len(reached)} structures are reachable from the open classes (none is a known gap); "
           f"{len(reached & explorer.lookup_only)} of them are degradations registered as lookups.")
@@ -189,7 +176,7 @@ def part_2(rec, five):
         print(f"\n  classes {list(s)}: {len(xs)} common candidates ({len(expanded)} of them not mere degradations)")
         for x in expanded[:20]:
             tag = 'open class ' + str(rec.number[x]) if x in rec.number else f"{rec.structure(x).number_of_visible}-node hybrid"
-            print(f"     {tag}: {fmt(rec.structure(x))}")
+            print(f"     {tag}: {fmt(rec.structure(x))}  [key {','.join(map(str, x))}]")
     alone = [rec.number[k] for k in rec.open_keys if all(len(payoff[x]) == 1 for x in reach[k] if x in candidates)]
     print(f"\nOpen classes sharing no candidate with another: {len(alone)}: {alone}")
     small = [x for x in candidates if rec.structure(x).number_of_visible <= 4 and x not in explorer.lookup_only and x not in rec.number]
@@ -201,32 +188,20 @@ def part_2(rec, five):
         print(f"  classes {list(s)}:")
         for x in sorted(xs, key=lambda x: (rec.structure(x).number_of_visible, fmt(rec.structure(x)))):
             print(f"     {fmt(rec.structure(x))}")
+    print("Candidate counts by size and lookup-only status:",
+          dict(sorted(collections.Counter((k[0], k in explorer.lookup_only) for k in candidates).items())))
+    composed_extra = {rec.number[k]: len(rec.composed_from(k) - reach[k]) for k in rec.open_keys}
+    print("Additional target keys reached by composition, by source:", {k: n for k, n in composed_extra.items() if n})
+    composed_payoff = collections.defaultdict(set)
+    for key in rec.open_keys:
+        for target in rec.composed_from(key):
+            if not screening.verdict(rec.structure(target)).startswith('gap-free'):
+                composed_payoff[target].add(rec.number[key])
+    for name, sets in [('bounded', payoff), ('composed', composed_payoff)]:
+        groups = collections.Counter(tuple(sorted(s)) for k, s in sets.items()
+                                     if len(s) > 1 and (name == 'composed' or k in candidates))
+        print(f"Shared candidate counts by set of open classes ({name}):", dict(sorted(groups.items())))
     return reached, verdict, payoff, candidates
-
-
-# -- Part 3 -----------------------------------------------------------------------------------------------------
-
-def part_3(rec, reached, verdict, payoff):
-    print("\n" + "=" * 110)
-    print("PART 3. A second depth: the intermediates as inputs of the cascade.")
-    explorer, index = rec.explorer, rec.explorer.index
-    known = S._reverse_reachable(explorer, set(rec.report.seed_keys))
-    known_names = {f'known:{i}': k for i, k in enumerate(sorted(known - set(rec.report.seed_keys)))}
-    inputs = [x for x in reached if x not in rec.number and x not in explorer.lookup_only
-              and not verdict[x].startswith('gap-free')]
-    by_n = collections.Counter(rec.structure(x).number_of_visible for x in inputs)
-    t0 = time.time()
-    report = S.prove_gaps([rec.structure(x) for x in inputs], SEEDS, stages=S.default_stages(max_visible=5),
-                          max_visible=5, verbose=False, known=known_names, index=index)
-    proven = [x for x in inputs if report.key(rec.structure(x)) in report.proven]
-    print(f"\n{len(inputs)} intermediates that are not mere degradations and not provably gap-free "
-          f"({dict(sorted(by_n.items()))} by node count) were given to the full cascade, with the seeds and the "
-          f"{len(known_names)} structures the census proves as known gaps, outputs bounded at five visible nodes: "
-          f"{len(proven)} proven in {time.time() - t0:.0f}s.")
-    for x in proven:
-        print(f"   PROVEN: {fmt(rec.structure(x))}  (open classes {sorted(payoff[x])})")
-        print('     ' + report.certificate(rec.structure(x)).replace('\n', '\n     '))
-    return proven
 
 
 # -- Part 4 -----------------------------------------------------------------------------------------------------
@@ -366,20 +341,34 @@ def S_upgrade(md):
 
 def run_open_classes_analysis():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--five', action='store_true', help="screen the five-node intermediates (three minutes, 3.2 GB)")
+    parser.add_argument('--five', action='store_true', help=argparse.SUPPRESS)  # now always screened
+    parser.add_argument('--max-visible', type=int, default=census.DEFAULT_CAP)
+    parser.add_argument('--resume-at', type=int, choices=(4, 5))
+    parser.add_argument('--target-key', help='show open-class witnesses to a recorded key N,D,C,Q')
+    parser.add_argument('--no-cache', action='store_true', help='rebuild the five-node screening set')
     parser.add_argument('--events', type=int, default=4, help="largest number of events of the binary supports test")
-    parser.add_argument('--skip-second-depth', action='store_true')
+    parser.add_argument('--skip-second-depth', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
     t0 = time.time()
-    report, _ = census.run_search(verbose=False, use_cache=False)
+    report, _ = census.run_search(verbose=False, use_cache=False, max_visible=args.max_visible, resume_at=args.resume_at,
+                                  screen_cache_dir=None if args.no_cache else Path(census.CACHE_PATH).parent)
     counts = report.counts
     print(f"[census in {time.time() - t0:.0f}s: {counts['inputs']} classes, {counts['proven']} proven, {counts['remaining']} open "
           f"({counts['structures remaining']} structures)]")
     rec = recorded_graph(report)
+    if args.target_key is not None:
+        try:
+            target = tuple(map(int, args.target_key.split(',')))
+        except ValueError:
+            parser.error('--target-key requires four comma-separated integers')
+        if target not in rec.explorer.representatives:
+            parser.error('the requested key is absent from this census record')
+        target_witnesses(rec, target)
+        return
+    start = time.monotonic()
     part_1(rec)
     reached, verdict, payoff, candidates = part_2(rec, args.five)
-    if not args.skip_second_depth:
-        part_3(rec, reached, verdict, payoff)
+    print(f"Hierarchy and shared targets: {time.monotonic() - start:.1f}s")
     part_4(rec, candidates, payoff, args.events)
 
 

@@ -93,7 +93,7 @@ def show_examples(report: GapReport, lost: Set, keep: Predicate, title: str, lim
 
 def examples(with_entropic: bool = True, engine=None) -> None:
     t0 = time.time()
-    report, _ = run_search(verbose=False, with_entropic=with_entropic, use_cache=False, engine=engine)
+    report, _ = run_search(verbose=False, with_entropic=with_entropic, use_cache=False, deep=False, engine=engine)
     print(f"[census in {time.time() - t0:.0f}s]")
     print_report(report)
 
@@ -133,7 +133,7 @@ def lp_closure() -> None:
     more? Every structure proven so far is already a known gap for the others (reachability is transitive), so
     this tests LP steps at depth greater than one."""
     t0 = time.time()
-    report, _ = run_search(verbose=False, use_cache=False)
+    report, _ = run_search(verbose=False, use_cache=False, deep=False)
     print("staged search:", report.stage_counts, f"({time.time()-t0:.0f}s)")
     before = set(report.proven)
     report = add_stage(report, fritz_tricks(max_visible=5, max_predictors=1, predictor_mode='split'), roots_only=False, name='Fritz_closure', verbose=False)

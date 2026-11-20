@@ -88,7 +88,7 @@ def test_search_counts(proving_QC_Gaps):
     """The census with the default engine, the semigraphoid closure."""
     import quantum_mDAG as QM
     QM.ENTROPIC_STATS.clear()
-    report, cache = proving_QC_Gaps.run_search(verbose=False, with_entropic=True, use_cache=False, engine='semigraphoid')
+    report, cache = proving_QC_Gaps.run_search(deep=False, verbose=False, with_entropic=True, use_cache=False, engine='semigraphoid')
     _check(report, cache, proving_QC_Gaps)
     stats = {k: v for k, v in QM.ENTROPIC_STATS.items() if k[0] == 'certificate'}
     assert stats == EXPECTED_CERTIFICATES
@@ -103,7 +103,7 @@ def test_search_counts_with_both_engines_agree(proving_QC_Gaps):
     import quantum_mDAG as QM
     QM.ENTROPIC_STATS.clear()
     QM.ENGINE_DISAGREEMENTS.clear()
-    report, cache = proving_QC_Gaps.run_search(verbose=False, with_entropic=True, use_cache=False, engine='both')
+    report, cache = proving_QC_Gaps.run_search(deep=False, verbose=False, with_entropic=True, use_cache=False, engine='both')
     _check(report, cache, proving_QC_Gaps, engine='both')
     assert QM.ENGINE_DISAGREEMENTS == []
     assert ('engine', 'entropic') not in QM.ENTROPIC_STATS     # the LP never certified what the closure had not
@@ -114,7 +114,7 @@ def test_open_class_hierarchy(proving_QC_Gaps):
     """manuscript/open_classes.md, 1.2: with each open class declared a known gap in turn, the open classes that
     become proven. Only class 1 (the numbering of manuscript Section 10, the order of report.remaining) has any:
     classes 2, 3, 6 and 7. The census records every transition out of an unproven class, so this is reachability."""
-    report, _ = proving_QC_Gaps.run_search(verbose=False, with_entropic=True, use_cache=False, engine='semigraphoid')
+    report, _ = proving_QC_Gaps.run_search(deep=False, verbose=False, with_entropic=True, use_cache=False, engine='semigraphoid')
     open_keys = [report.key(g) for g in report.remaining]
     assert len(open_keys) == 46
     reach = {key: report.explorer.reachable(key) for key in open_keys}
@@ -132,7 +132,7 @@ def test_census_is_closed_and_the_equality_adds_nothing(proving_QC_Gaps):
     import qc_gap_search as S
     from conftest import load_special_application
     from known_QC_gaps import SEEDS
-    report, _ = proving_QC_Gaps.run_search(verbose=False, with_entropic=True, use_cache=False, engine='semigraphoid')
+    report, _ = proving_QC_Gaps.run_search(deep=False, verbose=False, with_entropic=True, use_cache=False, engine='semigraphoid')
     open_keys = [report.key(g) for g in report.remaining]
     index = report.explorer.index
     known = {f'known:{i}': key for i, key in enumerate(sorted(report.proven_structure_ids()))}

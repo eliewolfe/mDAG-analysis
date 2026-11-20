@@ -5,3 +5,4 @@ __pycache__/
 /desktop.ini
 .github/copilot-instructions.md
 .pytest_cache/
+/cache/latent-free-5-v*.txt.gz

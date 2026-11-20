@@ -8,8 +8,8 @@ The question (Roger Colbeck): tell the code that one open class has a gap, see w
 
 1. **There is a hierarchy, and it is small.** Exactly one open class has others hanging on it. If **class 1** had a gap, **classes 2, 3, 6 and 7** would follow: 5 classes, 16 of the 61 open structures. Class 1 is the KPC structure with one more source, shared by $D$ and $E.$ No other open class would prove any other.
 2. **Two families of hybrid structures would each settle several classes.** A hybrid has some of its sources classical. The KPC structure with a *classical* source shared by $C,$ $D$ and $E$ would settle classes 1, 2, 3, 6 and 7; a hybrid of the structure `0→1, 1→2, 1→3` would settle classes 4 and 5, which do not piggyback onto each other. Section 1.4 lists them.
-3. **Everything else stands alone.** The open classes reduce, by the piggybacks, to 15,057 structures. All but 1,474 of them provably have no gap, and among the rest the only structures reached from more than one class are the two families above. 39 classes share nothing with any other.
-4. **A second Fritz step does not help.** Given to the cascade as inputs, none of the 94 intermediates that are neither degradations nor provably gap-free is proven.
+3. **Thirty-nine classes share no candidate with another open class.** Within the one-growth budget the open classes reach 15,615 keys. Screening leaves 1,608, including 69 six-node structures for which the full classical metagraph was unavailable. Section 1.5 gives the counts and the six-node saturation argument.
+4. **Going deeper establishes additional hybrid gaps.** The depth-one, deeper cap-five, and deeper cap-six records prove 393, 426, and 469 input or intermediate keys respectively. They prove the same 372 of 418 four-node input classes. The cap-six record is used throughout the hierarchy.
 
 | Target | Settles | Status |
 |---|---|---|
@@ -24,11 +24,9 @@ Section 3 records a separate question that the hierarchy does not need: which *c
 
 ### 1.1 The experiment, and why the recorded graph answers it
 
-The census records every transition it finds: a labelled edge from a structure (or class) to the structure a piggyback produces, meaning *a gap of the target is a gap of the source*. For a class that stays unproven, nothing is cut short: every elementary reduction of every member, closed over everything reachable, and every Fritz step of every member in all nine stages, each followed by the elementary reductions (9.1). So "which classes would be proven if class $i$ were known" is a question about this graph, and it has the same answer as rerunning the census with class $i$ as an extra seed, since a rerun explores a subset of what is already recorded.
+For each open class in turn, take a gap in that class as a hypothesis. Search the recorded transitions backwards to find its consequences. Each transition records which member produced the target, by which rule and with which parameters. In the forward direction the script checks, for every ordered pair of open classes, that the same target can be reached from the source.
 
-The script does the experiment literally: for each of the 46 classes it rebuilds the report with that class added to the known gaps and lists the open classes that become proven (46 reports, 15 seconds), and checks that this agrees with reachability in the graph.
-
-Two limits carry over from the census. The Fritz step is applied once per input ("depth one"); Section 1.6 tests what a second depth adds. And a hypothesis "class $i$ has a gap" is about the all-quantum structures of the class; it says nothing about their degradations, which are weaker.
+The budget belongs to a proof path. Non-growing Fritz steps and elementary reductions may repeat. A growing Fritz step uses the path's single allowance. Its output can hit a seed immediately or take a reducing step and resume closure at the permitted size (1.6). The reverse query tracks the same budget as the forward search. Ordinary reachability in the recorded graph answers a second research question: what follows by composing independently established implications? Sections 1.2 and 1.5 distinguish these answers. A hypothesis about an all-quantum class gives no gap for its weaker degradations.
 
 ### 1.2 Result
 
@@ -40,7 +38,7 @@ flowchart BT
     c7["class 7"] --> c1
 ```
 
-An arrow $x\to y$ reads "a gap of $y$ would prove $x$". These four are the only relations among the 46.
+An arrow $x\to y$ reads "a gap of $y$ would prove $x$". Every arrow has a one-growth-budget witness. Composing independently verified implications gives the same four ordered pairs among the 46 open classes.
 
 | From | Steps to class 1 |
 |---|---|
@@ -159,9 +157,9 @@ flowchart BT
 
 It is the representative of class 1 with its three-way source made classical, so a gap for it is a gap for class 1 by the degradation piggyback (0.4), and classes 2, 3, 6 and 7 follow as in 1.2. Being a degradation, it is a weaker structure than class 1 and no easier to prove. Its interest is that it isolates the question: does the KPC gap survive when $C,$ $D$ and $E$ share classical randomness? It is also an output of the proven KPC structure itself (a parent-predictor Fritz step), so it sits between a structure whose gap is understood and the five open classes.
 
-<details><summary>The fourteen four-node hybrids of this family</summary>
+<details><summary>Fourteen four-node examples of this family</summary>
 
-Each is reached from all five classes. They differ in which edges among $C,$ $D,$ $E$ are present and in further quantum sources among them; the classical source `C{1,2,3}` is common to all.
+A gap of each would settle all five classes by composition. The bounded paths to these examples can start from different subsets of the five classes (1.5). They differ in which edges among $C,$ $D,$ $E$ are present and in further quantum sources among them; the classical source `C{1,2,3}` is common to all.
 
 | hybrid |
 |---|
@@ -180,7 +178,7 @@ Each is reached from all five classes. They differ in which edges among $C,$ $D,
 | `1→2; C{1,2,3}, Q{0,1}, Q{0,2}, Q{1,2}` |
 | `1→2, 3→2; C{1,2,3}, Q{0,1}, Q{0,2}, Q{1,2}` |
 
-Five five-node hybrids are shared by the same classes as well, for instance `1→2, 1→3, 2→3, 4→3; C{0,2,4}, Q{0,2}, Q{0,3}, Q{2,3}`. In all, the five classes share 523 structures that are not provably gap-free; 54 of them are more than degradations registered as lookups, and the strongest is class 1 itself.
+All five classes have bounded paths to 219 common candidates. Of the 19 reached by more than lookup alone, seven are four-node keys (including class 1), ten have five nodes, and two have six. One of the latter is `2→3, 4→3; C{1,2,3,4,5}, Q{0,2}, Q{0,3}`. By composition the five classes share 603 candidate targets.
 
 </details>
 
@@ -189,35 +187,51 @@ Five five-node hybrids are shared by the same classes as well, for instance `1�
 * `1→2, 1→3; C{0,1,2}, C{0,1,3}, Q{0,2}, Q{0,3}` (from each class by a parent-predictor Fritz step: node 1 predicted by its parent 0, unsplit target, split predictor);
 * `0→1, 1→2, 1→3; C{0,1,2}, C{0,1,3}, Q{0,2}, Q{0,3}` and its five-node parent `0→1, 1→2, 1→3, 4→2, 4→3; C{0,1,2,4}, C{0,1,3,4}, Q{0,2}, Q{0,3}` (the same step with a split target).
 
-A gap in any of the three settles both classes. These are the only structures the two classes share.
+A gap in any of the three settles both classes. Together with three additional lookup targets, they account for all six shared candidates.
 
 **Hybrids that would settle one class.** Three classes have small hybrid targets of their own.
 
 * **Class 5** reduces, by marginalizing node 0, to `0→1, 0→2; C{0,1}, Q{0,2}`: the Evans structure with one source classical. The seed list takes the Evans structure as a gap only with both sources quantum ([`known_QC_gaps.py`](../known_QC_gaps.py): "with one source classical it is not known to have a gap and is not a seed"). A gap for it, by any argument, proves class 5 at once. It is the cleanest external target in this document: three visible nodes and a question of independent interest.
-* **Class 14** (five structures) has fifteen four-node hybrid outputs, for instance `0→2, 1→2, 2→3; C{0,1,2}, Q{1,3}`. Its three-node output `0→1, 1→2; C{1,2}, Q{0,1}` looks like a target and is not one: it is gap-free by the third criterion of 1.5.
+* **Class 14** (five structures) has twenty four-node candidate hybrids reached by more than lookup alone, for instance `0→2, 1→2, 2→3; C{0,1,2}, Q{1,3}`. Its three-node output `0→1, 1→2; C{1,2}, Q{0,1}` looks like a target and is not one: it is gap-free by the third criterion of 1.5.
 * **Class 2** has one: `2→3; C{0,2,3}, Q{0,2}, Q{0,3}, Q{1,2}, Q{1,3}, Q{2,3}`.
 
 ### 1.5 Below the class level: what the open classes reduce to
 
-The open classes reach 15,057 structures; none is a known gap, by definition of open. Most cannot be targets, because they provably have no gap:
+The table counts distinct keys reached from at least one open class with a single growth allowance. Each screened key appears under the first applicable criterion. Candidates pass the available screens. This does not establish a gap.
 
-| visible nodes | reached | no quantum source | classically equivalent to a latent-free DAG | every quantum source equivalent to a classical one | **not provably gap-free** |
-|---|---|---|---|---|---|
-| 3 | 93 | 17 | 74 | 1 | **1** |
-| 4 | 13,628 | 20 | 12,541 | 10 | **1,057** |
-| 5 | 1,336 | 0 | 915 | 5 | **416** |
+| Visibles | Reached | No quantum source | Latent-free classical class | Saturated by a shared source | Every quantum source replaceable | Candidates |
+|---|---:|---:|---:|---:|---:|---:|
+| 3 | 93 | 17 | 74 | 0 | 1 | 1 |
+| 4 | 13,697 | 43 | 12,586 | 0 | 10 | 1,058 |
+| 5 | 1,717 | 70 | 1,162 | 0 | 5 | 480 |
+| 6 | 108 | 0 | untested | 39 | 0 | 69 |
 
-The second criterion uses the classical metagraphs, the five-node one included (a structure classically equivalent to a latent-free DAG has $\mathcal Q=\mathcal C,$ 0.6). The third is the pre-measurement argument of 0.5 read backwards: a quantum source all of whose members but one have no parent and no other source is the same as a classical source.
+The classical test forgets source colours and removes dominated facets. Membership in a classical class containing a latent-free DAG implies equality of the classical and quantum models. The five-node membership set contains 708,635 canonical IDs. At six nodes we use a sufficient saturation test. Suppose one source reaches a set of parties, and the remaining parties form a complete DAG and each sends its value to every source member. The complete DAG can sample any joint law of the remaining parties. The source and the broadcast values then suffice to sample any joint conditional law of the source members. This certifies 39 six-node keys. In particular, the apparent common six-node target of classes 38–46 has a root broadcasting to five parties with a shared source. Its classical model already contains every distribution.
 
-The screening matters. Before it, five-node Fritz outputs look like promising common targets: 775 of them are reached from two or more classes, some from nine (classes 38 to 46). Outside the two families of 1.4, every one of them (398 structures) is classically equivalent to a latent-free DAG, so it has no gap and proves nothing.
+Of the 1,608 candidates, 1,403 are lookup-only degradations. The other 205 comprise 46 open classes and 159 intermediates. The following table counts candidates by the **exact set** of open classes from which they are reachable. The last column allows composition of independently verified implications.
 
-Of the 1,474 survivors, 1,334 are degradations that the search registers as lookups: structures weaker than something else on the list, never easier to prove. The other 140 are the 46 classes themselves and 94 of their outputs. Survivors reached from two or more open classes are exactly the two families of 1.4: 523 structures for classes 1, 2, 3, 6 and 7, and six for classes 4 and 5.
+| Open classes reaching the target | One growth per path | With composition |
+|---|---:|---:|
+| 1, 2 | 321 | 0 |
+| 1, 2, 3 | 11 | 0 |
+| 1, 2, 6 | 8 | 0 |
+| 1, 2, 7 | 44 | 0 |
+| 1, 2, 3, 6, 7 | 219 | 603 |
+| 4, 5 | 6 | 6 |
 
-The remaining **39 classes share no candidate with any other class**. For each of them the only structures it reduces to, apart from provably gap-free ones, are its own Fritz outputs and degradations.
+For example, a bounded path from class 1 to a target can already spend its allowance. Prepending the class 3 to class 1 implication still proves that a gap at the target would settle class 3. The composed chain can use two growing steps. The source sets in the table change for 384 candidates this way. Classes 8–46 share no surviving candidate with any other open class, even after composition.
 
-### 1.6 A second Fritz depth
+### 1.6 How far the Fritz search goes
 
-The census applies the Fritz step once per input. To test whether that is what keeps the open classes open, the 94 intermediates that are neither degradations nor provably gap-free (one with three nodes, 34 with four, 59 with five) were given to the full cascade as inputs, with the seeds and the 388 further structures the census proves all counting as known, and outputs bounded at five visible nodes. **None is proven** (17 seconds). Within the piggybacks we have, the open classes are open at depth two as well.
+The census enumerates the parent, d-separation and semigraphoid moves for both predictor and target modes. Before growth it closes under elementary reductions and all non-growing Fritz moves on three- and four-node structures. It permits one move that increases the number of visibles, including a joint target split from four directly to six. It checks the output and its lookups for a seed immediately. To continue, it tries every admissible count-reducing move, including a Fritz move that removes its predictor. Non-growing closure then resumes through five nodes. A later reduction never restores the growth allowance.
+
+| Search from named seeds | Input classes proven | Proven keys including intermediates |
+|---|---:|---:|
+| Historical depth-one cascade, cap five | 372 | 393 |
+| Deeper search, cap five, closure through four | 372 | 426 |
+| Deeper search, cap six, closure through five | 372 | 469 |
+
+At cap five, running without gap-free pruning also proved 426 keys and yielded the same four class-to-class implications. The targeted experiment with unlimited non-growing moves already found all 372 input gaps without a growing move. Growth matters here for the larger proof record and for discovering and comparing hybrid research targets.
 
 ### 1.7 The isolated classes, by family
 
@@ -335,7 +349,7 @@ The metagraph removes a source $\lbrace a,b\rbrace$ on an edge $a\to b$ only whe
 
 ### 3.4 Upgrading a classical source for free
 
-A hybrid is a candidate for this when its all-quantum upgrade is a proven class. Among the structures the open classes reach, that happens for 39 hybrids, reached from classes 4, 5 and 14 only. Showing that the classical sources of one of them can be made quantum without enlarging the quantum model, an extension of that rule of 0.5, would give it a gap.
+A hybrid is a candidate for this when its all-quantum upgrade is a proven class. Among the structures the open classes reach, that happens for 40 hybrids, reached from classes 4, 5 and 14 only. Showing that the classical sources of one of them can be made quantum without enlarging the quantum model, an extension of that rule of 0.5, would give it a gap.
 
 | reached from | hybrid | its all-quantum upgrade (proven) |
 |---|---|---|
@@ -343,16 +357,20 @@ A hybrid is a candidate for this when its all-quantum upgrade is a proven class.
 | 4 and 5 | `1→2, 1→3; C{0,1,2}, C{0,1,3}, Q{0,2}, Q{0,3}` | `1→2, 1→3; Q{0,1,2}, Q{0,1,3}` |
 | 5 | `0→1, 0→2; C{0,1}, Q{0,2}` | `0→1, 0→2; Q{0,1}, Q{0,2}` (Evans) |
 | 5 | `0→1, 0→2, 3→1, 3→2; C{0,1,3}, C{0,2,3}, Q{0,2}` | `0→1, 0→2, 3→1, 3→2; Q{0,1,3}, Q{0,2,3}` |
-| 14 | fifteen hybrids, e.g. `0→2, 1→2, 2→3; C{0,1,2}, Q{1,3}` | e.g. `0→2, 1→2, 2→3; Q{0,1,2}, Q{1,3}` |
+| 14 | twenty expanded hybrids, e.g. `0→2, 1→2, 2→3; C{0,1,2}, Q{1,3}` | e.g. `0→2, 1→2, 2→3; Q{0,1,2}, Q{1,3}` |
 
-These are the hybrids of 1.4 seen from the other side: there the question was a gap proof for the hybrid, here it is whether the hybrid has the same quantum model as a structure already proven. For the rows of classes 4 and 5 the upgrade enlarges a source as well as recolouring it (the quantum part of `C{0,1,2}` is `Q{0,2}`), so equality of the quantum models is a strong statement and a direct gap proof for the hybrid may be the easier route.
+Of the 40 candidates, four are reached from classes 4 and 5, six from class 5 alone and thirty from class 14. The table gives examples among the expanded targets. These are the hybrids of 1.4 seen from the other side: there the question was a gap proof for the hybrid, here it is whether the hybrid has the same quantum model as a structure already proven. For the rows of classes 4 and 5 the upgrade enlarges a source as well as recolouring it (the quantum part of `C{0,1,2}` is `Q{0,2}`), so equality of the quantum models is a strong statement and a direct gap proof for the hybrid may be the easier route.
 
 The converse situation, a hybrid that is structurally above a proven structure with the same classical model, would be an immediate proof by the upward rule. There is none among the structures the open classes reach.
 
 ## 4. Reproducing
 
-```
-python "Special Applications/open_classes_analysis.py" --five --events 7
+From the repository root, run the first command for the hierarchy, the two kinds of implication and the shared-target counts. The seven-event support comparison in §3.3 uses the same classical inputs as the earlier census and is timed separately. To see which open classes would follow from a gap at a particular target, give the analysis script `--target-key N,D,C,Q` using a key printed with the target. For example, `--target-key 4,70,7,3235` gives bounded witnesses from classes 1 and 2 and composed witnesses from 3, 6 and 7. It prints one witness per originating class and marks where a composed implication begins.
+
+```sh
+python "Special Applications/open_classes_analysis.py" --events 7
+python "Special Applications/fritz_growth_experiment.py" --cold-cap 5 --resume-at 4
+python "Special Applications/fritz_growth_experiment.py" --cold-cap 6 --resume-at 5
 ```
 
-The census takes 20 seconds, the hierarchy 15, the five-node metagraph behind the screening of 1.5 three minutes and 3.2 GB (`--five`; without it the five-node intermediates are reported unscreened), the second depth 20 seconds, and the supports test of 3.3 about 8 minutes through 6 events and about 12 more for the seventh (`--events`, default 4). Parts 1 to 4 of the output correspond to Sections 1.2, 1.4 with 1.5, 1.6 and 3.
+The benchmarks start fresh processes with proof and screening caches disabled. On the benchmark host the cap-five run took 201 seconds including the classical screen. The default cap-six run took 281 seconds and peaked at 3.13 GiB. Section 9.1 of [the main manuscript](piggybacks.md) gives the expansion counts for both caps. The ten-minute threshold applies to census construction and certificates. The hierarchy queries reuse the resulting record and the optional supports calculations run afterwards.

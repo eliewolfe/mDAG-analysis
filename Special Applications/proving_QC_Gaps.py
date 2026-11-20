@@ -14,18 +14,11 @@ are two classes and the three instrumental seeds one; the triangle seed with two
 stays a degradation target (its all-quantum class is proven through the degradation lookup). Seed classes that are
 inputs are proven by the identity piggyback.
 
-One phase: the staged cascade of qc_gap_search.default_stages over every input class, cheapest first. (1) The
-elementary reductions (point distribution, node stitching, conditioning, marginalization with and without
-teleportation), closed over everything reachable, with the lookups: degradation (a structure is known when one of
-its degradations is) and the upward rule (a class is known when a class structurally below it inside the same
-classical class is: its quantum model contains the lower one's and its classical model equals it). (2) The parent
-piggyback of the Fritz trick. (3-6) Four d-separation Fritz stages. (7-10) The same four modes with the
-semigraphoid closure (the entropic LP with --engine lp). Each stage applies its trick to every member of each
-still-unproven class, with elementary follow-up. The report gives the cumulative counts after each stage, the
-rungs of the cheap-to-expensive ladder.
-
-Within a closure stage, a root stops as soon as one of its outputs (or that output's elementary follow-up) is a
-known gap (`--no-early-exit` records everything instead); the d-separation stages record everything.
+The primary search retains the ten-stage historical record, then expands the surviving branches with at most
+one Fritz growth per path. The classical metagraphs screen provably gap-free branches through five nodes.
+The named seeds anchor every bounded certificate, even if a disk gap cache exists. Use --max-visible and
+--resume-at to select the output cap and the size for non-growing closure after a reduction. --depth-one
+reproduces the original cascade alone; --no-screen disables gap-free pruning for comparison.
 
 Options (see qc_gap_search.default_stages): the closure tries the `relabel` target set only (lp_markov_target=True
 turns `markov` back on). The predictor pool of the certified stages is the latent siblings of the target that are
@@ -80,16 +73,24 @@ def census_inputs(index: ClassIndex) -> List:
 STAGE_SECONDS: Dict[str, float] = {}   # wall-clock seconds of each stage in the last run_search
 
 
-def run_search(index: Optional[ClassIndex] = None, max_visible=5, verbose=True, with_entropic=True,
+DEFAULT_CAP = 6
+
+
+def run_search(index: Optional[ClassIndex] = None, max_visible=None, verbose=True, with_entropic=True,
                with_split_predictors=True, strict_conditioning=True, use_cache=True, cache_path: str = CACHE_PATH,
                pool: str = 'siblings', allow_descendants: bool = False, early_exit: bool = True,
-               engine: Optional[str] = None) -> Tuple[GapReport, Optional[GapCache]]:
-    """The census: one staged search over the four-node input classes with every seed known. Returns (report,
-    cache). The cache is loaded first (entries whose piggyback versions are stale are dropped), updated with every
-    newly proven class, and saved."""
+               engine: Optional[str] = None, *, deep=True, resume_at=None, screen=True, five_ids=None,
+               screen_cache_dir=None) -> Tuple[GapReport, Optional[GapCache]]:
+    """Return the full census record and optional on-disk gap cache. Bounded proofs start from named seeds.
+    An explicit screen_cache_dir reuses just the five-node membership table during research queries."""
     from quantum_mDAG import ENGINES
     if engine is not None and engine not in ENGINES:
         raise ValueError(f"unknown certificate engine {engine!r}; choose one of {ENGINES}")
+    if max_visible is None:
+        max_visible = DEFAULT_CAP if deep else 5
+    resume_at = min(5, max(4, max_visible - 1)) if resume_at is None else resume_at
+    if deep and (not 4 <= max_visible <= 6 or resume_at not in (4, 5)):
+        raise ValueError('the deeper four-node census supports caps 4 through 6 and closure thresholds 4 or 5')
     ENGINE_DISAGREEMENTS.clear()
     STAGE_SECONDS.clear()
     if index is None:
@@ -101,14 +102,27 @@ def run_search(index: Optional[ClassIndex] = None, max_visible=5, verbose=True, 
     cache = GapCache.load(cache_path, seeds=SEEDS, keyed_by='class') if use_cache else None
     if cache is not None and verbose:
         print(f"Cache: {len(cache)} valid entries loaded, {cache.dropped} dropped (stale format or key kind, piggyback version or seed)")
-    known = cache.known() if cache is not None else {}
+    # A historical gap certificate may already have spent its growth allowance.
+    # Regenerate bounded witnesses from named seeds, including on warm runs.
+    known = cache.known() if cache is not None and not deep else {}
+    baseline_cap = min(max_visible, 5) if deep else max_visible
     # lp_markov_target=True would also try the `markov` target set after `relabel` fails; it is off because in the
     # four-node census it never decided an input.
-    stages = default_stages(max_visible=max_visible, with_entropic=with_entropic, with_split_predictors=with_split_predictors,
+    stages = default_stages(max_visible=baseline_cap, with_entropic=with_entropic, with_split_predictors=with_split_predictors,
                             strict_conditioning=strict_conditioning, pool=pool, allow_descendants=allow_descendants,
                             lp_markov_target=False, engine=engine)
-    report = prove_gaps(inputs, SEEDS, stages=stages, max_visible=max_visible, verbose=verbose, known=known,
+    report = prove_gaps(inputs, SEEDS, stages=stages, max_visible=baseline_cap, verbose=verbose, known=known,
                         early_exit=early_exit, index=index, on_stage=STAGE_SECONDS.__setitem__)
+    if deep:
+        from growth_census import extend_census
+        if screen_cache_dir is None and use_cache:
+            screen_cache_dir = Path(cache_path).parent
+        start = time.monotonic()
+        report = extend_census(report, max_visible, resume_at, five_ids=five_ids, screen=screen,
+                               with_entropic=with_entropic, with_split_predictors=with_split_predictors,
+                               allow_descendants=allow_descendants, engine=engine, verbose=verbose,
+                               cache_dir=screen_cache_dir)
+        STAGE_SECONDS[report.stage_counts[-1][0]] = time.monotonic() - start
     if cache is not None:
         added = cache.record(report)
         cache.save()
@@ -154,9 +168,13 @@ def print_report(report: GapReport, certificates_for=()) -> None:
     for name, count in report.stage_counts:
         seconds = STAGE_SECONDS.get(name)
         print(f"    {name:>50}: {count}" + (f"   ({seconds:.0f}s)" if seconds is not None else ""))
-    print("Cheap to expensive, cumulatively (which transitions are allowed):")
-    for name, proven, new in ladder(report):
-        print(f"    {name:>50}: proven {proven:4d}  (new {new:3d})")
+    if hasattr(report, "bounded"):
+        print("Expanded search states by visible count and growth allowance:", dict(sorted(report.expanded_states.items())))
+        print("Proven keys including intermediates:", len(report.proven_structure_ids()))
+    else:
+        print("Cheap to expensive, cumulatively (which transitions are allowed):")
+        for name, proven, new in ladder(report):
+            print(f"    {name:>50}: proven {proven:4d}  (new {new:3d})")
     print("Structures expanded by the search: ", len(report.explorer.edges))
     if ENTROPIC_STATS:
         print("Certificates (kind, outcome) -> count: ", dict(sorted(ENTROPIC_STATS.items())))
@@ -189,6 +207,9 @@ if __name__ == '__main__':
     allow_descendants = '--descendants' in sys.argv
     early_exit = '--no-early-exit' not in sys.argv
     engine = sys.argv[sys.argv.index('--engine') + 1] if '--engine' in sys.argv and sys.argv.index('--engine') + 1 < len(sys.argv) else None
-    report, cache = run_search(with_entropic=with_entropic, with_split_predictors=with_split_predictors, use_cache=use_cache, pool=pool,
+    cap = int(sys.argv[sys.argv.index('--max-visible') + 1]) if '--max-visible' in sys.argv else None
+    threshold = int(sys.argv[sys.argv.index('--resume-at') + 1]) if '--resume-at' in sys.argv else None
+    report, cache = run_search(max_visible=cap, resume_at=threshold, deep='--depth-one' not in sys.argv,
+                               screen='--no-screen' not in sys.argv, with_entropic=with_entropic, with_split_predictors=with_split_predictors, use_cache=use_cache, pool=pool,
                                allow_descendants=allow_descendants, early_exit=early_exit, engine=engine)
     print_report(report, certificates_for=proven_through_fritz(report))

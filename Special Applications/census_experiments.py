@@ -30,7 +30,7 @@ def census_with_tally(index, **options):
     they were justified: 'parent', 'dsep', 'relabel', 'markov' or 'failed' (manuscript 9.3)."""
     QM.ENTROPIC_STATS.clear()
     QM.ENGINE_DISAGREEMENTS.clear()
-    report, _ = census.run_search(index=index, verbose=False, use_cache=False, **options)
+    report, _ = census.run_search(index=index, verbose=False, use_cache=False, deep=False, **options)
     tally = {key[1]: n for key, n in QM.ENTROPIC_STATS.items() if key[0] == 'certificate'}
     return report, tally
 

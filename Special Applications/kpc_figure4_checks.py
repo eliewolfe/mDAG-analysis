@@ -495,7 +495,7 @@ def census_parts():
     from known_QC_gaps import SEEDS
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import proving_QC_Gaps as census
-    report, _ = census.run_search(verbose=False, use_cache=False)
+    report, _ = census.run_search(verbose=False, use_cache=False, deep=False)
     explorer, index = report.explorer, report.explorer.index
     open_keys = [report.key(g) for g in report.remaining]
     inputs = list(dict.fromkeys(report.input_ids))

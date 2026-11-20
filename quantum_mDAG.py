@@ -921,7 +921,7 @@ class QmDAG:
                     pool: str = 'siblings', allow_descendants: bool = False, max_predictors: int = 1,
                     max_targets: Optional[int] = None, lp_markov_target: bool = False,
                     max_visible: Optional[int] = None, lp_only: bool = False,
-                    engine: Optional[str] = None) -> Iterable[Tuple[Tuple, "QmDAG"]]:
+                    engine: Optional[str] = None, min_visible: int = 3) -> Iterable[Tuple[Tuple, "QmDAG"]]:
         """The Fritz piggyback as the search applies it (manuscript Section 8): for every predictor set X, every
         candidate target s of X and the deletion X dictates at s, the realised output, certified by d-separation
         first and by the semigraphoid closure (or the LP) only where d-separation fails. Besides single targets,
@@ -940,6 +940,7 @@ class QmDAG:
         needs no certificate, manuscript 6.5), 'siblings' (latent siblings that are not visible parents: the
         certified piggybacks) or 'siblings+parents'. `engine` names the beyond-d-separation certificate engine
         (DEFAULT_ENGINE: 'semigraphoid', 'lp' or 'both').
+        min_visible bounds emitted outputs; smaller singletons can still certify members of a joint step.
         params: (('targets', (s, ...)), ('target_mode', 'unsplit' | 'split'), ('deleted', (labels of D_s, ...)),
         ('predictor', X), ('predictor_mode', 'unsplit' | 'split'),
         ('certificate', 'parent' | 'dsep' | 'semigraphoid' | 'entropic')) [+ ('order', ...) when several predictors
@@ -992,20 +993,27 @@ class QmDAG:
             the effective indices of the predictors and targets, the nodes to remove and the copy map; None when the
             output would be too small or too large."""
             work, X_eff, remove, copy_of = base
+            copies = len(T) if target_mode == 'split' else 0
+            if not 3 <= work.number_of_visible + copies - len(remove) <= max_visible:
+                return None
             copy_of, targets = dict(copy_of), list(T)
             if target_mode == 'split':
                 for i, s in enumerate(T):
                     work = work.split_node(s)
                     targets[i] = work.number_of_visible - 1
                     copy_of[targets[i]] = s
-            if not (3 <= work.number_of_visible - len(remove) <= max_visible):
-                return None
             return work, X_eff, tuple(targets), remove, copy_of
 
         for r in range(1, min(max_predictors, len(predictor_candidates)) + 1):
             for X in itertools.combinations(predictor_candidates, r):
                 targets = self.fritz_targets(X, pools=pools)
                 if not targets:
+                    continue
+                # Count the surviving visibles before constructing any temporary copies.
+                base_size = n - (len(X) if predictor_mode == 'unsplit' else 0)
+                possible = len(targets) if max_targets is None else min(len(targets), max_targets)
+                if (base_size + (target_mode == 'split') > max_visible or
+                        base_size + (possible if target_mode == 'split' else 0) < min_visible):
                     continue
                 base = split_predictors(X)
                 certified = []   # targets certified by d-separation on their own
@@ -1020,21 +1028,29 @@ class QmDAG:
                     K, D = deletion
                     item = (X, (s,), work, {target: K}, {target: D}, X_eff, remove, copy_of)
                     certificate = work.fritz_certificate(target, K, X_eff, use_lp=False, tally=not lp_only)
+                    emit = work.number_of_visible - len(remove) >= min_visible
                     if certificate is None:
-                        if use_lp:
+                        if use_lp and emit:
                             deferred.append(item)
                         continue
                     if lp_only:
                         continue   # recorded by the d-separation stage
                     certified.append(s)
-                    yield from self._fritz_emit(item, target_mode, predictor_mode, certificate, labels_of)
+                    if emit:
+                        yield from self._fritz_emit(item, target_mode, predictor_mode, certificate, labels_of)
                 top = len(certified) if max_targets is None else min(max_targets, len(certified))
-                for k in range(2, top + 1):
+                first_joint = 2
+                if target_mode == 'split':
+                    top = min(top, max_visible - base_size)
+                    first_joint = max(2, min_visible - base_size)
+                for k in range(first_joint, top + 1):
                     for T in itertools.combinations(certified, k):
                         prepared = prepare(base, T)
                         if prepared is None:
                             continue
                         work, X_eff, eff_targets, remove, copy_of = prepared
+                        if work.number_of_visible - len(remove) < min_visible:
+                            continue
                         kept, deleted, labels = {}, {}, set()
                         for target in eff_targets:
                             deletion = work.fritz_deletion(target, X_eff)
