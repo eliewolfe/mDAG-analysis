@@ -4,12 +4,15 @@ Which 4-node causal structures have a quantum-classical (QC) gap?
 Inputs: the quantum observational equivalence classes of the 4-node mDAGs with every latent quantum that are not
 provably algebraic (no member is classically equivalent to a latent-free structure). The classes come from the
 quantum metagraph (metagraph_advanced.QuantumMetagraph, equivalence_classes.ClassIndex): its edges are structural
-dominance, face splitting and the HLP edge rule where the origin node has no visible parent and one latent parent,
-all sound for quantum model sets, so each strongly connected component is a proven quantum equivalence class. ALL
-COUNTS ARE OVER CLASSES; the report also gives the number of structures and of classical classes they comprise.
+dominance, face splitting for the families of facets that no other facet touches (mDAG.quantum_splittable_families)
+and the HLP edge rule in its pre-measurement form (the origin node is premeasurable, or every other member of its
+facets is; mDAG.quantum_hlp_origin_ok), all sound for quantum model sets, so each strongly connected component is a
+proven quantum equivalence class. Strong face splitting and the unrestricted HLP rule, which are sound for classical
+model sets only, enter the classical metagraph alone. ALL COUNTS ARE OVER CLASSES; the report also gives the number
+of structures and of classical classes they comprise.
 
-The seeds (known_QC_gaps.SEEDS, three- and four-node) are classes too: a seed with classical facets that are
-2-facets with a premeasurable member (QmDAG.lift) is the class of its all-quantum version, so the nine Bell seeds
+The seeds (known_QC_gaps.SEEDS, three- and four-node) are classes too: a seed whose classical facets each have
+at most one member that is not premeasurable (QmDAG.lift) is the class of its all-quantum version, so the nine Bell seeds
 are two classes and the three instrumental seeds one; the triangle seed with two classical facets does not lift and
 stays a degradation target (its all-quantum class is proven through the degradation lookup). Seed classes that are
 inputs are proven by the identity piggyback.

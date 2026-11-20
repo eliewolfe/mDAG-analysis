@@ -6,9 +6,9 @@ every node count it covers (3 and 4 in the census), and turns a QmDAG into the *
 
 * an all-quantum structure with a covered node count is keyed by its quantum class, represented by the smallest
   unlabelled id among the class's all-quantum members (so a key is always the unlabelled id of some structure);
-* a hybrid structure (some classical facets) that lifts (QmDAG.lift: every classical facet is a 2-facet one of whose
-  members has no visible parent and no other facet, so the facet is classical and quantum at once) is keyed by the
-  class of its lift;
+* a hybrid structure (some classical facets) that lifts (QmDAG.lift: in every classical facet all members but at
+  most one have no visible parent and no other facet, so the facet is classical and quantum at once) is keyed by
+  the class of its lift;
 * anything else (a hybrid that does not lift, a five-node structure) is keyed by its own unlabelled id.
 
 `members(key)` lists the all-quantum structures of the class (one labelled representative each): the search applies
