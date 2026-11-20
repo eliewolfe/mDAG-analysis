@@ -1,0 +1,164 @@
+{
+ "3": {
+  "HLP edges (quantum, classical)": [
+   12,
+   12
+  ],
+  "classical classes": 8,
+  "classical classes by number of quantum classes inside": {
+   "1": 8
+  },
+  "classical classes with a latent-free DAG": 5,
+  "mDAGs": 46,
+  "of which hold inputs of the census": {
+   "1": 3
+  },
+  "versions": {
+   "moderate": {
+    "face-splitting edges": 18,
+    "input classes": 3,
+    "quantum classes": 8,
+    "structures in input classes": 5
+   },
+   "quantum": {
+    "face-splitting edges": 17,
+    "input classes": 3,
+    "quantum classes": 8,
+    "structures in input classes": 5
+   },
+   "strong": {
+    "face-splitting edges": 17,
+    "input classes": 3,
+    "quantum classes": 8,
+    "structures in input classes": 5
+   },
+   "weak": {
+    "face-splitting edges": 18,
+    "input classes": 3,
+    "quantum classes": 8,
+    "structures in input classes": 5
+   }
+  }
+ },
+ "4": {
+  "HLP edges (quantum, classical)": [
+   528,
+   648
+  ],
+  "classical classes": 396,
+  "classical classes by number of quantum classes inside": {
+   "1": 374,
+   "2": 12,
+   "3": 4,
+   "4": 1,
+   "5": 2,
+   "6": 1,
+   "7": 1,
+   "9": 1
+  },
+  "classical classes with a latent-free DAG": 20,
+  "mDAGs": 2809,
+  "of which hold inputs of the census": {
+   "1": 354,
+   "2": 12,
+   "3": 4,
+   "4": 1,
+   "5": 2,
+   "6": 1,
+   "7": 1,
+   "9": 1
+  },
+  "separated groups": [
+   {
+    "classical class": 43,
+    "quantum classes": [
+     [
+      "0\u21921, 0\u21922, 0\u21923, 2\u21923; Q{0,1,3}, Q{0,2}"
+     ],
+     [
+      "0\u21921, 0\u21922, 0\u21923, 2\u21923; Q{0,1,3}, Q{0,2}, Q{2,3}"
+     ],
+     [
+      "0\u21921, 0\u21922, 0\u21923, 2\u21923; Q{0,1,3}, Q{0,2,3}"
+     ]
+    ]
+   },
+   {
+    "classical class": 319,
+    "quantum classes": [
+     [
+      "0\u21921, 0\u21922, 1\u21922, 2\u21923; Q{0,1}, Q{0,2,3}"
+     ],
+     [
+      "0\u21921, 0\u21922, 1\u21922, 2\u21923; Q{0,1}, Q{0,2,3}, Q{1,2}"
+     ],
+     [
+      "0\u21921, 0\u21922, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,2,3}"
+     ]
+    ]
+   },
+   {
+    "classical class": 321,
+    "quantum classes": [
+     [
+      "0\u21921, 0\u21922, 0\u21923, 1\u21922, 2\u21923; Q{0,1}, Q{0,2,3}"
+     ],
+     [
+      "0\u21921, 0\u21922, 0\u21923, 1\u21922, 2\u21923; Q{0,1}, Q{0,2,3}, Q{1,2}"
+     ],
+     [
+      "0\u21921, 0\u21922, 0\u21923, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,2,3}"
+     ]
+    ]
+   },
+   {
+    "classical class": 101,
+    "quantum classes": [
+     [
+      "1\u21923, 2\u21923; Q{0,1,3}, Q{0,2,3}, Q{1,2}"
+     ],
+     [
+      "1\u21923, 2\u21923; Q{0,1,3}, Q{0,2,3}, Q{1,2,3}"
+     ]
+    ]
+   },
+   {
+    "classical class": 392,
+    "quantum classes": [
+     [
+      "0\u21922, 1\u21922, 2\u21923; Q{0,1}, Q{0,2,3}, Q{1,2,3}"
+     ],
+     [
+      "0\u21922, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,2,3}, Q{1,2,3}"
+     ]
+    ]
+   }
+  ],
+  "versions": {
+   "moderate": {
+    "face-splitting edges": 899,
+    "input classes": 430,
+    "quantum classes": 450,
+    "structures in input classes": 996
+   },
+   "quantum": {
+    "face-splitting edges": 787,
+    "input classes": 426,
+    "quantum classes": 446,
+    "structures in input classes": 996
+   },
+   "strong": {
+    "face-splitting edges": 825,
+    "input classes": 418,
+    "quantum classes": 438,
+    "structures in input classes": 996
+   },
+   "weak": {
+    "face-splitting edges": 822,
+    "input classes": 441,
+    "quantum classes": 461,
+    "structures in input classes": 996
+   }
+  }
+ }
+}

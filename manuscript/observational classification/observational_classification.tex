@@ -1,0 +1,46 @@
+\documentclass[11pt]{article}
+\input{preamble}
+
+\title{\textbf{Observational equivalence rules for quantum causal models}\\[4pt]
+\large what is proven, which classical rules fail, and what the classification buys}
+\author{Notes for Marina, from the \code{mDAG-analysis} repository}
+\date{November 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+Two causal structures are \emph{observationally equivalent} when they allow the same distributions over their
+visible variables. For classical latent variables there are three rules that prove such equivalences: structural
+dominance, face splitting and the edge rule of Henson, Lal and Pusey. This note asks which of them survive when the
+latent sources are quantum. Part~I states the rules that do, with complete proofs: face splitting for
+families of sources that no other source touches, proved by a \emph{catalogue of steered states}, and two rules for
+dropping an edge, both proved by \emph{pre-measurement}. It then shows by explicit counterexamples that the
+classical edge rule and the classical moderate and strong face-splitting rules are \emph{not} valid for quantum
+models. Part~II says what the resulting classification buys for quantum-classical gaps: a gap is a property of the
+equivalence class, and some four-node structures are reached by no reduction at all and get their gap only from an
+equivalent structure.
+\end{abstract}
+
+\setcounter{tocdepth}{2}
+\tableofcontents
+\newpage
+
+\input{sections/00_summary}
+\input{sections/01_setting}
+
+\part{The rules}
+\input{sections/02_face_splitting}
+\input{sections/03_edge_dropping}
+\input{sections/04_not_quantum}
+
+\part{What quantum observational equivalence buys}
+\input{sections/05_what_it_buys}
+
+\appendix
+\input{sections/A_code}
+
+\input{sections/references}
+
+\end{document}

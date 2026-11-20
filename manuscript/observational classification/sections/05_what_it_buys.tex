@@ -1,0 +1,225 @@
+\section{Gaps, classes and the census}\label{sec:buys}
+
+\subsection{A gap is a property of the class}
+
+\begin{proposition}\label{prop:class}
+Each rule of Part~I (\cref{lem:monotone} used in both directions, \cref{thm:split,thm:ruleA,thm:ruleB}) preserves
+the quantum model set \emph{and} the classical model set. Hence, if $\G$ and $\G'$ are connected by these rules,
+then $\G$ has a QC gap if and only if $\G'$ has one.
+\end{proposition}
+\begin{proof}
+$\Q(\G)=\Q(\G')$ and $\C(\G)=\C(\G')$, so $\Q(\G)\not\subseteq\C(\G)$ is the same statement for both.
+\end{proof}
+
+This is the whole reason for classifying. It should be compared with what a \emph{classical} equivalence gives,
+which is less.
+
+\begin{lemma}[The upward rule]\label{lem:upward}
+Let $\C(\G')=\C(\G)$ and let $\G'$ be structurally above $\G$ (more edges, larger sources). If $\G$ has a QC gap,
+so has $\G'$.
+\end{lemma}
+\begin{proof}
+$\Q(\G')\supseteq\Q(\G)\not\subseteq\C(\G)=\C(\G')$, the first step by \cref{lem:monotone}.
+\end{proof}
+
+Whether a gap also passes \emph{downward} inside a classical class is not known, and
+\cref{thm:hlp-four,thm:sixnode} show why it is not automatic: within one classical class the quantum model set can
+shrink strictly.
+
+\subsection{The four-node census in numbers}
+
+The repository enumerates all structures on three and on four visible nodes up to relabelling, with every source
+quantum, and builds two graphs on them (\code{metagraph\_advanced.py}). In the \emph{quantum metagraph} the edges
+are structural dominance and the rules of Part~I; in the \emph{classical metagraph} they are structural dominance,
+the classical edge rule and strong face splitting. The strongly connected components are proven equivalence
+classes, quantum and classical respectively. ``Proven'' is meant literally: two different classes may still be
+equivalent by an argument that no rule captures.
+
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+ & three nodes & four nodes\\
+\midrule
+structures up to relabelling & 46 & 2809\\
+classical classes & 8 & 396\\
+\quad of which contain a structure without sources & 5 & 20\\
+quantum classes with the rules of Part~I & 8 & \textbf{446}\\
+\quad for comparison, with strong face splitting (unsound) & 8 & 438\\
+\quad for comparison, with weak face splitting only & 8 & 461\\
+input classes of the census, and the structures in them & 3,\ 5 & 426,\ 996\\
+\quad with a proven QC gap & 3,\ 5 & 380,\ 935\\
+\quad open & 0 & 46,\ 61\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\emph{Inputs.} A class that contains a structure classically equivalent to one without sources cannot have a gap:
+its classical model set is everything that satisfies the conditional independences read off the graph, and
+quantum models satisfy those as well \cite{HLP}. The other $426$ quantum classes are the inputs of the census.
+
+\emph{How a gap is proved.} A few structures have a gap by a direct argument; they are the \emph{seeds}: the
+instrumental scenario, the Evans scenario, the triangle, and the Bell scenario with independent or with linked
+settings (\code{known\_QC\_gaps.py}). Every other proof is a chain of \emph{reductions} that ends at a seed. A
+reduction is a map from a structure $\G$ to a smaller or simpler structure $\G_0$ together with a proof that a gap
+of $\G_0$ implies a gap of $\G$. Such a proof always has two halves, and the repository names them:
+\begin{itemize}
+\item \emph{the quantum direction}: a quantum model of $\G$ can produce every quantum distribution of $\G_0$, in a
+  form that has the extra observable properties the step relies on (for instance, one node perfectly predicts
+  another);
+\item \emph{the classical direction}: if a distribution with those properties were classical in $\G$, the
+  corresponding distribution would be classical in $\G_0$.
+\end{itemize}
+The reductions used are: fixing a node to a constant, marginalising a node, postselecting on a node, stitching two
+nodes into one, making a quantum source classical (\emph{degradation}), and a family of steps due to Fritz in
+which a node whose outcome another node predicts loses the parents that the predictor does not see. They are
+described in \code{manuscript/piggybacks.md}. An equivalence is the degenerate reduction in which both directions
+are identities.
+
+\emph{What changed with the sound rule.} Restricting face splitting to \cref{thm:split} separates five classes
+into $13$ (\cref{sec:open-four}). All $13$ have a gap, by fixing a node to a constant or by the upward rule, so the
+proven classes go from $372$ to $380$ and the open classes are the same $46$ as before, with the same $61$
+structures.
+
+\subsection{Gaps that are reached only through equivalence}\label{sec:only-via}
+
+How much of the census actually rests on \cref{prop:class}? To find out, the search was run on each of the $996$
+structures of the input classes separately, so that no step may replace a structure by an equivalent one
+(\code{scripts/only\_via\_equivalence.py}).
+
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}p{8.2cm}rr@{}}
+\toprule
+what the search may use, besides the reductions & structures reached & not reached\\
+\midrule
+all seeds, classes as in the census & 935 & \\
+all seeds, no equivalence of any kind & 933 & \textbf{2}\\
+all seeds, classical equivalence in the upward rule only & 934 & \textbf{1}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The numbers are the same for the ten-stage search and for the deeper search that is now the default of the
+repository (one Fritz step that may grow the structure up to six nodes). The two structures that no reduction
+reaches lie in one class, the Bell scenario with linked settings, shown in \cref{fig:bell-class}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[mdag,scale=0.82]
+  % in every picture: settings 0 (top left) and 1 (top right), outcomes 3 (bottom left) and 2 (bottom right)
+  \newcommand{\bellnodes}{\vn{x}{0,1.5}{$0$} \vn{y}{2,1.5}{$1$} \vn{a}{0,0}{$3$} \vn{b}{2,0}{$2$} \qs{q}{1,-0.7} \feed{q}{a,b}}
+  % --- G' (top left)
+  \begin{scope}[shift={(0,4.4)}]
+    \bellnodes \qs{l}{1,2.25} \feed{l}{x,y} \de{x}{y} \de{x}{a} \de{y}{b}
+    \node[lab,font=\footnotesize\bfseries] at (1,2.95) {$\mathsf{G}'$};
+  \end{scope}
+  % --- S (top centre)
+  \begin{scope}[shift={(6.6,4.4)}]
+    \bellnodes \de{x}{y} \de{x}{a} \de{y}{b}
+    \node[lab,font=\footnotesize\bfseries] at (1,2.25) {$\mathsf{S}$ (a seed)};
+  \end{scope}
+  % --- G (top right)
+  \begin{scope}[shift={(13.6,4.4)}]
+    \bellnodes \qs{l}{-0.85,0.75} \feed{l}{x,a} \de{x}{y} \de{x}{a} \de{y}{b}
+    \begin{scope}[on background layer]
+      \node[draw=oired, line width=1.1pt, rounded corners=3pt, fit=(x)(y)(a)(b)(q)(l), inner sep=4pt] (frameG) {};
+    \end{scope}
+    \node[lab,font=\footnotesize\bfseries,text=oired,anchor=south] at (frameG.north) {$\mathsf{G}$};
+  \end{scope}
+  % --- G'' (bottom left)
+  \begin{scope}[shift={(0,-1.6)}]
+    \bellnodes \qs{l}{1,2.25} \feed{l}{x,y} \de{x}{a} \de{y}{b}
+    \node[lab,font=\footnotesize\bfseries] at (1,-1.4) {$\mathsf{G}''$ (common cause of the settings)};
+  \end{scope}
+  % --- H (bottom right)
+  \begin{scope}[shift={(13.6,-1.6)}]
+    \bellnodes \qs{l}{-0.85,0.75} \feed{l}{x,a} \de{x}{y} \de{y}{b}
+    \begin{scope}[on background layer]
+      \node[draw=oired, line width=1.1pt, rounded corners=3pt, fit=(x)(y)(a)(b)(q)(l), inner sep=4pt] (frameH) {};
+    \end{scope}
+    \node[lab,font=\footnotesize\bfseries,text=oired,anchor=north] at (frameH.south) {$\mathsf{H}$};
+  \end{scope}
+  % --- equivalences, labelled by the rule that proves them
+  \draw[<->, line width=0.9pt, oigreen!70!black] (2.8,5.15) -- node[lab,above,align=center] {\cref{thm:split}:\\ source on $0\to1$} (6.0,5.15);
+  \draw[<->, line width=0.9pt, oigreen!70!black] (9.2,5.15) -- node[lab,above,align=center] {\cref{thm:split}:\\ source on $0\to3$} (12.1,5.15);
+  \draw[<->, line width=0.9pt, oigreen!70!black] (1.0,3.2) -- node[lab,right,align=left] {Rule A:\\ edge $0\to1$} (1.0,1.2);
+  \draw[<->, line width=0.9pt, oigreen!70!black] (14.6,3.05) -- node[lab,right,align=left] {Rule A:\\ edge $0\to3$} (14.6,0.75);
+\end{tikzpicture}
+\caption{The class of the Bell scenario with linked settings: settings $0$ and $1$, outcomes $3$ and $2$. Green
+arrows are equivalences, labelled by the rule that proves them. In the repository's notation:
+$\mathsf{S}=$ \str{0→1, 0→3, 1→2; Q\{2,3\}}; $\mathsf{G}'=\mathsf S$ with \str{Q\{0,1\}};
+$\mathsf{G}''=$ \str{0→3, 1→2; Q\{0,1\}, Q\{2,3\}}; $\mathsf{G}=\mathsf S$ with \str{Q\{0,3\}};
+$\mathsf{H}=$ \str{0→1, 1→2; Q\{0,3\}, Q\{2,3\}}. The two framed structures are reached by no reduction.}
+\label{fig:bell-class}
+\end{figure}
+
+How each member gets its gap:
+\begin{itemize}
+\item $\mathsf S$ is a seed. Its gap is Bell's theorem with correlated settings: the source of the outcomes is
+  independent of both settings, so any classical model is local for $P(x_3,x_2\mid x_0,x_1)$.
+\item $\mathsf{G}'$ and $\mathsf{G}''$, in which the settings share a quantum common cause, follow from seeds by
+  degradation: making that common cause classical gives the Bell scenario with a classical link between the
+  settings, which is a seed by the same direct argument.
+\item $\mathsf G$ follows from $\mathsf S$ by the upward rule (\cref{lem:upward}), which uses the \emph{classical}
+  equivalence of the two; with no equivalence at all it is not reached.
+\item $\mathsf H$ is reached in no other way than through its quantum equivalence with $\mathsf G$ (Rule A), and
+  from there with $\mathsf S$ (\cref{thm:split}).
+\end{itemize}
+
+In $\mathsf H$ the outcome $3$ learns its setting $0$ only through a quantum source. No reduction turns a source
+into an edge: reductions remove nodes, remove parents or make sources classical. Turning that source into an edge
+is exactly what Rule A does, because the setting is premeasurable.
+
+Two further facts put this class in perspective (same script).
+\begin{itemize}
+\item \emph{The class is not reachable from the other seeds at all.} If the three seeds with linked settings are
+  left out, no member of the class is proven, with or without equivalence ($379$ classes and $930$ structures
+  remain proven). No reduction leads from a Bell scenario with linked settings to one with independent settings,
+  since removing the link is not a reduction. The class needs its own direct argument; equivalence then spreads
+  it to all five members.
+\item \emph{Elsewhere equivalence is a convenience.} In every other proven class, each member is reached by
+  reductions on its own. What the classes buy there is economy and certainty: $426$ problems instead of $996$, one
+  certificate per class, and the assurance that counting classes does not count the same problem twice.
+\end{itemize}
+
+\subsection{A classical source that is as good as a quantum one}
+
+The seeds are often stated with some sources classical, for instance the Bell scenario in which each party
+receives its setting through a classical common cause. Structures with some sources declared classical are called
+\emph{hybrids}; in a model of a hybrid the states of the classical sources are diagonal. Pre-measurement tells when
+the declaration makes no difference.
+
+\begin{proposition}[\code{QmDAG.lift}]\label{prop:lift}
+Let $F$ be a source of a hybrid all of whose members, except at most one, are premeasurable. Then declaring $F$
+classical or quantum gives the same quantum model set.
+\end{proposition}
+\begin{proof}
+Let $F$ be quantum and apply \cref{lem:premeasure} to each premeasurable member. Every member then holds the
+outcomes $\ell$ of all of them, and what is left of the state is a state $\rho_m(\ell)$ of the one remaining member
+$m$, labelled by $\ell$. That member can prepare $\rho_m(\ell)$ itself once it knows $\ell$. So $F$ only needs to
+distribute $\ell$, which is classical.
+\end{proof}
+
+With this, the nine Bell seeds of the repository are two classes (independent settings, linked settings) and the
+three instrumental seeds are one.
+
+\subsection{What a new quantum-valid rule would buy}
+
+Three statements are left open by this note.
+\begin{enumerate}[leftmargin=*]
+\item The edge rule when an other member of the origin's source has two sources and no visible parent (the open
+  box at the end of \cref{sec:edge}).
+\item The five four-node splits of \cref{sec:open-four}.
+\item Whether a gap passes downward inside a classical class.
+\end{enumerate}
+None of them can help the $46$ open classes, and this can be read off the classification. Of the $396$ classical
+classes on four nodes, $374$ contain a single quantum class and $22$ contain several ($2$ to $9$); all $22$ are
+entirely proven. Every open class is the only quantum class of its classical class. So even the full classical
+rules, were they valid, would not connect an open class to a proven one. A rule that helps must be new classically
+as well.
+
+What equivalence already does for the open classes is to shrink them: the $46$ classes hold $61$ structures, and
+the largest holds $12$. A gap for one member is a gap for all.

@@ -1,0 +1,166 @@
+\section{Setting}\label{sec:setting}
+
+\subsection{Structures}
+
+A \emph{structure} $\G$ consists of
+\begin{itemize}
+\item a finite set $V$ of \emph{visible nodes};
+\item a directed acyclic graph on $V$, the \emph{visible edges}; $\Pa(v)$ denotes the visible parents of $v$;
+\item a collection of \emph{sources}: subsets $F\subseteq V$ with at least two members, none contained in another.
+\end{itemize}
+A source stands for one latent system that is prepared independently of everything else and distributed to its
+members. In the language of mDAGs the sources are the facets of the simplicial complex; a facet with a single
+member is private randomness, which every node has anyway and which is left implicit. In this note every source may
+be quantum. Structures are written as in the repository, the visible edges followed by the sources:
+\str{0→1, 1→2; Q\{1,2\}} is the instrumental scenario.
+
+\subsection{Quantum and classical models}
+
+\begin{definition}[Quantum model]\label{def:model}
+A quantum model of $\G$ consists of
+\begin{itemize}
+\item for every source $F$ and member $v\in F$ a finite-dimensional Hilbert space $\Hil_{F,v}$, the \emph{share} of
+  $v$ in $F$, and a state $\rho_F$ on $\bigotimes_{v\in F}\Hil_{F,v}$;
+\item for every node $v$, which holds $\Hil_v=\bigotimes_{F\ni v}\Hil_{F,v}$ (and $\Hil_v=\mathbb{C}$ if $v$ is in
+  no source), and for every value $x_{\Pa(v)}$ of its visible parents, a POVM
+  $\{M_v^{x_v\mid x_{\Pa(v)}}\}_{x_v}$ on $\Hil_v$ with finitely many outcomes.
+\end{itemize}
+It produces the distribution
+\begin{equation}\label{eq:trace}
+P(x_V)\;=\;\Tr\Bigl[\,\Bigl(\bigotimes_{v\in V} M_v^{x_v\mid x_{\Pa(v)}}\Bigr)\Bigl(\bigotimes_{F}\rho_F\Bigr)\Bigr].
+\end{equation}
+$\Q(\G)$ is the set of distributions that the quantum models of $\G$ produce.
+A model is \emph{classical} when every $\rho_F$ is diagonal in a product basis and every POVM element is diagonal
+in the product of those bases; $\C(\G)$ is the set of distributions of the classical models.
+\end{definition}
+
+Four remarks on reading \cref{eq:trace}.
+\begin{itemize}
+\item \emph{It is a number for each assignment $x_V$.} The operators of different nodes act on different tensor
+  factors, so they commute and no order of measurement has to be chosen. Every proof below is an identity between
+  two such numbers, for each $x_V$ separately.
+\item \emph{A node may measure all its shares jointly.} $M_v$ acts on the tensor product of the shares of $v$ in all
+  its sources and need not factorise. This is what makes quantum sources different from classical ones, and it is
+  exactly where the classical rules of \cref{sec:notquantum} fail.
+\item \emph{Private randomness and private states are free.} A POVM need not be projective, so private randomness
+  is included; and a state held by one node alone can be absorbed into its POVM. This is why sources with one member
+  are never drawn.
+\item \emph{Classical models are the familiar ones.} A diagonal $\rho_F$ is a random variable $\lambda_F$, and
+  \cref{eq:trace} becomes $P(x_V)=\sum_\lambda\prod_F P(\lambda_F)\prod_v P(x_v\mid x_{\Pa(v)},\lambda_{F\ni v})$.
+  Hence $\C(\G)\subseteq\Q(\G)$.
+\end{itemize}
+
+\subsection{Equivalence, dominance and gaps}
+
+Two structures on the same visible nodes are \emph{quantum observationally equivalent}, $\G\qeq\G'$, when
+$\Q(\G)=\Q(\G')$ for every choice of the outcome alphabets, and \emph{classically observationally equivalent},
+$\G\ceq\G'$, when $\C(\G)=\C(\G')$. A structure has a \emph{quantum-classical (QC) gap} when
+$\Q(\G)\not\subseteq\C(\G)$.
+
+One containment is free and is used in every proof.
+
+\begin{lemma}[Structural dominance]\label{lem:monotone}
+Let $\G'$ be obtained from $\G$ by deleting visible edges and by replacing sources with smaller ones, so that every
+source of $\G'$ is contained in a source of $\G$. Then $\Q(\G')\subseteq\Q(\G)$ and $\C(\G')\subseteq\C(\G)$.
+\end{lemma}
+\begin{proof}
+Assign to every source $F'$ of $\G'$ a source $\varphi(F')\supseteq F'$ of $\G$. Given a model of $\G'$, let the
+source $F$ of $\G$ emit $\bigotimes_{F'\in\varphi^{-1}(F)}\rho'_{F'}$, each factor going to the members of its $F'$,
+and let every node use its old POVM, ignoring the parents it has gained. The number \eqref{eq:trace} is
+unchanged, and a classical model stays classical.
+\end{proof}
+
+So to prove $\G\qeq\G'$ when $\G'$ is structurally below $\G$, only $\Q(\G)\subseteq\Q(\G')$ needs an argument:
+given a model of the larger structure, build a model of the smaller one with the same distribution.
+
+\subsection{The two tools}
+
+\begin{definition}[Premeasurable node]\label{def:prem}
+A node is \emph{premeasurable} when it has no visible parent and is a member of exactly one source.
+\end{definition}
+
+Such a node performs one fixed measurement on one share. Nothing it does depends on anything the source does not
+control, so the source can do it instead.
+
+\begin{lemma}[Pre-measurement]\label{lem:premeasure}
+Let $a$ be premeasurable with source $F$. Every quantum model of $\G$ can be replaced by a model of $\G$ with the
+same distribution in which the share of every member of $F$ contains a classical register holding the outcome
+$x_a$, and $a$ outputs its register.
+\end{lemma}
+\begin{proof}
+Since $a$ has no visible parent and no other source, its POVM is a single POVM $\{M_a^{x}\}_x$ on $\Hil_{F,a}$.
+Replace $\rho_F$ by
+\[
+\rho_F'=\sum_{x}\;\proj{x}^{\otimes F}\otimes\Tr_{\Hil_{F,a}}\bigl[(M_a^{x}\otimes\id)\,\rho_F\bigr],
+\]
+where $\proj{x}^{\otimes F}$ is one copy of a classical register for each member of $F$, the copy of $a$ replacing
+$\Hil_{F,a}$. Node $a$ measures its register; every other member applies its old POVM to its old share and ignores
+its register. For each $x_V$ the number \eqref{eq:trace} is the same as before: the factor $M_a^{x_a}$ has been
+moved from the measurement into the state.
+\end{proof}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[mdag]
+  \begin{scope}
+    \vn[pre]{a}{0,0}{$a$} \vn{b}{2.0,1.7}{$b$} \vn{c}{4.0,0}{$c$} \vn{t}{5.4,1.2}{$t$}
+    \qs{q}{2.0,0.25}
+    \feed{q}{a,b,c} \de{t}{c}
+    \node[tag] at (2.0,-0.8) {$a$ measures its share};
+  \end{scope}
+  \node[rel] at (6.6,0.5) {$=$};
+  \begin{scope}[shift={(7.8,0)}]
+    \vn[pre]{a}{0,0}{$a$} \vn{b}{2.0,1.7}{$b$} \vn{c}{4.0,0}{$c$} \vn{t}{5.4,1.2}{$t$}
+    \qs{q}{2.0,0.25}
+    \draw[qedge] (q) to[bend left=28] (b); \draw[qedge] (q) to[bend left=22] (c);
+    \draw[cedge] (q) -- node[lab,above,text=ccol] {$x_a$} (a);
+    \draw[cedge] (q) to[bend right=28] node[lab,right,text=ccol,pos=0.55] {$x_a$} (b);
+    \draw[cedge] (q) to[bend right=22] node[lab,below,text=ccol] {$x_a$} (c);
+    \de{t}{c}
+    \node[tag] at (2.0,-0.8) {the source measures it and tells every member};
+  \end{scope}
+\end{tikzpicture}
+\caption{Pre-measurement (\cref{lem:premeasure}). The yellow node has no visible parent and one source. Its
+outcome becomes classical data inside the source's state; the other members may be anything (here $c$ has a
+setting $t$).}
+\label{fig:premeasure}
+\end{figure}
+
+The second tool is not a lemma but a construction that recurs.
+
+\begin{ideabox}{The catalogue}
+Suppose that in some model a group of nodes ends up holding a state $\tau_z$ that depends on a classical value $z$,
+and that \emph{every node of the group will see $z$} among its visible parents. Then a source that feeds the group
+need not know $z$. It prepares the whole catalogue $\bigotimes_{z}\tau_z$, one entry for every possible value,
+gives each node its share of every entry, and each node, once it has read $z$, measures entry $z$ and ignores the
+others. In \cref{eq:trace} the unused entries contribute $\Tr\tau_{z'}=1$.
+
+Two conditions are essential, and each classical rule that fails quantumly violates one of them: the index $z$ must
+consist of \emph{visible} values, and \emph{nobody outside the group} may hold a system that is correlated with
+$\tau_z$ beyond the value $z$ itself.
+\end{ideabox}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[mdag]
+  \qs{q}{0.2,0.8}
+  % the catalogue: a stack of entries
+  \foreach \i/\lbl in {0/{$\tau_{z=0}$},1/{$\tau_{z=1}$},2/{$\tau_{z=2}$}} {
+    \node[draw=qcol, fill=qcol!12, rounded corners=1.5pt, minimum width=13mm, minimum height=4.6mm, font=\scriptsize]
+      (e\i) at (2.2,{0.25+0.55*\i}) {\lbl};
+  }
+  \node[draw=qcol, line width=0.9pt, fill=qcol!40, rounded corners=1.5pt, minimum width=13mm, minimum height=4.6mm, font=\scriptsize]
+      (pick) at (2.2,0.8) {$\tau_{z=1}$};
+  \draw[qedge] (q) -- (e1.west);
+  \vn[Dn]{d1}{4.9,1.55}{$d_1$} \vn[Dn]{d2}{4.9,0.05}{$d_2$} \vn{z}{6.5,0.8}{$z$}
+  \draw[qedge] (pick.east) to[out=0,in=195] (d1);
+  \draw[qedge] (pick.east) to[out=0,in=165] (d2);
+  \de{z}{d1} \de{z}{d2}
+  \node[tag,anchor=west] at (7.2,0.98) {each $d_i$ reads $z=1$ and};
+  \node[tag,anchor=west] at (7.2,0.62) {measures its share of entry $1$};
+  \node[tag] at (1.2,-0.45) {the source prepares every entry};
+\end{tikzpicture}
+\caption{The catalogue. The source prepares one entry per value of $z$; the nodes that see $z$ use the matching
+entry.}
+\label{fig:catalogue}
+\end{figure}
