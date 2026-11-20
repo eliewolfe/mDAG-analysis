@@ -11,8 +11,9 @@ strongly connected components with the face-splitting edges of each version of t
   moderate  Proposition 7: a node of C may lie in other sources that contain D
   strong    Proposition 8: the same for several C_i at once; what the classical metagraph uses
 
-It also lists the groups of structures that the strong rule merges and the quantum rule keeps apart, with the
-status of each structure in the census of QC gaps when --census is given.
+It also lists the groups of structures that the strong rule merges and the quantum rule keeps apart (their status
+in the census of QC gaps is printed by census_facts.py), and the quantum classes that fall apart when only one
+source may be split at a time (the weak rule), which are the places where sources must be split together.
 """
 import sys
 from collections import defaultdict
@@ -76,6 +77,15 @@ def count(n: int, details: bool) -> dict:
             {'classical class': int(C.class_index_of[next(iter(next(iter(parts.values()))))]),
              'quantum classes': [[notation(mdags[uid]) for uid in sorted(part)] for part in parts.values()]}
             for parts in merged.values() if len(parts) > 1]
+        # the quantum classes that the weak rule (one source at a time) does not hold together
+        weak = labels['weak'].tolist()
+        inside = defaultdict(lambda: defaultdict(list))
+        for i, uid in enumerate(nodes.tolist()):
+            inside[quantum[i]][weak[i]].append(int(uid))
+        out['quantum classes that need several sources split together'] = [
+            {'structures': sum(map(len, parts.values())), 'classes under the weak rule': len(parts),
+             'members': sorted(notation(mdags[uid]) for part in parts.values() for uid in part)}
+            for parts in inside.values() if len(parts) > 1]
     return out
 
 
@@ -100,5 +110,10 @@ if __name__ == '__main__':
             print('   merged by the strong rule, apart under the quantum rule:')
             for part in group['quantum classes']:
                 print('      ', ' | '.join(part))
+        for group in data.get('quantum classes that need several sources split together', ()):
+            print(f"   one quantum class of {group['structures']} structures, "
+                  f"{group['classes under the weak rule']} classes under the weak rule:")
+            for member in group['members']:
+                print('      ', member)
     name = 'class_counts_with_five.json' if '5' in result else 'class_counts.json'
     print('saved', save(name, result))

@@ -17,7 +17,7 @@ premeasurable node (\cref{def:prem}) & \code{mDAG.is\_premeasurable}\\
   ones are sandwiched (\cref{sec:compose})\\
 weak, moderate, strong face splitting (\AWS\ Props.~5, 7, 8) & \code{mDAG.weak\_splittable\_faces};
   \code{mDAG.splittable\_faces} with the versions \code{'moderate'} and \code{'strong'}\\
-classical edge rule (\AWS\ Prop.~4) & \code{mDAG.droppable\_edges}, \code{mDAG.addable\_edges}\\
+classical edge rule (\AWS\ Prop.~4) & \code{mDAG.droppable\_edges}\\
 Rules A and B (\cref{thm:ruleA,thm:ruleB}) & \code{mDAG.quantum\_hlp\_origin\_ok}, \code{mDAG.quantum\_droppable\_edges}\\
 \cref{lem:simultaneous} & \code{mDAG.weaker\_mDAG\_HLP(rule)}, which drops every droppable edge of a structure that
   has no addable one\\
@@ -33,16 +33,20 @@ seeds, reductions, the census & \code{known\_QC\_gaps.py}, \code{qc\_gap\_search
 \end{center}
 
 \paragraph{Tests.} \code{tests/test\_metagraph.py} pins the class counts of \cref{sec:buys}, checks by brute force
-on every four-node structure that the family the code finds is the union of all families satisfying (S1), and
-contains the examples of \cref{sec:split}, the six-node pair of \cref{thm:sixnode} and the five groups of
-\cref{sec:open-four}.
+on every four-node structure that the family the code finds is the union of all closed families, and contains a
+pair of overlapping sources that are split together, the six-node pair of \cref{thm:sixnode} and the five groups
+of \cref{sec:open-four}. The examples and warnings of the note are checked by \code{scripts/check\_examples.py}.
 
 \paragraph{Scripts of this directory} (\code{scripts/}, outputs in \code{scripts/output/}).
 \begin{itemize}
 \item \code{check\_examples.py}: every example and warning of \cref{sec:split,sec:edge,sec:notquantum} against the
-  code's own tests of the hypotheses, and against the class index where the structure has four nodes.
+  code's own tests of the hypotheses, and against the class index where the structure has three or four nodes; the
+  count in \cref{rem:ruleA-settings}.
 \item \code{class\_counts.py}: the number of quantum classes under each version of face splitting, the groups of
-  \cref{sec:open-four}, and the number of quantum classes inside each classical class.
+  \cref{sec:open-four}, the two classes that need several sources split together, and the number of quantum
+  classes inside each classical class.
+\item \code{census\_facts.py}: the table of \cref{sec:buys}, the sizes of the open classes, the proofs of the $13$
+  separated structures, and the numbers of \cref{fig:nesting}.
 \item \code{six\_node\_strategy.py}: properties (P1) and (P2) of the strategy of \cref{thm:sixnode}, numerically.
 \item \code{only\_via\_equivalence.py}: the table of \cref{sec:only-via}.
 \end{itemize}
@@ -54,6 +58,7 @@ pytest -m slow                           # the census pins
 python "Special Applications/proving_QC_Gaps.py" --no-cache
 cd "manuscript/observational classification"
 python scripts/check_examples.py && python scripts/class_counts.py
-python scripts/six_node_strategy.py && python scripts/only_via_equivalence.py
+python scripts/census_facts.py && python scripts/six_node_strategy.py
+python scripts/only_via_equivalence.py
 ./build.sh
 \end{verbatim}

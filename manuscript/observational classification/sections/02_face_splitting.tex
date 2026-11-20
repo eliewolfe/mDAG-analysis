@@ -6,12 +6,13 @@ can be cut into one for $C$ and one for $D$.
 
 \subsection{The rule}
 
-\begin{rulebox}{Rule 1: face splitting for a family of sources that no other source touches}
+\begin{rulebox}{Face splitting for a closed family of sources}
 \begin{theorem}\label{thm:split}
-Let $D$ be a non-empty set of nodes of $\G$ and let $F_1,\dots,F_k$ $(k\ge 1)$ be sources that strictly contain
-$D$. Put $C_i=F_i\setminus D$ and $C=C_1\cup\dots\cup C_k$. Assume
+Let $D$ be a non-empty set of nodes of $\G$ and let $F_1,\dots,F_k$ $(k\ge 1)$ be distinct sources that strictly
+contain $D$. Put $C_i=F_i\setminus D$ and $C=C_1\cup\dots\cup C_k$; the other sources of $\G$ are the
+\emph{remaining} ones. Assume
 \begin{description}[leftmargin=1.9cm,style=nextline,itemsep=1pt]
-\item[(S1) closure] every source of $\G$ that contains a node of $C$ is one of $F_1,\dots,F_k$;
+\item[(S1) closure] no remaining source contains a node of $C$ (the family $F_1,\dots,F_k$ is \emph{closed});
 \item[(S2) visibility] every $d\in D$ is a child of every $c\in C$ and of every visible parent of every $c\in C$.
 \end{description}
 Let $\G'$ be $\G$ with the sources $F_1,\dots,F_k$ replaced by $C_1,\dots,C_k$ and $D$, where a set with one member
@@ -45,7 +46,7 @@ is omitted, and $D$ is omitted if a remaining source contains it. Then
 \end{tikzpicture}
 \caption{\Cref{thm:split} with $D=\{d\}$, $F_1=\{c_1,c_2,d\}$, $F_2=\{c_2,c_3,d\}$, so $C_1=\{c_1,c_2\}$ and
 $C_2=\{c_2,c_3\}$ overlap. (S1): the blue nodes sit in the orange sources only. (S2): $d$ is a child of
-$c_1,c_2,c_3$ and of $y$, the visible parent of $c_1$. After the split, $d$ holds no quantum share at all.}
+$c_1,c_2,c_3$ and of $y$, the visible parent of $c_1$. After the split, $d$ is in no source.}
 \label{fig:split-generic}
 \end{figure}
 
@@ -96,6 +97,10 @@ sources may be split together, in which case an entry is a state of $D$'s shares
 
 \subsection{Proof of \cref{thm:split}}
 
+\emph{$\G'$ is a structure.} No source of $\G'$ contains another. The $C_i$ do not contain one another, since the
+$F_i$ do not. By (S1) a remaining source has no node of $C$, so it neither contains a $C_i$ nor lies inside one. A
+remaining source inside $D$ would lie inside $F_1$. And $D$ is added only when no remaining source contains it.
+
 $\Q(\G')\subseteq\Q(\G)$ and $\C(\G')\subseteq\C(\G)$ hold by \cref{lem:monotone}, since every source of $\G'$ lies
 inside a source of $\G$. For the converse fix a quantum model of $\G$.
 
@@ -123,7 +128,8 @@ P(x_V)=\Tr\Bigl[\Bigl(\bigotimes_{v\notin C}M_v^{x_v\mid x_{\Pa(v)}}\Bigr)\Bigl(
 \end{equation}
 
 \emph{Step 3: the model of $\G'$.} Let $\mathcal Z$ be the finite set of values $z=(x_C,x_Y)$. For $z\in\mathcal Z$
-put $\hat\sigma_z=\sigma(z)/q(z)$ if $q(z)>0$, and let $\hat\sigma_z$ be any state on $K$ otherwise.
+put $\hat\sigma_z=\sigma(z)/q(z)$ if $q(z)>0$, and let $\hat\sigma_z$ be a fixed state on $K$ otherwise (a diagonal
+one if the model is classical).
 \begin{itemize}
 \item The source $C_i$ emits $\rho_{C_i}$. (If $C_i$ has one member this is a private state of that node.)
 \item A source that feeds all of $D$ emits the catalogue $\kappa=\bigotimes_{z\in\mathcal Z}\hat\sigma_z$ on
@@ -149,21 +155,23 @@ The last factor is $1$. If $q(z)>0$, then $q(z)\,\hat\sigma_z=\sigma(z)$ and the
 \cref{eq:split-P}. If $q(z)=0$, the positive operator $\sigma(z)$ vanishes and both $P(x_V)$ and $P'(x_V)$ are $0$.
 Hence $P'=P$ and $\Q(\G)\subseteq\Q(\G')$.
 
-\emph{The classical model set.} If the given model is classical, then $\sigma(z)$ and the $\rho_{C_i}$ are diagonal
-and the new POVMs are diagonal, so the new model is classical: $\C(\G)\subseteq\C(\G')$. \qed
+\emph{The classical model set.} If the given model is classical, then the $\hat\sigma_z$ and the $\rho_{C_i}$ are
+diagonal and the new POVMs are diagonal, so the new model is classical: $\C(\G)\subseteq\C(\G')$. \qed
 
 \paragraph{What each hypothesis is for.}
 \begin{itemize}
 \item \textbf{(S2)} is what lets every $d$ read the index $z$. It concerns visible values only.
 \item \textbf{(S1)} is used twice. It makes $E(x_C\mid x_Y)$ act on the split sources alone (Step~1), and with
   $F_i=C_i\cup D$ it guarantees that what the outcomes of $C$ leave behind lives on shares held by $D$ and by nobody
-  else (Step~2). If a node of $C$ also held a share of a source $G$ that is not split, it could measure the two
-  shares jointly, and the state left behind would be entangled with the shares of $G$ held by nodes that never see
-  $z$. \Cref{sec:leaky} shows that this is not a defect of the proof: the statement is then false.
-\item \textbf{Splitting several sources at once} is not a convenience. In \cref{fig:split-generic} neither $F_1$
-  nor $F_2$ can be split alone under (S1), because $c_2$ sits in both.
+  else (Step~2). If a node of $C$ also held a share of a source $H$ that is not split, it could measure the two
+  shares jointly, and the state left behind would be entangled with the shares of $H$ held by nodes that never see
+  $z$. \Cref{sec:leaky} shows that this is not a defect of the proof: the conclusion can then be false.
+\item \textbf{Splitting several sources at once} is needed. In \cref{fig:split-generic} neither $F_1$ nor $F_2$
+  satisfies (S1) on its own, because $c_2$ sits in both. Example~5 below is an equivalence that the rule with
+  $k=1$ does not give, even in combination with the edge rules.
 \end{itemize}
 
+\begin{minipage}{\linewidth}
 \paragraph{Relation to the classical rules.} For classical latents the rule is known in three strengths, all
 proved in Ansanelli, Wolfe and Spekkens \cite{AWS} (\AWS\ below), where the operation is read in the other
 direction and called \emph{facet-adding}:
@@ -182,10 +190,13 @@ strong (\AWS\ Prop.~8) & the same, for several $C_i$ at once & \checkmark & $\bo
 \bottomrule
 \end{tabular}
 \end{center}
+\end{minipage}
 
 \Cref{thm:split} with $k=1$ is the weak rule. For $k\ge2$ it contains the instances of the strong rule in which
 the parts $C_i$ overlap only among themselves. On four visible nodes the four rows give $461$, $446$, $450$ and
-$438$ classes respectively (with the edge rules of \cref{sec:edge}; script \code{class\_counts.py}).
+$438$ classes respectively (with the edge rules of \cref{sec:edge}; script \code{class\_counts.py}). The step from
+the weak rule to \cref{thm:split} merges nine classes into one and eight into another; Example~5 lies in the
+first.
 
 \subsection{Valid examples}
 
@@ -268,24 +279,26 @@ split is wrong (see the first warning below).
 \end{minipage}
 \end{validbox}
 
-\begin{validbox}{Example 5: two sources split together (the strong form)}
+\begin{validbox}{Example 5: two sources that must be split together}
 \begin{minipage}{0.5\linewidth}
-$D=\{d\}$, $F_1=\{a,b,d\}$, $F_2=\{a,c,d\}$, so $C_1=\{a,b\}$ and $C_2=\{a,c\}$ share the node $a$.\\[3pt]
-\str{0→3, 1→3, 2→3; Q\{0,1,3\}, Q\{0,2,3\}} \ $\equiv$\\
-\str{0→3, 1→3, 2→3; Q\{0,1\}, Q\{0,2\}}.\\[3pt]
+$D=\{d\}$, $F_1=\{a,b,d\}$, $F_2=\{a,c,d\}$, so $C_1=\{a,b\}$ and $C_2=\{a,c\}$ share the node $a$, which is also a
+parent of $b$ and $c$.\\[3pt]
+\str{0→1, 0→2, 0→3, 1→3, 2→3; Q\{0,1,3\}, Q\{0,2,3\}} \ $\equiv$\\
+\str{0→1, 0→2, 0→3, 1→3, 2→3; Q\{0,1\}, Q\{0,2\}}.\\[3pt]
 Here $a$ may measure its two shares jointly. That is harmless: what its outcome leaves behind lives on the two
-shares of $d$, and the entry of the catalogue is a state of both. Neither source can be split alone.
+shares of $d$, and the entry of the catalogue is a state of both. Neither source satisfies (S1) on its own, and
+with $k=1$ alone the two structures stay in different classes (\code{class\_counts.py}).
 \end{minipage}\hfill
 \begin{minipage}{0.47\linewidth}\centering
-\begin{tikzpicture}[mdag,scale=0.82]
-  \vn[Cn]{b}{0,1.6}{$b$} \vn[Cn]{a}{1.5,1.6}{$a$} \vn[Cn]{c}{3,1.6}{$c$} \vn[Dn]{d}{1.5,0}{$d$}
-  \qs[splitsrc]{f1}{0.75,1.1} \qs[splitsrc]{f2}{2.25,1.1}
-  \feed[splitedge]{f1}{a,b,d} \feed[splitedge]{f2}{a,c,d} \de{a}{d} \de{b}{d} \de{c}{d}
-  \node[rel] at (3.75,0.8) {\equivsign};
-  \begin{scope}[shift={(4.5,0)}]
-    \vn[Cn]{b}{0,1.6}{$b$} \vn[Cn]{a}{1.5,1.6}{$a$} \vn[Cn]{c}{3,1.6}{$c$} \vn[Dn]{d}{1.5,0}{$d$}
-    \qs{f1}{0.75,2.45} \qs{f2}{2.25,2.45}
-    \feed{f1}{a,b} \feed{f2}{a,c} \de{a}{d} \de{b}{d} \de{c}{d}
+\begin{tikzpicture}[mdag,scale=0.76]
+  \vn[Cn]{a}{1.5,2.2}{$a$} \vn[Cn]{b}{-0.2,1.1}{$b$} \vn[Cn]{c}{3.2,1.1}{$c$} \vn[Dn]{d}{1.5,0}{$d$}
+  \qs[splitsrc]{f1}{0.9,1.1} \qs[splitsrc]{f2}{2.1,1.1}
+  \feed[splitedge]{f1}{a,b,d} \feed[splitedge]{f2}{a,c,d} \de{a}{b} \de{a}{c} \de{a}{d} \de{b}{d} \de{c}{d}
+  \node[rel] at (4.15,1.1) {\equivsign};
+  \begin{scope}[shift={(5.3,0)}]
+    \vn[Cn]{a}{1.5,2.2}{$a$} \vn[Cn]{b}{-0.2,1.1}{$b$} \vn[Cn]{c}{3.2,1.1}{$c$} \vn[Dn]{d}{1.5,0}{$d$}
+    \qs{f1}{0.25,2.2} \qs{f2}{2.75,2.2}
+    \feed{f1}{a,b} \feed{f2}{a,c} \de{a}{b} \de{a}{c} \de{a}{d} \de{b}{d} \de{c}{d}
   \end{scope}
 \end{tikzpicture}
 \end{minipage}
@@ -314,8 +327,9 @@ split, $D$ lies inside the second source, which carries the catalogue next to it
 
 \begin{validbox}{Example 7: from the census, a Bell scenario with linked settings}
 \begin{minipage}{0.5\linewidth}
-Settings $0$ and $1$, outcomes $3$ and $2$, the settings linked by $0\to1$. A source $\{0,3\}$ on the edge
-$0\to3$ is redundant by Example~1: $D=\{3\}$, $C=\{0\}$, and $0$ has no visible parent.\\[3pt]
+A Bell scenario with outcomes $3$ and $2$ whose settings $0$ and $1$ are linked by $0\to1$, and a further source
+$\{0,3\}$ on the edge $0\to3$. That source is redundant as in Example~1: $D=\{3\}$, $C=\{0\}$; node $0$ is in no
+other source (S1) and has no visible parent (S2).\\[3pt]
 \str{0→1, 0→3, 1→2; Q\{0,3\}, Q\{2,3\}} \ $\equiv$\\ \str{0→1, 0→3, 1→2; Q\{2,3\}}.\\[3pt]
 This is one of the steps that make five structures a single class (\cref{sec:only-via}).
 \end{minipage}\hfill
@@ -341,7 +355,7 @@ Two combinations come up constantly, and they prove equivalences that \cref{thm:
 
 \begin{ideabox}{Combination 1: a premeasurable node is first given edges, then split off}
 Let $p$ be premeasurable with source $F$. By Rule~A (\cref{thm:ruleA}) an edge from $p$ to any other member of $F$
-may be added. Once $p$ points to every other member, \cref{thm:split} applies with $C=\{p\}$ and $D=F\setminus\{p\}$:
+may be added; no cycle can arise, since $p$ has no parent. Once $p$ points to every other member, \cref{thm:split} applies with $C=\{p\}$ and $D=F\setminus\{p\}$:
 the source loses $p$. In words: \emph{a premeasurable member of a source can always be traded for visible edges
 from it.}
 
@@ -381,9 +395,10 @@ second source, so (S1) fails; it is valid nevertheless, for a different reason.
 \begin{ideabox}{Combination 2: the sandwich}
 If $\G_1$ is structurally below $\G_2$, which is structurally below $\G_3$, and $\G_1\qeq\G_3$, then all three are
 equivalent, because $\Q(\G_1)\subseteq\Q(\G_2)\subseteq\Q(\G_3)$ by \cref{lem:monotone}. In Example~5 the structure
-with only one of the two sources split, \str{0→3, 1→3, 2→3; Q\{0,1\}, Q\{0,2,3\}}, is such a middle term. This is
-also why the code needs to emit only the \emph{largest} family for each $D$: every smaller valid family gives a
-structure sandwiched between the original and the largest split.
+with only one of the two sources split, \str{0→1, 0→2, 0→3, 1→3, 2→3; Q\{0,1\}, Q\{0,2,3\}}, is such a middle term.
+This is also why the code needs to emit only the \emph{largest} closed family for each $D$. There is one, because
+the union of two families that satisfy (S1) and (S2) for the same $D$ satisfies them again; and every smaller one
+gives a structure sandwiched between the original and the largest split.
 \end{ideabox}
 
 \subsection{Not like this}
@@ -412,9 +427,9 @@ for classical and quantum models alike. Compare Example~4, where the edge $0\to2
 \begin{warnbox}{the part that is split off is the one that is seen}
 \begin{minipage}{0.56\linewidth}
 In \cref{thm:split} it is $D$ that sees $C$, and it is $D$ that loses its share of the old state. With an edge
-$a\to b$ one cannot take $C=\{b\}$, $D=\{a\}$. And without any edge between the two parts nothing can be split: a
-source $\{a,b\}$ with no edge between $a$ and $b$ is the only thing that correlates them, as in the Bell scenario
-\str{0→2, 1→3; Q\{2,3\}}.
+$a\to b$ one cannot take $C=\{b\}$, $D=\{a\}$. And the theorem never applies when no edge leads from $C$ to $D$. In
+the Bell scenario \str{0→2, 1→3; Q\{2,3\}} the split is plainly false: without the source, the outcomes $2$ and
+$3$ would be independent given the settings.
 \end{minipage}\hfill
 \begin{minipage}{0.41\linewidth}\centering
 \begin{tikzpicture}[mdag]
@@ -429,14 +444,14 @@ source $\{a,b\}$ with no edge between $a$ and $b$ is the only thing that correla
 \begin{minipage}{0.52\linewidth}
 This is hypothesis (S1), and it is the one place where the quantum rule is narrower than the classical ones. In
 the picture, $F=\{c,c',d\}$ is to be split into $\{c,c'\}$ and $\{d\}$, and (S2) holds: $d$ sees $c$, $c'$ and the
-setting $s$ of $c'$. But $c$ also sits in $G=\{c,d,e\}$, which stays because $d$ does not see $e$. Classically the
+setting $s$ of $c'$. But $c$ also sits in $H=\{c,d,e\}$, which stays because $d$ does not see $e$. Classically the
 split is valid (\AWS\ Prop.~7). Quantumly $c$ may measure its two shares jointly, for instance in the Bell basis.
-What its outcome leaves on the share of $d$ in $F$ is then entangled with the share of $e$ in $G$, and $e$ never
+What its outcome leaves on the share of $d$ in $F$ is then entangled with the share of $e$ in $H$, and $e$ never
 sees the outcome, so no catalogue helps.
 
-\Cref{thm:sixnode} proves that these two structures have different quantum model sets. Without the settings $s$
-and $t$ the split is valid again, by Combination~1 above. For five four-node structures of this shape the
-question is open (\cref{sec:open-four}).
+\Cref{thm:sixnode} proves that these two structures have different quantum model sets. Without the setting $s$, or
+without the setting $t$, the split is valid again (remarks after \cref{thm:sixnode}). For five four-node
+structures of this shape the question is open (\cref{sec:open-four}).
 \end{minipage}\hfill
 \begin{minipage}{0.45\linewidth}\centering
 \begin{tikzpicture}[mdag]
@@ -445,7 +460,7 @@ question is open (\cref{sec:open-four}).
   \qs[splitsrc]{f}{0.95,1.15} \qs{g}{2.1,0.55}
   \feed[splitedge]{f}{cp,c,d} \feed{g}{c,d,e} \de{cp}{d} \de{c}{d} \de{s}{cp} \de{t}{e}
   \draw[edge] (s) to[out=-120,in=170,looseness=1.2] (d);
-  \node[lab,text=splitcol!80!black] at (0.35,0.85) {$F$}; \node[lab,text=qcol] at (2.75,0.75) {$G$};
+  \node[lab,text=splitcol!80!black] at (0.95,1.57) {$F$}; \node[lab,text=qcol] at (2.75,0.75) {$H$};
   \draw[decorate,decoration={brace,amplitude=3pt,mirror},thick,black!60] (2.25,2.15) -- (1.55,2.15);
   \node[tag,anchor=south] at (1.9,2.25) {joint measurement};
   \node[tag] at (1.6,-0.7) {$e$ does not see what $c$ and $c'$ output};

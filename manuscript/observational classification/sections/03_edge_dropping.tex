@@ -13,12 +13,12 @@ can compute $x_a$ itself.
 
 For a quantum source the last step has no meaning. The outcome of $a$ is not a function of anything: it does
 not exist before $a$ measures, and the share of $b$ is a different system, not a copy. The rule as stated is in
-fact false for quantum models (\cref{sec:hlp-fails}). Two special situations remain in which $b$ does get $x_a$
-without the edge, and they are the two rules of this section.
+fact false for quantum models (\cref{sec:hlp-fails}). In two situations $b$ can be shown to get $x_a$ without the
+edge, and they are the two rules of this section.
 
 \subsection{Rule A: the origin can be pre-measured}
 
-\begin{rulebox}{Rule 2A: edge dropping when the origin is premeasurable}
+\begin{rulebox}{Rule A: edge dropping when the origin is premeasurable}
 \begin{theorem}\label{thm:ruleA}
 Let $a\to b$ be an edge of $\G$ such that
 \begin{description}[leftmargin=1.2cm,style=nextline,itemsep=1pt]
@@ -48,8 +48,8 @@ Then $\Q(\G)=\Q(\G-(a\to b))$ and $\C(\G)=\C(\G-(a\to b))$. Nothing is assumed a
   \begin{scope}[shift={(8.9,-0.95)}]
     \vn[pre]{a}{0,0}{$a$} \vn{b}{2.4,0}{$b$} \qs{q}{1.2,0.85}
     \draw[cedge] (q) -- node[lab,above left,text=ccol] {$x_a$} (a);
-    \draw[cedge] (q) to[bend right=18] node[lab,below,text=ccol,pos=0.45] {$x_a$} (b);
-    \draw[qedge] (q) to[bend left=18] (b);
+    \draw[cedge] (q) to[bend left=20] node[lab,above right,text=ccol,pos=0.5] {$x_a$} (b);
+    \draw[qedge] (q) to[bend right=20] (b);
   \end{scope}
 \end{tikzpicture}
 \caption{Rule A. The yellow origin has no visible parent and a single source, which also feeds the target. The
@@ -71,7 +71,7 @@ of $\G$ is classical, so is the new one.
 
 \subsection{Rule B: the origin shares its quantum resources with the target alone}
 
-\begin{rulebox}{Rule 2B: edge dropping when every other member of the origin's sources is premeasurable}
+\begin{rulebox}{Rule B: edge dropping when every other member of the origin's sources is premeasurable}
 \begin{theorem}\label{thm:ruleB}
 Let $a\to b$ be an edge of $\G$ such that
 \begin{description}[leftmargin=1.2cm,style=nextline,itemsep=1pt]
@@ -80,27 +80,29 @@ Let $a\to b$ be an edge of $\G$ such that
 \item[(B3)] in every source that contains $a$, every member other than $a$ and $b$ is premeasurable.
 \end{description}
 Then $\Q(\G)=\Q(\G-(a\to b))$ and $\C(\G)=\C(\G-(a\to b))$. The node $a$ itself may have visible parents and
-several sources.
+several sources. (When it has several, each of them has a premeasurable member of its own, since no source
+contains another.)
 \end{theorem}
 \end{rulebox}
 
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[mdag]
+  \newcommand{\ruleBnodes}{\vn{y}{1.3,4.2}{$y$} \vn{a}{0,1.0}{$a$} \vn{b}{2.6,1.0}{$b$}
+    \vn[pre]{o}{1.3,-1.0}{$o$} \vn[pre]{op}{1.3,3.0}{$o'$}
+    \qs{f1}{1.3,-0.05} \qs{f2}{1.3,2.05}
+    \feed{f1}{a,b,o} \feed{f2}{a,b,op}
+    \draw[edge] (y) to[bend right=28] (a); \draw[edge] (y) to[bend left=28] (b);}
   \begin{scope}
-    \vn{y}{1.3,3.0}{$y$} \vn{a}{0,1.0}{$a$} \vn{b}{2.6,1.0}{$b$} \vn[pre]{o}{1.3,-1.0}{$o$}
-    \qs{f1}{1.3,-0.05} \qs{f2}{1.3,1.85}
-    \feed{f1}{a,b,o} \feed{f2}{a,b} \de{y}{a} \de{y}{b} \de[dropedge]{a}{b}
-    \node[lab,text=qcol] at (0.7,-0.35) {$F_1$}; \node[lab,text=qcol] at (1.3,2.33) {$F_2$};
+    \ruleBnodes \de[dropedge]{a}{b}
+    \node[lab,text=qcol] at (1.78,-0.4) {$F_1$}; \node[lab,text=qcol] at (1.78,2.38) {$F_2$};
   \end{scope}
-  \node[rel] at (3.7,0.8) {\equivsign};
+  \node[rel] at (3.7,1.0) {\equivsign};
   \begin{scope}[shift={(4.8,0)}]
-    \vn{y}{1.3,3.0}{$y$} \vn{a}{0,1.0}{$a$} \vn{b}{2.6,1.0}{$b$} \vn[pre]{o}{1.3,-1.0}{$o$}
-    \qs{f1}{1.3,-0.05} \qs{f2}{1.3,1.85}
-    \feed{f1}{a,b,o} \feed{f2}{a,b} \de{y}{a} \de{y}{b}
+    \ruleBnodes
   \end{scope}
-  \begin{scope}[shift={(9.1,0.25)}]
-    \node[tag,anchor=west] at (-0.2,2.25) {after pre-measuring $o$ (label $\ell$):};
+  \begin{scope}[shift={(9.1,0.6)}]
+    \node[tag,anchor=west] at (-0.2,2.25) {after pre-measuring $o,o'$ (labels $\ell$):};
     \node[draw=ccol, fill=ccol!8, rounded corners=1.5pt, font=\scriptsize, align=left, inner sep=3pt, anchor=north west] at (-0.2,1.95)
       {table for every $(y,\ell)$:\\[1pt] $\xi_{y,\ell}$: a sample of $a$'s outcome $\ \to a,\ b$\\[1pt]
        $\hat\theta(\xi_{y,\ell};y,\ell)$: the state that outcome\\ \quad leaves on $b$'s shares $\ \to b$};
@@ -108,9 +110,10 @@ several sources.
     \node[tag,anchor=west] at (-0.2,-0.5) {so both read the same row};
   \end{scope}
 \end{tikzpicture}
-\caption{Rule B. The origin $a$ has a setting $y$, which $b$ also sees, and two sources, both shared with $b$; the
-only other member, $o$, is premeasurable. Once $o$ is pre-measured, the quantum shares of $a$ are entangled with
-shares of $b$ only, and a catalogue can carry both the outcome of $a$ and what it leaves behind.}
+\caption{Rule B. The origin $a$ has a setting $y$, which $b$ also sees, and two sources, both shared with $b$; each
+has one further member, $o$ and $o'$, and both are premeasurable. Once they are pre-measured, the quantum shares
+of $a$ are entangled with shares of $b$ only, and a catalogue can carry both the outcome of $a$ and what it leaves
+behind.}
 \label{fig:ruleB}
 \end{figure}
 
@@ -120,8 +123,8 @@ the sources that contain $a$; by (B1) they all contain $b$. Let $O_i=F_i\setminu
 (B3) every $o\in O$ is premeasurable, so it lies in one $F_i$ only and has a fixed POVM $\{M_o^{\ell_o}\}$ on its
 share. Let $Y=\Pa(a)$ be the visible parents of $a$ and write $\ell=x_O$.
 
-\emph{Step 1: what $a$ and the pre-measured members leave behind.} By (B1) the node $a$ holds shares of the $F_i$
-only. Let $B=\bigotimes_i\Hil_{F_i,b}$ be the shares of $b$ in these sources and define, for values $y$ of $Y$,
+\emph{Step 1: what $a$ and the pre-measured members leave behind.} The node $a$ holds shares of the $F_i$ only,
+and by (B1) $b$ holds a share of each. Let $B=\bigotimes_i\Hil_{F_i,b}$ be the shares of $b$ in these sources and define, for values $y$ of $Y$,
 \[
 \theta(x_a;y,\ell)=\Tr_{\text{shares of }a\text{ and }O}\Bigl[\Bigl(M_a^{x_a\mid y}\otimes\bigotimes_{o\in O}M_o^{\ell_o}\otimes\id_B\Bigr)\bigotimes_i\rho_{F_i}\Bigr]
 \quad\text{on }B .
@@ -145,7 +148,8 @@ P(x_V)=\Tr\Bigl[\Bigl(M_b^{x_b\mid x_{\Pa(b)}}\otimes\bigotimes_{v\ne a,b,\;v\no
   $\xi_{y,\ell}$ drawn from $r(\cdot\mid y,\ell)$, written into a register for $a$ and one for $b$, together with the
   state $\hat\theta(\xi_{y,\ell};y,\ell)$ on a fresh copy $B^{(y,\ell)}$ of $B$, given to $b$. $F_1$ can prepare the
   whole table without knowing the labels of the other sources, since it has a row for every value.
-\item $a$ reads $y=x_Y$ from its parents and $\ell$ from its registers, and outputs $\xi_{y,\ell}$.
+\item $a$ reads $y=x_Y$ from its parents and $\ell$ from its registers, and outputs $\xi_{y,\ell}$. (For a label
+  $\ell$ of probability zero, which never occurs, $a$ and $b$ output fixed values.)
 \item $b$ reads $y$, which it sees by (B2), and $\ell$, hence the same row and the value $\xi_{y,\ell}=x_a$. It
   applies $M_b^{x_b\mid x_a=\xi_{y,\ell},\,x_{\Pa(b)\setminus a}}$ to $B^{(y,\ell)}$ and its other shares.
 \item Everything else is unchanged. Nodes that have $a$ or a node of $O$ as a visible parent still receive the
@@ -169,13 +173,25 @@ $a$ is a private coin flip and $b$ cannot know it.
 Neither rule contains the other. Rule A allows arbitrary other members but a rigid origin; Rule B allows an
 origin with settings and several sources but rigid other members.
 
+\begin{remark}[Pre-measurement with a setting that everybody sees]\label{rem:ruleA-settings}
+The two rules are what the repository implements; they do not exhaust the method. Suppose that $a$ lies in exactly
+one source $F$, that $b\in F$, and that every visible parent of $a$ is a visible parent of every other member of
+$F$. Then $a\to b$ is redundant as well. Write $y$ for the value of the visible parents of $a$. The source emits a
+catalogue with one entry for every $y$: the state $\sum_x\proj{x}\otimes\proj{x}\otimes\Tr_{\Hil_{F,a}}[(M_a^{x\mid y}\otimes\id)\rho_F]$,
+in which the share of $a$ has already been measured with the input $y$ and the outcome is written into a register
+for $a$ and one for $b$. The node $a$ outputs the register of entry $y$; every other member of $F$ sees $y$ and
+uses its share of entry $y$; and $b$ reads $x_a$ there. For $y$ empty this is Rule A. On four nodes the wider rule
+joins no new classes: among all four-node structures it applies to $35$ edges that Rules A and B do not cover,
+and in each case the two structures are already equivalent by the rules above (\code{check\_examples.py}).
+\end{remark}
+
 \subsection{Dropping several edges at once}
 
 The metagraph of the repository removes all droppable edges of a structure in one step. That is legitimate.
 
 \begin{lemma}\label{lem:simultaneous}
 Let $E$ be the set of edges of $\G$ that satisfy the hypotheses of Rule A or of Rule B in $\G$. Then
-$\G-E\qeq\G$.
+$\G-E\qeq\G$ and $\G-E\ceq\G$.
 \end{lemma}
 \begin{proof}
 Fix a topological order of $\G$ and remove the edges $(a,b)\in E$ one at a time, those with a later origin $a$
@@ -184,6 +200,10 @@ change, so (A2) and (B1) persist. Removing edges cannot give a node a visible pa
 (A1) and (B3), persists. For (B2), let $p$ be a visible parent of $a$ when $(a,b)$ is about to be removed. Then
 $p\to b$ was an edge of $\G$, and it has not been removed yet, because $p$ precedes $a$ in the order.
 \end{proof}
+
+The order matters. In \str{0→1, 0→2, 1→2; Q\{0,2\}, Q\{1,2\}} both $0\to2$ (Rule A) and $1\to2$ (Rule B) are
+droppable; but once $0\to2$ is gone, node $2$ no longer sees the parent $0$ of node $1$, and (B2) fails for
+$1\to2$. The proof removes $1\to2$ first.
 
 \subsection{Valid examples}
 
@@ -269,7 +289,8 @@ Rule A does not apply: $0$ has a visible parent.
 $a=1$ has the setting $0$, seen by $b=2$; the source $\{1,2,3\}$ has the further member $3$, which has no parent
 and no other source:\\[3pt]
 \str{0→1, 0→2, 1→2; Q\{1,2,3\}} \ $\equiv$ \ \str{0→1, 0→2; Q\{1,2,3\}}.\\[3pt]
-If $3$ also had the parent $0$ it would not be premeasurable and the rule would not apply.
+If $3$ also had the parent $0$ it would not be premeasurable and Rule B would not apply; the edge is redundant
+all the same in that case (\cref{rem:ruleA-settings}).
 \end{minipage}\hfill
 \begin{minipage}{0.42\linewidth}\centering
 \begin{tikzpicture}[mdag,scale=0.85]
@@ -309,7 +330,7 @@ $2\to0$ and $2\to1$, since $2$ is premeasurable. By \cref{lem:simultaneous} all 
 \begin{minipage}{0.56\linewidth}
 For \str{0→1; Q\{0,1\}}, \cref{thm:split} removes the source and Rule A removes the edge. Each rule is applied to
 the structure that still has the other ingredient, and each destroys the hypothesis of the other: without the
-source, (A2) fails; without the edge, (S2) fails. The structure with neither makes the two nodes independent.
+source, (A1) and (A2) fail; without the edge, (S2) fails. The structure with neither makes the two nodes independent.
 \end{minipage}\hfill
 \begin{minipage}{0.41\linewidth}\centering
 \begin{tikzpicture}[mdag]
@@ -331,8 +352,8 @@ source, (A2) fails; without the edge, (S2) fails. The structure with neither mak
 
 \begin{warnbox}{the classical hypothesis $\Pa(a)\subseteq\Pa(b)$ alone}
 The hypothesis of the classical rule holds in each of the two structures below, and the edge is \emph{not}
-redundant for quantum models. On the left, $a$ has a setting that the source does not know and the third member
-$C$ has a setting too, so neither $a$ nor $C$ can be pre-measured. On the right nobody has a setting, but every
+redundant for quantum models. On the left, $A$ has a setting that the source does not know and the third member
+$C$ has a setting too, so neither $A$ nor $C$ can be pre-measured. On the right nobody has a setting, but every
 node sits in two sources and measures its shares jointly. \Cref{thm:hlp-settings,thm:hlp-four} give the proofs.
 
 \medskip
@@ -355,12 +376,12 @@ node sits in two sources and measures its shares jointly. \Cref{thm:hlp-settings
 \end{center}
 \end{warnbox}
 
-\begin{openq}{an other member with two sources and no visible parent}
+\begin{openq}{a further member with two sources and no visible parent}
 \begin{minipage}{0.56\linewidth}
 In \str{0→1, 0→2, 0→3, 2→1, 2→3; Q\{0,1,2\}, Q\{0,3\}} the edge $2\to1$ satisfies the classical hypothesis.
-Rule A fails ($2$ has the parent $0$), and Rule B fails because the other member $0$ of the source $\{0,1,2\}$ lies
-in a second source, so it is not premeasurable: it may measure its two shares jointly. No counterexample is known
-either. The code does not drop this edge.
+Rule A fails ($2$ has the parent $0$), and Rule B fails because the further member $0$ of the source $\{0,1,2\}$
+lies in a second source, so it is not premeasurable: it may measure its two shares jointly.
+\Cref{rem:ruleA-settings} does not apply either. No counterexample is known. The code does not drop this edge.
 \end{minipage}\hfill
 \begin{minipage}{0.41\linewidth}\centering
 \begin{tikzpicture}[mdag,scale=0.9]

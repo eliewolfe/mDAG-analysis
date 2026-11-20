@@ -5,7 +5,7 @@ import itertools
 # import networkx as nx
 from sys import version_info
 assert version_info >= (3, 8), "Python 3.8+ is required for cached_property support."
-from typing import Tuple, List, Set, FrozenSet, Iterable, Any, Union, Optional
+from typing import Tuple, List, Set, FrozenSet, Iterable, Sequence, Any, Union, Optional
 
 import functools
 from functools import cached_property
@@ -927,7 +927,7 @@ class mDAG:
         raise ValueError(f"unknown face-splitting version {version!r}; "
                          "choose 'weak', 'moderate', 'strong' or 'quantum'")
 
-    def _split_family(self, D: FrozenSet[int], Cs: Iterable[FrozenSet[int]]) -> int:
+    def _split_family(self, D: FrozenSet[int], Cs: Sequence[FrozenSet[int]]) -> int:
         """The id of this mDAG with every facet C u D (C in Cs) replaced by D and the parts C, each added unless
         a remaining facet already contains it."""
         new_simplicial_complex = self.simplicial_complex_instance.simplicial_complex_as_sets.copy()

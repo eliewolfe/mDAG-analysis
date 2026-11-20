@@ -121,12 +121,12 @@ class Observable_unlabelled_mDAGs:
     structural dominance, strong face splitting (Proposition 8 of arXiv:2502.07891) and the HLP edge rule. 'quantum'
     uses structural dominance, which is quantum-valid as it stands, and the two other rules only as far as they are
     proven for quantum model sets: face splitting for the families that no other facet touches
-    (mDAG.quantum_splittable_families; beyond them the rule fails quantumly, see the comment in mDAG_advanced.py),
-    and the HLP edge rule in its pre-measurement form (mDAG.quantum_hlp_origin_ok: the origin node is premeasurable,
-    or every other member of its facets is). Its components are proven *quantum* observational equivalence classes,
-    each inside one classical class. The two metagraphs share their nodes and the structural dominances and differ
-    in the face-splitting and the HLP edges: build the quantum one and derive the classical one with
-    `ClassicalMetagraph.from_quantum`.
+    (mDAG.quantum_splittable_families; beyond them the rule is not valid in general for quantum models, see the
+    comment in mDAG_advanced.py), and the HLP edge rule in its pre-measurement form (mDAG.quantum_hlp_origin_ok: the
+    origin node is premeasurable, or every other member of its facets is). Its components are proven *quantum*
+    observational equivalence classes, each inside one classical class. The two metagraphs share their nodes and the
+    structural dominances and differ in the face-splitting and the HLP edges: build the quantum one and derive the
+    classical one with `ClassicalMetagraph.from_quantum`.
     """
     SHARED_CACHE = ('all_directed_structures', 'all_unlabelled_directed_structures', 'truly_all_directed_structures',
                     'all_noncanonical_directed_structures', 'all_simplicial_complices', 'most_labelled_mDAGs',
@@ -1261,7 +1261,7 @@ class QuantumMetagraph(Observable_unlabelled_mDAGs):
 
 
 class ClassicalMetagraph(Observable_unlabelled_mDAGs):
-    """The metagraph under the classical rule (every HLP edge)."""
+    """The metagraph under the classical rule (every HLP edge and strong face splitting)."""
     def __init__(self, n: int, verbose: bool = False, **kwargs) -> None:
         super().__init__(n, verbose=verbose, rule='classical', **kwargs)
 

@@ -9,7 +9,8 @@ Bell pair between Alice (qubit A2) and Dan; the second source holds a Bell pair 
 * Alice, for s in {0, 1}, measures (Z + X)/sqrt2 or (Z - X)/sqrt2 on A1; for s = 2 she measures A1 and A2 in the
   Bell basis and outputs x (four values).
 * Eve measures Z (t = 0) or X (t = 1).
-* Dan, at s = 2, measures Z and multiplies by the sign he computes from k and x.
+* Dan, at s = 2, measures Z and multiplies by the sign he computes from k and x. (For s in {0, 1} his output is a
+  constant; that part of the distribution plays no role and is not built here.)
 
 Printed and saved: the distribution of k; the four correlators <A_s B_t> given k and the CHSH value they give with
 the signs of that k; at s = 2, the probability of each (k, x), the product <Z_D Z_E> and the mean <Z_E> given (k, x).

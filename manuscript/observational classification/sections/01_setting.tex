@@ -16,6 +16,9 @@ be quantum. Structures are written as in the repository, the visible edges follo
 
 \subsection{Quantum and classical models}
 
+Every visible node has a finite alphabet of outcomes, fixed in advance. Statements about model sets are meant for
+every choice of these alphabets unless said otherwise.
+
 \begin{definition}[Quantum model]\label{def:model}
 A quantum model of $\G$ consists of
 \begin{itemize}
@@ -29,7 +32,9 @@ It produces the distribution
 \begin{equation}\label{eq:trace}
 P(x_V)\;=\;\Tr\Bigl[\,\Bigl(\bigotimes_{v\in V} M_v^{x_v\mid x_{\Pa(v)}}\Bigr)\Bigl(\bigotimes_{F}\rho_F\Bigr)\Bigr].
 \end{equation}
-$\Q(\G)$ is the set of distributions that the quantum models of $\G$ produce.
+Here $\bigotimes_v\Hil_v$ and $\bigotimes_F\bigotimes_{v\in F}\Hil_{F,v}$ are the same space with the factors in a
+different order, and are identified. $\Q(\G)$ is the set of distributions that the quantum models of $\G$ produce;
+all spaces are finite-dimensional and no closure is taken.
 A model is \emph{classical} when every $\rho_F$ is diagonal in a product basis and every POVM element is diagonal
 in the product of those bases; $\C(\G)$ is the set of distributions of the classical models.
 \end{definition}
@@ -37,11 +42,14 @@ in the product of those bases; $\C(\G)$ is the set of distributions of the class
 Four remarks on reading \cref{eq:trace}.
 \begin{itemize}
 \item \emph{It is a number for each assignment $x_V$.} The operators of different nodes act on different tensor
-  factors, so they commute and no order of measurement has to be chosen. Every proof below is an identity between
-  two such numbers, for each $x_V$ separately.
+  factors, so they commute and no order of measurement has to be chosen. Summing over the outcomes, those of the
+  last node in a topological order first, shows that the numbers add up to one; this is where acyclicity is used.
+  Every proof below is an identity between two such numbers, for each $x_V$ separately.
 \item \emph{A node may measure all its shares jointly.} $M_v$ acts on the tensor product of the shares of $v$ in all
-  its sources and need not factorise. This is what makes quantum sources different from classical ones, and it is
-  exactly where the classical rules of \cref{sec:notquantum} fail.
+  its sources and need not factorise. This is one of two things that separate quantum sources from classical
+  ones in this note. The other is that a measurement may depend on a setting which the source does not know, so
+  that its outcome does not exist in advance. Each classical rule that fails in \cref{sec:notquantum} fails at one
+  of the two.
 \item \emph{Private randomness and private states are free.} A POVM need not be projective, so private randomness
   is included; and a state held by one node alone can be absorbed into its POVM. This is why sources with one member
   are never drawn.
@@ -54,14 +62,14 @@ Four remarks on reading \cref{eq:trace}.
 
 Two structures on the same visible nodes are \emph{quantum observationally equivalent}, $\G\qeq\G'$, when
 $\Q(\G)=\Q(\G')$ for every choice of the outcome alphabets, and \emph{classically observationally equivalent},
-$\G\ceq\G'$, when $\C(\G)=\C(\G')$. A structure has a \emph{quantum-classical (QC) gap} when
-$\Q(\G)\not\subseteq\C(\G)$.
+$\G\ceq\G'$, when $\C(\G)=\C(\G')$ for every choice. A structure has a \emph{quantum-classical (QC) gap} when
+$\Q(\G)\not\subseteq\C(\G)$ for some choice of the alphabets.
 
 One containment is free and is used in every proof.
 
 \begin{lemma}[Structural dominance]\label{lem:monotone}
-Let $\G'$ be obtained from $\G$ by deleting visible edges and by replacing sources with smaller ones, so that every
-source of $\G'$ is contained in a source of $\G$. Then $\Q(\G')\subseteq\Q(\G)$ and $\C(\G')\subseteq\C(\G)$.
+Let $\G'$ be obtained from $\G$ by deleting visible edges and by shrinking, deleting or subdividing sources, so that
+every source of $\G'$ is contained in a source of $\G$. Then $\Q(\G')\subseteq\Q(\G)$ and $\C(\G')\subseteq\C(\G)$.
 \end{lemma}
 \begin{proof}
 Assign to every source $F'$ of $\G'$ a source $\varphi(F')\supseteq F'$ of $\G$. Given a model of $\G'$, let the
@@ -85,7 +93,7 @@ control, so the source can do it instead.
 \begin{lemma}[Pre-measurement]\label{lem:premeasure}
 Let $a$ be premeasurable with source $F$. Every quantum model of $\G$ can be replaced by a model of $\G$ with the
 same distribution in which the share of every member of $F$ contains a classical register holding the outcome
-$x_a$, and $a$ outputs its register.
+$x_a$, and $a$ outputs its register. If the given model is classical, so is the new one.
 \end{lemma}
 \begin{proof}
 Since $a$ has no visible parent and no other source, its POVM is a single POVM $\{M_a^{x}\}_x$ on $\Hil_{F,a}$.
@@ -96,7 +104,8 @@ Replace $\rho_F$ by
 where $\proj{x}^{\otimes F}$ is one copy of a classical register for each member of $F$, the copy of $a$ replacing
 $\Hil_{F,a}$. Node $a$ measures its register; every other member applies its old POVM to its old share and ignores
 its register. For each $x_V$ the number \eqref{eq:trace} is the same as before: the factor $M_a^{x_a}$ has been
-moved from the measurement into the state.
+moved from the measurement into the state. If the given model is classical, $\rho_F'$ is diagonal and so is the
+measurement of the register.
 \end{proof}
 
 \begin{figure}[H]
@@ -130,13 +139,14 @@ The second tool is not a lemma but a construction that recurs.
 
 \begin{ideabox}{The catalogue}
 Suppose that in some model a group of nodes ends up holding a state $\tau_z$ that depends on a classical value $z$,
-and that \emph{every node of the group will see $z$} among its visible parents. Then a source that feeds the group
+and that \emph{every node of the group will see $z$}, among its visible parents or in a classical register that a
+source hands to all of them (as after a pre-measurement). Then a source that feeds the group
 need not know $z$. It prepares the whole catalogue $\bigotimes_{z}\tau_z$, one entry for every possible value,
 gives each node its share of every entry, and each node, once it has read $z$, measures entry $z$ and ignores the
 others. In \cref{eq:trace} the unused entries contribute $\Tr\tau_{z'}=1$.
 
 Two conditions are essential, and each classical rule that fails quantumly violates one of them: the index $z$ must
-consist of \emph{visible} values, and \emph{nobody outside the group} may hold a system that is correlated with
+consist of values of \emph{visible} nodes, and \emph{nobody outside the group} may hold a system that is correlated with
 $\tau_z$ beyond the value $z$ itself.
 \end{ideabox}
 

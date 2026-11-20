@@ -100,8 +100,9 @@ def test_quantum_face_splitting_is_the_family_no_other_facet_touches(index):
         families += len(found)
         # Evans' rule (no node of C in another facet) is always inside the family of its D
         assert all(C in found[D] for C, D in md.weak_splittable_faces)
-        # and every quantum split is one the strong rule makes, or lies between a structure and its strong split
-        assert set(found) <= set(parts)
+        # and the family of each D is part of what the strong rule splits for that D, so the structure the quantum
+        # rule emits lies between this one and its strong split
+        assert all(Cs <= set(parts[D]) for D, Cs in found.items())
     assert families > 0
 
     def ids(md, version):

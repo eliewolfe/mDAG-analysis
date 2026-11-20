@@ -24,7 +24,41 @@ $\Q(\G')\supseteq\Q(\G)\not\subseteq\C(\G)=\C(\G')$, the first step by \cref{lem
 
 Whether a gap also passes \emph{downward} inside a classical class is not known, and
 \cref{thm:hlp-four,thm:sixnode} show why it is not automatic: within one classical class the quantum model set can
-shrink strictly.
+shrink strictly (\cref{fig:sets}).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[mdag]
+  \tikzset{qset/.style={draw=qcol, line width=0.9pt, fill=qcol!10},
+           cset/.style={draw=ccol, line width=0.9pt, fill=ccol!14},
+           pt/.style={circle, fill=oired, inner sep=1.6pt}}
+  % quantum equivalence
+  \begin{scope}
+    \draw[qset] (0,0) ellipse (2.7 and 1.6);
+    \draw[cset] (-0.8,-0.15) ellipse (1.3 and 0.7);
+    \node[lab,text=ccol] at (-0.8,-0.15) {$\C(\G)=\C(\G')$};
+    \node[lab,text=qcol] at (0.5,1.05) {$\Q(\G)=\Q(\G')$};
+    \node[pt] (p) at (1.55,-0.25) {}; \node[lab,anchor=north] at (1.55,-0.35) {$P$};
+    \node[tag,align=center] at (0,-2.65) {quantum equivalence (\cref{prop:class}):\\ a gap of one is a gap of
+      the other\\ \mbox{}};
+  \end{scope}
+  % classical equivalence only
+  \begin{scope}[shift={(8.3,0)}]
+    \draw[qset, densely dashed] (0.35,0) ellipse (3.4 and 1.95);
+    \draw[qset] (-0.15,-0.1) ellipse (2.35 and 1.3);
+    \draw[cset] (-0.95,-0.25) ellipse (1.25 and 0.65);
+    \node[lab,text=ccol] at (-0.95,-0.25) {$\C(\G)=\C(\G')$};
+    \node[lab,text=qcol] at (0.9,0.72) {$\Q(\G)$};
+    \node[lab,text=qcol] at (1.6,1.5) {$\Q(\G')$};
+    \node[pt] (p) at (1.25,-0.25) {}; \node[lab,anchor=north] at (1.25,-0.35) {$P$};
+    \node[pt, fill=black!55] (r) at (2.95,-0.25) {}; \node[lab,anchor=north] at (2.95,-0.35) {$P'$};
+    \node[tag,align=center] at (0.35,-2.65) {classical equivalence, $\G'$ above $\G$ (\cref{lem:upward}):\\
+      the gap of $\G$ (witness $P$) passes up;\\ a gap of $\G'$ (witness $P'$) need not pass down};
+  \end{scope}
+\end{tikzpicture}
+\caption{What an equivalence does for a gap. Blue: the classical model set; purple: the quantum model set.}
+\label{fig:sets}
+\end{figure}
 
 \subsection{The four-node census in numbers}
 
@@ -55,6 +89,25 @@ input classes of the census, and the structures in them & 3,\ 5 & 426,\ 996\\
 \end{tabular}
 \end{center}
 
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[mdag]
+  \tikzset{cbox/.style={draw=#1, line width=0.9pt, fill=#1!10, rounded corners=2pt, align=center, font=\footnotesize,
+                        inner sep=4pt, minimum height=11mm}}
+  \node[cbox=neutral] (all) at (0,0) {2809 structures\\ up to relabelling};
+  \node[cbox=qcol] (cls) at (3.9,0) {446 quantum\\ classes};
+  \node[cbox=neutral, minimum height=7mm] (free) at (7.9,0.85) {20: no gap possible};
+  \node[cbox=oiblue] (inp) at (7.9,-0.45) {426 input classes\\ (996 structures)};
+  \node[cbox=oigreen!85!black] (prov) at (12.6,0.25) {380 with a proven gap\\ (935 structures)};
+  \node[cbox=oiorange!90!black] (open) at (12.6,-1.15) {46 open\\ (61 structures)};
+  \draw[edge] (all) -- node[lab,above] {rules of} node[lab,below] {Part~I} (cls);
+  \draw[edge] (cls.east) -- (free.west); \draw[edge] (cls.east) -- (inp.west);
+  \draw[edge] (inp.east) -- (prov.west); \draw[edge] (inp.east) -- (open.west);
+\end{tikzpicture}
+\caption{The four-node census in one picture.}
+\label{fig:funnel}
+\end{figure}
+
 \emph{Inputs.} A class that contains a structure classically equivalent to one without sources cannot have a gap:
 its classical model set is everything that satisfies the conditional independences read off the graph, and
 quantum models satisfy those as well \cite{HLP}. The other $426$ quantum classes are the inputs of the census.
@@ -78,9 +131,10 @@ described in \code{manuscript/piggybacks.md}. An equivalence is the degenerate r
 are identities.
 
 \emph{What changed with the sound rule.} Restricting face splitting to \cref{thm:split} separates five classes
-into $13$ (\cref{sec:open-four}). All $13$ have a gap, by fixing a node to a constant or by the upward rule, so the
-proven classes go from $372$ to $380$ and the open classes are the same $46$ as before, with the same $61$
-structures.
+into $13$ (\cref{sec:open-four}). All $13$ have a gap by short chains: fixing a node to a constant, preceded for
+eight of them by the upward rule and followed in two of the groups by making a source classical
+(\code{scripts/census\_facts.py}). So the proven classes go from $372$ to $380$, and the open classes are the same
+$46$ as before, with the same $61$ structures.
 
 \subsection{Gaps that are reached only through equivalence}\label{sec:only-via}
 
@@ -143,8 +197,8 @@ reaches lie in one class, the Bell scenario with linked settings, shown in \cref
     \node[lab,font=\footnotesize\bfseries,text=oired,anchor=north] at (frameH.south) {$\mathsf{H}$};
   \end{scope}
   % --- equivalences, labelled by the rule that proves them
-  \draw[<->, line width=0.9pt, oigreen!70!black] (2.8,5.15) -- node[lab,above,align=center] {\cref{thm:split}:\\ source on $0\to1$} (6.0,5.15);
-  \draw[<->, line width=0.9pt, oigreen!70!black] (9.2,5.15) -- node[lab,above,align=center] {\cref{thm:split}:\\ source on $0\to3$} (12.1,5.15);
+  \draw[<->, line width=0.9pt, oigreen!70!black] (2.8,5.15) -- node[lab,above=2pt,align=center] {\cref{thm:split}:\\ source on $0\to1$} (6.0,5.15);
+  \draw[<->, line width=0.9pt, oigreen!70!black] (9.2,5.15) -- node[lab,above=2pt,align=center] {\cref{thm:split}:\\ source on $0\to3$} (12.1,5.15);
   \draw[<->, line width=0.9pt, oigreen!70!black] (1.0,3.2) -- node[lab,right,align=left] {Rule A:\\ edge $0\to1$} (1.0,1.2);
   \draw[<->, line width=0.9pt, oigreen!70!black] (14.6,3.05) -- node[lab,right,align=left] {Rule A:\\ edge $0\to3$} (14.6,0.75);
 \end{tikzpicture}
@@ -203,6 +257,32 @@ $m$, labelled by $\ell$. That member can prepare $\rho_m(\ell)$ itself once it k
 distribute $\ell$, which is classical.
 \end{proof}
 
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[mdag]
+  \begin{scope}
+    \vn[pre]{p}{0,1.5}{$p$} \vn[pre]{pp}{0,0}{$p'$} \vn{m}{2.6,0.75}{$m$} \vn{t}{4.0,1.6}{$t$}
+    \qs{f}{1.15,0.75} \feed{f}{p,pp,m} \de{t}{m}
+    \node[tag] at (1.6,-0.85) {a quantum source $F$};
+  \end{scope}
+  \node[rel] at (5.1,0.75) {$=$};
+  \begin{scope}[shift={(6.3,0)}]
+    \vn[pre]{p}{0,1.5}{$p$} \vn[pre]{pp}{0,0}{$p'$} \vn{m}{2.6,0.75}{$m$} \vn{t}{4.0,1.6}{$t$}
+    \qs[csrc]{f}{1.15,0.75}
+    \draw[cedge] (f) -- node[lab,above right=-1pt,text=ccol,pos=0.45] {$\ell$} (p);
+    \draw[cedge] (f) -- node[lab,below right=-1pt,text=ccol,pos=0.45] {$\ell$} (pp);
+    \draw[cedge] (f) -- node[lab,above,text=ccol] {$\ell$} (m);
+    \de{t}{m}
+    \node[draw=qcol, fill=qcol!12, rounded corners=1.5pt, font=\scriptsize, inner sep=2.5pt] (r) at (2.6,-0.45) {$\rho_m(\ell)$};
+    \draw[qedge] (r) -- (m);
+    \node[tag] at (1.6,-1.25) {a classical source; $m$ prepares its own state};
+  \end{scope}
+\end{tikzpicture}
+\caption{\Cref{prop:lift}. The yellow members are premeasurable. Once the source has measured their shares, it only
+has to announce the results $\ell$; the one remaining member $m$ can prepare what is left of the state itself.}
+\label{fig:lift}
+\end{figure}
+
 With this, the nine Bell seeds of the repository are two classes (independent settings, linked settings) and the
 three instrumental seeds are one.
 
@@ -210,16 +290,36 @@ three instrumental seeds are one.
 
 Three statements are left open by this note.
 \begin{enumerate}[leftmargin=*]
-\item The edge rule when an other member of the origin's source has two sources and no visible parent (the open
+\item The edge rule when a further member of the origin's source has two sources and no visible parent (the open
   box at the end of \cref{sec:edge}).
 \item The five four-node splits of \cref{sec:open-four}.
 \item Whether a gap passes downward inside a classical class.
 \end{enumerate}
-None of them can help the $46$ open classes, and this can be read off the classification. Of the $396$ classical
-classes on four nodes, $374$ contain a single quantum class and $22$ contain several ($2$ to $9$); all $22$ are
-entirely proven. Every open class is the only quantum class of its classical class. So even the full classical
-rules, were they valid, would not connect an open class to a proven one. A rule that helps must be new classically
-as well.
+None of them can help the $46$ open classes, and this can be read off the classification
+(\cref{fig:nesting}; \code{scripts/census\_facts.py}). Of the $396$ classical classes on four nodes, $374$ contain
+a single quantum class and $22$ contain several ($2$ to $9$, in all $72$); those $72$ are all proven. Every open
+class is the only quantum class of its classical class. So even the full classical rules, were they valid, would
+not connect an open class to a proven one. A rule that helps must be new classically as well.
 
-What equivalence already does for the open classes is to shrink them: the $46$ classes hold $61$ structures, and
-the largest holds $12$. A gap for one member is a gap for all.
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[mdag]
+  \tikzset{cclass/.style={draw=ccol, line width=0.9pt, fill=ccol!7, rounded corners=4pt, minimum width=3.3cm, minimum height=1.5cm},
+           qclass/.style={circle, draw=#1!80!black, line width=0.7pt, fill=#1!45, minimum size=4.2mm, inner sep=0pt}}
+  \foreach \x/\name in {0/A, 4.1/B, 8.2/C, 12.3/D} { \node[cclass] (\name) at (\x,0) {}; }
+  \node[qclass=neutral] at (0,0) {};
+  \node[qclass=oigreen] at (4.1,0) {};
+  \node[qclass=oigreen] at (7.5,0.2) {}; \node[qclass=oigreen] at (8.2,-0.25) {}; \node[qclass=oigreen] at (8.9,0.2) {};
+  \node[qclass=oiorange] at (12.3,0) {};
+  \node[tag,align=center,anchor=north] at (0,-0.9) {20 classical classes:\\ one quantum class,\\ no gap possible};
+  \node[tag,align=center,anchor=north] at (4.1,-0.9) {308 classical classes:\\ one quantum class,\\ proven};
+  \node[tag,align=center,anchor=north] at (8.2,-0.9) {22 classical classes:\\ 72 quantum classes,\\ all proven};
+  \node[tag,align=center,anchor=north] at (12.3,-0.9) {46 classical classes:\\ one quantum class,\\ open};
+\end{tikzpicture}
+\caption{Quantum classes (discs) inside classical classes (blue boxes) on four nodes. The classical rules could
+only merge discs that share a box, and no box holds an open class together with another class.}
+\label{fig:nesting}
+\end{figure}
+
+What equivalence already does for the open classes is to shrink them: the $46$ classes hold $61$ structures, one
+of them $12$ and another $5$. A gap for one member is a gap for all.
