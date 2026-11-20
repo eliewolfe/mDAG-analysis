@@ -3,12 +3,16 @@
 This repository maintains two independent development branches:
 
 * [`main`](https://github.com/eliewolfe/mDAG-analysis/tree/main): the forward census,
-  with the generalized pre-measurement HLP rule and the generalized rule `QmDAG.lift`
-  (a classical source replaced by a quantum one).
+  with the generalized pre-measurement HLP rule, the generalized rule `QmDAG.lift`
+  (a classical source replaced by a quantum one), and face splitting restricted to the
+  families of facets that no other facet touches, which is what is proven for quantum models.
 * [`reversed-piggybacks`](https://github.com/eliewolfe/mDAG-analysis/tree/reversed-piggybacks):
   the elementary inverse closure of the seeds, followed by the forward Fritz cascade.
   Its display name is **reversed piggybacks**; Git branch names cannot contain spaces.
-  It retains the earlier versions of those two rules.
+  It retains the earlier versions of those two rules, and it still uses strong face
+  splitting in its quantum metagraph. Strong face splitting is not valid for quantum
+  models ([the note on the observational classification](manuscript/observational%20classification/observational_classification.pdf)),
+  so that branch needs the same restriction before its quantum classes can be relied on.
 
 The reverse branch is the renamed `claude/pensive-cray-v991bo` branch from
 [PR #16](https://github.com/eliewolfe/mDAG-analysis/pull/16). That work is maintained
@@ -16,21 +20,21 @@ separately and is not to be merged into `main`.
 
 ## Results belong to their branch
 
-The HLP rules group the same structures into different proven quantum equivalence
-classes. The different class counts below are intentional; they are not evidence
+The HLP and face-splitting rules group the same structures into different proven quantum
+equivalence classes. The different class counts below are intentional; they are not evidence
 that reversing the elementary search proves additional all-quantum structures.
 
 | Four-node census | `main` | `reversed-piggybacks` |
 |---|---:|---:|
-| Quantum equivalence classes | 438 | 445 |
-| Input classes | 418 | 424 |
-| Proven classes | 372 | 378 |
+| Quantum equivalence classes | 446 | 445 |
+| Input classes | 426 | 424 |
+| Proven classes | 380 | 378 |
 | Remaining classes | 46 | 46 |
 | Input structures, up to relabelling | 996 | 996 |
 | Proven structures | 935 | 935 |
 | Remaining structures | 61 | 61 |
 
-The five-node quantum metagraph has 583,674 classes on `main` and 595,074 on
+The five-node quantum metagraph has 596,413 classes on `main` and 595,074 on
 `reversed-piggybacks`. Each branch's manuscript, cache, and test pins describe that
 branch's rules. Read [the manuscript](manuscript/piggybacks.md) and
 [notes for Marina](manuscript/comments_for_marina.md) from the branch being used.
