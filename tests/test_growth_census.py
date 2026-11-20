@@ -88,10 +88,10 @@ def test_deeper_census_proofs_and_hierarchy(proving_QC_Gaps, tmp_path):
     index = proving_QC_Gaps.build_index(verbose=False)
     path = tmp_path / 'known.json'
     report, _ = proving_QC_Gaps.run_search(index, cache_path=str(path), verbose=False)
-    assert len(report.proven) == 372
+    assert len(report.proven) == 380
     assert len(report.remaining) == 46
     assert report.expanded_states[6, 'MUST_REDUCE'] > 0 and report.expanded_states[5, 'SPENT'] > 0
-    assert len(report.proven_structure_ids()) == 469
+    assert len(report.proven_structure_ids()) == 477
     assert replay_gap_witnesses(report) >= 370
     legacy, _ = proving_QC_Gaps.run_search(index, deep=False, use_cache=False, verbose=False)
     assert set(report.proven) == set(legacy.proven)
