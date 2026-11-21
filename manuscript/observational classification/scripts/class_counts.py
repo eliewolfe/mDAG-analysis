@@ -114,6 +114,12 @@ def count(n: int, details: bool) -> dict:
     out['classical classes by number of quantum classes inside'] = dict(sorted(histogram.items()))
     out['of which hold inputs of the census'] = dict(sorted(histogram_inputs.items()))
     out['classical edge rule'] = edge_rule_instances(Q, n)
+    # what each classical rule merges when it alone replaces its quantum counterpart
+    quantum_fs = Q.face_splitting_edge_list
+    graph = Q._csr_from_edges(Q.structural_dominances, C.hlp_edge_list, quantum_fs)
+    out['classes with the classical edge rule and the face splitting of the note'] = int(
+        sparse.csgraph.connected_components(graph, directed=True, connection='strong')[0])
+    out['classes with Rules A and B and strong face splitting'] = out['versions']['strong']['quantum classes']
     if details:
         mdags = Q.dict_uniqind_unlabelled_mDAGs
         strong, quantum = labels['strong'].tolist(), labels['quantum'].tolist()
@@ -155,6 +161,10 @@ if __name__ == '__main__':
               '; holding inputs:', data['of which hold inputs of the census'])
         print('   classical edge rule:', {k: v for k, v in data['classical edge rule'].items()
                                          if k != 'one instance for each pair'})
+        print('   classes with the classical edge rule and the face splitting of the note:',
+              data['classes with the classical edge rule and the face splitting of the note'],
+              '; with Rules A and B and strong face splitting:',
+              data['classes with Rules A and B and strong face splitting'])
         for group in data.get('separated groups', ()):
             print('   merged by the strong rule, apart under the quantum rule:')
             for part in group['quantum classes']:

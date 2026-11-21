@@ -7,8 +7,9 @@ things.
   classical equivalence alone transfers a gap in one direction only (\cref{lem:upward}).
 \item \emph{Economy.} On four nodes there are $426$ classes to decide instead of $996$ structures
   (\cref{sec:census}).
-\item \emph{Reach.} For one class, the repository's systematic search finds a proof of the gap only by passing
-  through an equivalent structure (\cref{sec:only-via}).
+\item \emph{Reach.} For two four-node structures the repository's systematic search finds a proof of the gap
+  only by passing through an equivalent structure, and for one of them the equivalence has to be a quantum one
+  (\cref{sec:only-via}).
 \end{itemize}
 
 \subsection{A gap is a property of the class}
@@ -194,8 +195,9 @@ has to announce the outcomes $\ell$; the one remaining member $m$ can prepare wh
 \end{figure}
 
 The repository lists nine variants of the Bell scenario and three of the instrumental scenario as seeds; they
-differ in which sources are classical. By \cref{prop:lift} they form three classes: Bell with independent
-settings, Bell with linked settings, instrumental.
+differ in how a setting reaches its party: along an edge, through a classical source, or both. By \cref{prop:lift}
+each has the quantum model set of the same structure with all sources quantum, and by Rule~A and \cref{thm:split}
+these fall into three classes: Bell with independent settings, Bell with linked settings, instrumental.
 
 \emph{Comparison with strong face splitting.} With the strong rule in place of \cref{thm:split} there would be
 $438$ classes: five of them are $13$ classes here (\cref{sec:open-four}). Each of the $13$ has a proven gap, by
@@ -322,15 +324,16 @@ Two further facts put this class in perspective.
 Three statements are left open by this note.
 \begin{enumerate}[leftmargin=*]
 \item Instances of the classical edge rule that the rules of \cref{sec:edge} do not cover, such as a bystander
-  with two sources and no setting (the open box at the end of \cref{sec:edge}).
+  with two sources and no setting (the open box in \cref{sec:edge}).
 \item The five four-node splits of \cref{sec:open-four}.
 \item Whether a gap passes downward inside a classical class.
 \end{enumerate}
 
 \emph{How much of the classification is at stake.} On four nodes there are $50$ more classes of proven quantum
-equivalence than of proven classical equivalence: $8$ because of face splitting (question~2) and $42$ because of
-the edge rule (question~1). In detail, the classical hypothesis (H1), (H2) holds for $1627$ edges of four-node
-structures. Rule A or Rule B covers $1278$ of them. For $270$ more, the structure with the edge and the one
+equivalence than of proven classical equivalence. Taken alone, strong face splitting would remove $8$ of them
+(question~2) and the classical edge rule $45$ (question~1); together they remove $50$, because three of the
+merges can be made by either rule. In detail, the classical hypothesis (H1), (H2) holds for $1627$ edges of
+four-node structures. Rule A or Rule B covers $1278$ of them. For $270$ more, the structure with the edge and the one
 without it are equivalent all the same, by other rules. For the remaining $79$ they are in different classes,
 $45$ pairs of classes in all. One of these pairs is proven to be different (\cref{thm:hlp-four}); for the other
 $44$ the question is open.

@@ -4,6 +4,8 @@
    12,
    12
   ],
+  "classes with Rules A and B and strong face splitting": 8,
+  "classes with the classical edge rule and the face splitting of the note": 8,
   "classical classes": 8,
   "classical classes by number of quantum classes inside": {
    "1": 8
@@ -54,6 +56,8 @@
    528,
    648
   ],
+  "classes with Rules A and B and strong face splitting": 438,
+  "classes with the classical edge rule and the face splitting of the note": 401,
   "classical classes": 396,
   "classical classes by number of quantum classes inside": {
    "1": 374,

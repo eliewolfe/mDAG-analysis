@@ -30,8 +30,9 @@ Structural dominance & $\G'$ has some of the visible edges of $\G$, and every so
 \quad moderate, strong & \dots\ a node of $C$ may also be a member of another source, if that source contains $D$
   & \checkmark & $\boldsymbol{\times}$ & \cref{thm:sixnode}\\
 \midrule
-\multicolumn{5}{@{}p{15.4cm}@{}}{\emph{Edge dropping.} The edge $a\to b$ is removed, when $b$ is a member of every
-  source of $a$ and has every visible parent of $a$ as a visible parent, and \dots}\\
+\multicolumn{5}{@{}p{15.4cm}@{}}{\emph{Edge dropping.} The edge $a\to b$ is removed, when $a$ is a member of at
+  least one source, $b$ is a member of every source of $a$ and has every visible parent of $a$ as a visible parent,
+  and \dots}\\
 \quad classical rule & \dots\ nothing more & \checkmark & $\boldsymbol{\times}$ & \cref{thm:hlp-settings,thm:hlp-four}\\
 \quad Rule A & \dots\ $a$ is \emph{premeasurable}: it has no visible parent and exactly one source
   & \checkmark & \checkmark & \cref{thm:ruleA}\\
@@ -145,7 +146,7 @@ model sets are both equal; $\equiv_{\C}$ and $\not\equiv_{\Q}$ speak of one of t
     \node[ptitle=oired] at (p5.north west) {$\boldsymbol{\times}$ moderate and strong face splitting};
   \end{scope}
 \end{tikzpicture}
-\caption{The note at a glance. Top: the three rules that hold for quantum sources, each in its smallest instance
+\caption{The note at a glance. Top: the three rules that hold for quantum sources, each in a small instance
 (\cref{sec:split,sec:edge}). Bottom: two pairs of structures that the classical rules declare equivalent, and
 that are classically equivalent, but have different quantum model sets (\cref{sec:notquantum}).}
 \label{fig:glance}

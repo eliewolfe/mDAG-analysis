@@ -85,17 +85,24 @@ valid_split('Example (inside a Bell scenario with linked settings)', 4, bell_edg
             (3,), [(0,)])
 check('Smaller families: the structure with only one of the two sources split is in the same class',
       same_class(S(fan, [(0, 1), (0, 2, 3)], 4), S(fan, [(0, 1), (0, 2)], 4)))
+together = S(fan, [(0, 1, 3), (0, 2, 3)], 4)
+both_split = S(fan, [(0, 1), (0, 2)], 4)
+check('Not comparable with the moderate rule, one way: the split of both sources at once is made by the theorem '
+      'and the strong rule and not by the moderate rule',
+      both_split.unique_id in splits(together, 'quantum') and both_split.unique_id in splits(together, 'strong')
+      and both_split.unique_id not in splits(together, 'moderate'))
 
 # Warnings of Section 2
 instrumental, chain = S([(0, 1), (1, 2)], [(1, 2)], 3), S([(0, 1), (1, 2)], [], 3)
 check('Warning (D must see the settings of C): the instrumental source is not splittable',
       instrumental.splittable_faces == [])
-check('Warning (D must see the settings of C): the two structures are not even classically equivalent',
+check('Warning (D must see the settings of C): the two structures are in different classical classes (the note proves them inequivalent)',
       not same_class(instrumental, chain, 'classical'))
 partly = S([(0, 1)], [(0, 1, 2)], 3)
 check('Warning (every node of D must see every node of C): the code offers no split of {a,b,c} into {a} and {b,c}',
       (frozenset({0}), frozenset({1, 2})) not in partly.splittable_faces)
-check('Warning (every node of D must see every node of C): the two structures are not even classically equivalent',
+check('Warning (every node of D must see every node of C): the two structures are in different classical classes '
+      '(the note proves them inequivalent)',
       not same_class(partly, S([(0, 1)], [(1, 2)], 3), 'classical'))
 check('Warning (no edge from one part to the other): the source of the Bell scenario is not splittable',
       S([(0, 2), (1, 3)], [(2, 3)], 4).splittable_faces == [])
@@ -133,9 +140,15 @@ check('Combining the rules: second chain, the theorem removes the source on p ->
 check('Combining the rules: the theorem does not give the split of {p,c,d} into {p,c} and {d} directly, and the '
       'moderate rule does', split.unique_id not in splits(unsplit, 'quantum')
       and split.unique_id in splits(unsplit, 'moderate'))
+check('Not comparable with the moderate rule, the other way: the moderate rule makes this split and the theorem '
+      'does not', split.unique_id in splits(unsplit, 'moderate') and split.unique_id not in splits(unsplit, 'quantum'))
 check('Combining the rules: all five structures are one quantum class',
       all(same_class(unsplit, other) for other in (split, with_edge, split_with_edge, last)))
 
+figure_A = S([(0, 1), (3, 2)], [(0, 1, 2)], 4)              # a, b, c, t = 0, 1, 2, 3
+check('Figure (Rule A): the origin is premeasurable, the bystander with a setting is not, and the edge is dropped',
+      figure_A.is_premeasurable(0) and not figure_A.is_premeasurable(2) and (0, 1) in figure_A.quantum_droppable_edges
+      and same_class(figure_A, S([(3, 2)], [(0, 1, 2)], 4)))
 target_two = S([(0, 1)], [(0, 1), (1, 2)], 3)
 check('Example (Rule A; the target may have further sources): the origin is premeasurable, the target is not, '
       'and the edge is dropped', target_two.is_premeasurable(0) and not target_two.is_premeasurable(1)
@@ -170,6 +183,9 @@ check('Warning (dropping the edge and the source): Rule A drops the edge',
       pair.is_premeasurable(0) and pair.quantum_droppable_edges == [(0, 1)])
 check('Warning (dropping the edge and the source): edge with source, source alone and edge alone are one class',
       same_class(pair, S([], [(0, 1)], 3)) and same_class(pair, S([(0, 1)], [], 3)))
+check('Warning (dropping the edge and the source): without the source the classical hypothesis fails, and '
+      'without the edge nothing can be split',
+      S([(0, 1)], [], 3).droppable_edges == [] and S([], [(0, 1)], 3).splittable_faces == [])
 check('Warning (dropping the edge and the source): with neither, the class is another one, classically too',
       not same_class(pair, S([], [], 3), 'classical'))
 open_edge = S([(0, 1), (0, 2), (0, 3), (2, 1), (2, 3)], [(0, 1, 2), (0, 3)], 4)
@@ -227,23 +243,23 @@ check('Theorem (six nodes): neither A nor E is premeasurable, R has two sources'
 
 # The remark after the theorem: without S, or without T, the split is valid again. Nodes R, A, D, E = 0, 1, 2, 3 and
 # the remaining setting = 4. Each step is checked against the code's own test of the rule that makes it.
-F6, H6, AR = (0, 1, 2), (0, 2, 3), (0, 1)
+F6, J6, AR = (0, 1, 2), (0, 2, 3), (0, 1)
 # without S: Alice (1) is premeasurable; Rule A adds A -> R, then the theorem splits A off
 no_S = [(4, 3), (0, 2), (1, 2)]
-for name, sources in (('G6', [F6, H6]), ("G6'", [AR, H6])):
+for name, sources in (('G6', [F6, J6]), ("G6'", [AR, J6])):
     start, with_edge = S(no_S, sources, 5), S(no_S + [(1, 0)], sources, 5)
     check(f'Without S, {name}: Alice is premeasurable and Rule A adds A -> R',
           start.is_premeasurable(1) and (1, 0) in with_edge.quantum_droppable_edges)
     check(f'Without S, {name}: the theorem then splits Alice off, leaving the source of R, D, E alone',
-          S(no_S + [(1, 0)], [H6], 5).unique_id in splits(with_edge, 'quantum'))
+          S(no_S + [(1, 0)], [J6], 5).unique_id in splits(with_edge, 'quantum'))
 # without T: Eve (3) is premeasurable; Rule A adds E -> R and E -> D, the theorem splits E off H
 no_T = [(4, 1), (4, 2), (0, 2), (1, 2)]
 eve = no_T + [(3, 0), (3, 2)]
-for name, sources, after in (('G6', [F6, H6], [F6]), ("G6'", [AR, H6], [AR, (0, 2)])):
+for name, sources, after in (('G6', [F6, J6], [F6]), ("G6'", [AR, J6], [AR, (0, 2)])):
     start, with_edges = S(no_T, sources, 5), S(eve, sources, 5)
     check(f'Without T, {name}: Eve is premeasurable and Rule A adds E -> R and E -> D',
           start.is_premeasurable(3) and {(3, 0), (3, 2)} <= set(with_edges.quantum_droppable_edges))
-    check(f'Without T, {name}: the theorem then splits Eve off H',
+    check(f'Without T, {name}: the theorem then splits J into {{E}} and {{R,D}}',
           S(eve, after, 5).unique_id in splits(with_edges, 'quantum'))
 check('Without T: the theorem now splits F, because D sees every visible parent of A and R',
       S(eve, [AR], 5).unique_id in splits(S(eve, [F6], 5), 'quantum'))
