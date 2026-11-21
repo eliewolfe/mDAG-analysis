@@ -128,19 +128,19 @@ model sets are both equal; $\equiv_{\C}$ and $\not\equiv_{\Q}$ speak of one of t
     \node[ptitle=oired] at (p4.north west) {$\boldsymbol{\times}$ the classical edge rule};
   \end{scope}
   % ---------- moderate face splitting fails
-  \begin{scope}[shift={(10.6,-5.6)}]
+  \begin{scope}[shift={(10.55,-5.6)}]
     \vn{s}{-0.6,2.9}{$S$} \vn[Cn]{A}{0,1.6}{$A$} \vn[Cn]{R}{2.2,1.6}{$R$} \vn[Dn]{D}{1.1,-0.5}{$D$} \vn{E}{3.5,-0.5}{$E$} \vn{t}{4.1,1.1}{$T$}
     \qs[splitsrc]{f}{1.1,0.95} \qs{g}{2.35,0.3}
     \feed[splitedge]{f}{A,R,D} \feed{g}{R,D,E} \de{A}{D} \de{R}{D} \de{s}{A} \de{t}{E}
     \draw[edge] (s) to[out=-125,in=175,looseness=1.25] (D);
-    \node[rel] at (5.1,1.75) {$\ceq$}; \node[rel] at (5.1,0.95) {$\not\qeq$};
-    \begin{scope}[shift={(7.0,0)}]
+    \node[rel] at (5.45,1.75) {$\ceq$}; \node[rel] at (5.45,0.95) {$\not\qeq$};
+    \begin{scope}[shift={(7.3,0)}]
       \vn{s2}{-0.6,2.9}{$S$} \vn[Cn]{A2}{0,1.6}{$A$} \vn[Cn]{R2}{2.2,1.6}{$R$} \vn[Dn]{D2}{1.1,-0.5}{$D$} \vn{E2}{3.5,-0.5}{$E$} \vn{t2}{4.1,1.1}{$T$}
       \qs{f2}{1.1,2.5} \qs{g2}{2.35,0.3}
       \feed{f2}{A2,R2} \feed{g2}{R2,D2,E2} \de{A2}{D2} \de{R2}{D2} \de{s2}{A2} \de{t2}{E2}
       \draw[edge] (s2) to[out=-125,in=175,looseness=1.25] (D2);
     \end{scope}
-    \node (left) at (-1.2,1.0) {};
+    \node[inner sep=0pt] (left) at (-1.15,1.0) {};
     \begin{scope}[on background layer]\node[panel=oired, fit=(left)(s)(D)(t2)(s2)(D2)] (p5) {};\end{scope}
     \node[ptitle=oired] at (p5.north west) {$\boldsymbol{\times}$ moderate and strong face splitting};
   \end{scope}

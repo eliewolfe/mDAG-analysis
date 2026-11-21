@@ -56,7 +56,7 @@
   cedge/.style={->, line width=0.8pt, ccol, densely dashed},
   dropedge/.style={->, line width=0.9pt, dropcol, densely dashed},
   newedge/.style={->, line width=1.0pt, oigreen!75!black},
-  faint/.style={opacity=0.28},
+  faint/.style={opacity=0.4},
   lab/.style={font=\footnotesize, inner sep=1.5pt},
   rel/.style={font=\Large},
   tag/.style={font=\scriptsize\itshape, text=black!70},
@@ -75,12 +75,12 @@
 % ---------------------------------------------------------------------------------------------------------------
 \tcbset{boxbase/.style={enhanced, breakable, boxrule=0.8pt, arc=1.6mm, left=2.2mm, right=2.2mm, top=1.6mm,
                         bottom=1.6mm, fonttitle=\bfseries\small, before skip=9pt, after skip=9pt}}
-\newtcolorbox{rulebox}[1]{boxbase, colback=oiblue!4, colframe=oiblue, title={#1}}
+\newtcolorbox{rulebox}[1]{boxbase, unbreakable, colback=oiblue!4, colframe=oiblue, title={#1}}
 % valid examples are numbered automatically; give one a label with \begin{validbox}[label=ex:...]{title}
 \newtcolorbox[auto counter]{validbox}[2][]{boxbase, colback=oigreen!5, colframe=oigreen!85!black,
   title={\checkmark\enspace Example~\thetcbcounter: #2}, #1}
 \newtcolorbox{warnbox}[1]{boxbase, colback=oired!5, colframe=oired, title={$\boldsymbol{\times}$\enspace Not like this: #1}}
-\newtcolorbox{cexbox}[1]{boxbase, colback=oired!4, colframe=oired, title={$\boldsymbol{\times}$\enspace Counterexample: #1}}
+\newtcolorbox{cexbox}[1]{boxbase, unbreakable, colback=oired!4, colframe=oired, title={$\boldsymbol{\times}$\enspace Counterexample: #1}}
 \newtcolorbox{openq}[1]{boxbase, colback=oiorange!7, colframe=oiorange!90!black, title={?\enspace Open: #1}}
 \newtcolorbox{ideabox}[1]{boxbase, colback=black!3, colframe=black!55, title={#1}}
 

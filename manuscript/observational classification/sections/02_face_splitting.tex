@@ -86,7 +86,7 @@ Take an edge $a\to b$ with a source $\{a,b\}$ on it, where $a$ has no setting an
 (\cref{fig:split-idea}). In any quantum model, $a$ measures its share and obtains $x_a$; this leaves the share of
 $b$ in a state $\tau_{x_a}$ that is a known function of $x_a$. But $b$ receives $x_a$ along the edge. So nothing is
 lost if $b$ is handed, in advance, one state $\tau_x$ for every possible $x$, and uses the one that matches the
-value it receives. That catalogue is not shared with anyone, so it is a private state of $b$, and what $a$ needs is
+value it receives. That catalogue is held by $b$ alone, so it is a private state of $b$, and what $a$ needs is
 only the reduced state of its own share, which is private too. The source has disappeared.
 
 \begin{figure}[H]
@@ -122,7 +122,7 @@ the state that the outcome $x$ of $a$ would have left on the share of $b$.}
 \end{figure}
 
 The general proof is the same argument with three additions: $C$ may have several nodes and settings, whose
-values join the index of the catalogue; $D$ may have several nodes, which then share the catalogue; and several
+values join the index of the catalogue; $D$ may have several nodes, which then hold the catalogue jointly; and several
 sources may be split together, in which case an entry is a state of $D$'s shares of all of them.
 
 \subsection{Proof of \cref{thm:split}}
