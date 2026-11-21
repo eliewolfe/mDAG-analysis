@@ -970,7 +970,7 @@ class mDAG:
             yield self._split_family(D, Cs)
 
     @property
-    # Quantum-safe face splitting: for each D, its largest family that no other facet touches
+    # Quantum-safe face splitting: for each D, its largest family whose parts C_i no other facet touches
     # (quantum_splittable_families). The quantum metagraph uses it.
     def generate_weaker_mDAGs_FaceSplitting_Quantum(self):
         for D, Cs in self.quantum_splittable_families:

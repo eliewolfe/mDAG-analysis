@@ -72,11 +72,12 @@ def main() -> dict:
     for parts in merged.values():
         if len(parts) > 1:
             groups.append([{'structure': notation(mdags[uid]),
-                            'proof': ' > '.join(step.trick for step in report.proven[key_of[uid]]),
-                            'seed': report.seed_hit[key_of[uid]]}
+                            'proven': key_of[uid] in report.proven,
+                            'proof': ' > '.join(step.trick for step in report.proven.get(key_of[uid], ())),
+                            'seed': report.seed_hit.get(key_of[uid])}
                            for part in parts.values() for uid in part])
     out['separated by the quantum rule'] = {'groups': groups, 'structures': sum(map(len, groups)),
-                                            'all proven': all(row['proof'] for group in groups for row in group)}
+                                            'all proven': all(row['proven'] for group in groups for row in group)}
     return out
 
 

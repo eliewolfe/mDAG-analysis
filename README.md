@@ -20,7 +20,7 @@ The package is managed with poetry (`poetry install`). Two dependencies deserve 
 The four-node census: `python "Special Applications/proving_QC_Gaps.py"` (under two minutes; `--no-cache` to
 recompute everything). It searches over quantum observational equivalence classes: `metagraph_advanced.QuantumMetagraph`
 builds the metagraph whose edges are quantum-valid (structural dominance, face splitting for the families of facets
-that no other facet touches, and the HLP edge rule in its pre-measurement form: the origin node is premeasurable, or
+whose parts $C_i$ no other facet touches, and the HLP edge rule in its pre-measurement form: the origin node is premeasurable, or
 every other member of its facets is), `ClassicalMetagraph.from_quantum` uses the unrestricted HLP edges and strong
 face splitting for the classical classes (both fail for quantum models; the statements, proofs and counterexamples
 are in `manuscript/observational classification/observational_classification.pdf`), and `equivalence_classes.ClassIndex` keys every structure by its class. The nodes

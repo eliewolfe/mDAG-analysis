@@ -28,8 +28,8 @@ def eprint(*args, **kwargs):
 
 
 # The face-splitting version (mDAG.generate_weaker_mDAGs_FaceSplitting) each metagraph rule may use: Proposition 8
-# of arXiv:2502.07891 is proven for classical model sets and fails for quantum ones, where only the families that
-# no other facet touches are proven (mDAG.quantum_splittable_families).
+# of arXiv:2502.07891 is proven for classical model sets and fails for quantum ones, where only the families
+# whose parts C_i no other facet touches are proven (mDAG.quantum_splittable_families).
 FACE_SPLITTING_VERSION = {'classical': 'strong', 'quantum': 'quantum'}
 
 
@@ -120,7 +120,7 @@ class Observable_unlabelled_mDAGs:
     `rule` selects the model sets the edges are sound for. 'classical' (the default) uses every rule in full:
     structural dominance, strong face splitting (Proposition 8 of arXiv:2502.07891) and the HLP edge rule. 'quantum'
     uses structural dominance, which is quantum-valid as it stands, and the two other rules only as far as they are
-    proven for quantum model sets: face splitting for the families that no other facet touches
+    proven for quantum model sets: face splitting for the families whose parts C_i no other facet touches
     (mDAG.quantum_splittable_families; beyond them the rule is not valid in general for quantum models, see the
     comment in mDAG_advanced.py), and the HLP edge rule in its pre-measurement form (mDAG.quantum_hlp_origin_ok: the
     origin node is premeasurable, or every other member of its facets is). Its components are proven *quantum*
@@ -656,8 +656,9 @@ class Observable_unlabelled_mDAGs:
     def face_splitting_edge_list(self):
         """(split, original) edges of the face-splitting equivalence under this metagraph's rule. Classical:
         every splittable (C_i, D) with one D at once (Proposition 8 of arXiv:2502.07891). Quantum: only the families
-        of facets C_i u D that no other facet touches, for which the source of D can distribute one conditional
-        state per value of what every member of D sees of the C_i (mDAG.quantum_splittable_families)."""
+        of facets C_i u D whose parts C_i no other facet touches, for which the source of D can distribute one
+        conditional state per value of what every member of D sees of the C_i
+        (mDAG.quantum_splittable_families)."""
         return self._face_splitting_edge_lists[self.rule]
 
     @cached_property

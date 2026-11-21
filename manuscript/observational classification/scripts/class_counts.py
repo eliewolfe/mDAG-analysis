@@ -6,7 +6,8 @@ repository (structural dominance, the HLP edge rule in its pre-measurement form,
 strongly connected components with the face-splitting edges of each version of the rule in turn:
 
   weak      Proposition 5 of arXiv:2502.07891 (Evans): no node of C in another source
-  quantum   the families of sources C_i u D that no other source touches (mDAG.quantum_splittable_families):
+  quantum   the families of sources C_i u D such that no other source contains a node of a C_i
+            (mDAG.quantum_splittable_families):
             what the repository's quantum metagraph uses, and what the document proves
   moderate  Proposition 7: a node of C may lie in other sources that contain D
   strong    Proposition 8: the same for several C_i at once; what the classical metagraph uses

@@ -4,9 +4,10 @@ Which 4-node causal structures have a quantum-classical (QC) gap?
 Inputs: the quantum observational equivalence classes of the 4-node mDAGs with every latent quantum that are not
 provably algebraic (no member is classically equivalent to a latent-free structure). The classes come from the
 quantum metagraph (metagraph_advanced.QuantumMetagraph, equivalence_classes.ClassIndex): its edges are structural
-dominance, face splitting for the families of facets that no other facet touches (mDAG.quantum_splittable_families)
-and the HLP edge rule in its pre-measurement form (the origin node is premeasurable, or every other member of its
-facets is; mDAG.quantum_hlp_origin_ok), all sound for quantum model sets, so each strongly connected component is a
+dominance, face splitting for the families of facets whose parts C_i no other facet touches
+(mDAG.quantum_splittable_families) and the HLP edge rule in its pre-measurement form (the origin node is
+premeasurable, or every other member of its facets is; mDAG.quantum_hlp_origin_ok), all sound for quantum model
+sets, so each strongly connected component is a
 proven quantum equivalence class. Strong face splitting and the unrestricted HLP rule, which are sound for classical
 model sets only, enter the classical metagraph alone. ALL COUNTS ARE OVER CLASSES; the report also gives the number
 of structures and of classical classes they comprise.

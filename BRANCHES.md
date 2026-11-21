@@ -5,7 +5,7 @@ This repository maintains two independent development branches:
 * [`main`](https://github.com/eliewolfe/mDAG-analysis/tree/main): the forward census,
   with the generalized pre-measurement HLP rule, the generalized rule `QmDAG.lift`
   (a classical source replaced by a quantum one), and face splitting restricted to the
-  families of facets that no other facet touches, which is what is proven for quantum models.
+  families of facets whose parts $C_i$ no other facet touches, which is what is proven for quantum models.
 * [`reversed-piggybacks`](https://github.com/eliewolfe/mDAG-analysis/tree/reversed-piggybacks):
   the elementary inverse closure of the seeds, followed by the forward Fritz cascade.
   Its display name is **reversed piggybacks**; Git branch names cannot contain spaces.

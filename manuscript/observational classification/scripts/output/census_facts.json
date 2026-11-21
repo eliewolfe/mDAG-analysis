@@ -50,16 +50,19 @@
    [
     {
      "proof": "PD",
+     "proven": true,
      "seed": "QG_Evans",
      "structure": "0\u21921, 0\u21922, 0\u21923, 2\u21923; Q{0,1,3}, Q{0,2}"
     },
     {
      "proof": "upward > PD",
+     "proven": true,
      "seed": "QG_Evans",
      "structure": "0\u21921, 0\u21922, 0\u21923, 2\u21923; Q{0,1,3}, Q{0,2}, Q{2,3}"
     },
     {
      "proof": "upward > PD",
+     "proven": true,
      "seed": "QG_Evans",
      "structure": "0\u21921, 0\u21922, 0\u21923, 2\u21923; Q{0,1,3}, Q{0,2,3}"
     }
@@ -67,16 +70,19 @@
    [
     {
      "proof": "PD",
+     "proven": true,
      "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
      "structure": "0\u21921, 0\u21922, 1\u21922, 2\u21923; Q{0,1}, Q{0,2,3}"
     },
     {
      "proof": "upward > PD",
+     "proven": true,
      "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
      "structure": "0\u21921, 0\u21922, 1\u21922, 2\u21923; Q{0,1}, Q{0,2,3}, Q{1,2}"
     },
     {
      "proof": "upward > PD",
+     "proven": true,
      "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
      "structure": "0\u21921, 0\u21922, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,2,3}"
     }
@@ -84,16 +90,19 @@
    [
     {
      "proof": "PD",
+     "proven": true,
      "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
      "structure": "0\u21921, 0\u21922, 0\u21923, 1\u21922, 2\u21923; Q{0,1}, Q{0,2,3}"
     },
     {
      "proof": "upward > PD",
+     "proven": true,
      "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
      "structure": "0\u21921, 0\u21922, 0\u21923, 1\u21922, 2\u21923; Q{0,1}, Q{0,2,3}, Q{1,2}"
     },
     {
      "proof": "upward > PD",
+     "proven": true,
      "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
      "structure": "0\u21921, 0\u21922, 0\u21923, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,2,3}"
     }
@@ -101,11 +110,13 @@
    [
     {
      "proof": "PD > degradation",
+     "proven": true,
      "seed": "QG_Triangle",
      "structure": "1\u21923, 2\u21923; Q{0,1,3}, Q{0,2,3}, Q{1,2}"
     },
     {
      "proof": "upward > PD > degradation",
+     "proven": true,
      "seed": "QG_Triangle",
      "structure": "1\u21923, 2\u21923; Q{0,1,3}, Q{0,2,3}, Q{1,2,3}"
     }
@@ -113,11 +124,13 @@
    [
     {
      "proof": "PD > degradation",
+     "proven": true,
      "seed": "QG_Triangle",
      "structure": "0\u21922, 1\u21922, 2\u21923; Q{0,1}, Q{0,2,3}, Q{1,2,3}"
     },
     {
      "proof": "upward > PD > degradation",
+     "proven": true,
      "seed": "QG_Triangle",
      "structure": "0\u21922, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,2,3}, Q{1,2,3}"
     }
