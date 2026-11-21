@@ -42,6 +42,35 @@ def test_output_bounds_preserve_joint_steps():
     assert joint == {(p, g.unique_unlabelled_id) for p, g in TRIANGLE.fritz_steps(**options, min_visible=4)}
 
 
+def test_stage_added_after_bounded_census_recognizes_only_admissible_paths():
+    import qc_gap_search as S
+    from equivalence_classes import ClassIndex
+    from growth_census import extend_census
+    from test_fritz import Q
+
+    root = Q([], 4, [], [])
+    large_seed = Q([], 5, [], [])
+    small_seed = Q([], 3, [], [])
+    report = S.prove_gaps([root], {'large': large_seed, 'small': small_seed},
+                          tricks={}, index=ClassIndex(()), verbose=False)
+    report = extend_census(report, 5, 4, five_ids=None, screen=False, with_entropic=False,
+                           with_split_predictors=False, allow_descendants=False, engine=None, verbose=False)
+    assert report.remaining == [root]
+
+    def later_step(g):
+        yield (), large_seed   # only Fritz can grow, so this seed cannot justify early exit
+        yield (), small_seed
+
+    groups = {'later': ({'later'}, {'later'}), 'unrelated': (set(), {'unrelated'})}
+    report = S.add_stage(report, {'later': later_step}, trick_groups=groups, verbose=False)
+    key = report.key(root)
+    assert report.seed_hit[key] == 'small'
+    assert report.proven[key] == report.bounded.forward(key, set(report.seed_keys))
+    assert report.stage_counts[-2:] == [('screened Fritz closure with one growth', 0), ('later', 1)]
+    assert report.provable_with['later'] == report.only_via['later'] == 1
+    assert report.only_via['unrelated'] == 0
+
+
 def replay_gap_witnesses(report):
     """Re-run the surgeries named by all bounded input and intermediate certificates."""
     from functools import lru_cache

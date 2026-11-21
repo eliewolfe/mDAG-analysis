@@ -434,7 +434,11 @@ class ClosureExplorer:
                     transition = self._child_transition(trick_name, params, key, g, child)
                     self._record(key, [transition])
                     self.expand(self.representatives[transition.target], only=followup)
-                    if not goals.isdisjoint(self.reachable(transition.target)):   # the child's lookups and follow-up included
+                    if hasattr(self, 'bounded'):
+                        # A bounded prefix and suffix must fit the same growth allowance.
+                        if self.bounded.forward(key, goals) is not None:
+                            return
+                    elif not goals.isdisjoint(self.reachable(transition.target)):   # the child's lookups and follow-up included
                         return   # proven: the trick is left unfinished for this root (not marked as applied)
             self.applied.setdefault(key, set()).add(applied_key)
 
@@ -689,9 +693,10 @@ def add_stage(report: GapReport, extra_tricks: Dict[str, Callable],
         report = build_report(explorer, inputs, seeds, _trick_groups_for(explorer, trick_groups), known=known)
     roots = list(dict.fromkeys(report.remaining)) if roots_only else list({explorer.key(g): g for g in inputs}.values())
     explorer.begin_stage(name, extra_tricks)   # the stage is counted even when nothing is left to expand
-    # Early exit: a root stops as soon as it reaches a seed, a cached known gap or an input proven earlier (an input
-    # proven in this very stage is not yet a goal; the next build_report chains the certificates anyway).
-    goals = set(_seed_keys(explorer, seeds, known)) | set(report.proven) if early_exit else None
+    goals = set(_seed_keys(explorer, seeds, known)) if early_exit else None
+    if goals is not None and not hasattr(explorer, 'bounded'):
+        # Unbounded proofs can also chain through any previously proven input.
+        goals.update(report.proven)
     for i, g in enumerate(roots):
         if verbose and i % 250 == 0:
             print(f"[{name}] expanding {i} of {len(roots)} roots; {len(explorer.edges)} structures")
