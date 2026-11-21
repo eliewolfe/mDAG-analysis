@@ -18,7 +18,8 @@ is not proven in the baseline.
 
 With every seed, the two baselines are run a second time with the deeper search that is the repository's default
 (growth_census: after the ten stages, one Fritz step that may grow the structure up to six nodes, then reductions),
-to check that the extra depth does not reach the reported structures either.
+to check that the extra depth does not reach the reported structures either. Use --depth-one for just the
+ten-stage comparison; its output is saved separately in only_via_equivalence_depth_one.json.
 """
 import sys
 import time
@@ -122,7 +123,8 @@ def main(deep: bool = True) -> dict:
 
 
 if __name__ == '__main__':
-    result = main(deep='--depth-one' not in sys.argv)
+    depth_one = '--depth-one' in sys.argv
+    result = main(deep=not depth_one)
     for name, data in result['baselines'].items():
         print('=' * 100)
         print(name)
@@ -135,4 +137,5 @@ if __name__ == '__main__':
                 print('        reached:     ', s)
             for s in group['reached only through equivalence']:
                 print('        EQUIVALENCE: ', s)
-    print('saved', save('only_via_equivalence.json', result))
+    name = 'only_via_equivalence_depth_one.json' if depth_one else 'only_via_equivalence.json'
+    print('saved', save(name, result))

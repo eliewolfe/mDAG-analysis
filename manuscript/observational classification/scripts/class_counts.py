@@ -20,7 +20,7 @@ becomes of the instances of the classical edge rule: for every edge that satisfi
 structure with the edge and the one without it are in the same quantum class anyway.
 """
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 import numpy as np
 from scipy import sparse
@@ -44,26 +44,29 @@ def edge_rule_instances(Q, n: int) -> dict:
     quantum rules make of them."""
     counts = {'instances': 0, 'covered by Rule A or B': 0, 'not covered, same quantum class by other rules': 0,
               'not covered, different quantum classes': 0}
-    pairs, examples = set(), {}
-    for md in Q.dict_uniqind_unlabelled_mDAGs.values():
-        sources = [tuple(sorted(int(v) for v in f)) for f in md.simplicial_complex_instance.compressed_simplicial_complex]
-        edges = [(int(a), int(b)) for a, b in md.directed_structure_instance.edge_list]
-        quantum = {(int(a), int(b)) for a, b in md.quantum_droppable_edges}
-        for a, b in md.droppable_edges:
-            edge = (int(a), int(b))
+    examples = {}
+    edge_masks = {(a, b): DirectedStructure([(a, b)], n).as_integer
+                  for a in range(n) for b in range(n) if a != b}
+    for uid, md in Q.dict_uniqind_unlabelled_mDAGs.items():
+        quantum = set(md.quantum_droppable_edges)
+        for edge in md.droppable_edges:
             counts['instances'] += 1
             if edge in quantum:
                 counts['covered by Rule A or B'] += 1
                 continue
-            other = mDAG(DirectedStructure([e for e in edges if e != edge], n), Hypergraph(sources, n))
-            with_edge, without = Q.class_index_of[md.unique_unlabelled_id], Q.class_index_of[other.unique_unlabelled_id]
+            # The edge is present, so clearing its bit gives the labelled directed part after the drop.
+            weaker_directed = md.directed_structure_instance.as_integer ^ edge_masks[edge]
+            other = Q.canonical_forms.canonical(weaker_directed, md.simplicial_complex_instance.as_integer)
+            with_edge, without = Q.class_index_of[uid], Q.class_index_of[other]
             if with_edge == without:
                 counts['not covered, same quantum class by other rules'] += 1
             else:
                 counts['not covered, different quantum classes'] += 1
                 pair = (min(int(with_edge), int(without)), max(int(with_edge), int(without)))
-                pairs.add(pair)
-                examples.setdefault(pair, f'{notation(md)}, edge {edge[0]}→{edge[1]}')
+                if pair not in examples:
+                    examples[pair] = f'{notation(md)}, edge {edge[0]}→{edge[1]}'
+        if Q.compact:
+            md.release_cache()
     # the pair of classes that the four-node theorem of the note proves different (nodes A, C, S, B = 0, 1, 2, 3)
     theorem = None
     if n == 4:
@@ -71,8 +74,8 @@ def edge_rule_instances(Q, n: int) -> dict:
         plus = mDAG(DirectedStructure([(0, 3)], 4), Hypergraph(sources, 4))
         minus = mDAG(DirectedStructure([], 4), Hypergraph(sources, 4))
         i, j = int(Q.class_index_of[plus.unique_unlabelled_id]), int(Q.class_index_of[minus.unique_unlabelled_id])
-        theorem = (min(i, j), max(i, j)) in pairs
-    counts['pairs of quantum classes that such an edge would join'] = len(pairs)
+        theorem = (min(i, j), max(i, j)) in examples
+    counts['pairs of quantum classes that such an edge would join'] = len(examples)
     counts['the pair of the four-node counterexample is one of them'] = theorem
     counts['one instance for each pair'] = sorted(examples.values())
     return counts
@@ -82,9 +85,14 @@ def count(n: int, details: bool) -> dict:
     Q = QuantumMetagraph(n, verbose=False)
     C = ClassicalMetagraph.from_quantum(Q)
     nodes = Q.metagraph_nodes
-    latent_free = C.latent_free_equivalent_ids
-    out = {'mDAGs': int(len(nodes)), 'classical classes': len(C.equivalence_classes_as_ids),
-           'classical classes with a latent-free DAG': sum(1 for cls in C.equivalence_classes_as_ids if cls & latent_free),
+    classical = C.class_labels
+    num_classical = int(classical.max()) + 1
+    has_latent_free_dag = np.zeros(num_classical, dtype=bool)
+    for dag in C.latent_free_DAGs_unlabelled:
+        has_latent_free_dag[C.class_index_of[dag.unique_unlabelled_id]] = True
+    latent_free_nodes = has_latent_free_dag[classical]
+    out = {'mDAGs': int(len(nodes)), 'classical classes': num_classical,
+           'classical classes with a latent-free DAG': int(has_latent_free_dag.sum()),
            'HLP edges (quantum, classical)': [int(len(Q.hlp_edge_list)), int(len(C.hlp_edge_list))],
            'versions': {}}
     labels = {}
@@ -92,25 +100,22 @@ def count(n: int, details: bool) -> dict:
         edges = Q._equivalence_edges(lambda md, v=version: md.generate_weaker_mDAGs_FaceSplitting(v),
                                      f'face splitting ({version})')
         number, labels[version] = components(Q, edges)
-        groups = defaultdict(set)
-        for i, label in enumerate(labels[version].tolist()):
-            groups[label].add(int(nodes[i]))
-        inputs = [g for g in groups.values() if not g & latent_free]
+        if version == 'quantum':
+            assert np.array_equal(Q.face_splitting_edge_list, edges)
+        inputs = np.ones(number, dtype=bool)
+        inputs[labels[version][latent_free_nodes]] = False
         out['versions'][version] = {'face-splitting edges': int(len(edges)), 'quantum classes': int(number),
-                                    'input classes': len(inputs), 'structures in input classes': sum(map(len, inputs))}
-    assert out['versions']['quantum']['quantum classes'] == len(Q.equivalence_classes_as_ids)
-    assert np.array_equal(Q.face_splitting_edge_list,
-                          Q._equivalence_edges(lambda md: md.generate_weaker_mDAGs_FaceSplitting('quantum'), 'check'))
+                                    'input classes': int(inputs.sum()),
+                                    'structures in input classes': int(inputs[labels[version]].sum())}
+    assert out['versions']['quantum']['quantum classes'] == int(Q.class_labels.max()) + 1
     # how many quantum classes each classical class contains (the repository's rule), and the same for the classical
     # classes that hold the inputs of the census (no member classically equivalent to a latent-free DAG)
-    per_classical = defaultdict(set)
-    for i, uid in enumerate(nodes.tolist()):
-        per_classical[int(C.class_index_of[int(uid)])].add(int(labels['quantum'][i]))
-    histogram, histogram_inputs = defaultdict(int), defaultdict(int)
-    for index, cls in enumerate(C.equivalence_classes_as_ids):
-        histogram[len(per_classical[index])] += 1
-        if not cls & latent_free:
-            histogram_inputs[len(per_classical[index])] += 1
+    _, representatives = np.unique(labels['quantum'], return_index=True)
+    parent_class = classical[representatives]
+    assert np.array_equal(parent_class[labels['quantum']], classical)
+    quantum_per_classical = np.bincount(parent_class, minlength=num_classical)
+    histogram = Counter(quantum_per_classical.tolist())
+    histogram_inputs = Counter(quantum_per_classical[~has_latent_free_dag].tolist())
     out['classical classes by number of quantum classes inside'] = dict(sorted(histogram.items()))
     out['of which hold inputs of the census'] = dict(sorted(histogram_inputs.items()))
     out['classical edge rule'] = edge_rule_instances(Q, n)

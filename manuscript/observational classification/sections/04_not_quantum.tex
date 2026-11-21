@@ -219,18 +219,18 @@ the role of $A'$ and $\bar C$ in the role of $C$, makes $P_{\mathrm{CHSH}}$ loca
 \end{proof}
 
 \begin{remark}
-The two structures of \cref{thm:hlp-four} are classically equivalent and, by the theorem, not quantum equivalent.
-On four nodes the quantum classification is therefore strictly finer than the classical one.
+On four nodes, a single classical observational equivalence class can therefore contain structures with
+different quantum model sets.
 \end{remark}
 
 \subsection{Moderate and strong face splitting}\label{sec:leaky}
 
-\paragraph{Where the classical proofs use a value.} The proof of the strong rule (\AWS\ Prop.~8, Appendix~A) has
-two steps: Bayesian updating (their Lemma~10), in which a new latent of $D$ is sampled from the posterior of the
-old latents given the nodes of $C$ and all their parents, visible and latent; and exogenization of that new
-latent. When all parents of $C$ are visible, the two steps are exactly \cref{thm:split}: the posterior is the
-steered state, and exogenization is the catalogue. When a node of $C$ has a further latent parent, both steps read
-its value; the proof of the moderate rule (Prop.~7) does the same when it replaces that latent by a visible
+\paragraph{Where the classical proofs use a value.} The proof of the strong rule (\AWS\ Prop.~8, Appendix~A)
+uses Bayesian updating (their Lemma~10) to sample a new latent of $D$ from the posterior of the split sources'
+latents given the outcomes of $C$, their settings and any further latent parents. The second step exogenizes the
+new latent. When $C$ has no further latent parents, \cref{thm:split} implements the two steps with the steered
+state and the catalogue. When a node of $C$ has a further latent parent, both steps read its value. The proof
+of the moderate rule (Prop.~7) does the same when it replaces that latent by a visible
 stand-in. A quantum source has no value to read, and the next theorem shows that the rule itself fails.
 
 \begin{cexbox}{moderate face splitting, on six nodes}
@@ -285,9 +285,9 @@ $R,A,D,E,S,T=0,1,2,3,4,5$): \str{4→1, 4→2, 5→3, 0→2, 1→2; Q\{0,1,2\}, 
 \paragraph{Why the split is valid classically, and what breaks.} In a classical model Dan holds the latent
 $\lambda_J$ and sees the outcomes of Alice and the relay and the setting $s$. So he can sample the latent of $F$
 himself, from its posterior given all of these, and that posterior is exactly what his response needs. In a
-quantum model there is no $\lambda_J$ to condition on. What the relay's outcome leaves on Dan's share of $F$
-depends on how the relay measured its two shares together, and it is entangled with Eve's share of $J$: condition
-(ii) of the catalogue fails, with Eve as the outsider.
+quantum model there is no $\lambda_J$ to condition on. In the strategy below the relay first entangles Alice
+with Eve. When $s=2$, Alice's Bell measurement then leaves Dan's share of $F$ entangled with Eve's share of $J$,
+even given both outcomes. This violates condition (ii) of the catalogue, with Eve as the outsider.
 
 \paragraph{The distribution $P^{*}$.} Let $S$ be uniform on $\{0,1,2\}$ and $T$ uniform on $\{0,1\}$. In $\G_6$
 (\cref{fig:strategy}):

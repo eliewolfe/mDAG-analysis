@@ -125,7 +125,7 @@ The general proof is the same argument with three additions: $C$ may have severa
 values join the index of the catalogue; $D$ may have several nodes, which then hold the catalogue jointly; and several
 sources may be split together, in which case an entry is a state of $D$'s shares of all of them.
 
-\subsection{Proof of \cref{thm:split}}
+\subsection{Proof of the closed-family splitting rule}
 
 $\Q(\G')\subseteq\Q(\G)$ and $\C(\G')\subseteq\C(\G)$ hold by \cref{lem:monotone}, since $\G'$ is structurally
 below $\G$. For the converse fix a quantum model of $\G$.
@@ -287,8 +287,8 @@ $D=\{d\}$, $F_1=\{a,b,d\}$, $F_2=\{a,c,d\}$, so $C_1=\{a,b\}$ and $C_2=\{a,c\}$ 
 is also a parent of $b$ and $c$.\\[3pt]
 \str{a→b, a→c, a→d, b→d, c→d; Q\{a,b,d\}, Q\{a,c,d\}} \ $\equiv$\\
 \str{a→b, a→c, a→d, b→d, c→d; Q\{a,b\}, Q\{a,c\}}.\\[3pt]
-Here $a$ may measure its two shares jointly. That is harmless: what its outcome leaves behind lives on the two
-shares of $d$, and the entry of the catalogue is a state of both. Neither source satisfies (S1) on its own, and
+Here $a$ may measure its two shares jointly. Once $a$, $b$ and $c$ have all measured, their outcomes determine
+an entry of the catalogue on the two shares of $d$. Neither source satisfies (S1) on its own, and
 with $k=1$ alone the two structures stay in different classes.
 \end{minipage}\hfill
 \begin{minipage}{0.47\linewidth}\centering
@@ -428,9 +428,10 @@ split produces; it matters only for the hypotheses, where $D$ is the part that s
 This is hypothesis (S1), and it is the one place where the quantum rule is narrower than the classical ones. In
 the picture, $F=\{A,R,D\}$ is to be split into $\{A,R\}$ and $\{D\}$, and (S2) holds: $D$ sees $A$, $R$ and the
 setting $S$ of $A$. But $R$ is also a member of $J=\{R,D,E\}$, which cannot be split along with $F$ because $D$
-does not see $E$. Classically the split is valid (\AWS\ Prop.~7). Quantumly $R$ may measure its two shares
-jointly, for instance in the Bell basis. What its outcome leaves on the share of $D$ in $F$ is then entangled with
-the share of $E$ in $J$, and $E$ never sees the outcome: condition (ii) of the catalogue fails.
+does not see $E$. Classically the split is valid (\AWS\ Prop.~7). In the strategy of \cref{thm:sixnode}, $R$'s
+Bell measurement entangles $A$ with $E$. At $x_S=2$, $A$'s Bell measurement then leaves $D$ and $E$ sharing a
+Bell state conditioned on both outcomes. The share that the catalogue would replace is entangled with $E$'s,
+violating (ii).
 
 \Cref{thm:sixnode} proves that these two structures have different quantum model sets. Without the setting $S$, or
 without the setting $T$, the split is valid again (remarks after \cref{thm:sixnode}). For five four-node
