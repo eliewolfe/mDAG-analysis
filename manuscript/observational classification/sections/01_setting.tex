@@ -2,22 +2,20 @@
 
 \subsection{Structures}
 
-A \emph{structure} $\G$ consists of
+A \emph{structure} $\G$ is an mDAG \cite{Evans} whose facets are called sources here. It consists of
 \begin{itemize}
 \item a finite set $V$ of \emph{visible nodes};
-\item a directed acyclic graph on $V$, the \emph{visible edges}; $\Pa(v)$ denotes the visible parents of $v$;
+\item a directed acyclic graph on $V$, the \emph{visible edges}. An edge $a\to b$ has the \emph{origin} $a$ and the
+  \emph{target} $b$, and $b$ is said to \emph{see} $a$. $\Pa(v)$ denotes the visible parents of $v$, also called its
+  \emph{settings}, since their values select its measurement;
 \item a collection of \emph{sources}: subsets $F\subseteq V$ with at least two members, none contained in another.
 \end{itemize}
 A source stands for one latent system that is prepared independently of everything else and distributed to its
-members. In the language of mDAGs the sources are the facets of the simplicial complex; a facet with a single
-member is private randomness, which every node has anyway and which is left implicit. In this note every source may
-be quantum. Structures are written as in the repository, the visible edges followed by the sources:
-\str{0→1, 1→2; Q\{1,2\}} is the instrumental scenario.
+members. A facet with a single member is private randomness, which every node has anyway and which is left
+implicit. In this note every source may be quantum. A structure is written as its visible edges followed by its
+sources: \str{0→1, 1→2; Q\{1,2\}} is the instrumental scenario.
 
 \subsection{Quantum and classical models}
-
-Every visible node has a finite alphabet of outcomes, fixed in advance. Statements about model sets are meant for
-every choice of these alphabets unless said otherwise.
 
 \begin{definition}[Quantum model]\label{def:model}
 A quantum model of $\G$ consists of
@@ -25,7 +23,7 @@ A quantum model of $\G$ consists of
 \item for every source $F$ and member $v\in F$ a finite-dimensional Hilbert space $\Hil_{F,v}$, the \emph{share} of
   $v$ in $F$, and a state $\rho_F$ on $\bigotimes_{v\in F}\Hil_{F,v}$;
 \item for every node $v$, which holds $\Hil_v=\bigotimes_{F\ni v}\Hil_{F,v}$ (and $\Hil_v=\mathbb{C}$ if $v$ is in
-  no source), and for every value $x_{\Pa(v)}$ of its visible parents, a POVM
+  no source), and for every value $x_{\Pa(v)}$ of its settings, a POVM
   $\{M_v^{x_v\mid x_{\Pa(v)}}\}_{x_v}$ on $\Hil_v$ with finitely many outcomes.
 \end{itemize}
 It produces the distribution
@@ -33,55 +31,66 @@ It produces the distribution
 P(x_V)\;=\;\Tr\Bigl[\,\Bigl(\bigotimes_{v\in V} M_v^{x_v\mid x_{\Pa(v)}}\Bigr)\Bigl(\bigotimes_{F}\rho_F\Bigr)\Bigr].
 \end{equation}
 Here $\bigotimes_v\Hil_v$ and $\bigotimes_F\bigotimes_{v\in F}\Hil_{F,v}$ are the same space with the factors in a
-different order, and are identified. $\Q(\G)$ is the set of distributions that the quantum models of $\G$ produce;
-all spaces are finite-dimensional and no closure is taken.
+different order, and are identified. The \emph{quantum model set} $\Q(\G)$ is the set of distributions that the
+quantum models of $\G$ produce; all spaces are finite-dimensional and no closure is taken.
 A model is \emph{classical} when every $\rho_F$ is diagonal in a product basis and every POVM element is diagonal
-in the product of those bases; $\C(\G)$ is the set of distributions of the classical models.
+in the product of those bases; the \emph{classical model set} $\C(\G)$ is the set of distributions of the classical
+models.
 \end{definition}
+
+Every visible node has a finite alphabet of outcomes, fixed in advance. An equality or an inclusion of model sets
+is meant for every choice of these alphabets; a strict inclusion, or a gap, is meant for some choice.
 
 Four remarks on reading \cref{eq:trace}.
 \begin{itemize}
 \item \emph{It is a number for each assignment $x_V$.} The operators of different nodes act on different tensor
-  factors, so they commute and no order of measurement has to be chosen. Summing over the outcomes, those of the
-  last node in a topological order first, shows that the numbers add up to one; this is where acyclicity is used.
-  Every proof below is an identity between two such numbers, for each $x_V$ separately.
+  factors, so they commute and no order of measurement has to be chosen. Summing over the outcome of the last node
+  in a topological order, then of the one before it, and so on, shows that the numbers add up to one; this is
+  where acyclicity is used. Every proof below is an identity between two such numbers, for each $x_V$ separately.
 \item \emph{A node may measure all its shares jointly.} $M_v$ acts on the tensor product of the shares of $v$ in all
-  its sources and need not factorise. This is one of two things that separate quantum sources from classical
-  ones in this note. The other is that a measurement may depend on a setting which the source does not know, so
-  that its outcome does not exist in advance. Each classical rule that fails in \cref{sec:notquantum} fails at one
-  of the two.
+  its sources and need not factorise.
 \item \emph{Private randomness and private states are free.} A POVM need not be projective, so private randomness
   is included; and a state held by one node alone can be absorbed into its POVM. This is why sources with one member
   are never drawn.
-\item \emph{Classical models are the familiar ones.} A diagonal $\rho_F$ is a random variable $\lambda_F$, and
-  \cref{eq:trace} becomes $P(x_V)=\sum_\lambda\prod_F P(\lambda_F)\prod_v P(x_v\mid x_{\Pa(v)},\lambda_{F\ni v})$.
+\item \emph{Classical models are the familiar ones.} A diagonal $\rho_F$ is a random variable $\lambda_F$, the
+  \emph{latent} of $F$, and \cref{eq:trace} becomes
+  $P(x_V)=\sum_\lambda\prod_F P(\lambda_F)\prod_v P(x_v\mid x_{\Pa(v)},\lambda_{F\ni v})$.
   Hence $\C(\G)\subseteq\Q(\G)$.
 \end{itemize}
 
 \subsection{Equivalence, dominance and gaps}
 
 Two structures on the same visible nodes are \emph{quantum observationally equivalent}, $\G\qeq\G'$, when
-$\Q(\G)=\Q(\G')$ for every choice of the outcome alphabets, and \emph{classically observationally equivalent},
-$\G\ceq\G'$, when $\C(\G)=\C(\G')$ for every choice. A structure has a \emph{quantum-classical (QC) gap} when
-$\Q(\G)\not\subseteq\C(\G)$ for some choice of the alphabets.
+$\Q(\G)=\Q(\G')$, and \emph{classically observationally equivalent}, $\G\ceq\G'$, when $\C(\G)=\C(\G')$. A structure
+has a \emph{quantum-classical (QC) gap} when $\Q(\G)\not\subseteq\C(\G)$. Between two pictures, $\equiv$ without a
+subscript means that both equivalences hold, and $=$ joins two descriptions of the same model.
 
 One containment is free and is used in every proof.
 
 \begin{lemma}[Structural dominance]\label{lem:monotone}
-Let $\G'$ be obtained from $\G$ by deleting visible edges and by shrinking, deleting or subdividing sources, so that
-every source of $\G'$ is contained in a source of $\G$. Then $\Q(\G')\subseteq\Q(\G)$ and $\C(\G')\subseteq\C(\G)$.
+Let $\G'$ have the same visible nodes as $\G$, a subset of its visible edges, and every source of $\G'$ contained
+in a source of $\G$; we then say that $\G'$ is \emph{structurally below} $\G$. Then $\Q(\G')\subseteq\Q(\G)$ and
+$\C(\G')\subseteq\C(\G)$.
 \end{lemma}
 \begin{proof}
 Assign to every source $F'$ of $\G'$ a source $\varphi(F')\supseteq F'$ of $\G$. Given a model of $\G'$, let the
 source $F$ of $\G$ emit $\bigotimes_{F'\in\varphi^{-1}(F)}\rho'_{F'}$, each factor going to the members of its $F'$,
-and let every node use its old POVM, ignoring the parents it has gained. The number \eqref{eq:trace} is
+and let every node use its old POVM, ignoring the settings it has gained. The number \eqref{eq:trace} is
 unchanged, and a classical model stays classical.
 \end{proof}
 
 So to prove $\G\qeq\G'$ when $\G'$ is structurally below $\G$, only $\Q(\G)\subseteq\Q(\G')$ needs an argument:
 given a model of the larger structure, build a model of the smaller one with the same distribution.
 
-\subsection{The two tools}
+\begin{corollary}[The sandwich]\label{cor:sandwich}
+Let $\G_1$ be structurally below $\G_2$, and $\G_2$ structurally below $\G_3$. If $\G_1\qeq\G_3$, then all three
+are quantum equivalent; likewise for $\ceq$.
+\end{corollary}
+\begin{proof}
+$\Q(\G_1)\subseteq\Q(\G_2)\subseteq\Q(\G_3)=\Q(\G_1)$ by \cref{lem:monotone}.
+\end{proof}
+
+\subsection{Two tools: pre-measurement and the catalogue}
 
 \begin{definition}[Premeasurable node]\label{def:prem}
 A node is \emph{premeasurable} when it has no visible parent and is a member of exactly one source.
@@ -138,39 +147,46 @@ setting $t$).}
 The second tool is not a lemma but a construction that recurs.
 
 \begin{ideabox}{The catalogue}
-Suppose that in some model a group of nodes ends up holding a state $\tau_z$ that depends on a classical value $z$,
-and that \emph{every node of the group will see $z$}, among its visible parents or in a classical register that a
-source hands to all of them (as after a pre-measurement). Then a source that feeds the group
-need not know $z$. It prepares the whole catalogue $\bigotimes_{z}\tau_z$, one entry for every possible value,
-gives each node its share of every entry, and each node, once it has read $z$, measures entry $z$ and ignores the
-others. In \cref{eq:trace} the unused entries contribute $\Tr\tau_{z'}=1$.
+Suppose that in some model the measurements of some nodes leave a group of other nodes holding a state $\tau_z$
+that depends on a classical value $z$, and that \emph{every node of the group will see $z$}: among its settings,
+or in a classical register that a source hands to all of them. Then a source that contains the group need not know
+$z$. It prepares the whole catalogue $\bigotimes_{z}\tau_z$, one entry for every possible value, and gives each
+node its share of every entry. Each node, once it has read $z$, measures its share of entry $z$ and ignores the
+others. In \cref{eq:trace} the unused entries contribute $\Tr\tau_{z'}=1$. \Cref{sec:split-idea} works out the
+smallest case.
 
-Two conditions are essential, and each classical rule that fails quantumly violates one of them: the index $z$ must
-consist of values of \emph{visible} nodes, and \emph{nobody outside the group} may hold a system that is correlated with
-$\tau_z$ beyond the value $z$ itself.
+Two conditions are essential.
+\begin{description}[leftmargin=0.9cm,itemsep=1pt]
+\item[(i)] The index $z$ consists of values of \emph{visible} nodes. (A register filled by a pre-measurement
+  qualifies: it holds the outcome of a visible node.)
+\item[(ii)] \emph{Nobody outside the group} holds a system that is correlated with $\tau_z$ beyond the value $z$
+  itself.
+\end{description}
+The classical proofs that fail for quantum sources index the catalogue by the value of a latent, against (i). When
+the index is restricted to visible values, (ii) fails; this is what the counterexamples of \cref{sec:notquantum}
+exploit.
 \end{ideabox}
 
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[mdag]
-  \qs{q}{0.2,0.8}
-  % the catalogue: a stack of entries
-  \foreach \i/\lbl in {0/{$\tau_{z=0}$},1/{$\tau_{z=1}$},2/{$\tau_{z=2}$}} {
-    \node[draw=qcol, fill=qcol!12, rounded corners=1.5pt, minimum width=13mm, minimum height=4.6mm, font=\scriptsize]
-      (e\i) at (2.2,{0.25+0.55*\i}) {\lbl};
-  }
-  \node[draw=qcol, line width=0.9pt, fill=qcol!40, rounded corners=1.5pt, minimum width=13mm, minimum height=4.6mm, font=\scriptsize]
-      (pick) at (2.2,0.8) {$\tau_{z=1}$};
-  \draw[qedge] (q) -- (e1.west);
-  \vn[Dn]{d1}{4.9,1.55}{$d_1$} \vn[Dn]{d2}{4.9,0.05}{$d_2$} \vn{z}{6.5,0.8}{$z$}
-  \draw[qedge] (pick.east) to[out=0,in=195] (d1);
-  \draw[qedge] (pick.east) to[out=0,in=165] (d2);
-  \de{z}{d1} \de{z}{d2}
-  \node[tag,anchor=west] at (7.2,0.98) {each $d_i$ reads $z=1$ and};
-  \node[tag,anchor=west] at (7.2,0.62) {measures its share of entry $1$};
-  \node[tag] at (1.2,-0.45) {the source prepares every entry};
+  \tikzset{entry/.style={draw=qcol, fill=qcol!12, rounded corners=1.5pt, minimum width=13mm, minimum height=4.6mm,
+                         font=\scriptsize}}
+  \qs{q}{0,0.8}
+  \node[entry, faint] (e0) at (2.4,0.1) {$\tau_{0}$};
+  \node[entry, line width=0.9pt, fill=qcol!40] (e1) at (2.4,0.8) {$\tau_{1}$};
+  \node[entry, faint] (e2) at (2.4,1.5) {$\tau_{2}$};
+  \foreach \e in {e0,e1,e2} { \draw[qedge] (q) -- (\e.west); }
+  \vn[Dn]{d1}{5.4,1.75}{$d_1$} \vn[Dn]{d2}{5.4,-0.15}{$d_2$} \vn{y}{7.2,0.8}{$y$}
+  \foreach \e in {e0,e2} { \draw[qedge,faint] (\e.east) -- (d1); \draw[qedge,faint] (\e.east) -- (d2); }
+  \draw[qedge] (e1.east) -- (d1); \draw[qedge] (e1.east) -- (d2);
+  \de{y}{d1} \de{y}{d2}
+  \node[tag,anchor=west] at (7.8,0.98) {here $y$ outputs $z=1$: each $d_i$};
+  \node[tag,anchor=west] at (7.8,0.62) {measures its share of entry $1$};
+  \node[tag] at (1.2,-0.75) {the source prepares every entry};
+  \node[tag] at (4.1,2.25) {every node holds a share of every entry};
 \end{tikzpicture}
-\caption{The catalogue. The source prepares one entry per value of $z$; the nodes that see $z$ use the matching
-entry.}
+\caption{The catalogue. The source prepares one entry for every value $z$ that the node $y$ may output and sends
+all of them; the nodes that see $y$ use the matching entry and ignore the faint ones.}
 \label{fig:catalogue}
 \end{figure}

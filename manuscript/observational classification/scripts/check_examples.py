@@ -1,5 +1,6 @@
 """
-Every example, warning and open case of the document, checked against the repository's code.
+Every example, warning and open case of the document, checked against the repository's code. The claims are named
+by the titles of the boxes in the note.
 
 For each structure the script evaluates the code's own tests of the hypotheses (mDAG.weak_splittable_faces,
 splittable_faces, quantum_splittable_families, droppable_edges, quantum_droppable_edges, quantum_addable_edges,
@@ -32,6 +33,17 @@ def splits(md, version):
     return set(md.generate_weaker_mDAGs_FaceSplitting(version))
 
 
+def below(lower, upper):
+    """Structural dominance between two labelled structures on the same nodes: every edge of `lower` is an edge of
+    `upper`, and every source of `lower` is contained in a source of `upper`."""
+    def edges(md):
+        return {(int(a), int(b)) for a, b in md.directed_structure_instance.edge_list}
+
+    def sources(md):
+        return [frozenset(int(v) for v in f) for f in md.simplicial_complex_instance.compressed_simplicial_complex]
+    return edges(lower) <= edges(upper) and all(any(f <= g for g in sources(upper)) for f in sources(lower))
+
+
 def families(md):
     return {(tuple(sorted(D)), tuple(sorted(tuple(sorted(C)) for C in Cs))) for D, Cs in md.quantum_splittable_families}
 
@@ -52,84 +64,49 @@ def valid_split(name, n, edges, before, after, D, parts):
 
 
 # ---------------------------------------------------------------------------------------------------------------
-# Section 2: face splitting
+# Section 2: face splitting. The note writes Examples 1-6 in letters; the digits here follow the alphabetical
+# order of the letters of each picture (a, b, d = 0, 1, 2; c, d1, d2 = 0, 1, 2; y, c, d = 0, 1, 2; and so on).
 # ---------------------------------------------------------------------------------------------------------------
-valid_split('Example 1', 3, [(0, 1)], [(0, 1)], [], (1,), [(0,)])
-valid_split('Example 2', 3, [(0, 2), (1, 2)], [(0, 1, 2)], [(0, 1)], (2,), [(0, 1)])
-valid_split('Example 3', 3, [(0, 1), (0, 2)], [(0, 1, 2)], [(1, 2)], (1, 2), [(0,)])
-valid_split('Example 4', 3, [(0, 1), (0, 2), (1, 2)], [(1, 2)], [], (2,), [(1,)])
+valid_split('Example (a source on an edge)', 3, [(0, 1)], [(0, 1)], [], (1,), [(0,)])
+valid_split('Example (two nodes with a common child)', 3, [(0, 2), (1, 2)], [(0, 1, 2)], [(0, 1)], (2,), [(0, 1)])
+valid_split('Example (a part D with two nodes)', 3, [(0, 1), (0, 2)], [(0, 1, 2)], [(1, 2)], (1, 2), [(0,)])
+valid_split('Example (a setting that both nodes see)', 3, [(0, 1), (0, 2), (1, 2)], [(1, 2)], [], (2,), [(1,)])
 fan = [(0, 1), (0, 2), (0, 3), (1, 3), (2, 3)]
-valid_split('Example 5', 4, fan, [(0, 1, 3), (0, 2, 3)], [(0, 1), (0, 2)], (3,), [(0, 1), (0, 2)])
-check('Example 5: neither source satisfies (S1) on its own (Evans\' rule splits nothing)',
-      S(fan, [(0, 1, 3), (0, 2, 3)], 4).weak_splittable_faces == [])
-check('Example 5: no node is premeasurable, so Combination 1 does not apply',
-      not any(S(fan, [(0, 1, 3), (0, 2, 3)], 4).is_premeasurable(v) for v in range(4)))
-valid_split('Example 6', 4, [(0, 1), (0, 2)], [(0, 1, 2), (1, 2, 3)], [(1, 2, 3)], (1, 2), [(0,)])
+valid_split('Example (two sources that must be split together)', 4, fan, [(0, 1, 3), (0, 2, 3)], [(0, 1), (0, 2)],
+            (3,), [(0, 1), (0, 2)])
+check('Example (two sources that must be split together): neither source satisfies (S1) on its own '
+      '(the weak rule splits nothing)', S(fan, [(0, 1, 3), (0, 2, 3)], 4).weak_splittable_faces == [])
+check('Example (two sources that must be split together): no node is premeasurable, so no member can be traded '
+      'for edges', not any(S(fan, [(0, 1, 3), (0, 2, 3)], 4).is_premeasurable(v) for v in range(4)))
+valid_split('Example (D is absorbed by a remaining source)', 4, [(0, 1), (0, 2)], [(0, 1, 2), (1, 2, 3)], [(1, 2, 3)],
+            (1, 2), [(0,)])
 bell_edges = [(0, 1), (0, 3), (1, 2)]
-valid_split('Example 7', 4, bell_edges, [(0, 3), (2, 3)], [(2, 3)], (3,), [(0,)])
-
-# Combination 1: nodes c, p, d, e = 0, 1, 2, 3
-unsplit = S([(0, 2), (1, 2)], [(0, 1, 2), (0, 2, 3)], 4)
-split = S([(0, 2), (1, 2)], [(0, 1), (0, 2, 3)], 4)
-with_edge = S([(0, 2), (1, 2), (1, 0)], [(0, 1, 2), (0, 2, 3)], 4)
-last = S([(0, 2), (1, 2), (1, 0)], [(0, 2, 3)], 4)
-check('Combination 1: p is premeasurable', unsplit.is_premeasurable(1) and split.is_premeasurable(1))
-split_with_edge = S([(0, 2), (1, 2), (1, 0)], [(0, 1), (0, 2, 3)], 4)
-# an edge that Rule A may add is one that Rule A may drop from the structure that has it
-check('Combination 1: Rule A adds p -> c',
-      (1, 0) in with_edge.quantum_droppable_edges and (1, 0) in split_with_edge.quantum_droppable_edges)
-check('Combination 1: the split structure with the edge leads to the same last structure',
-      last.unique_id in splits(split_with_edge, 'quantum'))
-check('Combination 1: then the theorem splits p off', last.unique_id in splits(with_edge, 'quantum'))
-check('Combination 1: (S1) fails for the direct split', split.unique_id not in splits(unsplit, 'quantum')
-      and split.unique_id in splits(unsplit, 'strong'))
-check('Combination 1: all four structures are one quantum class',
-      same_class(unsplit, split) and same_class(unsplit, with_edge) and same_class(unsplit, last))
-# Combination 2: the sandwich inside Example 5
-check('Combination 2: the half-split structure is in the class of Example 5',
+valid_split('Example (inside a Bell scenario with linked settings)', 4, bell_edges, [(0, 3), (2, 3)], [(2, 3)],
+            (3,), [(0,)])
+check('Smaller families: the structure with only one of the two sources split is in the same class',
       same_class(S(fan, [(0, 1), (0, 2, 3)], 4), S(fan, [(0, 1), (0, 2)], 4)))
-no_edge = [(0, 1)]
-check('Warning: a split with no edge from C to D can still be an equivalence (by other rules), so the warning '
-      'speaks of the theorem only',
-      same_class(S(no_edge, [(0, 1, 3), (0, 2, 3), (1, 2, 3)], 4), S(no_edge, [(0, 1), (0, 2, 3), (1, 2, 3)], 4)))
 
 # Warnings of Section 2
 instrumental, chain = S([(0, 1), (1, 2)], [(1, 2)], 3), S([(0, 1), (1, 2)], [], 3)
-check('Warning (S2): the instrumental source is not splittable', instrumental.splittable_faces == [])
-check('Warning (S2): the two structures are not even classically equivalent (in the metagraph)',
+check('Warning (D must see the settings of C): the instrumental source is not splittable',
+      instrumental.splittable_faces == [])
+check('Warning (D must see the settings of C): the two structures are not even classically equivalent',
       not same_class(instrumental, chain, 'classical'))
-check('Warning: the source of the Bell scenario is not splittable',
+partly = S([(0, 1)], [(0, 1, 2)], 3)
+check('Warning (every node of D must see every node of C): the code offers no split of {a,b,c} into {a} and {b,c}',
+      (frozenset({0}), frozenset({1, 2})) not in partly.splittable_faces)
+check('Warning (every node of D must see every node of C): the two structures are not even classically equivalent',
+      not same_class(partly, S([(0, 1)], [(1, 2)], 3), 'classical'))
+check('Warning (no edge from one part to the other): the source of the Bell scenario is not splittable',
       S([(0, 2), (1, 3)], [(2, 3)], 4).splittable_faces == [])
+no_edge = [(0, 1)]
+check('Warning (no edge from one part to the other) speaks of the theorem only: such a split can still be an '
+      'equivalence by other rules',
+      same_class(S(no_edge, [(0, 1, 3), (0, 2, 3), (1, 2, 3)], 4), S(no_edge, [(0, 1), (0, 2, 3), (1, 2, 3)], 4)))
 
 # ---------------------------------------------------------------------------------------------------------------
 # Section 3: edge dropping
 # ---------------------------------------------------------------------------------------------------------------
-e8 = S([(0, 1)], [(0, 1)], 3)
-check('Example 8: Rule A', e8.is_premeasurable(0) and e8.quantum_droppable_edges == [(0, 1)])
-check('Example 8: edge with source, edge alone and source alone are one quantum class',
-      same_class(e8, S([], [(0, 1)], 3)) and same_class(e8, S([(0, 1)], [], 3)))
-check('Warning: with neither the edge nor the source the class is another one, classically too',
-      not same_class(e8, S([], [], 3), 'classical'))
-e9 = S([(0, 1), (3, 2)], [(0, 1, 2)], 4)
-check('Example 9: Rule A with an arbitrary third member',
-      e9.is_premeasurable(0) and not e9.is_premeasurable(2) and (0, 1) in e9.quantum_droppable_edges
-      and same_class(e9, S([(3, 2)], [(0, 1, 2)], 4)))
-H = S([(0, 1), (1, 2)], [(0, 3), (2, 3)], 4)
-G = S(bell_edges, [(0, 3), (2, 3)], 4)
-check('Example 10: Rule A adds 0 -> 3', H.is_premeasurable(0) and (0, 3) in G.quantum_droppable_edges and same_class(H, G))
-e11 = S([(2, 0), (2, 1), (0, 1)], [(0, 1)], 3)
-check('Example 11: Rule B, Rule A does not apply',
-      not e11.is_premeasurable(0) and e11.quantum_droppable_edges == [(0, 1)]
-      and same_class(e11, S([(2, 0), (2, 1)], [(0, 1)], 3)))
-e12 = S([(0, 1), (0, 2), (1, 2)], [(1, 2, 3)], 4)
-check('Example 12: Rule B with a premeasurable third member',
-      e12.is_premeasurable(3) and (1, 2) in e12.quantum_droppable_edges
-      and same_class(e12, S([(0, 1), (0, 2)], [(1, 2, 3)], 4)))
-e12b = S([(0, 1), (0, 2), (1, 2), (0, 3)], [(1, 2, 3)], 4)
-check('Example 12: with 0 -> 3 the third member is not premeasurable and Rule B does not apply',
-      (1, 2) in e12b.droppable_edges and (1, 2) not in e12b.quantum_droppable_edges)
-check('Example 12: with 0 -> 3 the edge is redundant all the same',
-      same_class(e12b, S([(0, 1), (0, 2), (0, 3)], [(1, 2, 3)], 4)))
 order = S([(0, 1), (0, 2), (1, 2)], [(0, 2), (1, 2)], 3)
 check('Dropping several edges: both 0 -> 2 (Rule A) and 1 -> 2 (Rule B) are droppable',
       order.is_premeasurable(0) and set(order.quantum_droppable_edges) == {(0, 2), (1, 2)})
@@ -137,18 +114,74 @@ check('Dropping several edges: after 0 -> 2 is dropped, 1 -> 2 no longer satisfi
       (1, 2) not in S([(0, 1), (1, 2)], [(0, 2), (1, 2)], 3).quantum_droppable_edges)
 check('Dropping several edges: after 1 -> 2 is dropped, 0 -> 2 still does',
       (0, 2) in S([(0, 1), (0, 2)], [(0, 2), (1, 2)], 3).quantum_droppable_edges)
-e13 = S([(2, 0), (2, 1), (0, 1)], [(0, 1, 2), (0, 1, 3), (0, 1, 4)], 5)
-check('Example 13: all three edges are droppable', set(e13.quantum_droppable_edges) == {(0, 1), (2, 0), (2, 1)})
+
+# Combining the rules: nodes c, p, d, e = 0, 1, 2, 3. First chain from Q{p,c,d}, second chain from Q{p,c}.
+unsplit = S([(0, 2), (1, 2)], [(0, 1, 2), (0, 2, 3)], 4)
+split = S([(0, 2), (1, 2)], [(0, 1), (0, 2, 3)], 4)
+with_edge = S([(0, 2), (1, 2), (1, 0)], [(0, 1, 2), (0, 2, 3)], 4)
+split_with_edge = S([(0, 2), (1, 2), (1, 0)], [(0, 1), (0, 2, 3)], 4)
+last = S([(0, 2), (1, 2), (1, 0)], [(0, 2, 3)], 4)
+check('Combining the rules: p is premeasurable in both starting structures',
+      unsplit.is_premeasurable(1) and split.is_premeasurable(1))
+# an edge that Rule A may add is one that Rule A may drop from the structure that has it
+check('Combining the rules: Rule A adds p -> c in both chains',
+      (1, 0) in with_edge.quantum_droppable_edges and (1, 0) in split_with_edge.quantum_droppable_edges)
+check('Combining the rules: first chain, the theorem with C = {p} leaves Q{c,d,e}',
+      last.unique_id in splits(with_edge, 'quantum'))
+check('Combining the rules: second chain, the theorem removes the source on p -> c and gives the same structure',
+      last.unique_id in splits(split_with_edge, 'quantum'))
+check('Combining the rules: the theorem does not give the split of {p,c,d} into {p,c} and {d} directly, and the '
+      'moderate rule does', split.unique_id not in splits(unsplit, 'quantum')
+      and split.unique_id in splits(unsplit, 'moderate'))
+check('Combining the rules: all five structures are one quantum class',
+      all(same_class(unsplit, other) for other in (split, with_edge, split_with_edge, last)))
+
+target_two = S([(0, 1)], [(0, 1), (1, 2)], 3)
+check('Example (Rule A; the target may have further sources): the origin is premeasurable, the target is not, '
+      'and the edge is dropped', target_two.is_premeasurable(0) and not target_two.is_premeasurable(1)
+      and target_two.quantum_droppable_edges == [(0, 1)] and same_class(target_two, S([], [(0, 1), (1, 2)], 3)))
+S03_minus = S([(0, 1), (1, 2)], [(0, 3), (2, 3)], 4)
+S03 = S(bell_edges, [(0, 3), (2, 3)], 4)
+check('Example (Rule A read as edge adding): Rule A adds 0 -> 3',
+      S03_minus.is_premeasurable(0) and (0, 3) in S03.quantum_droppable_edges and same_class(S03_minus, S03))
+two_member = S([(2, 0), (2, 1), (0, 1)], [(0, 1)], 3)
+check('Example (Rule B; a two-member source and a common setting): Rule B applies, Rule A does not',
+      not two_member.is_premeasurable(0) and two_member.quantum_droppable_edges == [(0, 1)]
+      and same_class(two_member, S([(2, 0), (2, 1)], [(0, 1)], 3)))
+bystander = S([(0, 1), (0, 2), (1, 2)], [(1, 2, 3)], 4)
+check('Example (Rule B; a premeasurable bystander)',
+      bystander.is_premeasurable(3) and (1, 2) in bystander.quantum_droppable_edges
+      and same_class(bystander, S([(0, 1), (0, 2)], [(1, 2, 3)], 4)))
+bystander_with_setting = S([(0, 1), (0, 2), (1, 2), (0, 3)], [(1, 2, 3)], 4)
+check('Example (Rule B; a premeasurable bystander): if 3 also has the setting 0, Rule B does not apply',
+      (1, 2) in bystander_with_setting.droppable_edges and (1, 2) not in bystander_with_setting.quantum_droppable_edges)
+check('Example (Rule B; a premeasurable bystander): the edge can be dropped all the same',
+      same_class(bystander_with_setting, S([(0, 1), (0, 2), (0, 3)], [(1, 2, 3)], 4)))
+both = S([(2, 0), (2, 1), (0, 1)], [(0, 1, 2), (0, 1, 3)], 4)
+check('Example (Rules A and B together): all three edges are droppable, and dropping them stays in the class',
+      set(both.quantum_droppable_edges) == {(0, 1), (2, 0), (2, 1)} and not both.is_premeasurable(0)
+      and both.is_premeasurable(2) and both.is_premeasurable(3) and same_class(both, S([], [(0, 1, 2), (0, 1, 3)], 4)))
+five = S([(2, 0), (2, 1), (0, 1)], [(0, 1, 2), (0, 1, 3), (0, 1, 4)], 5)
+check('The same with three sources on five nodes', set(five.quantum_droppable_edges) == {(0, 1), (2, 0), (2, 1)})
+
+# Warnings and the open case of Section 3
+pair = S([(0, 1)], [(0, 1)], 3)
+check('Warning (dropping the edge and the source): Rule A drops the edge',
+      pair.is_premeasurable(0) and pair.quantum_droppable_edges == [(0, 1)])
+check('Warning (dropping the edge and the source): edge with source, source alone and edge alone are one class',
+      same_class(pair, S([], [(0, 1)], 3)) and same_class(pair, S([(0, 1)], [], 3)))
+check('Warning (dropping the edge and the source): with neither, the class is another one, classically too',
+      not same_class(pair, S([], [], 3), 'classical'))
 open_edge = S([(0, 1), (0, 2), (0, 3), (2, 1), (2, 3)], [(0, 1, 2), (0, 3)], 4)
-check('Open case of Section 3: classically droppable, not dropped by the quantum rule',
+check('Open case of Section 3: (H1) and (H2) hold for 2 -> 1, and the quantum rules do not drop it',
       (2, 1) in open_edge.droppable_edges and (2, 1) not in open_edge.quantum_droppable_edges)
 check('Open case of Section 3: the two structures are in different quantum classes',
       not same_class(open_edge, S([(0, 1), (0, 2), (0, 3), (2, 3)], [(0, 1, 2), (0, 3)], 4)))
 
 
 def wider_rule_edges(md):
-    """The edges a -> b of the remark 'pre-measurement with a setting that everybody sees': a lies in exactly one
-    source F, b is in F, and every visible parent of a is a visible parent of every other member of F."""
+    """The edges a -> b of the proposition 'Rule A with settings that every member sees': a is a member of exactly
+    one source F, b is in F, and every setting of a is a setting of every other member of F."""
     sources = [frozenset(int(v) for v in f) for f in md.simplicial_complex_instance.compressed_simplicial_complex]
     edges = [(int(a), int(b)) for a, b in md.directed_structure_instance.edge_list]
     parents = {v: {a for a, b in edges if b == v} for v in range(md.number_of_visible)}
@@ -164,11 +197,12 @@ for md in INDEX.quantum[4].dict_uniqind_unlabelled_mDAGs.values():
         applicable += 1
         beyond += edge not in md.quantum_droppable_edges
         assert same_class(md, S(other_edges, sources, 4)), (edge, md)
-check(f'Remark (pre-measurement with a setting): on four nodes the wider rule applies to {applicable} edges, '
+check(f'Proposition (Rule A with settings that every member sees): on four nodes it applies to {applicable} edges, '
       f'{beyond} of them outside Rules A and B, and every one joins two structures of one quantum class',
       applicable == 1268 and beyond == 35)
-check('Remark (pre-measurement with a setting): it covers Example 12 with 0 -> 3 and not the open case',
-      (1, 2) in {e for e, _, _ in wider_rule_edges(e12b)} and (2, 1) not in {e for e, _, _ in wider_rule_edges(open_edge)})
+check('Proposition (Rule A with settings that every member sees): it covers the bystander example with 0 -> 3 and '
+      'not the open case', (1, 2) in {e for e, _, _ in wider_rule_edges(bystander_with_setting)}
+      and (2, 1) not in {e for e, _, _ in wider_rule_edges(open_edge)})
 
 # ---------------------------------------------------------------------------------------------------------------
 # Section 4: the counterexamples
@@ -176,7 +210,7 @@ check('Remark (pre-measurement with a setting): it covers Example 12 with 0 -> 3
 settings5 = S([(3, 0), (3, 1), (4, 2), (0, 1)], [(0, 1, 2)], 5)          # A, B, C, S, T = 0, 1, 2, 3, 4
 check('Theorem (edge rule with settings): the classical rule drops A -> B, the quantum rules do not',
       (0, 1) in settings5.droppable_edges and (0, 1) not in settings5.quantum_droppable_edges)
-plus = S([(0, 3)], [(0, 1, 3), (0, 2, 3), (1, 2)], 4)                    # A, B, C, D = 0, 1, 2, 3
+plus = S([(0, 3)], [(0, 1, 3), (0, 2, 3), (1, 2)], 4)                    # A, C, S, B = 0, 1, 2, 3
 minus = S([], [(0, 1, 3), (0, 2, 3), (1, 2)], 4)
 check('Theorem (edge rule on four nodes): classically droppable, not quantum',
       (0, 3) in plus.droppable_edges and (0, 3) not in plus.quantum_droppable_edges)
@@ -213,8 +247,8 @@ for name, sources, after in (('G6', [F6, H6], [F6]), ("G6'", [AR, H6], [AR, (0, 
           S(eve, after, 5).unique_id in splits(with_edges, 'quantum'))
 check('Without T: the theorem now splits F, because D sees every visible parent of A and R',
       S(eve, [AR], 5).unique_id in splits(S(eve, [F6], 5), 'quantum'))
-check("Without T: the structure reached from G6' lies between the two ends of that split (Combination 2)",
-      set(AR) <= set(F6) and {0, 2} <= set(F6) and AR in [AR, (0, 2)])
+check("Without T: the structure reached from G6' is structurally between the two ends of that split (sandwich)",
+      below(S(eve, [AR], 5), S(eve, [AR, (0, 2)], 5)) and below(S(eve, [AR, (0, 2)], 5), S(eve, [F6], 5)))
 groups = [
     ([(0, 1), (0, 2), (0, 3), (2, 3)], [(0, 1, 3), (0, 2, 3)], [(0, 1, 3), (0, 2)]),
     ([(0, 1), (0, 2), (1, 2), (2, 3)], [(0, 1, 2), (0, 2, 3)], [(0, 1), (0, 2, 3)]),
@@ -232,17 +266,20 @@ for number, (edges, before, after) in enumerate(groups, 1):
 # ---------------------------------------------------------------------------------------------------------------
 # Section 5: the class of the Bell scenario with linked settings
 # ---------------------------------------------------------------------------------------------------------------
-S0 = S(bell_edges, [(2, 3)], 4)
-G1 = S(bell_edges, [(0, 1), (2, 3)], 4)
-G2 = S([(0, 3), (1, 2)], [(0, 1), (2, 3)], 4)
-members = [S0, G1, G2, G, H]
+# S: the seed; S01, S03: S with a further source {0,1} or {0,3}; the "minus" versions lack the edge under that source
+S_seed = S(bell_edges, [(2, 3)], 4)
+S01 = S(bell_edges, [(0, 1), (2, 3)], 4)
+S01_minus = S([(0, 3), (1, 2)], [(0, 1), (2, 3)], 4)
+members = [S_seed, S01, S01_minus, S03, S03_minus]
 check('Bell class: five members, one quantum class',
-      all(same_class(S0, m) for m in members)
-      and len(INDEX.quantum[4].class_of(S0.unique_unlabelled_id)) == 5)
-check('Bell class: S and G\' by the theorem (source on 0 -> 1)', S0.unique_id in splits(G1, 'quantum'))
-check('Bell class: G\' and G\'\' by Rule A (edge 0 -> 1)', (0, 1) in G1.quantum_droppable_edges)
-check('Bell class: S and G by the theorem (source on 0 -> 3)', S0.unique_id in splits(G, 'quantum'))
-check('Bell class: G and H by Rule A (edge 0 -> 3)', (0, 3) in G.quantum_droppable_edges)
+      all(same_class(S_seed, m) for m in members)
+      and len(INDEX.quantum[4].class_of(S_seed.unique_unlabelled_id)) == 5)
+check('Bell class: S and S01 by the theorem (source on 0 -> 1)', S_seed.unique_id in splits(S01, 'quantum'))
+check('Bell class: S01 and S01-minus by Rule A (edge 0 -> 1)', (0, 1) in S01.quantum_droppable_edges)
+check('Bell class: S and S03 by the theorem (source on 0 -> 3)', S_seed.unique_id in splits(S03, 'quantum'))
+check('Bell class: S03 and S03-minus by Rule A (edge 0 -> 3)', (0, 3) in S03.quantum_droppable_edges)
+check('Bell class, direct proof of the gap of S03-minus: it is structurally below S03, which the theorem makes '
+      'classically equivalent to S', below(S03_minus, S03) and same_class(S03, S_seed, 'classical'))
 
 if __name__ == '__main__':
     for line in CHECKED:

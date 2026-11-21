@@ -1,33 +1,64 @@
 \section{Edge dropping}\label{sec:edge}
 
-A visible edge $a\to b$ tells $b$ the outcome of $a$. It is redundant when $b$ can obtain that outcome anyway.
+A visible edge $a\to b$, with origin $a$ and target $b$, tells $b$ the outcome of $a$. It is redundant when $b$ can
+obtain that outcome anyway.
 
 \subsection{The classical rule, and why it is not the quantum rule}
 
 For classical latents the criterion is due to Henson, Lal and Pusey \cite{HLP} and to Evans \cite{Evans}
-(\AWS\ Prop.~4): \emph{an edge $a\to b$ may be added or removed when $a$ and $b$ share a source, every source of
-$a$ contains $b$, and every visible parent of $a$ is a parent of $b$}; in short $\Pa(a)\subseteq\Pa(b)$, with
-latent parents counted. The proof is one sentence. The outcome of $a$ is a function of its visible parents, its
-latents and its private noise; $b$ sees the first two, and one of the shared latents can carry the noise; so $b$
-can compute $x_a$ itself.
+(\AWS\ Prop.~4). Call the following the \emph{classical hypothesis} for the edge $a\to b$:
+\begin{description}[leftmargin=1.2cm,style=nextline,itemsep=1pt]
+\item[(H1)] $a$ is a member of at least one source, and every source that contains $a$ contains $b$;
+\item[(H2)] every setting of $a$ is a setting of $b$.
+\end{description}
+For classical models (H1) and (H2) suffice: the edge may be added or removed. The proof is one sentence. The
+outcome of $a$ is a function of its settings, its latents and its private noise; $b$ sees the first two, and one
+of the latents they have in common can carry the noise; so $b$ can compute $x_a$ itself.
 
 For a quantum source the last step has no meaning. The outcome of $a$ is not a function of anything: it does
-not exist before $a$ measures, and the share of $b$ is a different system, not a copy. The rule as stated is in
-fact false for quantum models (\cref{sec:hlp-fails}). In two situations $b$ can be shown to get $x_a$ without the
-edge, and they are the two rules of this section.
+not exist before $a$ measures, and the share of $b$ is a different system, not a copy (\cref{fig:edge-idea}). The
+rule as stated is in fact false for quantum models (\cref{sec:hlp-fails}). In two situations $b$ can be shown to
+get $x_a$ without the edge, and they are the two rules of this section. Each adds one condition to (H1) and (H2):
+on the origin, or on the \emph{bystanders} of the edge, which are the members, other than $a$ and $b$, of the
+sources that contain $a$.
 
-\subsection{Rule A: the origin can be pre-measured}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[mdag]
+  \begin{scope}
+    \vn{y}{1.1,1.7}{$y$} \vn{a}{0,0.3}{$a$} \vn{b}{2.2,0.3}{$b$} \qs[csrc]{q}{1.1,-0.75}
+    \draw[cedge] (q) -- node[lab,below left=-1pt,text=ccol] {$\lambda,\nu$} (a);
+    \draw[cedge] (q) -- node[lab,below right=-1pt,text=ccol] {$\lambda,\nu$} (b);
+    \de{y}{a} \de{y}{b} \de[dropedge]{a}{b}
+    \node[tag,align=center] at (1.1,-1.75) {classical: the latent carries the noise $\nu$ of $a$;\\
+      $b$ computes $x_a=f(y,\lambda,\nu)$};
+  \end{scope}
+  \begin{scope}[shift={(7.6,0)}]
+    \vn{y}{1.1,1.7}{$y$} \vn{a}{0,0.3}{$a$} \vn{b}{2.2,0.3}{$b$} \qs{q}{1.1,-0.75}
+    \feed{q}{a,b} \de{y}{a} \de{y}{b} \de{a}{b}
+    \node[lab,text=dropcol] at (1.1,0.55) {?};
+    \node[tag,align=center] at (1.1,-1.75) {quantum: $x_a$ does not exist before $a$ measures;\\
+      the share of $b$ is another system, not a copy};
+  \end{scope}
+\end{tikzpicture}
+\caption{Why the classical argument for dropping $a\to b$ has no quantum counterpart. On the left the source is
+classical (blue) and hands $a$ and $b$ the same data.}
+\label{fig:edge-idea}
+\end{figure}
 
-\begin{rulebox}{Rule A: edge dropping when the origin is premeasurable}
-\begin{theorem}\label{thm:ruleA}
-Let $a\to b$ be an edge of $\G$ such that
-\begin{description}[leftmargin=1.2cm,style=nextline,itemsep=1pt]
-\item[(A1)] $a$ is premeasurable: it has no visible parent and is a member of exactly one source $F$;
-\item[(A2)] $b$ is a member of $F$.
-\end{description}
-Then $\Q(\G)=\Q(\G-(a\to b))$ and $\C(\G)=\C(\G-(a\to b))$. Nothing is assumed about the other members of $F$.
+\subsection{Rule A: the origin is premeasurable}
+
+If the origin is premeasurable, the source can measure its share itself and tell the target the result.
+
+\begin{rulebox}{Edge dropping, Rule A}
+\begin{theorem}[Rule A: the origin is premeasurable]\label{thm:ruleA}
+Let the edge $a\to b$ satisfy (H1) and (H2), and let $a$ be premeasurable. Then
+\[\Q(\G)=\Q(\G-(a\to b))\qquad\text{and}\qquad\C(\G)=\C(\G-(a\to b)).\]
 \end{theorem}
 \end{rulebox}
+
+For a premeasurable $a$, (H1) and (H2) say only that $b$ is a member of the one source of $a$. Nothing is assumed
+about the bystanders, nor about further sources of $b$.
 
 \begin{figure}[H]
 \centering
@@ -52,15 +83,16 @@ Then $\Q(\G)=\Q(\G-(a\to b))$ and $\C(\G)=\C(\G-(a\to b))$. Nothing is assumed a
     \draw[qedge] (q) to[bend right=20] (b);
   \end{scope}
 \end{tikzpicture}
-\caption{Rule A. The yellow origin has no visible parent and a single source, which also feeds the target. The
-third member $c$ is arbitrary; here it has a setting.}
+\caption{Rule A. The yellow origin has no setting and a single source, which also contains the target. The
+bystander $c$ is arbitrary; here it has a setting.}
 \label{fig:ruleA}
 \end{figure}
 
 \begin{proof}
-Removing an edge can only shrink the model sets (\cref{lem:monotone}). Conversely, take a quantum model of $\G$.
-By \cref{lem:premeasure} we may assume that the share of $b$ in $F$ contains a classical register $R_b$ that holds
-$x_a$, and that $a$ outputs its own register. In $\G-(a\to b)$ let $b$ use the POVM
+Removing an edge can only shrink the model sets (\cref{lem:monotone}). Conversely, take a quantum model of $\G$
+and let $F$ be the source of $a$. By \cref{lem:premeasure} we may assume that the share of $b$ in $F$ contains a
+classical register $R_b$ that holds $x_a$, and that $a$ outputs its own register. In $\G-(a\to b)$ let $b$ use the
+POVM
 \[
 M_b'^{\,x_b\mid x_{\Pa(b)\setminus a}}\;=\;\sum_{x}\proj{x}_{R_b}\otimes M_b^{x_b\mid x_a=x,\;x_{\Pa(b)\setminus a}},
 \]
@@ -69,29 +101,26 @@ sources are unchanged. For each $x_V$ the number \eqref{eq:trace} is the same in
 of $\G$ is classical, so is the new one.
 \end{proof}
 
-\subsection{Rule B: the origin shares its quantum resources with the target alone}
+\subsection{Rule B: every bystander is premeasurable}
 
-\begin{rulebox}{Rule B: edge dropping when every other member of the origin's sources is premeasurable}
-\begin{theorem}\label{thm:ruleB}
-Let $a\to b$ be an edge of $\G$ such that
-\begin{description}[leftmargin=1.2cm,style=nextline,itemsep=1pt]
-\item[(B1)] $a$ is a member of at least one source, and every source that contains $a$ contains $b$;
-\item[(B2)] every visible parent of $a$ is a visible parent of $b$;
-\item[(B3)] in every source that contains $a$, every member other than $a$ and $b$ is premeasurable.
-\end{description}
-Then $\Q(\G)=\Q(\G-(a\to b))$ and $\C(\G)=\C(\G-(a\to b))$. The node $a$ itself may have visible parents and
-several sources. (When it has several, each of them has a premeasurable member of its own, since no source
-contains another.)
+\begin{rulebox}{Edge dropping, Rule B}
+\begin{theorem}[Rule B: every bystander is premeasurable]\label{thm:ruleB}
+Let the edge $a\to b$ satisfy (H1) and (H2), and let every bystander be premeasurable. Then
+\[\Q(\G)=\Q(\G-(a\to b))\qquad\text{and}\qquad\C(\G)=\C(\G-(a\to b)).\]
 \end{theorem}
 \end{rulebox}
+
+Rule B puts no condition on the origin beyond (H1) and (H2): it may have settings and several sources. (When it has
+several, each of them has a bystander of its own, since no source contains another.) Rule A puts none on the
+bystanders. Neither rule contains the other.
 
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[mdag]
   \newcommand{\ruleBnodes}{\vn{y}{1.3,4.2}{$y$} \vn{a}{0,1.0}{$a$} \vn{b}{2.6,1.0}{$b$}
-    \vn[pre]{o}{1.3,-1.0}{$o$} \vn[pre]{op}{1.3,3.0}{$o'$}
+    \vn[pre]{u}{1.3,-1.0}{$u$} \vn[pre]{up}{1.3,3.0}{$u'$}
     \qs{f1}{1.3,-0.05} \qs{f2}{1.3,2.05}
-    \feed{f1}{a,b,o} \feed{f2}{a,b,op}
+    \feed{f1}{a,b,u} \feed{f2}{a,b,up}
     \draw[edge] (y) to[bend right=28] (a); \draw[edge] (y) to[bend left=28] (b);}
   \begin{scope}
     \ruleBnodes \de[dropedge]{a}{b}
@@ -101,152 +130,220 @@ contains another.)
   \begin{scope}[shift={(4.8,0)}]
     \ruleBnodes
   \end{scope}
-  \begin{scope}[shift={(9.1,0.6)}]
-    \node[tag,anchor=west] at (-0.2,2.25) {after pre-measuring $o,o'$ (labels $\ell$):};
-    \node[draw=ccol, fill=ccol!8, rounded corners=1.5pt, font=\scriptsize, align=left, inner sep=3pt, anchor=north west] at (-0.2,1.95)
-      {table for every $(y,\ell)$:\\[1pt] $\xi_{y,\ell}$: a sample of $a$'s outcome $\ \to a,\ b$\\[1pt]
-       $\hat\theta(\xi_{y,\ell};y,\ell)$: the state that outcome\\ \quad leaves on $b$'s shares $\ \to b$};
-    \node[tag,anchor=west] at (-0.2,-0.15) {$a$ and $b$ both know $y$ and $\ell$,};
-    \node[tag,anchor=west] at (-0.2,-0.5) {so both read the same row};
+  \begin{scope}[shift={(9.1,0.7)}]
+    \tikzset{cell/.style={rounded corners=1.5pt, minimum width=10mm, minimum height=4.4mm, font=\scriptsize}}
+    \node[tag,anchor=west] at (-0.3,3.0) {the catalogue that $F_1$ emits:};
+    \node[lab,anchor=south] at (1.75,2.2) {outcome}; \node[lab,anchor=south] at (3.2,2.2) {state};
+    \foreach \j/\lbl/\w in {0/{$(y,\ell)=(0,0)$}/0.5pt, 1/{$(y,\ell)=(0,1)$}/0.5pt, 2/{$(y,\ell)=(1,0)$}/1.1pt, 3/{$(y,\ell)=(1,1)$}/0.5pt} {
+      \node[lab,anchor=east] at (1.05,{1.9-0.58*\j}) {\lbl};
+      \node[cell, draw=ccol, fill=ccol!10, line width=\w] at (1.75,{1.9-0.58*\j}) {$\xi_{y,\ell}$};
+      \node[cell, draw=qcol, fill=qcol!12, line width=\w] at (3.2,{1.9-0.58*\j}) {$\hat\tau$};
+    }
+    \node[lab,anchor=north] at (1.75,-0.1) {to $a$ and $b$}; \node[lab,anchor=north] at (3.2,-0.1) {to $b$};
+    \node[tag,anchor=west] at (-0.3,-0.95) {$a$ and $b$ both know $y$ and $\ell$,};
+    \node[tag,anchor=west] at (-0.3,-1.3) {so both use the same entry};
   \end{scope}
 \end{tikzpicture}
-\caption{Rule B. The origin $a$ has a setting $y$, which $b$ also sees, and two sources, both shared with $b$; each
-has one further member, $o$ and $o'$, and both are premeasurable. Once they are pre-measured, the quantum shares
-of $a$ are entangled with shares of $b$ only, and a catalogue can carry both the outcome of $a$ and what it leaves
-behind.}
+\caption{Rule B. The origin $a$ has a setting $y$, which $b$ also sees, and two sources, both of which contain
+$b$. The bystanders $u$ and $u'$ are premeasurable; $\ell$ stands for their outcomes.}
 \label{fig:ruleB}
 \end{figure}
 
+\emph{Idea.} Pre-measure the bystanders (\cref{lem:premeasure}): their outcomes $\ell$ become classical data that
+$a$ and $b$ both hold. After that, the shares of $a$ are correlated with shares of $b$ only, and both nodes know
+$\ell$ and the value $y$ of the settings of $a$. So a source can carry out the measurement of $a$ in advance, once
+for every pair $(y,\ell)$. Entry $(y,\ell)$ of its catalogue consists of a sampled outcome of $a$, told to $a$ and
+$b$, and the state that this outcome leaves on the shares of $b$. Then $a$ measures nothing: it outputs the
+sampled value, and $b$ finds that value and the matching state in the same entry. In the smallest case, a source
+$\{a,b\}$ with a common setting $y$ (\exref{ex:ruleB-two}), there are no bystanders and the catalogue has one entry
+for every value of $y$.
+
 \begin{proof}
-One direction is \cref{lem:monotone}. For the other take a quantum model of $\G$. Let $F_1,\dots,F_k$ $(k\ge1)$ be
-the sources that contain $a$; by (B1) they all contain $b$. Let $O_i=F_i\setminus\{a,b\}$ and $O=\bigcup_iO_i$; by
-(B3) every $o\in O$ is premeasurable, so it lies in one $F_i$ only and has a fixed POVM $\{M_o^{\ell_o}\}$ on its
-share. Let $Y=\Pa(a)$ be the visible parents of $a$ and write $\ell=x_O$.
+One inclusion is \cref{lem:monotone}. For the other take a quantum model of $\G$. Let $F_1,\dots,F_k$ $(k\ge1)$ be
+the sources that contain $a$; by (H1) they all contain $b$. Let $U_i=F_i\setminus\{a,b\}$ be the bystanders in
+$F_i$ and $U=\bigcup_iU_i$. Every $u\in U$ is premeasurable, so it is a member of one $F_i$ only and has a fixed
+POVM $\{M_u^{\ell_u}\}$ on its share. Let $Y=\Pa(a)$ be the settings of $a$, and write $\ell=x_U$ for the outcomes
+of the bystanders.
 
-\emph{Step 1: what $a$ and the pre-measured members leave behind.} The node $a$ holds shares of the $F_i$ only,
-and by (B1) $b$ holds a share of each. Let $B=\bigotimes_i\Hil_{F_i,b}$ be the shares of $b$ in these sources and define, for values $y$ of $Y$,
+\emph{Step 1: what $a$ and the bystanders leave behind.} The node $a$ holds shares of the $F_i$ only, and $b$
+holds a share of each. Let $K_b=\bigotimes_i\Hil_{F_i,b}$ be the shares of $b$ in these sources and define, for
+values $y$ of $Y$,
 \[
-\theta(x_a;y,\ell)=\Tr_{\text{shares of }a\text{ and }O}\Bigl[\Bigl(M_a^{x_a\mid y}\otimes\bigotimes_{o\in O}M_o^{\ell_o}\otimes\id_B\Bigr)\bigotimes_i\rho_{F_i}\Bigr]
-\quad\text{on }B .
+\tau(x_a;y,\ell)=\Tr_{\text{shares of }a\text{ and }U}\Bigl[\Bigl(M_a^{x_a\mid y}\otimes\bigotimes_{u\in U}M_u^{\ell_u}\otimes\id_{K_b}\Bigr)\bigotimes_i\rho_{F_i}\Bigr]
+\quad\text{on }K_b .
 \]
-Summing over $x_a$ gives $\Tr\sum_{x_a}\theta(x_a;y,\ell)=p(\ell)$, the probability of the labels, which does not
-depend on $y$ and factorises as $p(\ell)=\prod_ip_i(\ell_{O_i})$ because the sources are independent. For
-$p(\ell)>0$ put $r(x_a\mid y,\ell)=\Tr\theta(x_a;y,\ell)/p(\ell)$, a probability distribution over $x_a$, and
-$\hat\theta(x_a;y,\ell)=\theta(x_a;y,\ell)/\Tr\theta(x_a;y,\ell)$ where the trace is positive.
+Summing over $x_a$ gives $\Tr\sum_{x_a}\tau(x_a;y,\ell)=p(\ell)$, the probability of $\ell$, which does not
+depend on $y$ and factorises as $p(\ell)=\prod_ip_i(\ell_{U_i})$ because the sources are independent. For
+$p(\ell)>0$ put $r(x_a\mid y,\ell)=\Tr\tau(x_a;y,\ell)/p(\ell)$, a probability distribution over $x_a$, and
+$\hat\tau(x_a;y,\ell)=\tau(x_a;y,\ell)/\Tr\tau(x_a;y,\ell)$ where the trace is positive.
 
-Nobody but $a$, $b$ and the nodes of $O$ holds a share of an $F_i$, so in \cref{eq:trace}
+Nobody but $a$, $b$ and the bystanders holds a share of an $F_i$, so in \cref{eq:trace}
 \begin{equation}\label{eq:ruleB-P}
-P(x_V)=\Tr\Bigl[\Bigl(M_b^{x_b\mid x_{\Pa(b)}}\otimes\bigotimes_{v\ne a,b,\;v\notin O}M_v^{x_v\mid x_{\Pa(v)}}\Bigr)
-\Bigl(\theta(x_a;x_Y,x_O)\otimes\bigotimes_{F\ne F_i}\rho_F\Bigr)\Bigr].
+P(x_V)=\Tr\Bigl[\Bigl(M_b^{x_b\mid x_{\Pa(b)}}\otimes\bigotimes_{v\ne a,b,\;v\notin U}M_v^{x_v\mid x_{\Pa(v)}}\Bigr)
+\Bigl(\tau(x_a;x_Y,x_U)\otimes\bigotimes_{F\ne F_1,\dots,F_k}\rho_F\Bigr)\Bigr].
 \end{equation}
 
 \emph{Step 2: the model of $\G-(a\to b)$.}
 \begin{itemize}
-\item Every $F_i$ draws $\ell_{O_i}$ with probability $p_i$ and writes it into a classical register for each of
-  its members. Each $o\in O$ outputs its own label.
-\item $F_1$ emits in addition a table with one row for every pair $(y,\ell)$ with $p(\ell)>0$: a value
+\item As in \cref{lem:premeasure}, every $F_i$ draws $\ell_{U_i}$ with probability $p_i$ and writes it into a
+  classical register for each of its members. Each $u\in U$ outputs its register.
+\item $F_1$ emits in addition a catalogue with one entry for every pair $(y,\ell)$ with $p(\ell)>0$: a value
   $\xi_{y,\ell}$ drawn from $r(\cdot\mid y,\ell)$, written into a register for $a$ and one for $b$, together with the
-  state $\hat\theta(\xi_{y,\ell};y,\ell)$ on a fresh copy $B^{(y,\ell)}$ of $B$, given to $b$. $F_1$ can prepare the
-  whole table without knowing the labels of the other sources, since it has a row for every value.
-\item $a$ reads $y=x_Y$ from its parents and $\ell$ from its registers, and outputs $\xi_{y,\ell}$. (For a label
+  state $\hat\tau(\xi_{y,\ell};y,\ell)$ on a fresh copy $K_b^{(y,\ell)}$ of $K_b$, given to $b$. This is possible
+  because $b$ is a member of $F_1$; and $F_1$ need not know the outcomes of the bystanders of the other sources,
+  since it has an entry for every value.
+\item $a$ reads $y=x_Y$ from its settings and $\ell$ from its registers, and outputs $\xi_{y,\ell}$. (For an
   $\ell$ of probability zero, which never occurs, $a$ and $b$ output fixed values.)
-\item $b$ reads $y$, which it sees by (B2), and $\ell$, hence the same row and the value $\xi_{y,\ell}=x_a$. It
-  applies $M_b^{x_b\mid x_a=\xi_{y,\ell},\,x_{\Pa(b)\setminus a}}$ to $B^{(y,\ell)}$ and its other shares.
-\item Everything else is unchanged. Nodes that have $a$ or a node of $O$ as a visible parent still receive the
-  same values.
+\item $b$ reads $y$, which it sees by (H2), and $\ell$, hence the same entry and the value $\xi_{y,\ell}=x_a$. It
+  applies $M_b^{x_b\mid x_a=\xi_{y,\ell},\,x_{\Pa(b)\setminus a}}$ to $K_b^{(y,\ell)}$ and its other shares.
+\item Everything else is unchanged. Nodes that see $a$ or a bystander still receive the same values.
 \end{itemize}
 
-\emph{Step 3: the distributions agree.} For fixed $x_V$ with $p(x_O)>0$ and $\Tr\theta(x_a;x_Y,x_O)>0$,
+\emph{Step 3: the distributions agree.} For fixed $x_V$ with $p(x_U)>0$ and $\Tr\tau(x_a;x_Y,x_U)>0$,
 \[
-P'(x_V)=p(x_O)\;r(x_a\mid x_Y,x_O)\;\Tr\Bigl[\bigl(M_b\otimes\textstyle\bigotimes_vM_v\bigr)\bigl(\hat\theta(x_a;x_Y,x_O)\otimes\bigotimes_{F\ne F_i}\rho_F\bigr)\Bigr],
+P'(x_V)=p(x_U)\;r(x_a\mid x_Y,x_U)\;\Tr\Bigl[\bigl(M_b\otimes\textstyle\bigotimes_vM_v\bigr)\bigl(\hat\tau(x_a;x_Y,x_U)\otimes\bigotimes_{F\ne F_1,\dots,F_k}\rho_F\bigr)\Bigr],
 \]
-and $p\,r\,\hat\theta=\theta$, so $P'(x_V)$ equals the right-hand side of \cref{eq:ruleB-P}. In the remaining cases
+and $p\,r\,\hat\tau=\tau$, so $P'(x_V)$ equals the right-hand side of \cref{eq:ruleB-P}. In the remaining cases
 both sides vanish. A classical model stays classical.
 \end{proof}
 
-\paragraph{What each hypothesis is for.} (B2) lets $b$ read the row. (B1) and (B3) together say that, after the
-pre-measurements, the shares of $a$ are correlated with shares of $b$ and with nothing else; this is the second
-condition of the catalogue. If a third party held a share correlated with the outcome of $a$, replacing that
-outcome by a sample would destroy the correlation. (B1) also asks for at least one shared source: with none,
-$a$ is a private coin flip and $b$ cannot know it.
+\paragraph{What each hypothesis is for.} (H2) lets $b$ read the entry: condition (i) of the catalogue, the
+index being $(y,\ell)$. (H1) and the premeasurable bystanders together say that, once the bystanders are
+pre-measured, the shares of $a$ are correlated with shares of $b$ and with nothing else: condition (ii). If a
+bystander that is not premeasurable held a share correlated with the outcome of $a$, replacing that outcome by a
+sample would destroy the correlation. (H1) also asks for at least one source: with none, $a$ is a private coin
+flip and $b$ cannot know it.
 
-Neither rule contains the other. Rule A allows arbitrary other members but a rigid origin; Rule B allows an
-origin with settings and several sources but rigid other members.
+\subsection{A wider Rule A, which the repository does not use}
 
-\begin{remark}[Pre-measurement with a setting that everybody sees]\label{rem:ruleA-settings}
-The two rules are what the repository implements; they do not exhaust the method. Suppose that $a$ lies in exactly
-one source $F$, that $b\in F$, and that every visible parent of $a$ is a visible parent of every other member of
-$F$. Then $a\to b$ is redundant as well. Write $y$ for the value of the visible parents of $a$. The source emits a
-catalogue with one entry for every $y$: the state $\sum_x\proj{x}\otimes\proj{x}\otimes\Tr_{\Hil_{F,a}}[(M_a^{x\mid y}\otimes\id)\rho_F]$,
-in which the share of $a$ has already been measured with the input $y$ and the outcome is written into a register
-for $a$ and one for $b$. The node $a$ outputs the register of entry $y$; every other member of $F$ sees $y$ and
-uses its share of entry $y$; and $b$ reads $x_a$ there. For $y$ empty this is Rule A. On four nodes the wider rule
-joins no new classes: among all four-node structures it applies to $35$ edges that Rules A and B do not cover,
-and in each case the two structures are already equivalent by the rules above (\code{check\_examples.py}).
-\end{remark}
+Rules A and B are the ones the code implements. The method gives more: pre-measurement also works for an origin
+with settings, provided every member of its source sees them.
+
+\begin{proposition}[Rule A with settings that every member sees]\label{prop:ruleA-settings}
+Let the edge $a\to b$ satisfy (H1), let $a$ be a member of exactly one source $F$, and let every setting of $a$ be
+a setting of every other member of $F$. Then $\Q(\G)=\Q(\G-(a\to b))$ and $\C(\G)=\C(\G-(a\to b))$.
+\end{proposition}
+\begin{proof}
+One inclusion is \cref{lem:monotone}. For the other take a quantum model of $\G$ and write $y$ for the value of the
+settings of $a$. Let $F$ emit, in place of $\rho_F$, a catalogue with one entry for every $y$:
+\[
+\omega_y=\sum_x\proj{x}_{R_a}\otimes\proj{x}_{R_b}\otimes\Tr_{\Hil_{F,a}}\bigl[(M_a^{x\mid y}\otimes\id)\,\rho_F\bigr].
+\]
+In entry $y$ the share of $a$ has been measured with the setting $y$, and the outcome is written into a register
+for $a$ and one for $b$; each $\omega_y$ is a state. The node $a$ outputs the register $R_a$ of entry $y$. Every
+other member of $F$ sees $y$ and applies its old POVM to its share of entry $y$ and its other shares; $b$ takes
+$x_a$ from the register $R_b$ of entry $y$ instead of from the edge. All other nodes and sources are unchanged.
+In \cref{eq:trace} the unused entries contribute $\Tr\omega_{y'}=1$, and entry $y$ contributes
+$\Tr_{\Hil_{F,a}}[(M_a^{x_a\mid y}\otimes\id)\rho_F]$, which is what the measurement of $a$ contributes in the
+given model, because $a$ holds no other share. A classical model stays classical.
+\end{proof}
+
+When $a$ has no setting this is Rule A. On four nodes the wider rule joins no new classes: among all four-node
+structures it applies to $35$ edges that Rules A and B do not cover, and in each case the two structures are
+already equivalent by the other rules. From five nodes on it may give more.
 
 \subsection{Dropping several edges at once}
 
-The metagraph of the repository removes all droppable edges of a structure in one step. That is legitimate.
+All edges that satisfy Rule A or Rule B can be removed in one step, which is what the repository does. This needs
+an argument, because removing one edge can destroy (H2) for another.
 
 \begin{lemma}\label{lem:simultaneous}
-Let $E$ be the set of edges of $\G$ that satisfy the hypotheses of Rule A or of Rule B in $\G$. Then
-$\G-E\qeq\G$ and $\G-E\ceq\G$.
+Let $\Delta$ be the set of edges of $\G$ that satisfy the hypotheses of Rule A or of Rule B in $\G$. Then
+$\G-\Delta\qeq\G$ and $\G-\Delta\ceq\G$.
 \end{lemma}
 \begin{proof}
-Fix a topological order of $\G$ and remove the edges $(a,b)\in E$ one at a time, those with a later origin $a$
+Fix a topological order of $\G$ and remove the edges $(a,b)\in\Delta$ one at a time, those with a later origin $a$
 first. We claim each removal is an application of Rule A or B in the structure reached so far. Sources never
-change, so (A2) and (B1) persist. Removing edges cannot give a node a visible parent, so premeasurability, hence
-(A1) and (B3), persists. For (B2), let $p$ be a visible parent of $a$ when $(a,b)$ is about to be removed. Then
-$p\to b$ was an edge of $\G$, and it has not been removed yet, because $p$ precedes $a$ in the order.
+change, so (H1) persists. Removing edges cannot give a node a setting, so premeasurability of the origin or of the
+bystanders persists. For (H2), let $y$ be a setting of $a$ when $(a,b)$ is about to be removed. Then $y\to b$ was
+an edge of $\G$, and it has not been removed yet, because $y$ precedes $a$ in the order.
 \end{proof}
 
-The order matters. In \str{0→1, 0→2, 1→2; Q\{0,2\}, Q\{1,2\}} both $0\to2$ (Rule A) and $1\to2$ (Rule B) are
-droppable; but once $0\to2$ is gone, node $2$ no longer sees the parent $0$ of node $1$, and (B2) fails for
+The order matters. In \str{0→1, 0→2, 1→2; Q\{0,2\}, Q\{1,2\}} both $0\to2$ (Rule A) and $1\to2$ (Rule B) can be
+dropped; but once $0\to2$ is gone, node $2$ no longer sees the setting $0$ of node $1$, and (H2) fails for
 $1\to2$. The proof removes $1\to2$ first.
+
+\subsection{Combining the rules}\label{sec:compose}
+
+Face splitting, the edge rules and the sandwich (\cref{cor:sandwich}) prove together more than each alone. One
+combination comes up constantly.
+
+\begin{ideabox}{A premeasurable member of a source can be traded for visible edges from it}
+Let $p$ be premeasurable with source $F$. Rule~A, read as a rule for \emph{adding} an edge, gives $p$ an edge to
+every other member of $F$; no cycle can arise, since $p$ has no parent. Then \cref{thm:split} applies with
+$C=\{p\}$ and $D=F\setminus\{p\}$: (S1) holds because $F$ is the only source of $p$, and (S2) because $p$ now
+points to all of $D$ and has no setting. So $F$ is replaced by $F\setminus\{p\}$.
+
+\medskip
+\begin{center}
+\begin{tikzpicture}[mdag,scale=0.82]
+  \newcommand{\tradenodes}{\vn[pre]{p}{0,1.5}{$p$} \vn{c}{1.6,1.5}{$c$} \vn{d}{0.8,0}{$d$} \vn{e}{2.6,0}{$e$}
+    \qs{g}{1.7,0.55} \feed{g}{c,d,e} \de{p}{d} \de{c}{d}}
+  % first chain: the source {p,c,d}
+  \begin{scope}
+    \tradenodes \qs{f}{0.8,1.0} \feed{f}{p,c,d}
+  \end{scope}
+  \node[rel] at (3.5,0.75) {\equivsign};
+  \begin{scope}[shift={(4.4,0)}]
+    \tradenodes \qs[splitsrc]{f}{0.8,1.0} \feed[splitedge]{f}{p,c,d} \draw[newedge] (p) to[bend left=22] (c);
+    \node[tag] at (1.2,-0.7) {Rule A adds $p\to c$};
+  \end{scope}
+  \node[rel] at (7.9,0.75) {\equivsign};
+  \begin{scope}[shift={(8.8,0)}]
+    \tradenodes \draw[edge] (p) to[bend left=22] (c);
+    \node[tag] at (1.2,-0.7) {\cref{thm:split}, $C=\{p\}$};
+  \end{scope}
+  % second chain: the source {p,c}
+  \begin{scope}[shift={(0,-3.6)}]
+    \tradenodes \qs{f}{0.8,2.2} \feed{f}{p,c}
+  \end{scope}
+  \node[rel] at (3.5,-2.85) {\equivsign};
+  \begin{scope}[shift={(4.4,-3.6)}]
+    \tradenodes \qs[splitsrc]{f}{0.8,2.2} \feed[splitedge]{f}{p,c} \draw[newedge] (p) -- (c);
+    \node[tag] at (1.2,-0.7) {Rule A adds $p\to c$};
+  \end{scope}
+  \node[rel] at (7.9,-2.85) {\equivsign};
+  \draw[->, line width=0.8pt, black!60] (8.5,-2.85) to[out=0,in=-90] (10.0,-1.25);
+  \node[tag,anchor=west] at (8.35,-3.35) {\cref{thm:split}: the same structure};
+\end{tikzpicture}
+\end{center}
+
+In the first row the theorem turns $\{p,c,d\}$ into $\{c,d\}$, which is contained in $\{c,d,e\}$ and is discarded.
+In the second row it removes the source $\{p,c\}$ on the new edge. Both rows end at the same structure, hence
+\begin{center}
+\str{p→d, c→d; Q\{p,c,d\}, Q\{c,d,e\}} \ $\equiv$ \ \str{p→d, c→d; Q\{p,c\}, Q\{c,d,e\}}.
+\end{center}
+\Cref{thm:split} does not give this split of $\{p,c,d\}$ into $\{p,c\}$ and $\{d\}$ directly: $c$ is also a member
+of the remaining source $\{c,d,e\}$, so (S1) fails. It is an instance of the moderate rule that does hold for
+quantum models, because $p$ is premeasurable. So not every instance of the moderate rule fails; the rule does
+(\cref{sec:leaky}).
+\end{ideabox}
 
 \subsection{Valid examples}
 
-\begin{validbox}{Example 8 (Rule A): the smallest case, again}
+\begin{validbox}[label=ex:target-two]{Rule A; the target may have further sources}
 \begin{minipage}{0.55\linewidth}
-$a=0$ has no parent and the single source $\{0,1\}$:\\[3pt]
-\str{0→1; Q\{0,1\}} \ $\equiv$ \ \str{Q\{0,1\}}.\\[3pt]
-Together with Example~1 this gives three equivalent structures: the edge with the source, the edge alone, the
-source alone. See the warning below before concluding that both can go.
-\end{minipage}\hfill
-\begin{minipage}{0.42\linewidth}\centering
-\begin{tikzpicture}[mdag]
-  \vn[pre]{a}{0,0}{$0$} \vn{b}{1.6,0}{$1$} \qs{q}{0.8,0.85} \feed{q}{a,b} \de[dropedge]{a}{b}
-  \node[rel] at (2.4,0.2) {\equivsign};
-  \begin{scope}[shift={(3.2,0)}] \vn[pre]{a}{0,0}{$0$} \vn{b}{1.6,0}{$1$} \qs{q}{0.8,0.85} \feed{q}{a,b} \end{scope}
-\end{tikzpicture}
-\end{minipage}
-\end{validbox}
-
-\begin{validbox}{Example 9 (Rule A): the other members are arbitrary}
-\begin{minipage}{0.55\linewidth}
-$a=0$ is premeasurable in the source $\{0,1,2\}$; the third member $2$ has a setting $3$. The source measures the
-share of $0$ whatever $2$ does later:\\[3pt]
-\str{0→1, 3→2; Q\{0,1,2\}} \ $\equiv$ \ \str{3→2; Q\{0,1,2\}}.
+The origin $0$ is premeasurable with the source $\{0,1\}$. The target $1$ is also a member of $\{1,2\}$ and may
+measure its two shares jointly; Rule A does not mind:\\[3pt]
+\str{0→1; Q\{0,1\}, Q\{1,2\}} \ $\equiv$ \ \str{Q\{0,1\}, Q\{1,2\}}.\\[3pt]
+Contrast \cref{thm:hlp-four}, where it is the \emph{origin} that has two sources.
 \end{minipage}\hfill
 \begin{minipage}{0.42\linewidth}\centering
 \begin{tikzpicture}[mdag,scale=0.85]
-  \vn[pre]{a}{0,0}{$0$} \vn{b}{1.8,0}{$1$} \vn{c}{0.9,1.5}{$2$} \vn{t}{2.3,1.5}{$3$} \qs{q}{0.9,0.6}
-  \feed{q}{a,b,c} \de[dropedge]{a}{b} \de{t}{c}
-  \node[rel] at (2.95,0.6) {\equivsign};
-  \begin{scope}[shift={(3.7,0)}]
-    \vn[pre]{a}{0,0}{$0$} \vn{b}{1.8,0}{$1$} \vn{c}{0.9,1.5}{$2$} \vn{t}{2.3,1.5}{$3$} \qs{q}{0.9,0.6}
-    \feed{q}{a,b,c} \de{t}{c}
-  \end{scope}
+  \newcommand{\chainnodes}{\vn[pre]{a}{0,0}{$0$} \vn{b}{1.5,0}{$1$} \vn{c}{3.0,0}{$2$}
+    \qs{q}{0.75,0.9} \qs{r}{2.25,0.9} \feed{q}{a,b} \feed{r}{b,c}}
+  \chainnodes \de[dropedge]{a}{b}
+  \node[rel] at (1.5,-0.8) {\equivsign};
+  \begin{scope}[shift={(0,-2.5)}] \chainnodes \end{scope}
 \end{tikzpicture}
 \end{minipage}
 \end{validbox}
 
-\begin{validbox}{Example 10 (Rule A, read as edge adding): a setting that arrives through a source}
+\begin{validbox}[label=ex:edge-adding]{Rule A read as edge adding; a setting that arrives through a source}
 \begin{minipage}{0.5\linewidth}
 Node $0$ is premeasurable with source $\{0,3\}$, so the edge $0\to3$ may be \emph{added}:\\[3pt]
 \str{0→1, 1→2; Q\{0,3\}, Q\{2,3\}} \ $\equiv$\\ \str{0→1, 0→3, 1→2; Q\{0,3\}, Q\{2,3\}}.\\[3pt]
-With Example~7 the structure on the left is equivalent to the Bell scenario with linked settings
+With \exref{ex:bell-source} the structure on the left is equivalent to the Bell scenario with linked settings
 \str{0→1, 0→3, 1→2; Q\{2,3\}}. It is the structure that \cref{sec:only-via} is about.
 \end{minipage}\hfill
 \begin{minipage}{0.47\linewidth}\centering
@@ -264,12 +361,11 @@ With Example~7 the structure on the left is equivalent to the Bell scenario with
 \end{minipage}
 \end{validbox}
 
-\begin{validbox}{Example 11 (Rule B): a two-party source and a shared setting}
+\begin{validbox}[label=ex:ruleB-two]{Rule B; a two-member source and a common setting}
 \begin{minipage}{0.55\linewidth}
-$a=0$ has the setting $2$, which $b=1$ also sees, and the source $\{0,1\}$ has no other member, so (B3) holds
-vacuously:\\[3pt]
+The origin $0$ has the setting $2$, which the target $1$ also sees, and the source $\{0,1\}$ has no bystander:\\[3pt]
 \str{2→0, 2→1, 0→1; Q\{0,1\}} \ $\equiv$ \ \str{2→0, 2→1; Q\{0,1\}}.\\[3pt]
-Rule A does not apply: $0$ has a visible parent.
+Rule A does not apply: $0$ has a setting.
 \end{minipage}\hfill
 \begin{minipage}{0.42\linewidth}\centering
 \begin{tikzpicture}[mdag,scale=0.85]
@@ -284,13 +380,13 @@ Rule A does not apply: $0$ has a visible parent.
 \end{minipage}
 \end{validbox}
 
-\begin{validbox}{Example 12 (Rule B): a third member that is premeasurable}
+\begin{validbox}[label=ex:ruleB-bystander]{Rule B; a premeasurable bystander}
 \begin{minipage}{0.55\linewidth}
-$a=1$ has the setting $0$, seen by $b=2$; the source $\{1,2,3\}$ has the further member $3$, which has no parent
-and no other source:\\[3pt]
+The origin $1$ has the setting $0$, seen by the target $2$; the source $\{1,2,3\}$ has the bystander $3$, which has
+no setting and no other source:\\[3pt]
 \str{0→1, 0→2, 1→2; Q\{1,2,3\}} \ $\equiv$ \ \str{0→1, 0→2; Q\{1,2,3\}}.\\[3pt]
-If $3$ also had the parent $0$ it would not be premeasurable and Rule B would not apply; the edge is redundant
-all the same in that case (\cref{rem:ruleA-settings}).
+If $3$ also had the setting $0$ it would not be premeasurable and Rule B would not apply. The edge could still be
+dropped, by \cref{prop:ruleA-settings}.
 \end{minipage}\hfill
 \begin{minipage}{0.42\linewidth}\centering
 \begin{tikzpicture}[mdag,scale=0.85]
@@ -305,83 +401,86 @@ all the same in that case (\cref{rem:ruleA-settings}).
 \end{minipage}
 \end{validbox}
 
-\begin{validbox}{Example 13 (Rules A and B together): five nodes, three sources}
-\begin{minipage}{0.55\linewidth}
-$a=0$ lies in three sources, each shared with $b=1$ and one premeasurable node. Rule B drops $0\to1$; Rule A drops
-$2\to0$ and $2\to1$, since $2$ is premeasurable. By \cref{lem:simultaneous} all three go at once:\\[3pt]
-\str{2→0, 2→1, 0→1; Q\{0,1,2\}, Q\{0,1,3\}, Q\{0,1,4\}} \ $\equiv$\\
-\str{Q\{0,1,2\}, Q\{0,1,3\}, Q\{0,1,4\}}.
+\begin{validbox}[label=ex:both]{Rules A and B together}
+\begin{minipage}{0.5\linewidth}
+The origin $0$ is a member of two sources, each containing the target $1$ and one premeasurable bystander. Rule B
+drops $0\to1$; Rule A drops $2\to0$ and $2\to1$, since $2$ is premeasurable. By \cref{lem:simultaneous} all three
+go at once:\\[3pt]
+\str{2→0, 2→1, 0→1; Q\{0,1,2\}, Q\{0,1,3\}} \ $\equiv$\\
+\str{Q\{0,1,2\}, Q\{0,1,3\}}.
 \end{minipage}\hfill
-\begin{minipage}{0.42\linewidth}\centering
-\begin{tikzpicture}[mdag,scale=0.72]
-  \vn{a}{0,0}{$0$} \vn{b}{3.2,0}{$1$}
-  \vn[pre]{p2}{1.6,2.1}{$2$} \vn[pre]{p3}{1.6,-2.0}{$3$} \vn[pre]{p4}{1.6,-4.1}{$4$}
-  \qs{f2}{1.6,0.95} \qs{f3}{1.6,-0.95} \qs{f4}{1.6,-3.05}
-  \feed{f2}{a,b,p2} \feed{f3}{a,b,p3} \feed{f4}{a,b,p4}
-  \draw[dropedge] (p2) to[bend right=30] (a); \draw[dropedge] (p2) to[bend left=30] (b);
+\begin{minipage}{0.47\linewidth}\centering
+\begin{tikzpicture}[mdag,scale=0.7]
+  \newcommand{\bothnodes}{\vn{a}{0,0}{$0$} \vn{b}{3.0,0}{$1$}
+    \vn[pre]{p2}{1.5,2.3}{$2$} \vn[pre]{p3}{1.5,-2.3}{$3$}
+    \qs{f2}{1.5,1.05} \qs{f3}{1.5,-1.05}
+    \feed{f2}{a,b,p2} \feed{f3}{a,b,p3}}
+  \bothnodes
+  \draw[dropedge] (p2) to[bend right=32] (a); \draw[dropedge] (p2) to[bend left=32] (b);
   \draw[dropedge] (a) -- (b);
+  \node[rel] at (4.1,0) {\equivsign};
+  \begin{scope}[shift={(5.2,0)}] \bothnodes \end{scope}
 \end{tikzpicture}
 \end{minipage}
 \end{validbox}
 
+\Needspace{6\baselineskip}
 \subsection{Not like this}
 
 \begin{warnbox}{dropping the edge \emph{and} the source}
-\begin{minipage}{0.56\linewidth}
-For \str{0→1; Q\{0,1\}}, \cref{thm:split} removes the source and Rule A removes the edge. Each rule is applied to
-the structure that still has the other ingredient, and each destroys the hypothesis of the other: without the
-source, (A1) and (A2) fail; without the edge, (S2) fails. The structure with neither makes the two nodes independent.
-\end{minipage}\hfill
-\begin{minipage}{0.41\linewidth}\centering
-\begin{tikzpicture}[mdag]
-  % edge and source
-  \vn{a}{0,1.5}{$0$} \vn{b}{1.4,1.5}{$1$} \qs{q}{0.7,2.3} \feed{q}{a,b} \de{a}{b}
-  \node[rel] at (2.25,1.5) {\equivsign};
-  % edge alone
-  \begin{scope}[shift={(3.1,0)}] \vn{a}{0,1.5}{$0$} \vn{b}{1.4,1.5}{$1$} \de{a}{b} \end{scope}
-  \node[rel] at (0.7,0.75) {\rotatebox{90}{\equivsign}};
-  % source alone
-  \begin{scope}[shift={(0,-1.5)}] \vn{a}{0,1.5}{$0$} \vn{b}{1.4,1.5}{$1$} \qs{q}{0.7,0.7} \feed{q}{a,b} \end{scope}
-  \node[rel] at (2.25,0.0) {\nequivsign};
-  % neither
-  \begin{scope}[shift={(3.1,-1.5)}] \vn{a}{0,1.5}{$0$} \vn{b}{1.4,1.5}{$1$} \end{scope}
-  \node[rel] at (3.8,0.75) {\rotatebox{90}{\nequivsign}};
-\end{tikzpicture}
-\end{minipage}
-\end{warnbox}
-
-\begin{warnbox}{the classical hypothesis $\Pa(a)\subseteq\Pa(b)$ alone}
-The hypothesis of the classical rule holds in each of the two structures below, and the edge is \emph{not}
-redundant for quantum models. On the left, $A$ has a setting that the source does not know and the third member
-$C$ has a setting too, so neither $A$ nor $C$ can be pre-measured. On the right nobody has a setting, but every
-node sits in two sources and measures its shares jointly. \Cref{thm:hlp-settings,thm:hlp-four} give the proofs.
+For \str{0→1; Q\{0,1\}}, Rule~A removes the edge and \cref{thm:split} removes the source
+(\exref{ex:edge-source}), so the three structures on the left are equivalent. One cannot do both. Each rule needs
+what the other removes: without the source, (H1) fails; without the edge, (S2) fails. With neither, the two nodes
+are independent.
 
 \medskip
 \begin{center}
 \begin{tikzpicture}[mdag]
+  \newcommand{\pair}{\vn{a}{0,0}{$0$} \vn{b}{1.4,0}{$1$}}
+  \begin{scope} \pair \qs{q}{0.7,0.85} \feed{q}{a,b} \end{scope}
+  \node[rel] at (2.45,0.15) {\equivsign}; \node[tag] at (2.45,-0.45) {Rule A};
+  \begin{scope}[shift={(3.5,0)}] \pair \qs{q}{0.7,0.85} \feed{q}{a,b} \de{a}{b} \end{scope}
+  \node[rel] at (5.95,0.15) {\equivsign}; \node[tag] at (5.95,-0.45) {\cref{thm:split}};
+  \begin{scope}[shift={(7.0,0)}] \pair \de{a}{b} \end{scope}
+  \node[rel] at (9.45,0.15) {\nequivsign};
+  \begin{scope}[shift={(10.5,0)}] \pair \end{scope}
+\end{tikzpicture}
+\end{center}
+\end{warnbox}
+
+\begin{warnbox}{the classical hypothesis alone}
+(H1) and (H2) hold for the red edge in each of the two structures below, and the edge can \emph{not} be dropped
+for quantum models. On the left, the origin $A$ has a setting, so it is not premeasurable, and the bystander $C$
+has one too. On the right nobody has a setting, but the origin is a member of two sources and its bystanders $C$
+and $S$ of a third.
+
+\medskip
+\begin{center}
+\begin{tikzpicture}[mdag]
+  \tikzset{keptedge/.style={->, line width=1.1pt, dropcol}}
   \begin{scope}
     \vn{s}{0.9,1.9}{$S$} \vn{a}{0,0.6}{$A$} \vn{b}{1.8,0.6}{$B$} \vn{c}{0.9,-1.0}{$C$} \vn{t}{2.3,-1.0}{$T$}
     \qs{q}{0.9,-0.05}
-    \feed{q}{a,b,c} \de{s}{a} \de{s}{b} \de{t}{c} \de[dropedge]{a}{b}
-    \node[tag] at (0.9,-1.75) {the edge $A\to B$ matters};
+    \feed{q}{a,b,c} \de{s}{a} \de{s}{b} \de{t}{c} \de[keptedge]{a}{b}
+    \node[tag] at (0.9,-1.75) {\cref{thm:hlp-settings}};
   \end{scope}
-  \begin{scope}[shift={(6.2,-0.4)}]
-    \vn{a}{0,1.6}{$A$} \vn{d}{2.6,1.6}{$D$} \vn{b}{0,-0.4}{$B$} \vn{c}{2.6,-0.4}{$C$}
-    \qs{f1}{0.75,0.75} \qs{f2}{1.85,0.75} \qs{f3}{1.3,-1.0}
-    \feed{f1}{a,b,d} \feed{f2}{a,c,d} \feed{f3}{b,c}
-    \draw[dropedge] (a) to[bend left=18] (d);
-    \node[tag] at (1.3,-1.6) {the edge $A\to D$ matters};
+  \begin{scope}[shift={(6.4,0.45)}]
+    \vn{a}{0,0}{$A$} \vn{b}{2.8,0}{$B$} \vn{c}{1.4,1.9}{$C$} \vn{s}{1.4,-1.9}{$S$}
+    \qs{f1}{1.4,0.85} \qs{f2}{1.4,-0.85} \qs{f3}{3.9,0}
+    \feed{f1}{a,b,c} \feed{f2}{a,b,s} \feed{f3}{c,s}
+    \de[keptedge]{a}{b}
+    \node[tag] at (1.4,-2.65) {\cref{thm:hlp-four}};
   \end{scope}
 \end{tikzpicture}
 \end{center}
 \end{warnbox}
 
-\begin{openq}{a further member with two sources and no visible parent}
+\begin{openq}{a bystander with two sources and no setting}
 \begin{minipage}{0.56\linewidth}
-In \str{0→1, 0→2, 0→3, 2→1, 2→3; Q\{0,1,2\}, Q\{0,3\}} the edge $2\to1$ satisfies the classical hypothesis.
-Rule A fails ($2$ has the parent $0$), and Rule B fails because the further member $0$ of the source $\{0,1,2\}$
-lies in a second source, so it is not premeasurable: it may measure its two shares jointly.
-\Cref{rem:ruleA-settings} does not apply either. No counterexample is known. The code does not drop this edge.
+In \str{0→1, 0→2, 0→3, 2→1, 2→3; Q\{0,1,2\}, Q\{0,3\}} the edge $2\to1$ satisfies (H1) and (H2). Rule A fails,
+since $2$ has the setting $0$. Rule B fails because the bystander $0$ is a member of a second source, so it is not
+premeasurable: it may measure its two shares jointly. \Cref{prop:ruleA-settings} does not apply either. No
+counterexample is known. The repository does not drop this edge.
 \end{minipage}\hfill
 \begin{minipage}{0.41\linewidth}\centering
 \begin{tikzpicture}[mdag,scale=0.9]
@@ -394,3 +493,24 @@ lies in a second source, so it is not premeasurable: it may measure its two shar
 \end{tikzpicture}
 \end{minipage}
 \end{openq}
+
+\subsection{Where the boundary lies}\label{sec:edge-map}
+
+In every row of the following table the edge $a\to b$ satisfies the classical hypothesis (H1) and (H2).
+
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}p{5.0cm}p{5.0cm}p{5.2cm}@{}}
+\toprule
+\textbf{The origin $a$} & \textbf{The bystanders} & \textbf{For quantum models the edge is}\\
+\midrule
+premeasurable & arbitrary & redundant (Rule A)\\
+any settings, any number of sources & all premeasurable & redundant (Rule B)\\
+one source; all its members see the settings of $a$ & arbitrary & redundant (\cref{prop:ruleA-settings})\\
+has a setting; one source & one with a setting of its own & not redundant (\cref{thm:hlp-settings})\\
+no setting; two sources & members of a further source & not redundant (\cref{thm:hlp-four})\\
+one source; its setting is a bystander & that bystander has a second source & open (the box above)\\
+\bottomrule
+\end{tabular}
+\end{center}

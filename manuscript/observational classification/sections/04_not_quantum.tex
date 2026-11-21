@@ -1,56 +1,70 @@
 \section{Classical rules that are not valid for quantum models}\label{sec:notquantum}
 
-Two classical rules prove more than the rules of \cref{sec:split,sec:edge}: the edge rule under the hypothesis
-$\Pa(a)\subseteq\Pa(b)$ alone, and face splitting when a node of $C$ shares a further source with $D$ (the
-moderate and strong forms). This section shows that neither can be saved: for each there are two structures with
-the same classical model set and different quantum model sets. In both cases the classical proof uses the
-\emph{value} of a latent, and the quantum obstruction is the same in different clothes: \emph{holding a share of a
-source is not the same as knowing what another party's share of it will do}.
+Two classical rules prove more than the rules of \cref{sec:split,sec:edge}: the edge rule under the classical
+hypothesis (H1), (H2) alone, and face splitting when a node of $C$ is a member of a remaining source that contains
+$D$ (the moderate and strong forms). This section shows that neither can be saved: for each there are two
+structures with the same classical model set and different quantum model sets. In each case the classical proof
+uses the \emph{value} of a latent, and the quantum counterexample violates condition (ii) of the catalogue
+(\cref{sec:setting}): a node outside the group, $C$ in the two edge theorems and Eve in the face-splitting
+theorem, holds a system correlated with what the catalogue would have to contain.
+
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}llccl@{}}
+\toprule
+ & \textbf{rule refuted} & \textbf{nodes} & \textbf{settings} & \textbf{tool}\\
+\midrule
+\cref{thm:hlp-settings} & the classical edge rule & 5 & two & a party with a double is local\\
+\cref{thm:hlp-four} & the classical edge rule & 4 & none & the same, after an inflation\\
+\cref{thm:sixnode} & moderate face splitting & 6 & two & a bottleneck and CHSH rigidity\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+In this section nodes are capital letters and their outcomes the corresponding lower-case letters, as is usual
+for Bell scenarios: $a$ is what \cref{sec:setting,sec:split,sec:edge} would call $x_A$. Each strict inclusion is
+shown for the alphabets of the distribution $P^{*}$ that its proof constructs.
 
 \subsection{The classical edge rule}\label{sec:hlp-fails}
 
-Both counterexamples rest on one elementary fact, a special case of the statement that correlations which can be
-shared with a second copy of one party are local \cite{MAG}.
+Both counterexamples rest on one elementary fact \cite{MAG}: a party that has a double, a second party that
+behaves towards a third exactly as it does, is local towards that third party.
 
-\begin{lemma}[A perfectly predicted party is local]\label{lem:predict}
-Let $P(a,b,c\mid s,s',t)$ be a no-signalling box for three parties: $A$ with input $s\in\{0,1\}$ and output $a$,
-$B$ with input $s'\in\{0,1\}$ and output $b$, and $C$ with input $t$ and output $c$. Suppose that $B$ predicts $A$
-whenever their inputs agree: $P(b=a\mid s,\,s'=s,\,t)=1$. Then the correlations of $A$ with $C$ are local: there are
-a distribution $\nu(a_0,a_1)$ and response functions $P(c\mid t,a_0,a_1)$ with
+\begin{lemma}[A party with a double is local]\label{lem:predict}
+Let $Q(a,a',c\mid s,s',t)$ be a box for three parties $A$, $A'$, $C$, with inputs $s,s'\in\{0,1\}$ and $t$, that is
+no-signalling: the joint distribution of the outcomes of any two parties does not depend on the input of the
+third. Suppose that $A'$ behaves towards $C$ exactly as $A$ does: for $i\in\{0,1\}$ and all $\alpha,c,t$,
+\[Q(a'=\alpha,\,c\mid s'=i,\,t)\;=\;Q(a=\alpha,\,c\mid s=i,\,t)\;=:\;P(\alpha,c\mid i,t).\]
+Then $P$ is local: there are a distribution $\nu(a_0,a_1)$ and response functions $P(c\mid t,a_0,a_1)$ with
 \[
 P(a,c\mid s,t)=\sum_{a_0,a_1}\nu(a_0,a_1)\,\delta_{a,a_s}\,P(c\mid t,a_0,a_1).
 \]
-In particular they satisfy the CHSH inequality.
+In particular $P$ satisfies the CHSH inequality.
 \end{lemma}
 \begin{proof}
-Give $A$ the input $0$ and $B$ the input $1$, and put $\mu_t(a_0,a_1,c)=P(a=a_0,\,b=a_1,\,c\mid s=0,s'=1,t)$. Three
-marginals of $\mu_t$:
-\begin{itemize}
-\item over $a_1$: $P(a=a_0,c\mid s=0,t)$, by no-signalling from $B$;
-\item over $a_0$: $P(b=a_1,c\mid s'=1,t)$, by no-signalling from $A$, which is the same for $s=1$, where $b=a$; so it
-  equals $P(a=a_1,c\mid s=1,t)$;
-\item over $c$: a distribution $\nu(a_0,a_1)$ that does not depend on $t$, by no-signalling from $C$.
-\end{itemize}
-So $\lambda=(a_0,a_1)$, drawn from $\nu$, with $A$ answering $a_s$ and $C$ answering according to
-$P(c\mid t,\lambda)=\mu_t(\lambda,c)/\nu(\lambda)$ (arbitrary where $\nu(\lambda)=0$), reproduces $P(a,c\mid s,t)$
-for both values of $s$.
+Put $\mu_t(a_0,a_1,c)=Q(a=a_0,\,a'=a_1,\,c\mid s=0,\,s'=1,\,t)$. Its marginal over $a_1$ is $P(a_0,c\mid0,t)$, by
+no-signalling from $A'$. Its marginal over $a_0$ is $Q(a'=a_1,c\mid s'=1,t)=P(a_1,c\mid1,t)$, by no-signalling
+from $A$ and the hypothesis. Its marginal over $c$ is a distribution $\nu(a_0,a_1)$ that does not depend on $t$,
+by no-signalling from $C$. So $\lambda=(a_0,a_1)$, drawn from $\nu$, with $A$ answering $a_s$ and $C$ answering
+according to $\mu_t(\lambda,c)/\nu(\lambda)$ (arbitrary where $\nu(\lambda)=0$), reproduces $P$.
 \end{proof}
 
-\begin{theorem}[The edge rule fails with settings]\label{thm:hlp-settings}
+\begin{cexbox}{the edge rule, with settings}
+\begin{theorem}\label{thm:hlp-settings}
 Let $\G^{+}$ have the nodes $A,B,C,S,T$, the edges $S\to A$, $S\to B$, $T\to C$, $A\to B$ and the source
 $\{A,B,C\}$, and let $\G^{-}=\G^{+}-(A\to B)$. Then
 \[
 \C(\G^{-})=\C(\G^{+})\qquad\text{but}\qquad\Q(\G^{-})\subsetneq\Q(\G^{+}).
 \]
-In the repository's notation (nodes $A,B,C,S,T=0,1,2,3,4$): \str{3→0, 3→1, 4→2, 0→1; Q\{0,1,2\}} and
-\str{3→0, 3→1, 4→2; Q\{0,1,2\}}.
 \end{theorem}
+\end{cexbox}
 
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[mdag]
   \begin{scope}
-    \vn{s}{0.9,1.9}{$S$} \vn{a}{0,0.6}{$A$} \vn{b}{1.8,0.6}{$B$} \vn{c}{0.9,-1.0}{$C$} \vn{t}{2.4,-1.0}{$T$}
+    \vn{s}{0.9,1.9}{$S$} \vn{a}{0,0.6}{$A$} \vn{b}{1.8,0.6}{$B$} \vn{c}{0.9,-1.0}{$C$} \vn{t}{2.3,-1.0}{$T$}
     \qs{q}{0.9,-0.05}
     \feed{q}{a,b,c} \de{s}{a} \de{s}{b} \de{t}{c} \de{a}{b}
     \node[tag] at (0.9,-1.75) {$\G^{+}$: $B$ copies $A$};
@@ -58,179 +72,182 @@ In the repository's notation (nodes $A,B,C,S,T=0,1,2,3,4$): \str{3→0, 3→1, 4
   \node[rel] at (3.5,0.4) {$\ceq$};
   \node[rel] at (3.5,-0.25) {$\not\qeq$};
   \begin{scope}[shift={(4.6,0)}]
-    \vn{s}{0.9,1.9}{$S$} \vn{a}{0,0.6}{$A$} \vn{b}{1.8,0.6}{$B$} \vn{c}{0.9,-1.0}{$C$} \vn{t}{2.4,-1.0}{$T$}
+    \vn{s}{0.9,1.9}{$S$} \vn{a}{0,0.6}{$A$} \vn{b}{1.8,0.6}{$B$} \vn{c}{0.9,-1.0}{$C$} \vn{t}{2.3,-1.0}{$T$}
     \qs{q}{0.9,-0.05}
     \feed{q}{a,b,c} \de{s}{a} \de{s}{b} \de{t}{c}
-    \node[tag] at (0.9,-1.75) {$\G^{-}$};
-  \end{scope}
-  \begin{scope}[shift={(9.0,0.3)}]
-    \node[tag,anchor=west,align=left,text width=6.2cm] at (-0.3,0.3)
-      {$P^{*}$: the source gives $A$ and $C$ a Bell pair; they play CHSH with the settings $s,t$; $B$ outputs the
-       outcome of $A$.\\[4pt]
-       Without the edge, $B$ would have to produce that outcome from $s$ and its own share. A party that can do
-       that makes $A$ local towards $C$ (\cref{lem:predict}).};
+    \node[tag] at (0.9,-1.75) {$\G^{-}$: $B$ would have to guess};
   \end{scope}
 \end{tikzpicture}
-\caption{The counterexample of \cref{thm:hlp-settings}. The classical hypothesis $\Pa(A)\subseteq\Pa(B)$ holds:
-$B$ sees the setting $S$ and shares the only source of $A$.}
+\caption{The two structures of \cref{thm:hlp-settings}. The classical hypothesis holds for $A\to B$: the target
+sees the setting $S$ of the origin and is a member of its only source. In the repository's notation (nodes
+$A,B,C,S,T=0,1,2,3,4$): \str{3→0, 3→1, 4→2, 0→1; Q\{0,1,2\}} and \str{3→0, 3→1, 4→2; Q\{0,1,2\}}.}
 \label{fig:hlp-settings}
 \end{figure}
 
-\begin{proof}
-\emph{Classical.} $\C(\G^{-})\subseteq\C(\G^{+})$ by \cref{lem:monotone}. Conversely, in a classical model of
-$\G^{+}$ the outcome of $A$ is a function of $s$, of the latent $\lambda$ and of private randomness. Let the source
-generate that private randomness and hand it to $A$ and $B$; then $B$, who sees $s$ and $\lambda$, computes
-the outcome of $A$ and has no use for the edge.
+\emph{Idea.} In $\G^{+}$ let the source give $A$ and $C$ a Bell pair; they play CHSH with the settings $s$ and
+$t$, and $B$ outputs the outcome of $A$, which it receives along the edge. Without the edge, $B$ would have to
+produce that outcome from $s$ and its own share. A party that can do that is a double of $A$, and by
+\cref{lem:predict} it makes $A$ local towards $C$.
 
-\emph{Quantum.} Let $S$ and $T$ be uniform bits and let $P^{*}$ be as in \cref{fig:hlp-settings}: $(a,c)$ are the
-outcomes of the measurements that give the CHSH value $2\sqrt2$ on a Bell pair, and $b=a$. Clearly
+\begin{proof}
+\emph{Classical.} This is the classical edge rule (\AWS\ Prop.~4): (H1) and (H2) hold for $A\to B$.
+
+\emph{Quantum.} Let $S$ and $T$ be uniform bits and let $P^{*}$ be the distribution just described: $(a,c)$ are
+the outcomes of the measurements that give the CHSH value $2\sqrt2$ on a Bell pair, and $b=a$. Clearly
 $P^{*}\in\Q(\G^{+})$. Suppose $P^{*}\in\Q(\G^{-})$, realised by a state $\rho$ on
 $\Hil_A\otimes\Hil_B\otimes\Hil_C$ and POVMs $M_A^{a\mid s}$, $M_B^{b\mid s}$, $M_C^{c\mid t}$. The model
 defines a box for independent inputs,
 \[
 \tilde P(a,b,c\mid s,s',t)=\Tr\bigl[(M_A^{a\mid s}\otimes M_B^{b\mid s'}\otimes M_C^{c\mid t})\,\rho\bigr],
 \]
-which is no-signalling, and $P^{*}(a,b,c\mid s,t)=\tilde P(a,b,c\mid s,s,t)$. Since $b=a$ in $P^{*}$,
-\cref{lem:predict} applies and makes $P^{*}(a,c\mid s,t)$ local, contradicting its CHSH value.
+which is no-signalling, and $P^{*}(a,b,c\mid s,t)=\tilde P(a,b,c\mid s,s,t)$. In $\tilde P$ the party $B$ is a
+double of $A$: for $s'=s$ we have $b=a$, hence $\tilde P(b=\alpha,c\mid s'=i,t)=\tilde P(a=\alpha,c\mid s=i,t)$
+(by no-signalling the left side does not depend on $s$, nor the right side on $s'$). \Cref{lem:predict} makes
+$P^{*}(a,c\mid s,t)$ local, contradicting its CHSH value.
 \end{proof}
 
-Here $A$ has a setting, so Rule A fails, and the third member $C$ has one too, so Rule B fails. The second
-counterexample has no settings at all and only four nodes, so it lives inside the four-node census.
+Here the origin $A$ has a setting, so it is not premeasurable, and the bystander $C$ has one too, so neither rule
+of \cref{sec:edge} applies. The second counterexample has no settings at all and only four nodes, so it is among
+the structures that the repository classifies.
 
-\begin{theorem}[The edge rule fails on four nodes]\label{thm:hlp-four}
-Let $\G^{+}$ have the nodes $A,B,C,D$, the sources $\{A,B,D\}$, $\{A,C,D\}$, $\{B,C\}$ and the single edge
-$A\to D$, and let $\G^{-}$ be the same without the edge. Then $\C(\G^{-})=\C(\G^{+})$ but
-$\Q(\G^{-})\subsetneq\Q(\G^{+})$. In the repository's notation (nodes $A,B,C,D=0,1,2,3$):
-\str{0→3; Q\{0,1,3\}, Q\{0,2,3\}, Q\{1,2\}} and \str{Q\{0,1,3\}, Q\{0,2,3\}, Q\{1,2\}}.
+\begin{cexbox}{the edge rule, on four nodes without settings}
+\begin{theorem}\label{thm:hlp-four}
+Let $\G^{+}$ have the nodes $A,B,C,S$, the sources $\{A,B,C\}$, $\{A,B,S\}$, $\{C,S\}$ and the single edge
+$A\to B$, and let $\G^{-}$ be the same without the edge. Then $\C(\G^{-})=\C(\G^{+})$ but
+$\Q(\G^{-})\subsetneq\Q(\G^{+})$.
 \end{theorem}
+\end{cexbox}
 
-\begin{proof}
-\emph{Classical.} As before: $A$ has no visible parent, $D$ holds both latents of $A$, and one of them can carry
-the private randomness of $A$.
+The roles are those of \cref{thm:hlp-settings}: $A$ is the origin, $B$ the target, which will copy $A$, and $C$
+the partner of $A$ in a CHSH test. The settings are replaced by a fourth node $S$, which announces two bits that
+it has in common with the others.
 
-\emph{The distribution.} $P^{*}$ is Fritz's distribution for the triangle \cite{Fritz}, with $D$ copying $A$. The
-source $\{A,B,D\}$ gives $A$ and $B$ a Bell pair; $\{A,C,D\}$ gives $A$ and $C$ a uniform bit $x$; $\{B,C\}$ gives
-$B$ and $C$ a uniform bit $y$. $A$ measures with the CHSH setting $x$ and outputs $(a,x)$; $B$ measures with the
-setting $y$ and outputs $(b,y)$; $C$ outputs $(x,y)$; $D$ outputs what $A$ outputs. Then
-$P^{*}(a,x,b,y)=\tfrac14P_{\mathrm{CHSH}}(a,b\mid x,y)$ with CHSH value $2\sqrt2$, and $P^{*}\in\Q(\G^{+})$.
+\emph{The distribution.} $P^{*}$ is Fritz's distribution for the triangle \cite{Fritz}, with $B$ copying $A$. The
+source $\{A,B,C\}$ gives $A$ and $C$ a Bell pair; $\{A,B,S\}$ gives $A$ and $S$ a uniform bit $x$; $\{C,S\}$ gives
+$C$ and $S$ a uniform bit $y$. $A$ measures with the CHSH setting $x$ and outputs $(a,x)$; $C$ measures with the
+setting $y$ and outputs $(c,y)$; $S$ outputs $(x,y)$; $B$ outputs what $A$ outputs. Then
+$P^{*}(a,x,c,y)=\tfrac14P_{\mathrm{CHSH}}(a,c\mid x,y)$ with CHSH value $2\sqrt2$, and $P^{*}\in\Q(\G^{+})$.
 
-\emph{Impossibility without the edge.} Suppose a quantum model of $\G^{-}$ produces $P^{*}$: states $\rho_1$ on
-the shares $A_1B_1D_1$, $\rho_2$ on $A_2C_2D_2$, $\rho_3$ on $B_3C_3$, and POVMs $M_A$ (on $A_1A_2$), $M_B$ (on
-$B_1B_3$), $M_C$ (on $C_2C_3$), $M_D$ (on $D_1D_2$). Consider the following experiment (\cref{fig:inflation}), of the kind used in the inflation technique
-\cite{Inflation}, built
-from $\rho_1$, three independent copies $\rho_2,\rho_2',\rho_2''$ of the second state and three copies
-$\rho_3,\rho_3',\rho_3''$ of the third:
-\begin{center}\small
-\begin{tabular}{@{}lll@{}}
-\toprule
-party & measurement, on the shares of & output\\
-\midrule
-$\bar A$ & $M_A$ on $A_1$ of $\rho_1$ and $A_2$ of $\rho_2$ & $(a,x)$\\
-$\bar B$ & $M_B$ on $B_1$ of $\rho_1$ and $B_3$ of $\rho_3$ & $(b,y)$\\
-$\bar D$ & $M_D$ on $D_1$ of $\rho_1$ and $D_2$ of $\rho_2'$ & $(a',x')$\\
-$\bar C_A$ & $M_C$ on $C_2$ of $\rho_2$ and $C_3$ of $\rho_3'$ & first component $u$\\
-$\bar C_D$ & $M_C$ on $C_2$ of $\rho_2'$ and $C_3$ of $\rho_3''$ & first component $u'$\\
-$\bar C_B$ & $M_C$ on $C_2$ of $\rho_2''$ and $C_3$ of $\rho_3$ & second component $w$\\
-\bottomrule
-\end{tabular}
-\end{center}
-Every share is measured by at most one party, so this is a legitimate quantum experiment with a joint distribution
-$R$ of all outputs. No source is cloned: only independent copies are used. Whenever a set of parties shares copies
-in the same pattern as the corresponding nodes of $\G^{-}$ share sources, its marginal in $R$ equals the marginal
-of $P^{*}$, because a marginal depends only on the reduced state of the shares that these parties measure. This
-gives:
-\begin{enumerate}[label=(\roman*)]
-\item $(\bar A,\bar B)$ share $\rho_1$ only, as $A,B$ do: $R(a,x,b,y)=\tfrac14P_{\mathrm{CHSH}}(a,b\mid x,y)$.
-\item $(\bar D,\bar B)$ share $\rho_1$ only, as $D,B$ do; and in $P^{*}$ the output of $D$ equals that of $A$:
-  $R(a',x',b,y)=\tfrac14P_{\mathrm{CHSH}}(a',b\mid x',y)$.
-\item $(\bar A,\bar C_A)$ share $\rho_2$ only, as $A,C$ do: $x=u$ with probability one. Likewise $x'=u'$ from
-  $(\bar D,\bar C_D)$ and $y=w$ from $(\bar B,\bar C_B)$.
-\end{enumerate}
-Parties that act on disjoint sets of states are independent. $\bar C_D$ acts on $\rho_2',\rho_3''$, which
-$\bar A,\bar B$ do not touch; $\bar C_A$ acts on $\rho_2,\rho_3'$, which $\bar D,\bar B$ do not touch; $\bar C_B$
-acts on $\rho_2'',\rho_3$, which $\bar A,\bar D$ do not touch. With (iii):
-\[
-x'\ \perp\ (a,x,b,y),\qquad x\ \perp\ (a',x',b,y),\qquad y\ \perp\ (a,x,a',x').
-\]
-The first relation contains $x'\perp(x,y)$ and the second $x\perp y$, and each of $x,x',y$ is uniform by (i) and
-(ii). So $x,x',y$ are independent uniform bits, like the inputs of three parties with outputs $a,a',b$; in
-particular $R(x=0,x'=1,y)=\tfrac18$, and
-$\mu_y(a_0,a_1,b)=R(a=a_0,\,a'=a_1,\,b\mid x=0,\,x'=1,\,y)$ is well defined. Exactly as in the proof of
-\cref{lem:predict}: its marginal over $a_1$ is $P_{\mathrm{CHSH}}(a_0,b\mid0,y)$ by the first independence and
-(i); its marginal over $a_0$ is $P_{\mathrm{CHSH}}(a_1,b\mid1,y)$ by the second independence and (ii); its marginal
-over $b$ does not depend on $y$ by the third. This is a local model for $P_{\mathrm{CHSH}}$, a contradiction.
-\end{proof}
+\emph{Idea.} Without the edge, $B$ must produce the outcome of $A$ from its two shares. Give $B$ instead a share
+of a \emph{fresh copy} of the second source (\cref{fig:inflation}). Its joint distribution with $C$ does not
+change, because the two have only the first source in common; but the bit $x'$ that it now reports is independent
+of the bit $x$ of $A$. Then $A$, this displaced $B$ and $C$ form a three-party box with independent inputs in
+which the displaced $B$ is a double of $A$, and \cref{lem:predict} makes $A$ local towards $C$.
 
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[mdag]
-  \begin{scope}
-    \vn{a}{0,1.6}{$A$} \vn{d}{2.6,1.6}{$D$} \vn{b}{0,-0.4}{$B$} \vn{c}{2.6,-0.4}{$C$}
-    \qs{f1}{0.75,0.75} \qs{f2}{1.85,0.75} \qs{f3}{1.3,-1.0}
-    \feed{f1}{a,b,d} \feed{f2}{a,c,d} \feed{f3}{b,c}
-    \node[lab,text=qcol] at (0.35,0.5) {$\rho_1$}; \node[lab,text=qcol] at (2.3,0.5) {$\rho_2$};
-    \node[lab,text=qcol] at (1.3,-1.4) {$\rho_3$};
-    \node[tag] at (1.3,-2.0) {$\G^{-}$};
+  \begin{scope}[shift={(0,0.1)}]
+    \vn{a}{0,0}{$A$} \vn{b}{2.8,0}{$B$} \vn{c}{1.4,1.9}{$C$} \vn{s}{1.4,-1.9}{$S$}
+    \qs{f1}{1.4,0.85} \qs{f2}{1.4,-0.85} \qs{f3}{3.9,0}
+    \feed{f1}{a,b,c} \feed{f2}{a,b,s} \feed{f3}{c,s}
+    \node[lab,text=qcol] at (1.4,0.42) {$\rho_1$}; \node[lab,text=qcol] at (1.4,-0.42) {$\rho_2$};
+    \node[lab,text=qcol] at (4.35,0) {$\rho_3$};
+    \node[tag] at (1.4,-2.75) {$\G^{-}$};
   \end{scope}
-  \begin{scope}[shift={(5.3,0)}]
+  \begin{scope}[shift={(7.4,0.3)}]
     % sources of the experiment
     \qs{r1}{2.4,1.0}
     \qs{r2}{0.3,1.9} \qs{r2p}{4.5,1.9} \qs[src,faint]{r2pp}{6.6,-0.2}
     \qs{r3}{2.4,-1.3} \qs[src,faint]{r3p}{-1.6,0.6} \qs[src,faint]{r3pp}{6.4,1.5}
-    \vn{A}{1.1,1.0}{$\bar A$} \vn{D}{3.7,1.0}{$\bar D$} \vn{B}{2.4,-0.2}{$\bar B$}
-    \vn{CA}{-0.6,1.0}{$\bar C_{\!A}$} \vn{CD}{5.5,1.0}{$\bar C_{\!D}$} \vn{CB}{4.4,-1.0}{$\bar C_{\!B}$}
-    \feed{r1}{A,D,B} \feed{r2}{A,CA} \feed{r2p}{D,CD} \feed{r3}{B,CB}
-    \draw[qedge,faint] (r3p) -- (CA); \draw[qedge,faint] (r3pp) -- (CD); \draw[qedge,faint] (r2pp) -- (CB);
+    \vn{A}{1.1,1.0}{$\bar A$} \vn{B}{3.7,1.0}{$\bar B$} \vn{C}{2.4,-0.2}{$\bar C$}
+    \vn{SA}{-0.6,1.0}{$\bar S_{\!A}$} \vn{SB}{5.5,1.0}{$\bar S_{\!B}$} \vn{SC}{4.4,-1.0}{$\bar S_{\!C}$}
+    \feed{r1}{A,B,C} \feed{r2}{A,SA} \feed{r2p}{B,SB} \feed{r3}{C,SC}
+    \draw[qedge,faint] (r3p) -- (SA); \draw[qedge,faint] (r3pp) -- (SB); \draw[qedge,faint] (r2pp) -- (SC);
     \node[lab,text=qcol] at (2.4,1.4) {$\rho_1$}; \node[lab,text=qcol] at (0.3,2.3) {$\rho_2$};
     \node[lab,text=qcol] at (4.5,2.3) {$\rho_2'$}; \node[lab,text=qcol] at (2.4,-1.7) {$\rho_3$};
     \node[lab,text=qcol!60] at (-1.6,0.2) {$\rho_3'$}; \node[lab,text=qcol!60] at (6.4,1.9) {$\rho_3''$};
     \node[lab,text=qcol!60] at (6.6,-0.6) {$\rho_2''$};
-    \node[tag] at (2.4,-2.3) {the experiment: $\bar A$ and $\bar D$ get their ``settings'' from different copies};
+    \node[tag] at (2.4,-2.4) {the experiment: $\bar A$ and $\bar B$ get their bits from different copies};
   \end{scope}
 \end{tikzpicture}
-\caption{Proof of \cref{thm:hlp-four}. In $\G^{-}$ the setting $x$ of $A$ comes from the source shared with $C$
-and $D$, so $D$ always knows it. In the experiment on the right, $\bar D$ takes its second share from an
-independent copy, so the setting $x'$ on which it bases its prediction is independent of the setting $x$ of
-$\bar A$. Faint sources feed one party only.}
+\caption{Proof of \cref{thm:hlp-four}. Left: $\G^{-}$ with the states of its sources. The bit $x$ of $A$ comes
+from the source that also contains $B$ and $S$, so $B$ always knows it. Right: in the experiment $\bar B$ takes
+its second share from an independent copy $\rho_2'$, so the bit $x'$ on which it bases its prediction is
+independent of the bit $x$ of $\bar A$. Faint sources are measured by one party only. In the repository's
+notation (nodes $A,C,S,B=0,1,2,3$) the two structures of the theorem are
+\str{0→3; Q\{0,1,3\}, Q\{0,2,3\}, Q\{1,2\}} and \str{Q\{0,1,3\}, Q\{0,2,3\}, Q\{1,2\}}.}
 \label{fig:inflation}
 \end{figure}
 
-\paragraph{Remark.} The two structures of \cref{thm:hlp-four} are one class of the classical metagraph and two
-classes of the quantum one, and by the theorem they \emph{must} be two. This is a proven instance of the quantum
-classification being strictly finer on four nodes.
+\begin{proof}
+\emph{Classical.} This is the classical edge rule again: $A$ has no setting, and both its sources contain $B$.
+
+\emph{Quantum.} $P^{*}\in\Q(\G^{+})$ as described. Suppose a quantum model of $\G^{-}$ produces $P^{*}$: states
+$\rho_1$ on the shares $A_1B_1C_1$, $\rho_2$ on $A_2B_2S_2$, $\rho_3$ on $C_3S_3$, and POVMs $M_A$ (on $A_1A_2$),
+$M_B$ (on $B_1B_2$), $M_C$ (on $C_1C_3$), $M_S$ (on $S_2S_3$). Consider the following experiment, of the kind
+used in the inflation technique \cite{Inflation}, built from $\rho_1$, three independent copies
+$\rho_2,\rho_2',\rho_2''$ of the second state and three copies $\rho_3,\rho_3',\rho_3''$ of the third:
+\begin{center}\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+party & measurement, on the shares & outcome\\
+\midrule
+$\bar A$ & $M_A$ on $A_1$ of $\rho_1$ and $A_2$ of $\rho_2$ & $(a,x)$\\
+$\bar C$ & $M_C$ on $C_1$ of $\rho_1$ and $C_3$ of $\rho_3$ & $(c,y)$\\
+$\bar B$ & $M_B$ on $B_1$ of $\rho_1$ and $B_2$ of $\rho_2'$ & $(a',x')$\\
+$\bar S_A$ & $M_S$ on $S_2$ of $\rho_2$ and $S_3$ of $\rho_3'$ & first component $u$\\
+$\bar S_B$ & $M_S$ on $S_2$ of $\rho_2'$ and $S_3$ of $\rho_3''$ & first component $u'$\\
+$\bar S_C$ & $M_S$ on $S_2$ of $\rho_2''$ and $S_3$ of $\rho_3$ & second component $w$\\
+\bottomrule
+\end{tabular}
+\end{center}
+Every share is measured by at most one party, so this is a legitimate quantum experiment, with a joint
+distribution $P_{\mathrm{exp}}$ of all outcomes. No source is cloned: only independent copies are used. The joint
+distribution of a set of parties depends only on the reduced state of the systems they measure. So if the states
+measured by a set of parties are connected exactly as the sources of the corresponding nodes of $\G^{-}$, their
+joint distribution in $P_{\mathrm{exp}}$ is that of those nodes in $P^{*}$. This gives:
+\begin{enumerate}[label=(\roman*)]
+\item $\bar A$ and $\bar C$ have $\rho_1$ in common and nothing else, as $A$ and $C$ do:
+  $P_{\mathrm{exp}}(a,x,c,y)=\tfrac14P_{\mathrm{CHSH}}(a,c\mid x,y)$.
+\item $\bar B$ and $\bar C$ have $\rho_1$ in common and nothing else, as $B$ and $C$ do; and in $P^{*}$ the
+  outcome of $B$ equals that of $A$: $P_{\mathrm{exp}}(a',x',c,y)=\tfrac14P_{\mathrm{CHSH}}(a',c\mid x',y)$.
+\item $\bar A$ and $\bar S_A$ have $\rho_2$ in common and nothing else, as $A$ and $S$ do: $x=u$ with probability
+  one. Likewise $x'=u'$ from $\bar B$ and $\bar S_B$, and $y=w$ from $\bar C$ and $\bar S_C$.
+\end{enumerate}
+Parties that measure disjoint sets of states are independent. $\bar S_B$ measures $\rho_2',\rho_3''$, which
+$\bar A$ and $\bar C$ do not touch; $\bar S_A$ measures $\rho_2,\rho_3'$, which $\bar B$ and $\bar C$ do not
+touch; $\bar S_C$ measures $\rho_2'',\rho_3$, which $\bar A$ and $\bar B$ do not touch. With (iii):
+\[
+x'\ \perp\ (a,x,c,y),\qquad x\ \perp\ (a',x',c,y),\qquad y\ \perp\ (a,x,a',x').
+\]
+The first relation contains $x'\perp(x,y)$ and the second $x\perp y$, and each of $x,x',y$ is uniform by (i) and
+(ii). So $x,x',y$ are independent uniform bits, and by the three relations
+$P_{\mathrm{exp}}(a,a',c\mid x,x',y)$ is a no-signalling box for $\bar A,\bar B,\bar C$ with the inputs $x,x',y$.
+By (i) and (ii), $\bar B$ behaves towards $\bar C$ exactly as $\bar A$ does. \Cref{lem:predict}, with $\bar B$ in
+the role of $A'$ and $\bar C$ in the role of $C$, makes $P_{\mathrm{CHSH}}$ local, a contradiction.
+\end{proof}
+
+\begin{remark}
+The two structures of \cref{thm:hlp-four} are classically equivalent and, by the theorem, not quantum equivalent.
+On four nodes the quantum classification is therefore strictly finer than the classical one.
+\end{remark}
 
 \subsection{Moderate and strong face splitting}\label{sec:leaky}
 
-\paragraph{Where the classical proofs use a value.} \AWS\ prove the moderate rule (Prop.~7) with a stand-in. Every
-other source that touches $C$ is given a \emph{visible} node with no parents that points to all its members, and
-loses its faces that contain a node of $C$. The weak rule then applies, and at the end the stand-in is made latent
-again. They prove the strong rule (Prop.~8, Appendix~A) in two steps. First (their Lemma~10, ``dominance by
-Bayesian updating'') the latents of the sources $C_i\cup D$ are replaced by latents of the $C_i$ and a new latent
-of $D$ whose parents are the nodes of $C$ and all their other parents, visible and latent; it is sampled from the
-posterior of the old latents given the values of these parents (their Eqs.~(11)--(14)). Then this dependence is
-removed by exogenization, which costs nothing because every parent of the new latent already points to $D$; the
-hypothesis ``has to hold for both visible and latent parents'' (their Prop.~15).
+\paragraph{Where the classical proofs use a value.} The proof of the strong rule (\AWS\ Prop.~8, Appendix~A) has
+two steps: Bayesian updating (their Lemma~10), in which a new latent of $D$ is sampled from the posterior of the
+old latents given the nodes of $C$ and all their parents, visible and latent; and exogenization of that new
+latent. When all parents of $C$ are visible, the two steps are exactly \cref{thm:split}: the posterior is the
+steered state, and exogenization is the catalogue. When a node of $C$ has a further latent parent, both steps read
+its value; the proof of the moderate rule (Prop.~7) does the same when it replaces that latent by a visible
+stand-in. A quantum source has no value to read, and the next theorem shows that the rule itself fails.
 
-When the parents of $C$ are all visible, these two steps are precisely \cref{thm:split}: the posterior is the
-steered state, and exogenization is the catalogue. When $C$ has a further latent parent, both steps treat it as a
-variable whose value the node of $C$, the nodes of $D$ and the new latent can all read. A quantum source has no
-such value, and the next theorem shows that the gap is real.
-
-\begin{theorem}[Moderate face splitting fails for quantum models]\label{thm:sixnode}
+\begin{cexbox}{moderate face splitting, on six nodes}
+\begin{theorem}\label{thm:sixnode}
 Let $\G_6$ have the nodes $A,R,D,E$ and the setting nodes $S,T$, the edges
 \[S\to A,\quad S\to D,\quad T\to E,\quad R\to D,\quad A\to D,\]
-and the sources $F=\{A,R,D\}$ and $H=\{R,D,E\}$. Let $\G_6'$ be the same with $F$ replaced by $\{A,R\}$. Then
+and the sources $F=\{A,R,D\}$ and $J=\{R,D,E\}$. Let $\G_6'$ be the same with $F$ replaced by $\{A,R\}$. Then
 \[
 \C(\G_6')=\C(\G_6)\qquad\text{but}\qquad\Q(\G_6')\subsetneq\Q(\G_6).
 \]
-In the repository's notation (nodes $R,A,D,E,S,T=0,1,2,3,4,5$): \str{4→1, 4→2, 5→3, 0→2, 1→2; Q\{0,1,2\}, Q\{0,2,3\}}
-and \str{4→1, 4→2, 5→3, 0→2, 1→2; Q\{0,1\}, Q\{0,2,3\}}.
 \end{theorem}
+\end{cexbox}
 
-The pair is an instance of the moderate rule in which the part $C$ is $\{A,R\}$ and the part that sees it is the
-single node $D$: this node is a child of $A$, of $R$ and of $S$, the visible parent of $A$, so (S2) holds; and the
-only other source that touches $C$, namely $H$, contains $D$. What fails is (S1): $R$ holds a share of $H$, and
-$H$ cannot be split along with $F$, because $D$ does not see $E$.
+The pair is an instance of the moderate rule in which the part that is seen is $\{A,R\}$ and the part that sees
+it is the single node $D$. This node sees $A$, $R$ and $S$, the setting of $A$, so (S2) holds; and the only
+remaining source that contains a node of $\{A,R\}$, namely $J$, contains $D$. What fails is (S1): $R$ is a member
+of $J$, and $J$ cannot be split along with $F$, because $D$ does not see $E$.
 
 \begin{figure}[H]
 \centering
@@ -242,7 +259,7 @@ $H$ cannot be split along with $F$, because $D$ does not see $E$.
     \feed[splitedge]{f}{A,R,D} \feed{g}{R,D,E}
     \de{A}{D} \de{R}{D} \de{s}{A} \de{t}{E}
     \draw[edge] (s) to[out=-150,in=165,looseness=1.3] (D);
-    \node[lab,text=splitcol!80!black] at (1.1,1.62) {$F$}; \node[lab,text=qcol] at (3.0,0.85) {$H$};
+    \node[lab,text=splitcol!80!black] at (1.1,1.62) {$F$}; \node[lab,text=qcol] at (3.0,0.85) {$J$};
     \node[tag] at (1.8,-0.75) {$\G_6$};
   \end{scope}
   \node[rel] at (6.0,1.3) {$\ceq$};
@@ -254,199 +271,230 @@ $H$ cannot be split along with $F$, because $D$ does not see $E$.
     \feed{f}{A,R} \feed{g}{R,D,E}
     \de{A}{D} \de{R}{D} \de{s}{A} \de{t}{E}
     \draw[edge] (s) to[out=-150,in=165,looseness=1.3] (D);
-    \node[lab,text=qcol] at (3.0,0.85) {$H$};
+    \node[lab,text=qcol] at (3.0,0.85) {$J$};
     \node[tag] at (1.8,-0.75) {$\G_6'$};
   \end{scope}
 \end{tikzpicture}
 \caption{The two structures of \cref{thm:sixnode}. $A$ is Alice, $R$ a relay, $D$ Dan, who sees everything that
-Alice and the relay output, and $E$ Eve, who sees only her own setting.}
+Alice and the relay output, and $E$ Eve, who sees only her own setting. In the repository's notation (nodes
+$R,A,D,E,S,T=0,1,2,3,4,5$): \str{4→1, 4→2, 5→3, 0→2, 1→2; Q\{0,1,2\}, Q\{0,2,3\}} and
+\str{4→1, 4→2, 5→3, 0→2, 1→2; Q\{0,1\}, Q\{0,2,3\}}.}
 \label{fig:sixnode}
 \end{figure}
 
-\paragraph{The distribution $P^{*}$.} Let $S$ be uniform on $\{0,1,2\}$ and $T$ uniform on $\{0,1\}$. In $\G_6$:
+\paragraph{Why the split is valid classically, and what breaks.} In a classical model Dan holds the latent
+$\lambda_J$ and sees the outcomes of Alice and the relay and the setting $s$. So he can sample the latent of $F$
+himself, from its posterior given all of these, and that posterior is exactly what his response needs. In a
+quantum model there is no $\lambda_J$ to condition on. What the relay's outcome leaves on Dan's share of $F$
+depends on how the relay measured its two shares together, and it is entangled with Eve's share of $J$: condition
+(ii) of the catalogue fails, with Eve as the outsider.
+
+\paragraph{The distribution $P^{*}$.} Let $S$ be uniform on $\{0,1,2\}$ and $T$ uniform on $\{0,1\}$. In $\G_6$
+(\cref{fig:strategy}):
 \begin{itemize}
-\item $F$ emits a Bell pair shared by Alice (qubit $A_1$) and the relay, and a second Bell pair shared by Alice
-  (qubit $A_2$) and Dan. $H$ emits a Bell pair shared by the relay and Eve.
-\item The relay measures its two qubits in the Bell basis and outputs the result $k\in\{0,1,2,3\}$. This swaps the
-  entanglement: $A_1$ and Eve's qubit are now in a Bell state, and $k$ says which.
-\item Eve measures $Z$ if $t=0$ and $X$ if $t=1$, with outcome $z=\pm1$.
-\item Alice's output $x$ lies in $\{0,1,2,3\}$. If $s\in\{0,1\}$ she measures $(Z+X)/\sqrt2$ or $(Z-X)/\sqrt2$ on
-  $A_1$ and outputs $x=0$ for the result $+1$ and $x=1$ for the result $-1$. If $s=2$ she measures $A_1A_2$ in the
-  Bell basis and outputs the result. This swaps the entanglement a second time: now Dan's qubit and Eve's are in a
-  Bell state, which one being fixed by $k$ and $x$.
-\item Dan sees $k$, $x$ and $s$. If $s=2$ he measures $Z$ and multiplies the result by the sign that $k$ and $x$
-  determine, so that his output $y=\pm1$ equals the outcome of Eve's $Z$ measurement. If $s\in\{0,1\}$ he outputs
-  $y=+1$.
+\item $F$ emits two Bell pairs: one between Alice's first qubit and the relay, one between Alice's second qubit
+  and Dan. $J$ emits a Bell pair between the relay and Eve.
+\item The relay measures its two qubits in the Bell basis and outputs the result $r\in\{0,1,2,3\}$. This swaps the
+  entanglement: Alice's first qubit and Eve's qubit are now in a Bell state, and $r$ says which.
+\item Eve measures $Z$ if $t=0$ and $X$ if $t=1$, with outcome $e=\pm1$.
+\item Alice's outcome $a$ lies in $\{0,1,2,3\}$. If $s\in\{0,1\}$ she measures $(Z+X)/\sqrt2$ or $(Z-X)/\sqrt2$ on
+  her first qubit and outputs $a=0$ for the result $+1$ and $a=1$ for the result $-1$. If $s=2$ she measures her
+  two qubits in the Bell basis and outputs the result. This swaps the entanglement a second time: now Dan's qubit
+  and Eve's are in a Bell state, which one being fixed by $r$ and $a$.
+\item Dan sees $r$, $a$ and $s$. If $s=2$ he measures $Z$ and multiplies the result by the sign that $r$ and $a$
+  determine, so that his outcome $d=\pm1$ equals the outcome of Eve's $Z$ measurement. If $s\in\{0,1\}$ he outputs
+  $d=+1$.
 \end{itemize}
-Two properties of $P^{*}$ are all that the proof uses (\code{scripts/six\_node\_strategy.py} verifies them):
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[mdag,scale=0.82]
+  \tikzset{link/.style={decorate, decoration={snake, amplitude=1.1pt, segment length=5pt}, line width=0.9pt},
+           party/.style={draw=black!70, rounded corners=2pt, fill=black!4}}
+  \newcommand{\parties}{
+    \node[party, minimum width=7mm, minimum height=14mm] at (0,0.8) {}; \node[lab] at (0,1.9) {Alice};
+    \coordinate (a1) at (0,1.15); \coordinate (a2) at (0,0.45);
+    \node[party, minimum width=13mm, minimum height=6mm] at (1.7,2.3) {}; \node[lab] at (1.7,2.95) {relay};
+    \coordinate (r1) at (1.4,2.3); \coordinate (r2) at (2.0,2.3);
+    \node[party, minimum width=6mm, minimum height=6mm] at (3.3,1.15) {}; \node[lab] at (3.3,1.8) {Eve};
+    \coordinate (e) at (3.3,1.15);
+    \node[party, minimum width=6mm, minimum height=6mm] at (1.7,-0.3) {}; \node[lab] at (1.7,-0.95) {Dan};
+    \coordinate (d) at (1.7,-0.3);
+    \foreach \q in {a1,a2,r1,r2,e,d} { \fill (\q) circle (1.7pt); }
+    \node[font=\tiny,anchor=east] at (-0.08,1.15) {1}; \node[font=\tiny,anchor=east] at (-0.08,0.45) {2};}
+  \begin{scope}
+    \parties
+    \draw[link, splitcol!90!black] (a1) -- (r1); \draw[link, splitcol!90!black] (a2) -- (d); \draw[link, qcol] (r2) -- (e);
+    \node[tag,align=center] at (1.7,-1.85) {three Bell pairs:\\ two from $F$, one from $J$};
+  \end{scope}
+  \begin{scope}[shift={(4.8,0)}]
+    \parties
+    \draw[link] (a1) -- (e); \draw[link, splitcol!90!black] (a2) -- (d);
+    \node[lab] at (1.7,2.3) {$r$};
+    \node[tag,align=center] at (1.7,-1.85) {the relay's Bell\\ measurement, outcome $r$};
+  \end{scope}
+  \begin{scope}[shift={(9.6,0)}]
+    \parties
+    \draw[link] (a1) -- (e); \draw[link, splitcol!90!black, faint] (a2) -- (d);
+    \node[tag,align=center] at (1.7,-1.85) {$s\in\{0,1\}$: CHSH test\\ of Alice and Eve};
+  \end{scope}
+  \begin{scope}[shift={(14.4,0)}]
+    \parties
+    \draw[link] (d) -- (e);
+    \node[lab] at (0.42,0.8) {$a$};
+    \node[tag,align=center] at (1.7,-1.85) {$s=2$: Alice's Bell\\ measurement, outcome $a$};
+  \end{scope}
+\end{tikzpicture}
+\caption{The strategy that produces $P^{*}$ in $\G_6$. Wavy lines are Bell pairs; black dots are qubits. The
+relay's measurement links Alice to Eve. Alice then either tests CHSH against Eve, or passes the link on to Dan,
+for which she needs the pair that $F$ gave her and Dan.}
+\label{fig:strategy}
+\end{figure}
+
+Two properties of $P^{*}$ are all that the proof uses (a script verifies them numerically, \cref{app:code}):
 \begin{description}[leftmargin=1.2cm,style=nextline,itemsep=1pt]
-\item[(P1)] $k$ is uniform, and for each $k$ the outcomes of Alice ($s\in\{0,1\}$) and Eve ($t\in\{0,1\}$) reach
-  the CHSH value $2\sqrt2$, with a different pattern of signs for each $k$. Precisely, let $E_k(s,t)$ be the
-  expectation of the product of their $\pm1$ results given $k$, $s$ and $t$. There are signs
-  $\varepsilon(k)\in\{\pm1\}^2$, running through all four values as $k$ does, with
-  \[\varepsilon_0E_k(0,0)+\varepsilon_1E_k(0,1)+\varepsilon_0E_k(1,0)-\varepsilon_1E_k(1,1)=2\sqrt2 .\]
-\item[(P2)] at $s=2$, $t=0$: $y=z$ with probability one, and $z$ is uniform conditional on $(k,x)$.
+\item[(P1)] $r$ is uniform, and for each $r$ Alice ($s\in\{0,1\}$) and Eve reach the CHSH value $2\sqrt2$, with a
+  different pattern of signs for each $r$. Precisely, give Alice the sign $+1$ when $a=0$ and $-1$ otherwise, and
+  let $c_r(s,t)$ be the expectation of the product of her sign and Eve's outcome, given $r$, $s$ and $t$. There are
+  signs $\varepsilon(r)\in\{\pm1\}^2$, a different pair for each $r$, with
+  \[\varepsilon_0c_r(0,0)+\varepsilon_1c_r(0,1)+\varepsilon_0c_r(1,0)-\varepsilon_1c_r(1,1)=2\sqrt2 .\]
+\item[(P2)] at $s=2$, $t=0$: $d=e$ with probability one, and $e$ is uniform given $(r,a)$.
 \end{description}
 
-In words: the relay's four outcomes hand Alice one unit of entanglement with Eve. Alice can spend it on a CHSH
-test against Eve, or pass it on to Dan. Passing it on needs her second link, the one with Dan, and that link is
-Dan's share of $F$. In $\G_6'$ Dan has no such share, and everything Alice has comes through the relay, whose
-four outcomes are already used up.
+In words: the relay's outcome hands Alice one unit of entanglement with Eve. Alice can spend it on a CHSH test
+against Eve, or pass it on to Dan. In $\G_6'$ Dan still has the source $J$ in common with Eve. But the CHSH rounds
+certify that, given $r$, the qubit that Eve measures is in a pure Bell state with a qubit of Alice, so it is
+uncorrelated with everything Dan holds. Dan can learn Eve's $Z$ outcome only through a second link with Alice. In
+$\G_6$ that link is his share of $F$. In $\G_6'$ everything between Alice and the others passes through the relay,
+whose four outcomes are used up labelling the Bell state.
 
 The proof needs the well-known rigidity of the maximal CHSH value \cite{SW}, in an exact form that covers four
-sign patterns with the same observables. It is short enough to prove in full.
+sign patterns with the same observables. Its proof is in \cref{app:rigidity}.
 
 \begin{lemma}[CHSH rigidity]\label{lem:rigidity}
-Let $A_0,A_1$ be Hermitian operators on $\Hil_A$ and $B_0,B_1$ Hermitian operators on $\Hil_E$, all with square
+Let $A_0,A_1$ be Hermitian operators on $\Hil_A$ and $E_0,E_1$ Hermitian operators on $\Hil_E$, all with square
 $\id$, and let $\Hil_{\mathrm{ext}}$ be a further system; all spaces are finite-dimensional. For
 $\varepsilon\in\{\pm1\}^2$ put
-$W_\varepsilon=A_0\otimes(\varepsilon_0B_0+\varepsilon_1B_1)+A_1\otimes(\varepsilon_0B_0-\varepsilon_1B_1)$, and
+$W_\varepsilon=A_0\otimes(\varepsilon_0E_0+\varepsilon_1E_1)+A_1\otimes(\varepsilon_0E_0-\varepsilon_1E_1)$, and
 suppose that for each $\varepsilon$ there is a state $\omega_\varepsilon$ on
 $\Hil_A\otimes\Hil_E\otimes\Hil_{\mathrm{ext}}$ with
 $\Tr[W_\varepsilon\,\omega_\varepsilon]=2\sqrt2$. Let $V_A\subseteq\Hil_A$ and $V_E\subseteq\Hil_E$ be the spans of
 the supports of the reduced states of the $\omega_\varepsilon$. Then $V_A\cong\mathbb{C}^2\otimes\Hil_{A''}$ and
 $V_E\cong\mathbb{C}^2\otimes\Hil_{E''}$ in such a way that on these subspaces
 \[
-A_0=\tfrac{Z+X}{\sqrt2}\otimes\id,\quad A_1=\tfrac{Z-X}{\sqrt2}\otimes\id,\quad B_0=Z\otimes\id,\quad B_1=X\otimes\id,
+A_0=\tfrac{Z+X}{\sqrt2}\otimes\id,\quad A_1=\tfrac{Z-X}{\sqrt2}\otimes\id,\quad E_0=Z\otimes\id,\quad E_1=X\otimes\id,
 \qquad\text{and}\qquad \omega_\varepsilon=\proj{\beta_\varepsilon}\otimes\gamma_\varepsilon ,
 \]
 where $\beta_\varepsilon$ is the Bell state of two qubits with $Z\otimes Z=\varepsilon_0$ and
 $X\otimes X=\varepsilon_1$, and $\gamma_\varepsilon$ is a state on
 $\Hil_{A''}\otimes\Hil_{E''}\otimes\Hil_{\mathrm{ext}}$.
 \end{lemma}
-\begin{proof}
-Fix $\varepsilon$, write $\omega=\omega_\varepsilon$, and put
-$\tilde B_0=(\varepsilon_0B_0+\varepsilon_1B_1)/\sqrt2$, $\tilde B_1=(\varepsilon_0B_0-\varepsilon_1B_1)/\sqrt2$.
-Using $A_s^2=B_t^2=\id$ and that the $A$'s commute with the $B$'s,
-\[
-2\sqrt2\,\id-W_\varepsilon=\tfrac{1}{\sqrt2}\bigl[(A_0-\tilde B_0)^2+(A_1-\tilde B_1)^2\bigr].
-\]
-Both squares are positive, so $\Tr[W_\varepsilon\omega]=2\sqrt2$ forces $\Tr[(A_s-\tilde B_s)^2\omega]=0$, hence
-\begin{equation}\label{eq:rig}
-A_s\,\omega=\tilde B_s\,\omega\qquad(s=0,1).
-\end{equation}
-\emph{Anticommutation.} From \eqref{eq:rig},
-$\omega=A_0^2\omega=A_0\tilde B_0\omega=\tilde B_0A_0\omega=\tilde B_0^2\omega$, and
-$\tilde B_0^2=\id+\tfrac12\varepsilon_0\varepsilon_1\{B_0,B_1\}$, so $\{B_0,B_1\}\,\omega=0$. Likewise
-$\{A_0,A_1\}\omega=(\tilde B_1A_0+\tilde B_0A_1)\omega=\{\tilde B_0,\tilde B_1\}\omega=(B_0^2-B_1^2)\omega=0$.
-
-\emph{Invariant supports.} By \eqref{eq:rig}, $B_0\omega=\varepsilon_0\,L\omega$ with $L=(A_0+A_1)/\sqrt2$ acting
-on $\Hil_A$. Hence $B_0\,\omega_E\,B_0=\Tr_{A,\mathrm{ext}}[L\omega L]=\Tr_{A,\mathrm{ext}}[L^2\omega]\le\lVert L\rVert^2\omega_E$,
-where $\omega_E$ is the reduced state on $\Hil_E$. So $B_0$ maps the support of $\omega_E$ into itself, and so does $B_1$;
-symmetrically $A_0,A_1$ preserve the support of $\omega_A$. Taking the partial trace of $\{B_0,B_1\}\omega=0$ gives
-$\{B_0,B_1\}\omega_E=0$, so $B_0$ and $B_1$ anticommute on the support of $\omega_E$, and likewise $A_0,A_1$ on the
-support of $\omega_A$. All of this holds for every $\varepsilon$, hence on the spans $V_E$ and $V_A$.
-
-\emph{Qubits.} Two anticommuting Hermitian operators with square $\id$ on a finite-dimensional space $V$ are
-$Z\otimes\id$ and $X\otimes\id$ for a suitable identification $V\cong\mathbb{C}^2\otimes V''$: the second maps the
-$+1$ eigenspace of the first isometrically onto its $-1$ eigenspace. Apply this to $B_0,B_1$ on $V_E$ and to
-$(A_0+A_1)/\sqrt2,\ (A_0-A_1)/\sqrt2$ on $V_A$, which also anticommute and square to $\id$ there.
-
-\emph{The state.} In these coordinates $W_\varepsilon=\sqrt2\,(\varepsilon_0\,Z\otimes Z+\varepsilon_1\,X\otimes X)\otimes\id$
-on $V_A\otimes V_E\otimes\Hil_{\mathrm{ext}}$. The operators $Z\otimes Z$ and $X\otimes X$ commute and are jointly
-diagonal in the Bell basis, so the largest eigenvalue $2\sqrt2$ of $\sqrt2(\varepsilon_0ZZ+\varepsilon_1XX)$ is
-attained on $\beta_\varepsilon$ only. As $\omega$ is supported on $V_A\otimes V_E\otimes\Hil_{\mathrm{ext}}$ and
-attains this eigenvalue in
-expectation, $\omega=\proj{\beta_\varepsilon}\otimes\gamma_\varepsilon$.
-\end{proof}
 
 \begin{proof}[Proof of \cref{thm:sixnode}]
-\emph{Classical.} $\C(\G_6')\subseteq\C(\G_6)$ by \cref{lem:monotone}; the converse is \AWS\ Prop.~7. In one line:
-Dan holds the latent $\lambda_H$ and sees the outcomes of $A$ and $R$ and the setting $s$, so he can sample the
-latent of $F$ from its posterior given all of these, and that posterior is exactly what his response needs.
+\emph{Classical.} $\C(\G_6')\subseteq\C(\G_6)$ by \cref{lem:monotone}; the converse is \AWS\ Prop.~7, by the
+argument sketched after \cref{fig:sixnode}.
 
 \emph{Quantum.} $P^{*}\in\Q(\G_6)$ by construction. Suppose a quantum model of $\G_6'$ has (P1) and (P2): a state
-$\sigma$ on $\Hil_A\otimes\Hil_{R_1}$ from the source $\{A,R\}$, a state $\tau$ on
-$\Hil_{R_2}\otimes\Hil_D\otimes\Hil_E$ from $H$, and POVMs $\{\Pi^k\}$ of the relay on
-$\Hil_{R_1}\otimes\Hil_{R_2}$, $\{N^{x\mid s}\}$ of Alice on $\Hil_A$, $\{B^{z\mid t}\}$ of Eve on $\Hil_E$ and
-$\{M^{y\mid k,x,s}\}$ of Dan on $\Hil_D$.
+$\rho_{AR}$ on $\Hil_A\otimes\Hil_{R_1}$ from the source $\{A,R\}$, a state $\rho_J$ on
+$\Hil_{R_2}\otimes\Hil_D\otimes\Hil_E$ from $J$, and POVMs $\{M_R^{r}\}$ of the relay on
+$\Hil_{R_1}\otimes\Hil_{R_2}$, $\{M_A^{a\mid s}\}$ of Alice on $\Hil_A$, $\{M_E^{e\mid t}\}$ of Eve on $\Hil_E$ and
+$\{M_D^{d\mid r,a,s}\}$ of Dan on $\Hil_D$.
 
-\emph{Projective measurements may be assumed} for Alice at $s\in\{0,1\}$ and for Eve at $t\in\{0,1\}$. Each of
-these four POVMs is a projective measurement on the system together with an ancilla in a fixed pure state
-(Naimark). Put one ancilla for $s=0$ and one for $s=1$ into Alice's share of the source $\{A,R\}$, and two into
-Eve's share of $H$; each measurement ignores the ancilla of the other, and Alice's POVM for $s=2$ ignores both.
-The distribution is unchanged and the two sources still emit a product $\sigma\otimes\tau$ of the same form. Now
-let $A_s=2P_s-\id$, where $P_s$ is the projector of Alice's result $+1$ at $s\in\{0,1\}$, and $B_t=2Q_t-\id$ with
-$Q_t$ the projector of Eve's result $+1$. These are Hermitian with square $\id$, and since Alice's outputs $2$ and
-$3$ have probability zero at $s\in\{0,1\}$, the expectation of $A_s\otimes B_t$ given $k$ is $E_k(s,t)$.
+\emph{Idea of the proof.} In $\G_6'$ Alice is connected to Dan and Eve only through the relay. So, averaged over
+the relay's outcome $r$, her system is uncorrelated with theirs (Step~1). By (P1), for each $r$ Alice and Eve hold
+a Bell pair, a different one for each $r$ (Step~2). Four different Bell pairs that average to an uncorrelated
+state leave room for nothing else: given $r$, whatever else Alice holds is uncorrelated with Dan's system
+(Step~3). So Dan cannot predict Eve's outcome, which contradicts (P2) (Step~4). In $\G_6$ Step~1 fails, because
+Alice and Dan are both members of $F$.
 
-\emph{Step 1: the relay is a bottleneck.} Let $p_k$ be the probability of $k$ and $\omega_k$ the state of
-$\Hil_A\otimes\Hil_D\otimes\Hil_E$ given $k$,
+\emph{Projective measurements may be assumed} for Alice at $s\in\{0,1\}$ and for Eve; \cref{lem:rigidity} needs
+observables with square $\id$. Each of these four POVMs is a projective measurement on the system together with an
+ancilla in a fixed pure state (Naimark). Put one ancilla for $s=0$ and one for $s=1$ into Alice's share of the
+source $\{A,R\}$, and two into Eve's share of $J$; each measurement ignores the ancilla of the other, and Alice's
+POVM for $s=2$ ignores both. The distribution is unchanged and the two sources still emit a product
+$\rho_{AR}\otimes\rho_J$ of the same form. Now let $A_s=2M_A^{0\mid s}-\id$ for $s\in\{0,1\}$ and
+$E_t=2M_E^{+1\mid t}-\id$. These are Hermitian with square $\id$, and the expectation of $A_s\otimes E_t$ given $r$
+is $c_r(s,t)$.
+
+\emph{Step 1: the relay is a bottleneck.} Let $p_r$ be the probability of $r$ and $\omega_r$ the state of
+$\Hil_A\otimes\Hil_D\otimes\Hil_E$ given $r$,
 \[
-p_k\,\omega_k=\Tr_{R_1R_2}\bigl[(\Pi^k\otimes\id)(\sigma\otimes\tau)\bigr],\qquad\text{so that}\qquad
-\sum_kp_k\,\omega_k=\sigma_A\otimes\tau_{DE}.
+p_r\,\omega_r=\Tr_{R_1R_2}\bigl[(M_R^{r}\otimes\id)(\rho_{AR}\otimes\rho_J)\bigr],\qquad\text{so that}\qquad
+\sum_rp_r\,\omega_r=\rho_A\otimes\rho_{DE},
 \]
-Averaged over the relay's outcome, Alice is uncorrelated with Dan and Eve. In $\G_6$ this is false, because Alice
-and Dan share $F$ directly.
+with $\rho_A$ and $\rho_{DE}$ the reduced states of $\rho_{AR}$ and $\rho_J$. Averaged over the relay's outcome,
+Alice is uncorrelated with Dan and Eve.
 
-\emph{Step 2: rigidity.} By (P1), $p_k=\tfrac14$ and $\Tr[W_{\varepsilon(k)}\omega_k]=2\sqrt2$, with
-$\varepsilon(k)$ taking all four values. By Step~1, $\sigma_A=\sum_kp_k\,(\omega_k)_A$ with every $p_k>0$, so the
-supports of the reduced states $(\omega_k)_A$ span the support of $\sigma_A$; likewise those of the $(\omega_k)_E$
-span the support of $\tau_E$. \Cref{lem:rigidity} with $\Hil_{\mathrm{ext}}=\Hil_D$ therefore gives the
-decompositions
-$\operatorname{supp}\sigma_A\cong\mathbb{C}^2_{A'}\otimes\Hil_{A''}$ and
-$\operatorname{supp}\tau_E\cong\mathbb{C}^2_{E'}\otimes\Hil_{E''}$, in which Eve's observables act on the qubit
+\emph{Step 2: rigidity.} By (P1), $p_r=\tfrac14$ and $\Tr[W_{\varepsilon(r)}\omega_r]=2\sqrt2$, with
+$\varepsilon(r)$ taking all four values. By Step~1, $\rho_A=\sum_rp_r\,(\omega_r)_A$ with every $p_r>0$, so the
+supports of the reduced states $(\omega_r)_A$ span the support of $\rho_A$; likewise those of the $(\omega_r)_E$
+span the support of $\rho_E$, the reduced state of $\rho_J$ on $\Hil_E$. \Cref{lem:rigidity} with
+$\Hil_{\mathrm{ext}}=\Hil_D$ therefore gives the decompositions
+$\operatorname{supp}\rho_A\cong\mathbb{C}^2_{A'}\otimes\Hil_{A''}$ and
+$\operatorname{supp}\rho_E\cong\mathbb{C}^2_{E'}\otimes\Hil_{E''}$, in which Eve's observables act on the qubit
 $E'$ alone, and
 \[
-\omega_k=\proj{\beta_{\varepsilon(k)}}_{A'E'}\otimes\gamma_k,\qquad\gamma_k\text{ a state on }\Hil_{A''}\otimes\Hil_{E''}\otimes\Hil_D .
+\omega_r=\proj{\beta_{\varepsilon(r)}}_{A'E'}\otimes\gamma_r,\qquad\gamma_r\text{ a state on }\Hil_{A''}\otimes\Hil_{E''}\otimes\Hil_D .
 \]
 
-\emph{Step 3: nothing is left over.} Insert this into Step~1:
-$\tfrac14\sum_k\proj{\beta_{\varepsilon(k)}}\otimes\gamma_k=\sigma_A\otimes\tau_{DE}$. Expand both sides in the
-Pauli operators $\pi_\mu,\pi_\nu\in\{\id,Z,X,Y\}$ of the qubits $A'$ and $E'$. On the right this is possible
-because $\sigma_A$ lives on its support $\mathbb{C}^2_{A'}\otimes\Hil_{A''}$ and $\tau_{DE}$ on
-$\Hil_D\otimes\operatorname{supp}\tau_E$:
-$\sigma_A=\tfrac12\sum_\mu\pi_\mu\otimes\alpha_\mu$ and $\tau_{DE}=\tfrac12\sum_\nu\pi_\nu\otimes\theta_\nu$, with
-$\alpha_0\ne0$ and $\theta_0\ne0$ the reduced states on $\Hil_{A''}$ and on $\Hil_{E''}\otimes\Hil_D$. On the left,
-a Bell state is $\proj{\beta_\varepsilon}=\tfrac14(\id\otimes\id+\varepsilon_0Z\otimes Z+\varepsilon_1X\otimes X-\varepsilon_0\varepsilon_1Y\otimes Y)$,
-so only terms $\pi_\mu\otimes\pi_\mu$ occur. Comparing the coefficients of $\pi_\mu\otimes\pi_\nu$ with
-$\mu\ne\nu$ gives $\alpha_\mu\otimes\theta_\nu=0$; with $\mu=0$ this yields $\theta_\nu=0$ for $\nu\ne0$, and with
-$\nu=0$ it yields $\alpha_\mu=0$ for $\mu\ne0$. The right-hand side is therefore
-$\tfrac14\,\id\otimes\id\otimes\alpha_0\otimes\theta_0$, and comparing the coefficients of the four operators
-$\pi_\mu\otimes\pi_\mu$ gives
+\emph{Step 3: Alice has no second link.} Insert this into Step~1:
+\begin{equation}\label{eq:leftover}
+\tfrac14\sum_r\proj{\beta_{\varepsilon(r)}}_{A'E'}\otimes\gamma_r\;=\;\rho_A\otimes\rho_{DE},
+\end{equation}
+an identity on $\operatorname{supp}\rho_A\otimes\Hil_D\otimes\operatorname{supp}\rho_E
+=\mathbb{C}^2_{A'}\otimes\Hil_{A''}\otimes\Hil_D\otimes\mathbb{C}^2_{E'}\otimes\Hil_{E''}$.
+Both marginals of a Bell state are maximally mixed. Tracing out Dan and Eve in \eqref{eq:leftover} therefore gives
+$\rho_A=\tfrac12\id_{A'}\otimes\alpha$ with a state $\alpha$ on $\Hil_{A''}$, and tracing out Alice gives
+$\rho_{DE}=\tfrac12\id_{E'}\otimes\eta$ with a state $\eta$ on $\Hil_{E''}\otimes\Hil_D$. So the right-hand side
+of \eqref{eq:leftover} is $\tfrac14\,\id_{A'E'}\otimes\alpha\otimes\eta$. The four Bell states
+$\beta_{\varepsilon(r)}$ are mutually orthogonal, because $\varepsilon(r)$ takes four different values.
+Multiplying \eqref{eq:leftover} by $\proj{\beta_{\varepsilon(r')}}_{A'E'}\otimes\id$ and tracing out $A'E'$ leaves
+$\tfrac14\gamma_{r'}$ on the left and $\tfrac14\,\alpha\otimes\eta$ on the right. Hence
+$\gamma_r=\alpha\otimes\eta$ for every $r$:
 \[
-\sum_k\gamma_k=4\,\alpha_0\otimes\theta_0,\qquad\sum_k\varepsilon_0(k)\gamma_k=\sum_k\varepsilon_1(k)\gamma_k=\sum_k\varepsilon_0(k)\varepsilon_1(k)\gamma_k=0 .
+\omega_r=\proj{\beta_{\varepsilon(r)}}_{A'E'}\otimes\alpha_{A''}\otimes\eta_{E''D}.
 \]
-The four sign patterns are orthogonal, so $\gamma_k=\alpha_0\otimes\theta_0$ for every $k$:
-\[
-\omega_k=\proj{\beta_{\varepsilon(k)}}_{A'E'}\otimes(\alpha_0)_{A''}\otimes(\theta_0)_{E''D}.
-\]
-Given $k$, Dan's system is in a fixed state, correlated at most with $E''$, on which Eve's observables do not act.
+Given $r$, Dan's system is in a fixed state, correlated at most with $E''$, on which Eve's observables do not act.
+Had $\gamma_r$ correlated $A''$ with Dan, Alice could have used that as her second link, as she does in $\G_6$;
+this is what the step excludes.
 
 \emph{Step 4: Dan cannot predict Eve.} Let $s=2$ and $t=0$. Alice applies her POVM for $s=2$, which on the
-support of $\sigma_A$ is some POVM on $A'A''$, and obtains $x$.
-Given $k$ and $x$, the state of $E'\otimes(E''D)$ is still a product, of some state of $E'$ with $\theta_0$. Eve
-measures $B_0=Z$ on $E'$, and Dan measures $D$. So $y$ and $z$ are independent given $(k,x)$. By (P2) they are
-equal, hence $z$ is constant given $(k,x)$; but (P2) also says it is uniform. Contradiction.
+support of $\rho_A$ is some POVM on $A'A''$, and obtains $a$.
+Given $r$ and $a$, the state of $E'\otimes(E''D)$ is still a product, of some state of $E'$ with $\eta$. Eve
+measures $E_0=Z$ on $E'$, and Dan measures $D$. So $d$ and $e$ are independent given $(r,a)$. By (P2) they are
+equal, hence $e$ is constant given $(r,a)$; but (P2) also says it is uniform. Contradiction.
 \end{proof}
 
+\Needspace{5\baselineskip}
 \paragraph{Remarks.}
 \begin{itemize}
-\item \emph{Both settings are needed.} Without $S$, Alice is premeasurable and Combination~1 of \cref{sec:compose}
-  makes the split valid. Without $T$, Eve is premeasurable: in both structures she can be given edges to $R$ and
-  $D$ (Rule A) and then be split off $H$ (\cref{thm:split}), which leaves the source $\{R,D\}$. In $\G_6$ that
-  source is absorbed by $F$, and \cref{thm:split} now applies to $F$, because $D$ sees every visible parent of $A$
-  and $R$; the structure obtained from $\G_6'$ lies between the two ends of this last split (Combination~2). The
-  counterexample needs a node of $C$ that the source cannot measure in advance, and an outsider with a free choice.
-\item \emph{The relay has only four outputs.} This is used at the end of Step~3: four values of $k$, four sign
-  patterns. If the relay may announce sixteen values, $\G_6'$ can do the same job: the source $\{A,R\}$ supplies
-  two Bell pairs, $H$ supplies one between the relay and Eve and one between the relay and Dan, and the relay swaps
-  both and announces both results. The resulting distribution has (P2) and the CHSH values of (P1), each sign
-  pattern now occurring for four values of $k$. The theorem is not affected, because equivalence means equal model
-  sets for every choice of the alphabets, and $P^{*}$ itself is outside $\Q(\G_6')$ however large the relay's
-  alphabet is.
+\item \emph{In this pair both settings are needed.} Without $S$, Alice is premeasurable and the split is valid,
+  because a premeasurable member can be traded for edges (\cref{sec:compose}). Without $T$, Eve is premeasurable
+  and the split is valid again, in three steps. (1) In both structures add the edges $E\to R$ and $E\to D$
+  (Rule~A) and split $J$ into $\{E\}$ and $\{R,D\}$ (\cref{thm:split}). (2) In $\G_6$ the set $\{R,D\}$ is
+  contained in $F$ and is discarded; $F$ is now the only source, so (S1) holds, and (S2) holds because $D$ sees
+  every setting of $A$ and $R$; \cref{thm:split} splits $F$ into $\{A,R\}$ and $\{D\}$. (3) The structure obtained
+  from $\G_6'$ in step~(1) has the sources $\{A,R\}$ and $\{R,D\}$; it is structurally between the two structures
+  of step~(2) and therefore equivalent to both (\cref{cor:sandwich}). So this counterexample needs a member of
+  $C$ with a setting and an outsider with a setting.
+\item \emph{The relay has only four outcomes.} This is used in Step~3: four values of $r$, four mutually
+  orthogonal Bell states. If the relay may announce sixteen values, $\G_6'$ can produce a distribution with (P2)
+  and the CHSH values of (P1): the source $\{A,R\}$ supplies two Bell pairs, $J$ supplies one between the relay
+  and Eve and one between the relay and Dan, and the relay swaps both and announces both results; each sign
+  pattern then occurs for four values of $r$. The theorem is not affected: $P^{*}$ itself is outside
+  $\Q(\G_6')$ however large the relay's alphabet is, and one choice of alphabets suffices for a strict inclusion.
 \item \emph{The rule fails already in its moderate form.} Only one source is split here. The failure has nothing
   to do with splitting several sources at once, which \cref{thm:split} allows.
-\item \emph{What $P^{*}$ shows about (P2).} Dan can easily output Eve's $Z$ outcome in $\G_6'$ if that outcome
-  may depend on $(k,x)$: Alice measures $Z$ on her half of the Bell pair and tells him. The point of (P2) is that
-  $z$ is perfectly known to Dan and perfectly unknown to everyone who sees only $k$ and $x$.
+\item \emph{Why (P2) asks that $e$ be uniform given $(r,a)$.} Dan can easily output Eve's $Z$ outcome in $\G_6'$
+  if that outcome may depend on $(r,a)$: Alice measures $Z$ on her half of the Bell pair and tells him. The point
+  of (P2) is that $e$ is perfectly known to Dan and perfectly unknown to everyone who sees only $r$ and $a$.
 \end{itemize}
 
 \subsection{The four-node cases that remain open}\label{sec:open-four}
 
 On four visible nodes the strong rule merges five groups of structures that no combination of the proven rules
-connects (\cref{fig:open-four}; script \code{class\_counts.py}). The repository's quantum metagraph now keeps their
-$13$ structures apart, which is why it has $446$ classes where the strong rule gave $438$.
+connects (\cref{fig:open-four}). The groups hold $13$ structures, each of which is a class of its own under the
+rules of this note; these are the eight classes by which $446$ exceeds $438$.
 
 \begin{figure}[H]
 \centering
@@ -469,7 +517,7 @@ $13$ structures apart, which is why it has $446$ classes where the strong rule g
     \node[tag] at (1.2,-0.9) {\name};
   \end{scope}}
   \draw[edge] (n0) to[bend left=30] (n3);   % group 3 only: the nodes of the last panel drawn
-  % groups 4 and 5: the green node lies in all three sources
+  % groups 4 and 5: the green node is a member of all three sources
   \begin{scope}[shift={(1.2,-4.6)}]
     \vn[Cn]{n1}{0,1.2}{$1$} \vn[Cn]{n2}{4,1.2}{$2$} \vn[Dn]{n3}{2,1.2}{$3$} \vn{n0}{2,-0.9}{$0$}
     \qs[splitsrc]{f}{2,2.4} \qs{g1}{1.0,0.2} \qs{g2}{3.0,0.2}
@@ -486,7 +534,7 @@ $13$ structures apart, which is why it has $446$ classes where the strong rule g
   \end{scope}
 \end{tikzpicture}
 \caption{The largest structure of each of the five groups. The strong rule splits the orange source into the blue
-part $C$ and the green part $D$ although a blue node holds a share of a source that stays, and no combination of
+part $C$ and the green part $D$ although a blue node is a member of a remaining source, and no combination of
 the proven rules gives the same equivalence. In the repository's notation:
 (1)~\str{0→1, 0→2, 0→3, 2→3; Q\{0,1,3\}, Q\{0,2,3\}}; (2)~\str{0→1, 0→2, 1→2, 2→3; Q\{0,1,2\}, Q\{0,2,3\}};
 (3)~the same with \str{0→3}; (4)~\str{1→3, 2→3; Q\{0,1,3\}, Q\{0,2,3\}, Q\{1,2,3\}};
@@ -499,7 +547,7 @@ Neither a proof nor a counterexample is known. The argument of \cref{thm:sixnode
 stands. It uses two independent settings, one for a node of $C$ and one for the outsider, and four nodes leave no
 room for setting nodes; \cref{thm:hlp-four} shows that settings can sometimes be replaced by bits from further
 sources, but whether that works here is not known. It also uses a node of $C$ whose only source is the one that is
-split (Alice), and structures 4 and 5 have no such node. For the census of gaps the
-answer does not matter, since all $13$ structures have a proven gap on their own (\cref{sec:buys}). It matters
-for the classification: each ``yes'' would merge two or three classes.
+split (Alice), and structures 4 and 5 have no such node. For the gaps the answer does not matter, since all $13$
+structures have a proven gap on their own (\cref{sec:buys}). It matters for the classification: each ``yes'' would
+merge two or three classes.
 \end{openq}

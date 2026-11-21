@@ -12,8 +12,11 @@ strongly connected components with the face-splitting edges of each version of t
   strong    Proposition 8: the same for several C_i at once; what the classical metagraph uses
 
 It also lists the groups of structures that the strong rule merges and the quantum rule keeps apart (their status
-in the census of QC gaps is printed by census_facts.py), and the quantum classes that fall apart when only one
-source may be split at a time (the weak rule), which are the places where sources must be split together.
+in the census of QC gaps is printed by census_facts.py), the quantum classes that fall apart when only one
+source may be split at a time (the weak rule), which are the places where sources must be split together, and what
+becomes of the instances of the classical edge rule: for every edge that satisfies the classical hypothesis
+(mDAG.droppable_edges), whether Rule A or B covers it (mDAG.quantum_droppable_edges), and if not, whether the
+structure with the edge and the one without it are in the same quantum class anyway.
 """
 import sys
 from collections import defaultdict
@@ -22,6 +25,9 @@ import numpy as np
 from scipy import sparse
 
 from _repo import notation, save
+from directed_structures import DirectedStructure
+from hypergraphs import Hypergraph
+from mDAG_advanced import mDAG
 from metagraph_advanced import ClassicalMetagraph, QuantumMetagraph
 
 VERSIONS = ('weak', 'quantum', 'moderate', 'strong')
@@ -30,6 +36,45 @@ VERSIONS = ('weak', 'quantum', 'moderate', 'strong')
 def components(Q, face_splitting_edges):
     graph = Q._csr_from_edges(Q.structural_dominances, Q.hlp_edge_list, face_splitting_edges)
     return sparse.csgraph.connected_components(graph, directed=True, connection='strong')
+
+
+def edge_rule_instances(Q, n: int) -> dict:
+    """The edges of n-node structures that satisfy the classical hypothesis of the edge rule, sorted by what the
+    quantum rules make of them."""
+    counts = {'instances': 0, 'covered by Rule A or B': 0, 'not covered, same quantum class by other rules': 0,
+              'not covered, different quantum classes': 0}
+    pairs, examples = set(), {}
+    for md in Q.dict_uniqind_unlabelled_mDAGs.values():
+        sources = [tuple(sorted(int(v) for v in f)) for f in md.simplicial_complex_instance.compressed_simplicial_complex]
+        edges = [(int(a), int(b)) for a, b in md.directed_structure_instance.edge_list]
+        quantum = {(int(a), int(b)) for a, b in md.quantum_droppable_edges}
+        for a, b in md.droppable_edges:
+            edge = (int(a), int(b))
+            counts['instances'] += 1
+            if edge in quantum:
+                counts['covered by Rule A or B'] += 1
+                continue
+            other = mDAG(DirectedStructure([e for e in edges if e != edge], n), Hypergraph(sources, n))
+            with_edge, without = Q.class_index_of[md.unique_unlabelled_id], Q.class_index_of[other.unique_unlabelled_id]
+            if with_edge == without:
+                counts['not covered, same quantum class by other rules'] += 1
+            else:
+                counts['not covered, different quantum classes'] += 1
+                pair = (min(int(with_edge), int(without)), max(int(with_edge), int(without)))
+                pairs.add(pair)
+                examples.setdefault(pair, f'{notation(md)}, edge {edge[0]}→{edge[1]}')
+    # the pair of classes that the four-node theorem of the note proves different (nodes A, C, S, B = 0, 1, 2, 3)
+    theorem = None
+    if n == 4:
+        sources = [(0, 1, 3), (0, 2, 3), (1, 2)]
+        plus = mDAG(DirectedStructure([(0, 3)], 4), Hypergraph(sources, 4))
+        minus = mDAG(DirectedStructure([], 4), Hypergraph(sources, 4))
+        i, j = int(Q.class_index_of[plus.unique_unlabelled_id]), int(Q.class_index_of[minus.unique_unlabelled_id])
+        theorem = (min(i, j), max(i, j)) in pairs
+    counts['pairs of quantum classes that such an edge would join'] = len(pairs)
+    counts['the pair of the four-node counterexample is one of them'] = theorem
+    counts['one instance for each pair'] = sorted(examples.values())
+    return counts
 
 
 def count(n: int, details: bool) -> dict:
@@ -67,6 +112,7 @@ def count(n: int, details: bool) -> dict:
             histogram_inputs[len(per_classical[index])] += 1
     out['classical classes by number of quantum classes inside'] = dict(sorted(histogram.items()))
     out['of which hold inputs of the census'] = dict(sorted(histogram_inputs.items()))
+    out['classical edge rule'] = edge_rule_instances(Q, n)
     if details:
         mdags = Q.dict_uniqind_unlabelled_mDAGs
         strong, quantum = labels['strong'].tolist(), labels['quantum'].tolist()
@@ -106,6 +152,8 @@ if __name__ == '__main__':
         print('   classical classes by number of quantum classes inside:',
               data['classical classes by number of quantum classes inside'],
               '; holding inputs:', data['of which hold inputs of the census'])
+        print('   classical edge rule:', {k: v for k, v in data['classical edge rule'].items()
+                                         if k != 'one instance for each pair'})
         for group in data.get('separated groups', ()):
             print('   merged by the strong rule, apart under the quantum rule:')
             for part in group['quantum classes']:

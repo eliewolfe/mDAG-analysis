@@ -9,43 +9,46 @@
 \midrule
 structure, source & \code{mDAG} (\code{mDAG\_advanced.py}): a directed structure and a simplicial complex whose
   facets are the sources; \code{QmDAG} (\code{quantum\_mDAG.py}) for hybrids\\
-\cref{lem:monotone}, structural dominance & \code{Observable\_unlabelled\_mDAGs.structural\_dominances}
+structural dominance (\cref{lem:monotone}) & \code{Observable\_unlabelled\_mDAGs.structural\_dominances}
   (\code{metagraph\_advanced.py})\\
 premeasurable node (\cref{def:prem}) & \code{mDAG.is\_premeasurable}\\
 \cref{thm:split}, closed families & \code{mDAG.quantum\_splittable\_families}; generator
   \code{generate\_weaker\_mDAGs\_FaceSplitting('quantum')}. For each $D$ the code takes the largest family; smaller
-  ones are sandwiched (\cref{sec:compose})\\
+  ones are sandwiched (\cref{sec:split})\\
 weak, moderate, strong face splitting (\AWS\ Props.~5, 7, 8) & \code{mDAG.weak\_splittable\_faces};
   \code{mDAG.splittable\_faces} with the versions \code{'moderate'} and \code{'strong'}\\
-classical edge rule (\AWS\ Prop.~4) & \code{mDAG.droppable\_edges}\\
+classical hypothesis (H1), (H2) (\AWS\ Prop.~4) & \code{mDAG.droppable\_edges}\\
 Rules A and B (\cref{thm:ruleA,thm:ruleB}) & \code{mDAG.quantum\_hlp\_origin\_ok}, \code{mDAG.quantum\_droppable\_edges}\\
+\cref{prop:ruleA-settings} & not implemented\\
 \cref{lem:simultaneous} & \code{mDAG.weaker\_mDAG\_HLP(rule)}, which drops every droppable edge of a structure that
   has no addable one\\
-quantum and classical classes & \code{QuantumMetagraph}, \code{ClassicalMetagraph.from\_quantum}; the table
-  \code{FACE\_SPLITTING\_VERSION} selects \code{'quantum'} or \code{'strong'}; \code{equivalence\_classes.ClassIndex}
-  keys the census by class\\
-\cref{lem:upward}, the upward rule & \code{ClassIndex.upward\_steps}\\
+metagraph; quantum and classical classes & \code{QuantumMetagraph}, \code{ClassicalMetagraph.from\_quantum}; the
+  table \code{FACE\_SPLITTING\_VERSION} selects \code{'quantum'} or \code{'strong'};
+  \code{equivalence\_classes.ClassIndex} keys the census by class\\
+the upward rule (\cref{lem:upward}) & \code{ClassIndex.upward\_steps}\\
 \cref{prop:lift} & \code{QmDAG.lift}\\
-seeds, reductions, the census & \code{known\_QC\_gaps.py}, \code{qc\_gap\_search.py}, \code{growth\_census.py},
+seeds, reductions, the search, the census & \code{known\_QC\_gaps.py}, \code{qc\_gap\_search.py}, \code{growth\_census.py},
   \code{Special Applications/proving\_QC\_Gaps.py}\\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\paragraph{Tests.} \code{tests/test\_metagraph.py} pins the class counts of \cref{sec:buys}, checks by brute force
+\paragraph{Tests.} \code{tests/test\_metagraph.py} pins the class counts of \cref{sec:census}, checks by brute force
 on every four-node structure that the family the code finds is the union of all closed families, and contains a
 pair of overlapping sources that are split together, the six-node pair of \cref{thm:sixnode} and the five groups
-of \cref{sec:open-four}. The examples and warnings of the note are checked by \code{scripts/check\_examples.py}.
+of \cref{sec:open-four}.
 
-\paragraph{Scripts of this directory} (\code{scripts/}, outputs in \code{scripts/output/}).
+\paragraph{Scripts of this directory} (\code{scripts/}, outputs in \code{scripts/output/}). Where the text says
+``checked by a script'', it is one of these.
 \begin{itemize}
-\item \code{check\_examples.py}: every example and warning of \cref{sec:split,sec:edge,sec:notquantum} against the
-  code's own tests of the hypotheses, and against the class index where the structure has three or four nodes; the
-  count in \cref{rem:ruleA-settings}.
+\item \code{check\_examples.py}: every example, warning and open case of \cref{sec:split,sec:edge,sec:notquantum}
+  against the code's own tests of the hypotheses, and against the classes where the structure has three or four
+  nodes; the chains of steps in the remarks after \cref{thm:sixnode}; the count after \cref{prop:ruleA-settings}.
 \item \code{class\_counts.py}: the number of quantum classes under each version of face splitting, the groups of
-  \cref{sec:open-four}, the two classes that need several sources split together, and the number of quantum
-  classes inside each classical class.
-\item \code{census\_facts.py}: the table of \cref{sec:buys}, the sizes of the open classes, the proofs of the $13$
+  \cref{sec:open-four}, the two classes that need several sources split together (\exref{ex:together}), the
+  number of quantum classes inside each classical class, and the instances of the classical edge rule counted in
+  \cref{sec:open-summary}.
+\item \code{census\_facts.py}: the table of \cref{sec:census}, the sizes of the open classes, the proofs of the $13$
   separated structures, and the numbers of \cref{fig:nesting}.
 \item \code{six\_node\_strategy.py}: properties (P1) and (P2) of the strategy of \cref{thm:sixnode}, numerically.
 \item \code{only\_via\_equivalence.py}: the table of \cref{sec:only-via}.

@@ -8,10 +8,12 @@
 \usepackage{booktabs,array,multirow}
 \usepackage{enumitem}
 \usepackage{float}
+\usepackage{needspace}
 \usepackage[font=small,labelfont=bf]{caption}
 \usepackage{xcolor}
 \usepackage{tikz}
-\usetikzlibrary{arrows.meta,positioning,calc,backgrounds,fit,shapes.geometric,decorations.pathreplacing}
+\usetikzlibrary{arrows.meta,positioning,calc,backgrounds,fit,shapes.geometric,decorations.pathreplacing,
+  decorations.pathmorphing}
 \usepackage[most]{tcolorbox}
 \usepackage[colorlinks=true,linkcolor=oiblue!80!black,citecolor=oigreen!70!black,urlcolor=oiblue!80!black]{hyperref}
 \usepackage[capitalise,noabbrev]{cleveref}
@@ -74,8 +76,11 @@
 \tcbset{boxbase/.style={enhanced, breakable, boxrule=0.8pt, arc=1.6mm, left=2.2mm, right=2.2mm, top=1.6mm,
                         bottom=1.6mm, fonttitle=\bfseries\small, before skip=9pt, after skip=9pt}}
 \newtcolorbox{rulebox}[1]{boxbase, colback=oiblue!4, colframe=oiblue, title={#1}}
-\newtcolorbox{validbox}[1]{boxbase, colback=oigreen!5, colframe=oigreen!85!black, title={\checkmark\enspace #1}}
+% valid examples are numbered automatically; give one a label with \begin{validbox}[label=ex:...]{title}
+\newtcolorbox[auto counter]{validbox}[2][]{boxbase, colback=oigreen!5, colframe=oigreen!85!black,
+  title={\checkmark\enspace Example~\thetcbcounter: #2}, #1}
 \newtcolorbox{warnbox}[1]{boxbase, colback=oired!5, colframe=oired, title={$\boldsymbol{\times}$\enspace Not like this: #1}}
+\newtcolorbox{cexbox}[1]{boxbase, colback=oired!4, colframe=oired, title={$\boldsymbol{\times}$\enspace Counterexample: #1}}
 \newtcolorbox{openq}[1]{boxbase, colback=oiorange!7, colframe=oiorange!90!black, title={?\enspace Open: #1}}
 \newtcolorbox{ideabox}[1]{boxbase, colback=black!3, colframe=black!55, title={#1}}
 
@@ -83,7 +88,7 @@
 % Theorems
 % ---------------------------------------------------------------------------------------------------------------
 \theoremstyle{plain}
-\newtheorem{theorem}{Theorem}
+\newtheorem{theorem}{Theorem}[section]
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{proposition}[theorem]{Proposition}
 \newtheorem{corollary}[theorem]{Corollary}
@@ -111,6 +116,7 @@
 \newcommand{\str}[1]{\textsf{\small #1}}             % a structure in the repository's notation
 \newcommand{\qeq}{\equiv_{\Q}}
 \newcommand{\ceq}{\equiv_{\C}}
+\newcommand{\exref}[1]{Example~\ref{#1}}
 \newcommand{\AWS}{AWS}
 \setlist{itemsep=2pt, topsep=4pt}
 \setlength{\parskip}{4pt plus 1pt}
