@@ -18,8 +18,9 @@ premeasurable node (\cref{def:prem}) & \code{mDAG.is\_premeasurable}\\
 weak, moderate, strong face splitting (\AWS\ Props.~5, 7, 8) & \code{mDAG.weak\_splittable\_faces};
   \code{mDAG.splittable\_faces} with the versions \code{'moderate'} and \code{'strong'}\\
 classical hypothesis (H1), (H2) (\AWS\ Prop.~4) & \code{mDAG.droppable\_edges}\\
-Rules A and B (\cref{thm:ruleA,thm:ruleB}) & \code{mDAG.quantum\_hlp\_origin\_ok}, \code{mDAG.quantum\_droppable\_edges}\\
-\cref{prop:ruleA-settings} & not implemented\\
+Rule A with shared settings and Rule B (\cref{prop:ruleA-settings,thm:ruleB}) &
+  \code{mDAG.quantum\_hlp\_origin\_ok} filters the classical candidates for
+  \code{quantum\_droppable\_edges} and \code{quantum\_addable\_edges}\\
 \cref{lem:simultaneous} & \code{mDAG.weaker\_mDAG\_HLP(rule)}, which drops every droppable edge of a structure that
   has no addable one\\
 metagraph; quantum and classical classes & \code{QuantumMetagraph}, \code{ClassicalMetagraph.from\_quantum}; the
@@ -43,7 +44,7 @@ of \cref{sec:open-four}.
 \begin{itemize}
 \item \code{check\_examples.py}: every example, warning and open case of \cref{sec:split,sec:edge,sec:notquantum}
   against the code's own tests of the hypotheses, and against the classes where the structure has three or four
-  nodes; the chains of steps in the remarks after \cref{thm:sixnode}; the count after \cref{prop:ruleA-settings}.
+  nodes; the chains of steps in the remarks after \cref{thm:sixnode}; the four-node count after \cref{prop:ruleA-settings}.
 \item \code{class\_counts.py}: the number of quantum classes under each version of face splitting, the groups of
   \cref{sec:open-four}, the two classes that need several sources split together (\exref{ex:together}), the
   number of quantum classes inside each classical class, and the instances of the classical edge rule counted in
@@ -61,6 +62,7 @@ pytest -m slow                           # the census pins
 python "Special Applications/proving_QC_Gaps.py" --no-cache
 cd "manuscript/observational classification"
 python scripts/check_examples.py && python scripts/class_counts.py
+python scripts/class_counts.py --five     # include the five-node classification
 python scripts/census_facts.py && python scripts/six_node_strategy.py
 python scripts/only_via_equivalence.py
 ./build.sh

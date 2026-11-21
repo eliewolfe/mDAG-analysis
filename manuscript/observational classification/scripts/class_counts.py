@@ -16,7 +16,7 @@ It also lists the groups of structures that the strong rule merges and the quant
 in the census of QC gaps is printed by census_facts.py), the quantum classes that fall apart when only one
 source may be split at a time (the weak rule), which are the places where sources must be split together, and what
 becomes of the instances of the classical edge rule: for every edge that satisfies the classical hypothesis
-(mDAG.droppable_edges), whether Rule A or B covers it (mDAG.quantum_droppable_edges), and if not, whether the
+(mDAG.droppable_edges), whether the wider Rule A or Rule B covers it (mDAG.quantum_droppable_edges), and if not, whether the
 structure with the edge and the one without it are in the same quantum class anyway.
 """
 import sys
@@ -42,7 +42,7 @@ def components(Q, face_splitting_edges):
 def edge_rule_instances(Q, n: int) -> dict:
     """The edges of n-node structures that satisfy the classical hypothesis of the edge rule, sorted by what the
     quantum rules make of them."""
-    counts = {'instances': 0, 'covered by Rule A or B': 0, 'not covered, same quantum class by other rules': 0,
+    counts = {'instances': 0, 'covered by the wider Rule A or Rule B': 0, 'not covered, same quantum class by other rules': 0,
               'not covered, different quantum classes': 0}
     examples = {}
     edge_masks = {(a, b): DirectedStructure([(a, b)], n).as_integer
@@ -52,7 +52,7 @@ def edge_rule_instances(Q, n: int) -> dict:
         for edge in md.droppable_edges:
             counts['instances'] += 1
             if edge in quantum:
-                counts['covered by Rule A or B'] += 1
+                counts['covered by the wider Rule A or Rule B'] += 1
                 continue
             # The edge is present, so clearing its bit gives the labelled directed part after the drop.
             weaker_directed = md.directed_structure_instance.as_integer ^ edge_masks[edge]
@@ -124,7 +124,7 @@ def count(n: int, details: bool) -> dict:
     graph = Q._csr_from_edges(Q.structural_dominances, C.hlp_edge_list, quantum_fs)
     out['classes with the classical edge rule and the face splitting of the note'] = int(
         sparse.csgraph.connected_components(graph, directed=True, connection='strong')[0])
-    out['classes with Rules A and B and strong face splitting'] = out['versions']['strong']['quantum classes']
+    out['classes with the wider Rule A, Rule B and strong face splitting'] = out['versions']['strong']['quantum classes']
     if details:
         mdags = Q.dict_uniqind_unlabelled_mDAGs
         strong, quantum = labels['strong'].tolist(), labels['quantum'].tolist()
@@ -168,8 +168,8 @@ if __name__ == '__main__':
                                          if k != 'one instance for each pair'})
         print('   classes with the classical edge rule and the face splitting of the note:',
               data['classes with the classical edge rule and the face splitting of the note'],
-              '; with Rules A and B and strong face splitting:',
-              data['classes with Rules A and B and strong face splitting'])
+              '; with the wider Rule A, Rule B and strong face splitting:',
+              data['classes with the wider Rule A, Rule B and strong face splitting'])
         for group in data.get('separated groups', ()):
             print('   merged by the strong rule, apart under the quantum rule:')
             for part in group['quantum classes']:

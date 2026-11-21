@@ -106,8 +106,8 @@ double of $A$: for $s'=s$ we have $b=a$, hence $\tilde P(b=\alpha,c\mid s'=i,t)=
 $P^{*}(a,c\mid s,t)$ local, contradicting its CHSH value.
 \end{proof}
 
-Here the origin $A$ has a setting, so it is not premeasurable, and the bystander $C$ has one too, so neither rule
-of \cref{sec:edge} applies. The second counterexample has no settings at all and only four nodes, so it is among
+Here the bystander $C$ cannot see the origin's setting $S$, as Rule A requires, and has its own setting $T$,
+which rules out Rule B. The second counterexample has no settings at all and only four nodes, so it is among
 the structures that the repository classifies.
 
 \begin{cexbox}{the edge rule, on four nodes without settings}
@@ -461,8 +461,9 @@ this is what the step excludes.
 \emph{Step 4: Dan cannot predict Eve.} Let $s=2$ and $t=0$. Alice applies her POVM for $s=2$, which on the
 support of $\rho_A$ is some POVM on $A'A''$, and obtains $a$.
 Given $r$ and $a$, the state of $E'\otimes(E''D)$ is still a product, of some state of $E'$ with $\eta$. Eve
-measures $E_0=Z$ on $E'$, and Dan measures $D$. So $d$ and $e$ are independent given $(r,a)$. By (P2) they are
-equal, hence $e$ is constant given $(r,a)$; but (P2) also says it is uniform. Contradiction.
+measures $E_0=Z$ on $E'$, and Dan measures $D$. So $d$ and $e$ are independent given $(r,a)$. By (P2), $e$ is
+uniform for each $(r,a)$ of positive probability. Any choice of Dan's measurement therefore gives
+$P(d=e\mid r,a,s=2,t=0)=\tfrac12$, contradicting the perfect agreement in (P2).
 \end{proof}
 
 \Needspace{5\baselineskip}

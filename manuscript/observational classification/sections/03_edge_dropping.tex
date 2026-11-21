@@ -19,8 +19,8 @@ For a quantum source the last step has no meaning. The outcome of $a$ is not a f
 not exist before $a$ measures, and the share of $b$ is a different system, not a copy (\cref{fig:edge-idea}). The
 rule as stated is in fact false for quantum models (\cref{sec:hlp-fails}). In two situations $b$ can be shown to
 get $x_a$ without the edge, and they are the two rules of this section. Each adds one condition to (H1) and (H2):
-on the origin, or on the \emph{bystanders} of the edge, which are the members, other than $a$ and $b$, of the
-sources that contain $a$.
+on the origin and its source (Rule A), or on the \emph{bystanders} of the edge (Rule B). The bystanders are
+the members, other than $a$ and $b$, of the sources that contain $a$.
 
 \begin{figure}[H]
 \centering
@@ -46,7 +46,7 @@ classical (blue) and hands $a$ and $b$ the same data.}
 \label{fig:edge-idea}
 \end{figure}
 
-\subsection{Rule A: the origin is premeasurable}
+\subsection{Rule A for a premeasurable origin}
 
 If the origin is premeasurable, the source can measure its share itself and tell the target the result.
 
@@ -111,8 +111,8 @@ Let the edge $a\to b$ satisfy (H1) and (H2), and let every bystander be premeasu
 \end{rulebox}
 
 Rule B puts no condition on the origin beyond (H1) and (H2): it may have settings and several sources. (When it has
-several, each of them has a bystander of its own, since no source contains another.) Rule A puts none on the
-bystanders. Neither rule contains the other.
+several, each of them has a bystander of its own, since no source contains another.) The premeasurable-origin
+case of Rule A puts no condition on the bystanders. Neither rule contains the other.
 
 \begin{figure}[H]
 \centering
@@ -214,10 +214,10 @@ bystander that is not premeasurable held a share correlated with the outcome of 
 sample would destroy the correlation. (H1) also asks for at least one source: with none, $a$ is a private coin
 flip and $b$ cannot know it.
 
-\subsection{A wider Rule A, which the repository does not use}
+\subsection{Rule A with shared settings}
 
-Rules A and B are the ones the code implements. The method gives more: pre-measurement also works for an origin
-with settings, provided every member of its source sees them.
+The repository implements Rule A in the following form. Each member of the origin's source can use the same
+catalogue entry when all members see the origin's settings.
 
 \begin{proposition}[Rule A with settings that every member sees]\label{prop:ruleA-settings}
 Let the edge $a\to b$ satisfy (H1), let $a$ be a member of exactly one source $F$, and let every setting of $a$ be
@@ -238,25 +238,30 @@ $\Tr_{\Hil_{F,a}}[(M_a^{x_a\mid y}\otimes\id)\rho_F]$, which is what the measure
 given model, because $a$ holds no other share. A classical model stays classical.
 \end{proof}
 
-When $a$ has no setting this is Rule A. On four nodes the wider rule joins no new classes: among all four-node
-structures it applies to $35$ edges that Rules A and B do not cover, and in each case the two structures are
-already equivalent by the other rules. From five nodes on it may give more.
+The case with no settings is \cref{thm:ruleA}. Across all four-node structures, the wider Rule A covers $35$
+edges missed by both the premeasurable-origin case and Rule B. The structures on either side of each of these
+edge removals were already in the same proven equivalence class.
+
+On five nodes, with closed-family face splitting and Rule B in both calculations, widening Rule A reduces the
+number of proven quantum equivalence classes from $596{,}413$ to $595{,}871$. Each old class lies inside a new
+one, and the mergers reduce the total by $542$.
 
 \subsection{Dropping several edges at once}
 
-All edges that satisfy Rule A or Rule B can be removed in one step, which is what the repository does. This needs
-an argument, because removing one edge can destroy (H2) for another.
+The repository can remove all edges that satisfy either implemented rule in one step. The order in the proof
+preserves every setting that another removal needs.
 
 \begin{lemma}\label{lem:simultaneous}
-Let $\Delta$ be the set of edges of $\G$ that satisfy the hypotheses of Rule A or of Rule B in $\G$. Then
+Let $\Delta$ be the set of edges of $\G$ that satisfy Rule A with shared settings (\cref{prop:ruleA-settings})
+or Rule B (\cref{thm:ruleB}) in $\G$. Then
 $\G-\Delta\qeq\G$ and $\G-\Delta\ceq\G$.
 \end{lemma}
 \begin{proof}
 Fix a topological order of $\G$ and remove the edges $(a,b)\in\Delta$ one at a time, those with a later origin $a$
-first. We claim each removal is an application of Rule A or B in the structure reached so far. Sources never
-change, so (H1) persists. Removing edges cannot give a node a setting, so premeasurability of the origin or of the
-bystanders persists. For (H2), let $y$ be a setting of $a$ when $(a,b)$ is about to be removed. Then $y\to b$ was
-an edge of $\G$, and it has not been removed yet, because $y$ precedes $a$ in the order.
+first. Sources stay fixed, so (H1) persists. Removing edges also preserves the premeasurability of every
+bystander in Rule B. Let $y$ be any remaining setting of $a$ when $a\to b$ is removed. For (H2) the original
+graph contains $y\to b$. For Rule A it also contains $y\to v$ for every other member $v$ of the sole source of
+$a$. All these edges are still present because their origin $y$ precedes $a$ in the topological order.
 \end{proof}
 
 The order matters. In \str{0→1, 0→2, 1→2; Q\{0,2\}, Q\{1,2\}} both $0\to2$ (Rule A) and $1\to2$ (Rule B) can be
@@ -365,7 +370,7 @@ With \exref{ex:bell-source} the structure on the left is equivalent to the Bell 
 \begin{minipage}{0.55\linewidth}
 The origin $0$ has the setting $2$, which the target $1$ also sees, and the source $\{0,1\}$ has no bystander:\\[3pt]
 \str{2→0, 2→1, 0→1; Q\{0,1\}} \ $\equiv$ \ \str{2→0, 2→1; Q\{0,1\}}.\\[3pt]
-Rule A does not apply: $0$ has a setting.
+The shared setting also makes this an instance of \cref{prop:ruleA-settings}.
 \end{minipage}\hfill
 \begin{minipage}{0.42\linewidth}\centering
 \begin{tikzpicture}[mdag,scale=0.85]
@@ -385,8 +390,8 @@ Rule A does not apply: $0$ has a setting.
 The origin $1$ has the setting $0$, seen by the target $2$; the source $\{1,2,3\}$ has the bystander $3$, which has
 no setting and no other source:\\[3pt]
 \str{0→1, 0→2, 1→2; Q\{1,2,3\}} \ $\equiv$ \ \str{0→1, 0→2; Q\{1,2,3\}}.\\[3pt]
-If $3$ also had the setting $0$ it would not be premeasurable and Rule B would not apply. The edge could still be
-dropped, by \cref{prop:ruleA-settings}.
+Giving $3$ the setting $0$ makes every other member of the source see the origin's settings. The wider Rule A
+then drops the edge (\cref{prop:ruleA-settings}), while the setting at $3$ rules out Rule B.
 \end{minipage}\hfill
 \begin{minipage}{0.42\linewidth}\centering
 \begin{tikzpicture}[mdag,scale=0.85]
@@ -450,8 +455,8 @@ are independent.
 
 \begin{warnbox}{the classical hypothesis alone}
 (H1) and (H2) hold for the red edge in each of the two structures below, and the edge can \emph{not} be dropped
-for quantum models. On the left, the origin $A$ has a setting, so it is not premeasurable, and the bystander $C$
-has one too. On the right nobody has a setting, but the origin is a member of two sources and its bystanders $C$
+for quantum models. On the left, the bystander $C$ has its own setting and cannot see the setting of the origin
+$A$. On the right nobody has a setting, but the origin is a member of two sources and its bystanders $C$
 and $S$ of a third.
 
 \medskip
@@ -477,9 +482,9 @@ and $S$ of a third.
 
 \begin{openq}{a bystander with two sources and no setting}
 \begin{minipage}{0.56\linewidth}
-In \str{0→1, 0→2, 0→3, 2→1, 2→3; Q\{0,1,2\}, Q\{0,3\}} the edge $2\to1$ satisfies (H1) and (H2). Rule A fails,
-since $2$ has the setting $0$. Rule B fails because the bystander $0$ is a member of a second source, so it is not
-premeasurable: it may measure its two shares jointly. \Cref{prop:ruleA-settings} does not apply either. No
+In \str{0→1, 0→2, 0→3, 2→1, 2→3; Q\{0,1,2\}, Q\{0,3\}} the edge $2\to1$ satisfies (H1) and (H2). Rule A fails
+because $0$ is both a setting of $2$ and a member of its source, and cannot see itself. Rule B fails because
+the bystander $0$ belongs to two sources and may measure its two shares jointly. No
 counterexample is known. The repository does not drop this edge.
 \end{minipage}\hfill
 \begin{minipage}{0.41\linewidth}\centering
@@ -507,7 +512,7 @@ In every row of the following table the edge $a\to b$ satisfies the classical hy
 \midrule
 premeasurable & arbitrary & redundant (Rule A)\\
 any settings, any number of sources & all premeasurable & redundant (Rule B)\\
-one source; all its members see the settings of $a$ & arbitrary & redundant (\cref{prop:ruleA-settings})\\
+one source & all see the settings of $a$ & redundant (\cref{prop:ruleA-settings})\\
 has a setting; one source & one with a setting of its own, which does not see the setting of $a$
   & not redundant in the structure of \cref{thm:hlp-settings}\\
 no setting; two sources & members of a further source & not redundant in the structure of \cref{thm:hlp-four}\\

@@ -158,7 +158,8 @@ S03 = S(bell_edges, [(0, 3), (2, 3)], 4)
 check('Example (Rule A read as edge adding): Rule A adds 0 -> 3',
       S03_minus.is_premeasurable(0) and (0, 3) in S03.quantum_droppable_edges and same_class(S03_minus, S03))
 two_member = S([(2, 0), (2, 1), (0, 1)], [(0, 1)], 3)
-check('Example (Rule B; a two-member source and a common setting): Rule B applies, Rule A does not',
+check('Example (Rule B; a two-member source and a common setting): the origin has a setting, '
+      'and both Rule B and the wider Rule A apply',
       not two_member.is_premeasurable(0) and two_member.quantum_droppable_edges == [(0, 1)]
       and same_class(two_member, S([(2, 0), (2, 1)], [(0, 1)], 3)))
 bystander = S([(0, 1), (0, 2), (1, 2)], [(1, 2, 3)], 4)
@@ -167,9 +168,10 @@ check('Example (Rule B; a premeasurable bystander)',
       and same_class(bystander, S([(0, 1), (0, 2)], [(1, 2, 3)], 4)))
 bystander_with_setting = S([(0, 1), (0, 2), (1, 2), (0, 3)], [(1, 2, 3)], 4)
 check('Example (Rule B; a premeasurable bystander): if 3 also has the setting 0, Rule B does not apply',
-      (1, 2) in bystander_with_setting.droppable_edges and (1, 2) not in bystander_with_setting.quantum_droppable_edges)
-check('Example (Rule B; a premeasurable bystander): the edge can be dropped all the same',
-      same_class(bystander_with_setting, S([(0, 1), (0, 2), (0, 3)], [(1, 2, 3)], 4)))
+      not bystander_with_setting.is_premeasurable(3) and (1, 2) in bystander_with_setting.droppable_edges)
+check('Example (Rule B; a premeasurable bystander): the wider Rule A drops the edge',
+      (1, 2) in bystander_with_setting.quantum_droppable_edges
+      and same_class(bystander_with_setting, S([(0, 1), (0, 2), (0, 3)], [(1, 2, 3)], 4)))
 both = S([(2, 0), (2, 1), (0, 1)], [(0, 1, 2), (0, 1, 3)], 4)
 check('Example (Rules A and B together): all three edges are droppable, and dropping them stays in the class',
       set(both.quantum_droppable_edges) == {(0, 1), (2, 0), (2, 1)} and not both.is_premeasurable(0)
@@ -211,10 +213,14 @@ applicable = beyond = 0
 for md in INDEX.quantum[4].dict_uniqind_unlabelled_mDAGs.values():
     for edge, other_edges, sources in wider_rule_edges(md):
         applicable += 1
-        beyond += edge not in md.quantum_droppable_edges
+        a, b = edge
+        # Count what the extension adds to the original premeasurable-origin and premeasurable-bystanders rules.
+        bystanders = {v for F in sources if a in F for v in F if v != a and v != b}
+        beyond += not md.is_premeasurable(a) and any(not md.is_premeasurable(v) for v in bystanders)
+        assert edge in md.quantum_droppable_edges, (edge, md)
         assert same_class(md, S(other_edges, sources, 4)), (edge, md)
 check(f'Proposition (Rule A with settings that every member sees): on four nodes it applies to {applicable} edges, '
-      f'{beyond} of them outside Rules A and B, and every one joins two structures of one quantum class',
+      f'{beyond} beyond the original Rules A and B; every edge is droppable in the code and stays in its quantum class',
       applicable == 1268 and beyond == 35)
 check('Proposition (Rule A with settings that every member sees): it covers the bystander example with 0 -> 3 and '
       'not the open case', (1, 2) in {e for e, _, _ in wider_rule_edges(bystander_with_setting)}
