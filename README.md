@@ -17,16 +17,17 @@ The package is managed with poetry (`poetry install`). Two dependencies deserve 
   (manuscript Appendix B) as an alternative engine: `python "Special Applications/proving_QC_Gaps.py" --engine lp`, or `--engine both` to
   cross-check the two engines on every candidate.
 
-The four-node census: `python "Special Applications/proving_QC_Gaps.py"` (about a minute; `--no-cache` to
-recompute everything). It searches over quantum observational equivalence classes: `metagraph_advanced.QuantumMetagraph`
-builds the metagraph whose edges are quantum-valid (structural dominance, face splitting, the HLP edge rule when the
-origin node has no visible parent and one latent parent), `ClassicalMetagraph.from_quantum` adds the remaining HLP
-edges for the classical classes, and `equivalence_classes.ClassIndex` keys every structure by its class. The elementary
+Run the four-node census with `python "Special Applications/proving_QC_Gaps.py"` or pass `--no-cache` to recompute
+the proofs. `metagraph_advanced.QuantumMetagraph` groups structures by structural dominance, quantum face splitting
+and the HLP edge rule with a premeasurable origin. A family of facets can split at a common part when every node
+in that part sees the required outcomes and settings and no outside facet touches the parts being separated from it.
+`ClassicalMetagraph.from_quantum` uses strong face splitting and the unrestricted HLP rule for classical classes.
+`equivalence_classes.ClassIndex` keys every structure by its class. The elementary
 piggybacks run in reverse first (`reverse_piggybacks.py`, manuscript Appendix A): the seeds are closed under their
 inverses below five nodes and the forward search only reduces five-node structures; `--reverse none` is the forward-only
 run, `--reverse all` adds the Fritz inverse, `--no-hybrids` restricts the closure to all-quantum structures, and
 `python "Special Applications/verify_reverse.py"` checks a configuration against the forward census. The nodes
 of the metagraph are enumerated by orbits from permutation tables (`canonical_forms.py`: canonical ids on demand,
-no dictionary over the labelled mDAGs) and held as scipy sparse matrices; both five-node metagraphs (1,718,596
-unlabelled mDAGs, 490,800 classical and 595,074 quantum classes) build in about five minutes within 3.5 GB. Tests:
+no dictionary over the labelled mDAGs) and held as scipy sparse matrices. On five nodes, the 1,718,596
+unlabelled mDAGs form 490,800 classical and 608,066 quantum classes. Tests:
 `pytest` (fast suite) and `pytest -m slow` (the census pins).

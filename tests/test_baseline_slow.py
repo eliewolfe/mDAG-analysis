@@ -7,15 +7,15 @@ import pytest
 
 HAVE_MOSEK = importlib.util.find_spec("mosek") is not None
 
-# The inputs: the 424 quantum equivalence classes of the four-node mDAGs with every latent quantum that are not
+# The inputs: the 432 quantum equivalence classes of the four-node mDAGs with every latent quantum that are not
 # provably algebraic (996 structures up to relabelling, in 376 classical classes); every seed (three- and four-node)
 # is known from the start and the two Bell seed classes are inputs proven by identity (manuscript/piggybacks.md,
 # Section 1). The lookups (degradation, upward) are part of every group.
 EXPECTED_COUNTS = {
-    'inputs': 424,
-    'proven': 378,
+    'inputs': 432,
+    'proven': 386,
     'remaining': 46,
-    'labelled_inputs': 424,
+    'labelled_inputs': 432,
     'structures': 996,
     'structures proven': 935,
     'structures remaining': 61,
@@ -24,14 +24,14 @@ EXPECTED_COUNTS = {
     'classical classes of remaining': 46,
     'classical classes with proven and unproven': 0,
     'with identity': 2,
-    'with PD': 345,
+    'with PD': 353,
     'with node_stitching': 7,
     'with conditioning': 65,
-    'with naive_marginalization': 172,
-    'with teleportation_marginalization': 180,
-    'with marginalization (either kind)': 180,
+    'with naive_marginalization': 175,
+    'with teleportation_marginalization': 183,
+    'with marginalization (either kind)': 183,
     'only via identity': 0,
-    'only via PD': 166,
+    'only via PD': 171,
     'only via node_stitching': 0,
     'only via conditioning': 17,
     'only via naive_marginalization': 0,
@@ -43,16 +43,16 @@ EXPECTED_COUNTS = {
 # four closure Fritz stages. The cumulative stage counts (by the stage in which each transition was recorded) must
 # agree with the rungs of the ladder (by the recorded parameters).
 EXPECTED_STAGES = [
-    ('elementary', 372),
-    ('Fritz, parent predictor', 375),
-    ('Fritz, unsplit target, unsplit predictor, d-separation', 376),
-    ('Fritz, unsplit target, split predictor, d-separation', 376),
-    ('Fritz, split target, unsplit predictor, d-separation', 376),
-    ('Fritz, split target, split predictor, d-separation', 377),
-    ('Fritz, unsplit target, unsplit predictor, semigraphoid closure', 377),
-    ('Fritz, unsplit target, split predictor, semigraphoid closure', 378),
-    ('Fritz, split target, unsplit predictor, semigraphoid closure', 378),
-    ('Fritz, split target, split predictor, semigraphoid closure', 378),
+    ('elementary', 380),
+    ('Fritz, parent predictor', 383),
+    ('Fritz, unsplit target, unsplit predictor, d-separation', 384),
+    ('Fritz, unsplit target, split predictor, d-separation', 384),
+    ('Fritz, split target, unsplit predictor, d-separation', 384),
+    ('Fritz, split target, split predictor, d-separation', 385),
+    ('Fritz, unsplit target, unsplit predictor, semigraphoid closure', 385),
+    ('Fritz, unsplit target, split predictor, semigraphoid closure', 386),
+    ('Fritz, split target, unsplit predictor, semigraphoid closure', 386),
+    ('Fritz, split target, split predictor, semigraphoid closure', 386),
 ]
 EXPECTED_LADDER = [count for _, count in EXPECTED_STAGES]
 
@@ -97,7 +97,7 @@ def test_search_counts(proving_QC_Gaps, reversed_tricks):
     if reversed_tricks == "default":
         closure = proving_QC_Gaps.LAST_CLOSURE
         assert closure is not None and set(closure.inverses) == set(proving_QC_Gaps.ELEMENTARY_REVERSED)
-        assert len(closure.known) == 9814 and closure.known_by_nodes() == {3: (3, 2), 4: (372, 9437)}
+        assert len(closure.known) == 9822 and closure.known_by_nodes() == {3: (3, 2), 4: (380, 9437)}
         assert all(closure.stats[t]['rejected'] == 0 for t in closure.inverses)   # the forward check never rejects
     stats = {k: v for k, v in QM.ENTROPIC_STATS.items() if k[0] == 'certificate'}
     assert stats == EXPECTED_CERTIFICATES

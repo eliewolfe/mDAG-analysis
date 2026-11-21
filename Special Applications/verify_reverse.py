@@ -8,6 +8,8 @@ class keys of both (the reverse run must prove every class the forward run prove
 report counts against the slow-test pins; (3) the stage counts and the ladder; (4) generator completeness: every
 forward transition of a reversed trick from an input member into a known key has a reverse edge with the same
 (trick, source, target); (5) wall times; (6) the reverse closure's database and redundancy table.
+The default elementary closure must match the forward census exactly. With other inverse selections, the
+per-trick and stage comparisons are diagnostic: the added search paths can change them.
 """
 from __future__ import absolute_import
 import argparse
@@ -34,13 +36,15 @@ def proven_keys(report) -> Set[Tuple[int, int, int, int]]:
 
 
 def verify(reversed_tricks, hybrids=True, cap=None, verbose=False):
+    reversed_tricks = tuple(reversed_tricks)
+    default_closure = hybrids and set(reversed_tricks) == set(census.DEFAULT_REVERSED) and cap in ('auto', 4, None)
     index = census.build_index(verbose=False)
     t0 = time.time()
     forward, _ = census.run_search(index=index, use_cache=False, verbose=verbose, reversed_tricks=())
     t_forward = time.time() - t0
     forward_seconds = dict(census.STAGE_SECONDS)
     t0 = time.time()
-    reverse, _ = census.run_search(index=index, use_cache=False, verbose=verbose, reversed_tricks=tuple(reversed_tricks),
+    reverse, _ = census.run_search(index=index, use_cache=False, verbose=verbose, reversed_tricks=reversed_tricks,
                                    reverse_hybrids=hybrids, reverse_cap=cap)
     t_reverse = time.time() - t0
     reverse_seconds = dict(census.STAGE_SECONDS)
@@ -56,16 +60,24 @@ def verify(reversed_tricks, hybrids=True, cap=None, verbose=False):
     for key in sorted(pr - pf):
         print("   extra  ", key, str(reverse.explorer.representatives[key]).replace('\n', ' | '))
     # 2. counts
-    diffs = {k: (EXPECTED_COUNTS.get(k), v) for k, v in reverse.counts.items() if EXPECTED_COUNTS.get(k) != v}
+    counts = reverse.counts
+    diffs = {k: (EXPECTED_COUNTS.get(k), counts.get(k)) for k in EXPECTED_COUNTS.keys() | counts.keys()
+             if EXPECTED_COUNTS.get(k) != counts.get(k)}
     print(f"2. report counts against the pins: {'identical' if not diffs else diffs}")
     if any(k in ('proven', 'structures proven', 'remaining') for k in diffs):
         ok = False
     # 3. stages and ladder
-    exp = dict(EXPECTED_STAGES)
-    stage_diffs = [(name, exp.get(name), n) for name, n in reverse.stage_counts if exp.get(name) != n]
-    print(f"3. stage counts: {'identical to the pins' if not stage_diffs else stage_diffs}")
+    stages_match = reverse.stage_counts == EXPECTED_STAGES
+    print(f"3. stage counts: {'identical to the pins' if stages_match else (EXPECTED_STAGES, reverse.stage_counts)}")
     lf, lr = ladder(forward), ladder(reverse)
     print(f"   ladder: {'identical to forward' if lf == lr else (lf, lr)}")
+    if default_closure:
+        forward_matches = forward.counts == EXPECTED_COUNTS and forward.stage_counts == EXPECTED_STAGES
+        if not forward_matches:
+            print("   forward census counts or stages differ from the pins")
+        if closure is None:
+            print("   missing default reverse closure")
+        ok = ok and pf == pr and not diffs and stages_match and lf == lr and forward_matches and closure is not None
     # 4. generator completeness on the reversed tricks
     if closure is not None:
         # forward edges the closure must reproduce: from a structure within the cap (and all-quantum when hybrids
