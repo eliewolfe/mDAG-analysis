@@ -29,10 +29,10 @@ UnlabelledId = Tuple[int, int, int, int]
 
 # Bump a piggyback's version when its map or its admissibility rule changes; cached proofs that relied on it are
 # then discarded (gap_cache.py). Fritz-type tricks share the mechanism but are versioned separately.
-PIGGYBACK_VERSIONS: Dict[str, int] = {
-    'metagraph': 1,                    # the class keys and the upward rule rest on the metagraph rules (structural
-                                       #   dominance, face splitting, the premeasurable HLP rule, the lift); every
-                                       #   cached proof of a class-keyed search carries this version
+PIGGYBACK_VERSIONS: Dict[str, int | str] = {
+    # Class keys depend on closed-family face splitting, the HLP rule for a premeasurable origin, and this
+    # branch's lift. The branch name distinguishes the keys from main even if the version numbers coincide.
+    'metagraph': 'reversed-piggybacks:2',
     'upward': 1,                       # gap(G') for G' structurally above G in G's classical class (lookup only)
     # 'identity' (an input that is a seed class) is a report label, not a transition: no version.
     'PD': 1,

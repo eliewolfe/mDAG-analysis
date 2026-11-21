@@ -5,7 +5,7 @@ import itertools
 # import networkx as nx
 from sys import version_info
 assert version_info >= (3, 8), "Python 3.8+ is required for cached_property support."
-from typing import Tuple, List, Set, FrozenSet, Iterable, Any, Union, Optional
+from typing import Tuple, List, Set, FrozenSet, Iterable, Sequence, Any, Union, Optional
 
 import functools
 from functools import cached_property
@@ -702,6 +702,29 @@ class mDAG:
     def descendants(self, node: int) -> Set[int]:
         return set(sg.bits_of(int(self.descendant_masks[node])))
 
+    # ------------------------------------------------------------------
+    # Face splitting (facet-adding, read backwards): a facet C u D is replaced by the facets C and D when every
+    # member of D sees everything C does. Three versions, by what a node of C may share with others, all proven
+    # for CLASSICAL model sets in Ansanelli, Wolfe and Spekkens, "The observational partial order of causal
+    # structures with latent variables" (arXiv:2502.07891):
+    #   'weak'      Proposition 5 (from Evans' Proposition 6.1): no node of C lies in another facet;
+    #   'moderate'  Proposition 7: a node of C may lie in other facets, provided each of them contains D;
+    #   'strong'    Proposition 8 (proof: Appendix A): the same for several parts C_i with one D, split at once.
+    # The classical proofs sample D's new latent from the posterior of the old one given everything C sees, the
+    # VALUES of C's other latents included. A quantum source has no value to condition on, and for quantum model
+    # sets 'moderate' and 'strong' fail. Counterexample: settings s -> c', s -> d, t -> e, edges c -> d, c' -> d;
+    # Q{c,c',d}, Q{c,d,e} against Q{c,c'}, Q{c,d,e}. In the first, c swaps entanglement on to e and announces which
+    # Bell state resulted, and c' either tests CHSH against e or swaps on to d, whose output then equals e's; in the
+    # second, c' is entangled with c alone and the four outcomes of c cannot relay both.
+    #   'quantum'   what the catalogue of steered states proves, for quantum and classical model sets alike: for
+    #               one D, a family of facets C_i u D such that no facet outside the family contains a node of any
+    #               C_i. The source of D hands D, for every value of the outputs and visible parents of the C_i,
+    #               the state those outcomes would have left on D's shares; the nodes of the C_i hold no other
+    #               share. It proves every 'weak' equivalence and the 'strong' ones whose parts overlap only among
+    #               themselves ({a,b,d}, {a,c,d} -> {a,b}, {a,c}).
+    # The proofs and counterexample are in manuscript/observational classification/ on the main branch.
+    # ------------------------------------------------------------------
+
     def _facet_bipartitions_as_masks(self) -> Iterable[Tuple[int, int]]:
         """(C, D) bitmask pairs, one per bipartition of each facet, in the order _all_bipartitions yields them."""
         for facet in self.simplicial_complex_instance.compressed_simplicial_complex:
@@ -725,16 +748,49 @@ class mDAG:
         return u
 
     @cached_property
-    def splittable_faces(self) -> List[Tuple[FrozenSet[int], FrozenSet[int]]]:
-        """Bipartitions (C, D) of a facet with Pa+(C) a subset of Pa+(d) for every d in D (visible and non-singleton
-        latent parents, plus the nodes themselves)."""
+    def _splittable_face_masks(self) -> List[Tuple[int, int]]:
+        """splittable_faces as (C, D) bitmask pairs."""
         pp = self.parentsplus_masks.tolist()
         result = []
         for C, D in self._facet_bipartitions_as_masks():
             u = self._union_of_masks(pp, C)
             if all(u & ~pp[d] == 0 for d in sg.bits_of(D)):
                 result.append((C, D))
-        return self._masks_to_frozensets(result)
+        return result
+
+    @cached_property
+    def splittable_faces(self) -> List[Tuple[FrozenSet[int], FrozenSet[int]]]:
+        """Bipartitions (C, D) of a facet with Pa+(C) a subset of Pa+(d) for every d in D (visible and non-singleton
+        latent parents, plus the nodes themselves): every node of C and every visible parent of one is a parent of
+        every d, and every facet that contains a node of C contains D. The hypothesis of Propositions 7 and 8 of
+        arXiv:2502.07891; sound for classical model sets only (see the comment above)."""
+        return self._masks_to_frozensets(self._splittable_face_masks)
+
+    @cached_property
+    def quantum_splittable_families(self) -> List[Tuple[FrozenSet[int], List[FrozenSet[int]]]]:
+        """(D, [C_1, ..., C_k]) for each D: the largest family of splittable pairs (C_i, D) such that no facet
+        outside {C_i u D} contains a node of any C_i. Splitting such a family preserves the quantum model set as
+        well as the classical one: the nodes of the C_i hold shares of the split facets only, so the state their
+        outcomes leave on D's shares can be prepared in advance, one copy per value of what D sees of them.
+
+        A family with that property stays one when another is added to it, so the largest is unique; it is found
+        by discarding, until none is left, every C that meets a facet outside the family."""
+        facets = [sg.mask_of(tuple(int(v) for v in facet))
+                  for facet in self.simplicial_complex_instance.compressed_simplicial_complex]
+        parts_of = defaultdict(set)
+        for C, D in self._splittable_face_masks:
+            parts_of[D].add(C)
+        families = []
+        for D, parts in parts_of.items():
+            while parts:
+                members = {C | D for C in parts}
+                leaky = {C for C in parts if any(F & C and F not in members for F in facets)}
+                if not leaky:
+                    break
+                parts -= leaky
+            if parts:
+                families.append((frozenset(sg.bits_of(D)), [frozenset(sg.bits_of(C)) for C in sorted(parts)]))
+        return families
 
     @cached_property
     def eventually_splittable_faces(self) -> List[Tuple[FrozenSet[int], FrozenSet[int]]]:
@@ -811,7 +867,9 @@ class mDAG:
     @cached_property
     def weak_splittable_faces(self) -> List[Tuple[FrozenSet[int], FrozenSet[int]]]:
         """Bipartitions (C, D) of a facet with the visible Pa+(C) a subset of the visible Pa+(d) for every d in D,
-        and no node of C in another facet."""
+        and no node of C in another facet: the hypothesis of Proposition 5 of arXiv:2502.07891 (Evans' rule).
+        Sound for quantum model sets too; every such split is a one-member family of quantum_splittable_families
+        or part of a larger one."""
         n = self.number_of_visible
         vpp_masks = sg.columns_to_masks(self.directed_structure_instance.as_bit_square_matrix_plus_eye).tolist()
         facets = [sg.mask_of(f) for f in self.simplicial_complex_instance.compressed_simplicial_complex]
@@ -844,17 +902,38 @@ class mDAG:
 
 
     def generate_weaker_mDAGs_FaceSplitting(self, version: str):
-        if version=='strong':
+        """The ids of the structures this one is equivalent to by one face split of the given version: 'weak',
+        'moderate' and 'strong' (Propositions 5, 7 and 8 of arXiv:2502.07891, classical model sets) or 'quantum'
+        (quantum_splittable_families: quantum and classical model sets). See the comment above
+        _facet_bipartitions_as_masks."""
+        if version == 'strong':
             return self.generate_weaker_mDAGs_FaceSplitting_Simultaneous
-        if version=='moderate':
+        if version == 'quantum':
+            return self.generate_weaker_mDAGs_FaceSplitting_Quantum
+        if version == 'moderate':
             return self.generate_weaker_mDAGs_FaceSplitting_Safe
-        if version=='weak':
+        if version == 'weak':
             return self.generate_weaker_mDAGs_FaceSplitting_Weak
-        else:
-            print('Version of Face Splitting unspecified')
+        raise ValueError(f"unknown face-splitting version {version!r}; "
+                         "choose 'weak', 'moderate', 'strong' or 'quantum'")
+
+    def _split_family(self, D: FrozenSet[int], Cs: Sequence[FrozenSet[int]]) -> int:
+        """The id of this mDAG with every facet C u D (C in Cs) replaced by D and the parts C, each added unless
+        a remaining facet already contains it."""
+        new_simplicial_complex = self.simplicial_complex_instance.simplicial_complex_as_sets.copy()
+        for C in Cs:
+            new_simplicial_complex.discard(C.union(D))
+        if not any(D.issubset(facet) for facet in new_simplicial_complex):
+            new_simplicial_complex.add(D)
+        for C in Cs:
+            if not any(C.issubset(facet) for facet in new_simplicial_complex):
+                new_simplicial_complex.add(C)
+        return self.mdag_int_pair_to_single_int(
+            self.directed_structure_instance.as_integer,
+            Hypergraph(new_simplicial_complex, self.number_of_visible).as_integer)
 
     @property
-    #FaceSplitting_Safe = Moderate Face Splitting
+    # Moderate face splitting: Proposition 7 of arXiv:2502.07891, one pair (C, D) at a time. Classical model sets.
     def generate_weaker_mDAGs_FaceSplitting_Safe(self):
         for C, D in self.splittable_faces:
             new_simplicial_complex = self.simplicial_complex_instance.simplicial_complex_as_sets.copy()
@@ -870,26 +949,22 @@ class mDAG:
                 self.directed_structure_instance.as_integer,
                 Hypergraph(new_simplicial_complex, self.number_of_visible).as_integer)
 
-    @property  # Agressive conjucture of simultaneous face splitting
+    @property
+    # Strong face splitting: Proposition 8 of arXiv:2502.07891 (proof: its Appendix A), every splittable (C_i, D)
+    # with the same D at once. Classical model sets only; the classical metagraph uses it.
     def generate_weaker_mDAGs_FaceSplitting_Simultaneous(self):
         new_dict = defaultdict(list)
         for C, D in self.splittable_faces:
             new_dict[D].append(C)
         for D, Cs in new_dict.items():
-            new_simplicial_complex = self.simplicial_complex_instance.simplicial_complex_as_sets.copy()
-            #setD = frozenset(D)
-            for C in Cs:
-                new_simplicial_complex.discard(C.union(D))
-            if not any(D.issubset(facet) for facet in new_simplicial_complex):
-                new_simplicial_complex.add(D)
-            for C in Cs:
-                # setC = frozenset(C)
-                if not any(C.issubset(facet) for facet in new_simplicial_complex):
-                    new_simplicial_complex.add(C)
-            # new_simplicial_complex.sort()
-            yield self.mdag_int_pair_to_single_int(
-                self.directed_structure_instance.as_integer,
-                Hypergraph(new_simplicial_complex, self.number_of_visible).as_integer)
+            yield self._split_family(D, Cs)
+
+    @property
+    # Quantum-safe face splitting: for each D, its largest family whose parts C_i no other facet touches
+    # (quantum_splittable_families). The quantum metagraph uses it.
+    def generate_weaker_mDAGs_FaceSplitting_Quantum(self):
+        for D, Cs in self.quantum_splittable_families:
+            yield self._split_family(D, Cs)
 
     #TODO: slightly speed up this by avoiding Hypergraph creation. That is, directly modify the bit array.
     #Or, if we are really fancy, we can modify the bits of the unique_id itself!!

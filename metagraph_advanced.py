@@ -27,6 +27,12 @@ def eprint(*args, **kwargs):
     print(*args, file=stderr, **kwargs)
 
 
+# The face-splitting version (mDAG.generate_weaker_mDAGs_FaceSplitting) each metagraph rule may use: Proposition 8
+# of arXiv:2502.07891 is proven for classical model sets and fails for quantum ones, where only the families
+# whose parts C_i no other facet touches are proven (mDAG.quantum_splittable_families).
+FACE_SPLITTING_VERSION = {'classical': 'strong', 'quantum': 'quantum'}
+
+
 def evaluate_property_or_method(instance, attribute):
     if isinstance(attribute, str):
         return getattr(instance, attribute)
@@ -111,22 +117,23 @@ class Observable_unlabelled_mDAGs:
     containments of model sets (structural dominance, face splitting, the HLP edge rule), and the strongly connected
     components are proven observational equivalence classes.
 
-    `rule` selects the model sets the edges are sound for. 'classical' (the default) uses every rule. 'quantum'
-    uses structural dominance and face splitting, which are quantum-valid as they stand, and the HLP edge rule only
-    where its origin node is premeasurable (mDAG.is_premeasurable); its components are proven *quantum*
-    observational equivalence classes, each inside one classical class. The two metagraphs share everything but the
-    HLP edges: build the quantum one and derive the classical one with `ClassicalMetagraph.from_quantum`.
+    The classical rule uses structural dominance, strong face splitting and the unrestricted HLP edge rule.
+    The quantum rule uses structural dominance, face splitting for the families whose parts no outside facet
+    touches (mDAG.quantum_splittable_families), and the HLP edge rule with a premeasurable origin
+    (mDAG.is_premeasurable). Its components are proven quantum observational equivalence classes, each inside
+    one classical class. Build the quantum metagraph and derive its classical companion with
+    `ClassicalMetagraph.from_quantum` to share their nodes, structural dominances and face-splitting computation.
     """
     SHARED_CACHE = ('all_directed_structures', 'all_unlabelled_directed_structures', 'truly_all_directed_structures',
                     'all_noncanonical_directed_structures', 'all_simplicial_complices', 'most_labelled_mDAGs',
                     'all_labelled_mDAGs', 'canonical_forms', 'dict_id_to_canonical_id', 'dict_uniqind_unlabelled_mDAGs',
                     'dict_ind_unlabelled_mDAGs', 'metagraph_nodes', 'hypergraph_dominances',
-                    'directed_dominances_up_to_symmetry', 'structural_dominances', 'face_splitting_edge_list',
+                    'directed_dominances_up_to_symmetry', 'structural_dominances', '_face_splitting_edge_lists',
                     'latent_free_DAGs_unlabelled', 'structural_order', '_structural_closure', '_dict_id_to_idx',
                     'num_metagraph_nodes')
     # What a sibling must share for the two metagraphs to agree (the rest is shared when already computed).
     FORCED_SHARED = ('canonical_forms', 'dict_uniqind_unlabelled_mDAGs', 'structural_dominances',
-                     'face_splitting_edge_list', 'structural_order')
+                     '_face_splitting_edge_lists', 'structural_order')
 
     def __init__(self, n: int,
                  fully_foundational=False,
@@ -526,8 +533,8 @@ class Observable_unlabelled_mDAGs:
         for (id, mdag) in explore_candidates(
                 self.dict_ind_unlabelled_mDAGs.items(),
                 verbose=self.verbose,
-                message="Finding metagraph edges due to face splitting"):  # NEW: Over graph patterns only
-            for id2 in mdag.generate_weaker_mDAGs_FaceSplitting('strong'):
+                message=f"Finding metagraph edges due to face splitting ({self.rule} rule)"):  # NEW: Over graph patterns only
+            for id2 in mdag.generate_weaker_mDAGs_FaceSplitting(FACE_SPLITTING_VERSION[self.rule]):
                 yield (id2, id)
             if self.compact:
                 mdag.release_cache()
@@ -564,18 +571,25 @@ class Observable_unlabelled_mDAGs:
     def _equivalence_edges(self, weaker_ids_of, message):
         """(weak, strong) edges from a per-node generator of the labelled ids of the weaker structures each
         node is equivalent to; the node itself is already canonical."""
+        return self._equivalence_edges_by_name({None: weaker_ids_of}, message)[None]
+
+    def _equivalence_edges_by_name(self, generators, message):
+        """_equivalence_edges for several per-node generators in one pass over the nodes: {name: edge array}.
+        One pass matters under `compact`, where each mDAG's cache is released once its edges are read off."""
         idx = self._dict_id_to_idx
         canonical_of = self.canonical_forms.canonical_of_int
-        rows, cols = array.array('i'), array.array('i')
+        collected = {name: (array.array('i'), array.array('i')) for name in generators}
         for strong, mdag in explore_candidates(self.dict_uniqind_unlabelled_mDAGs.items(),
                                                verbose=self.verbose, message=message):
             j = idx[strong]
-            for id2 in weaker_ids_of(mdag):
-                rows.append(idx[canonical_of(id2)])
-                cols.append(j)
+            for name, weaker_ids_of in generators.items():
+                rows, cols = collected[name]
+                for id2 in weaker_ids_of(mdag):
+                    rows.append(idx[canonical_of(id2)])
+                    cols.append(j)
             if self.compact:
                 mdag.release_cache()
-        return self._edge_array(rows, cols)
+        return {name: self._edge_array(rows, cols) for name, (rows, cols) in collected.items()}
 
     @cached_property
     def structural_dominances(self):
@@ -619,11 +633,22 @@ class Observable_unlabelled_mDAGs:
                                        f"Finding HLP Rule #4 type edges ({rule} rule)")
 
     @cached_property
+    def _face_splitting_edge_lists(self):
+        """{rule: (split, original) edges of the face-splitting equivalence under that rule}, both rules read
+        off in one pass (an mDAG's splittable pairs serve both) and shared between the two metagraphs."""
+        return self._equivalence_edges_by_name(
+            {rule: (lambda mdag, version=version: mdag.generate_weaker_mDAGs_FaceSplitting(version))
+             for rule, version in FACE_SPLITTING_VERSION.items()},
+            "Finding metagraph edges due to face splitting")
+
+    @property
     def face_splitting_edge_list(self):
-        """(split, original) edges of the face-splitting equivalence (quantum-valid as well: the source of the
-        part D distributes one conditional state per value of what every member of D sees of C)."""
-        return self._equivalence_edges(lambda mdag: mdag.generate_weaker_mDAGs_FaceSplitting('strong'),
-                                       "Finding metagraph edges due to face splitting")
+        """(split, original) edges of the face-splitting equivalence under this metagraph's rule. Classical:
+        every splittable (C_i, D) with one D at once (Proposition 8 of arXiv:2502.07891). Quantum: only the families
+        of facets C_i u D whose parts C_i no other facet touches, for which the source of D can distribute one
+        conditional state per value of what every member of D sees of the C_i
+        (mDAG.quantum_splittable_families)."""
+        return self._face_splitting_edge_lists[self.rule]
 
     @cached_property
     def all_HLP_relevant_dominances(self):
@@ -741,7 +766,8 @@ class Observable_unlabelled_mDAGs:
     @cached_property
     def meta_graph(self):
         """The full metagraph under this rule, as a CSR matrix: structural dominances, the HLP edges of the rule
-        and face splitting (the classical companion of a quantum metagraph adds the unrestricted HLP edges)."""
+        and the face-splitting edges of the rule (the classical companion of a quantum metagraph adds the
+        unrestricted HLP edges and the face splits that are proven for classical model sets only)."""
         if self.rule == 'quantum':
             # Every edge is a sound containment of quantum model sets; no CI filter is needed for soundness.
             return self._csr_from_edges(self.structural_dominances, self.hlp_edge_list, self.face_splitting_edge_list)
@@ -1216,14 +1242,14 @@ class QuantumMetagraph(Observable_unlabelled_mDAGs):
 
 
 class ClassicalMetagraph(Observable_unlabelled_mDAGs):
-    """The metagraph under the classical rule (every HLP edge)."""
+    """The metagraph under the classical rule (every HLP edge and strong face splitting)."""
     def __init__(self, n: int, verbose: bool = False, **kwargs) -> None:
         super().__init__(n, verbose=verbose, rule='classical', **kwargs)
 
     @classmethod
     def from_quantum(cls, quantum: "Observable_unlabelled_mDAGs") -> "ClassicalMetagraph":
-        """The classical metagraph on the nodes of `quantum`, sharing its dominances and face-splitting edges and
-        adding the unrestricted HLP edges."""
+        """The classical metagraph on the nodes of `quantum`, sharing its dominances and using the unrestricted
+        HLP edges and strong face splitting in place of their quantum-safe restrictions."""
         assert quantum.rule == 'quantum'
         return cls.from_sibling(quantum, 'classical')
 
