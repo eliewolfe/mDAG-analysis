@@ -5,11 +5,10 @@ Inputs: the quantum observational equivalence classes of the 4-node mDAGs with e
 provably algebraic (no member is classically equivalent to a latent-free structure). The classes come from the
 quantum metagraph (metagraph_advanced.QuantumMetagraph, equivalence_classes.ClassIndex): its edges are structural
 dominance, face splitting for the families of facets whose parts C_i no other facet touches
-(mDAG.quantum_splittable_families) and the HLP edge rule in its pre-measurement form (the origin node is
-premeasurable, or every other member of its facets is; mDAG.quantum_hlp_origin_ok), all sound for quantum model
-sets, so each strongly connected component is a
-proven quantum equivalence class. Strong face splitting and the unrestricted HLP rule, which are sound for classical
-model sets only, enter the classical metagraph alone. ALL COUNTS ARE OVER CLASSES; the report also gives the number
+(mDAG.quantum_splittable_families) and the HLP edge rule in its pre-measurement form (mDAG.quantum_hlp_origin_ok).
+For an HLP edge a -> b, either a is premeasurable or every member of a's facets except a and b is premeasurable.
+Each strongly connected component is a proven quantum equivalence class. The classical metagraph uses strong face
+splitting and the unrestricted HLP rule. ALL COUNTS ARE OVER CLASSES; the report also gives the number
 of structures and of classical classes they comprise.
 
 The seeds (known_QC_gaps.SEEDS, three- and four-node) are classes too: a seed whose classical facets each have
@@ -29,10 +28,10 @@ turns `markov` back on). The predictor pool of the certified stages is the laten
 not its visible parents (those belong to the parent stage) nor its descendants; `--descendants` keeps the
 descendants. `--engine semigraphoid|lp|both` chooses the certificate engine of the entropic stages.
 
-Proven gaps are cached on disk (cache/known_gaps.json, keyed by class) with the version of every piggyback their
-proof relies on; cached gaps count as known, so after the first run the expensive stages only touch classes that
-are not yet proven. Bumping a piggyback's version in qc_gap_search.PIGGYBACK_VERSIONS discards exactly the cached
-proofs that used it.
+Both searches record proven gaps in cache/known_gaps.json, keyed by class and versioned by the piggybacks used.
+With --depth-one, valid cached gaps supply additional known goals. The primary search rebuilds its bounded
+proofs from the named seeds on every run and can reuse the five-node gap-free screening table.
+Changing a piggyback's version in qc_gap_search.PIGGYBACK_VERSIONS invalidates cached proofs that used it.
 """
 from __future__ import absolute_import
 import sys
@@ -45,7 +44,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from typing import Dict, List, Optional, Tuple
 
-from quantum_mDAG import ENTROPIC_STATS, ENGINE_DISAGREEMENTS
+from quantum_mDAG import ENGINES, ENTROPIC_STATS, ENGINE_DISAGREEMENTS
 import semigraphoid
 from equivalence_classes import ClassIndex
 from known_QC_gaps import SEEDS
@@ -87,7 +86,6 @@ def run_search(index: Optional[ClassIndex] = None, max_visible=None, verbose=Tru
                screen_cache_dir=None) -> Tuple[GapReport, Optional[GapCache]]:
     """Return the full census record and optional on-disk gap cache. Bounded proofs start from named seeds.
     An explicit screen_cache_dir reuses just the five-node membership table during research queries."""
-    from quantum_mDAG import ENGINES
     if engine is not None and engine not in ENGINES:
         raise ValueError(f"unknown certificate engine {engine!r}; choose one of {ENGINES}")
     if max_visible is None:
@@ -202,18 +200,24 @@ def print_report(report: GapReport, certificates_for=()) -> None:
 
 
 if __name__ == '__main__':
-    with_entropic = '--no-entropic' not in sys.argv
-    with_split_predictors = '--no-split-predictors' not in sys.argv
-    use_cache = '--no-cache' not in sys.argv
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Find proven quantum-classical gaps among four-node mDAGs.",
+                                     allow_abbrev=False)
     if '--parents' in sys.argv:
-        raise SystemExit("--parents was removed: the parent piggyback is now the first Fritz stage of the cascade")
-    pool = 'siblings'
-    allow_descendants = '--descendants' in sys.argv
-    early_exit = '--no-early-exit' not in sys.argv
-    engine = sys.argv[sys.argv.index('--engine') + 1] if '--engine' in sys.argv and sys.argv.index('--engine') + 1 < len(sys.argv) else None
-    cap = int(sys.argv[sys.argv.index('--max-visible') + 1]) if '--max-visible' in sys.argv else None
-    threshold = int(sys.argv[sys.argv.index('--resume-at') + 1]) if '--resume-at' in sys.argv else None
-    report, cache = run_search(max_visible=cap, resume_at=threshold, deep='--depth-one' not in sys.argv,
-                               screen='--no-screen' not in sys.argv, with_entropic=with_entropic, with_split_predictors=with_split_predictors, use_cache=use_cache, pool=pool,
-                               allow_descendants=allow_descendants, early_exit=early_exit, engine=engine)
+        parser.error("--parents was removed: the parent piggyback is now the first Fritz stage of the cascade")
+    parser.add_argument('--max-visible', type=int, help="maximum number of visible nodes in a search branch")
+    parser.add_argument('--resume-at', type=int, choices=(4, 5), help="size at which non-growing closure resumes")
+    parser.add_argument('--engine', choices=ENGINES)
+    parser.add_argument('--depth-one', dest='deep', action='store_false', help="run the original cascade alone")
+    parser.add_argument('--no-screen', dest='screen', action='store_false')
+    parser.add_argument('--no-entropic', dest='with_entropic', action='store_false')
+    parser.add_argument('--no-split-predictors', dest='with_split_predictors', action='store_false')
+    parser.add_argument('--no-cache', dest='use_cache', action='store_false')
+    parser.add_argument('--descendants', dest='allow_descendants', action='store_true')
+    parser.add_argument('--no-early-exit', dest='early_exit', action='store_false')
+    args = parser.parse_args()
+    if args.deep and args.max_visible is not None and not 4 <= args.max_visible <= 6:
+        parser.error("--max-visible must be between 4 and 6 for the deeper census")
+    report, cache = run_search(**vars(args))
     print_report(report, certificates_for=proven_through_fritz(report))
