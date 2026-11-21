@@ -1,0 +1,48 @@
+\section{Proof of the rigidity lemma}\label{app:rigidity}
+
+This appendix proves \cref{lem:rigidity}. The notation is that of the lemma: $A_0,A_1$ on $\Hil_A$ and $E_0,E_1$
+on $\Hil_E$ are Hermitian with square $\id$, and
+$W_\varepsilon=A_0\otimes(\varepsilon_0E_0+\varepsilon_1E_1)+A_1\otimes(\varepsilon_0E_0-\varepsilon_1E_1)$.
+
+\begin{proof}[Proof of \cref{lem:rigidity}]
+Fix $\varepsilon$, write $\omega=\omega_\varepsilon$, and put
+$\tilde E_0=(\varepsilon_0E_0+\varepsilon_1E_1)/\sqrt2$, $\tilde E_1=(\varepsilon_0E_0-\varepsilon_1E_1)/\sqrt2$.
+Using $A_s^2=E_t^2=\id$ and that the $A$'s commute with the $E$'s,
+\[
+2\sqrt2\,\id-W_\varepsilon=\tfrac{1}{\sqrt2}\bigl[(A_0-\tilde E_0)^2+(A_1-\tilde E_1)^2\bigr].
+\]
+Both squares are positive, so $\Tr[W_\varepsilon\omega]=2\sqrt2$ forces $\Tr[(A_s-\tilde E_s)^2\omega]=0$, hence
+\begin{equation}\label{eq:rig}
+A_s\,\omega=\tilde E_s\,\omega\qquad(s=0,1).
+\end{equation}
+\emph{Anticommutation.} From \eqref{eq:rig},
+$\omega=A_0^2\omega=A_0\tilde E_0\omega=\tilde E_0A_0\omega=\tilde E_0^2\omega$, and
+$\tilde E_0^2=\id+\tfrac12\varepsilon_0\varepsilon_1\{E_0,E_1\}$, so $\{E_0,E_1\}\,\omega=0$. Likewise
+$\{A_0,A_1\}\omega=(\tilde E_1A_0+\tilde E_0A_1)\omega=\{\tilde E_0,\tilde E_1\}\omega=(E_0^2-E_1^2)\omega=0$.
+
+\emph{Invariant supports.} Adding the two equations \eqref{eq:rig} gives $E_0\,\omega=\varepsilon_0\,L\omega$ with
+$L=(A_0+A_1)/\sqrt2$ acting on $\Hil_A$, and, taking adjoints, $\omega E_0=\varepsilon_0\,\omega L$. Let $\omega_E$
+be the reduced state on $\Hil_E$. Then
+\[
+E_0\,\omega_E\,E_0=\Tr_{A,\mathrm{ext}}[E_0\,\omega\,E_0]=\Tr_{A,\mathrm{ext}}[L\omega L]=\Tr_{A,\mathrm{ext}}[L^2\omega]
+\le\lVert L\rVert^2\,\omega_E ,
+\]
+where the third equality holds because $L$ acts on a system that is traced out, and the inequality because
+$\Tr_{A,\mathrm{ext}}[(\lVert L\rVert^2\id-L^2)\,\omega]=\Tr_{A,\mathrm{ext}}[N\omega N]\ge0$ for the positive
+square root $N$ of $\lVert L\rVert^2\id-L^2$. So $E_0$ maps the support of $\omega_E$ into itself, and so does
+$E_1$; symmetrically $A_0,A_1$ preserve the support of $\omega_A$. Taking the partial trace of
+$\{E_0,E_1\}\omega=0$ gives $\{E_0,E_1\}\omega_E=0$, so $E_0$ and $E_1$ anticommute on the support of $\omega_E$,
+and likewise $A_0,A_1$ on the support of $\omega_A$. All of this holds for every $\varepsilon$, hence on the spans
+$V_E$ and $V_A$.
+
+\emph{Qubits.} Two anticommuting Hermitian operators with square $\id$ on a finite-dimensional space $V$ are
+$Z\otimes\id$ and $X\otimes\id$ for a suitable identification $V\cong\mathbb{C}^2\otimes V''$: the second maps the
+$+1$ eigenspace of the first isometrically onto its $-1$ eigenspace. Apply this to $E_0,E_1$ on $V_E$ and to
+$(A_0+A_1)/\sqrt2,\ (A_0-A_1)/\sqrt2$ on $V_A$, which also anticommute and square to $\id$ there.
+
+\emph{The state.} In these coordinates $W_\varepsilon=\sqrt2\,(\varepsilon_0\,Z\otimes Z+\varepsilon_1\,X\otimes X)\otimes\id$
+on $V_A\otimes V_E\otimes\Hil_{\mathrm{ext}}$. The operators $Z\otimes Z$ and $X\otimes X$ commute and are jointly
+diagonal in the Bell basis, so the largest eigenvalue $2\sqrt2$ of $\sqrt2(\varepsilon_0ZZ+\varepsilon_1XX)$ is
+attained on $\beta_\varepsilon$ only. As $\omega$ is supported on $V_A\otimes V_E\otimes\Hil_{\mathrm{ext}}$ and
+attains this eigenvalue in expectation, $\omega=\proj{\beta_\varepsilon}\otimes\gamma_\varepsilon$.
+\end{proof}

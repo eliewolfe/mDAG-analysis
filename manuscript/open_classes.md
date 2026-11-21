@@ -9,7 +9,7 @@ The question (Roger Colbeck): tell the code that one open class has a gap, see w
 1. **There is a hierarchy, and it is small.** Exactly one open class has others hanging on it. If **class 1** had a gap, **classes 2, 3, 6 and 7** would follow: 5 classes, 16 of the 61 open structures. Class 1 is the KPC structure with one more source, shared by $D$ and $E.$ No other open class would prove any other.
 2. **Two families of hybrid structures would each settle several classes.** A hybrid has some of its sources classical. The KPC structure with a *classical* source shared by $C,$ $D$ and $E$ would settle classes 1, 2, 3, 6 and 7; a hybrid of the structure `0→1, 1→2, 1→3` would settle classes 4 and 5, which do not piggyback onto each other. Section 1.4 lists them.
 3. **Thirty-nine classes share no candidate with another open class.** Within the one-growth budget the open classes reach 15,615 keys. Screening leaves 1,608, including 69 six-node structures for which the full classical metagraph was unavailable. Section 1.5 gives the counts and the six-node saturation argument.
-4. **Going deeper establishes additional hybrid gaps.** The depth-one, deeper cap-five, and deeper cap-six records prove 393, 426, and 469 input or intermediate keys respectively. They prove the same 372 of 418 four-node input classes. The cap-six record is used throughout the hierarchy.
+4. **Going deeper establishes additional hybrid gaps.** The depth-one, deeper cap-five, and deeper cap-six records prove 401, 434, and 477 input or intermediate keys respectively. They prove the same 380 of 426 four-node input classes. The cap-six record is used throughout the hierarchy.
 
 | Target | Settles | Status |
 |---|---|---|
@@ -227,11 +227,11 @@ The census enumerates the parent, d-separation and semigraphoid moves for both p
 
 | Search from named seeds | Input classes proven | Proven keys including intermediates |
 |---|---:|---:|
-| Historical depth-one cascade, cap five | 372 | 393 |
-| Deeper search, cap five, closure through four | 372 | 426 |
-| Deeper search, cap six, closure through five | 372 | 469 |
+| Historical depth-one cascade, cap five | 380 | 401 |
+| Deeper search, cap five, closure through four | 380 | 434 |
+| Deeper search, cap six, closure through five | 380 | 477 |
 
-At cap five, running without gap-free pruning also proved 426 keys and yielded the same four class-to-class implications. The targeted experiment with unlimited non-growing moves already found all 372 input gaps without a growing move. Growth matters here for the larger proof record and for discovering and comparing hybrid research targets.
+At cap five, running without gap-free pruning also proved 434 keys and yielded the same four class-to-class implications. The targeted experiment with unlimited non-growing moves already found all 380 input gaps without a growing move. Growth matters here for the larger proof record and for discovering and comparing hybrid research targets.
 
 ### 1.7 The isolated classes, by family
 
@@ -273,7 +273,7 @@ Three facts turn equivalences into gap transfers.
 
 ### 3.2 Classical equivalences the metagraph already has: nothing to gain
 
-One might hope that a classical equivalence which is not known to be quantum-valid, such as an uncertified HLP edge (1.0: 648 classical HLP edges against 528 certified quantumly), would merge an open class into a proven one if it were shown to hold quantumly. It cannot. Of the 396 classical classes on four nodes:
+One might hope that a classical equivalence which is not known to be quantum-valid, such as an uncertified HLP edge (1.0: 648 classical and 522 quantum HLP edges in the two metagraphs) or one of the five face splits that the classical rule makes and the quantum rule does not (piggybacks.md 0.6), would merge an open class into a proven one if it were shown to hold quantumly. It cannot. Of the 396 classical classes on four nodes:
 
 | quantum classes inside | classical classes | status of every quantum class inside |
 |---|---|---|
@@ -281,12 +281,14 @@ One might hope that a classical equivalence which is not known to be quantum-val
 | 1 | 308 | proven |
 | 1 | **46** | **open** |
 | 2 | 12 | proven |
-| 3 | 5 | proven |
-| 4 | 2 | proven |
+| 3 | 4 | proven |
+| 4 | 1 | proven |
 | 5 | 2 | proven |
+| 6 | 1 | proven |
 | 7 | 1 | proven |
+| 9 | 1 | proven |
 
-Every open class is the only quantum class of its classical class. The 42 splits the quantum rules introduce all lie inside classical classes that are entirely proven. Showing more HLP edges quantum-valid would tidy the proven part of the census and leave the 46 untouched. Any equivalence that helps has to be one the classical metagraph does not have.
+Every open class is the only quantum class of its classical class. The 50 splits the quantum rules introduce all lie inside classical classes that are entirely proven. Showing more HLP edges quantum-valid would tidy the proven part of the census and leave the 46 untouched. Any equivalence that helps has to be one the classical metagraph does not have.
 
 ### 3.3 New classical equivalences, through the upward rule
 

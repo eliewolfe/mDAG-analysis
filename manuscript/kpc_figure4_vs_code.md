@@ -274,7 +274,7 @@ Suppose the search were rebuilt on the equality of two nodes. Three things would
 | | candidate steps | certified by the code, from prediction | certified from the equality | certified from prediction when the copy must remain a node |
 |---|---|---|---|---|
 | the 46 open classes | 504 | 184 | 184, the same ones | 162 |
-| all 418 classes | 4,482 | 2,491 | 2,491, the same ones | 2,280 |
+| all 426 classes | 4,482 | 2,491 | 2,491, the same ones | 2,280 |
 
 The second half of the equality certifies no step that the first half does not. It is needed only to keep the copy as a node, which the code never does.
 

@@ -7,15 +7,15 @@ import pytest
 
 HAVE_MOSEK = importlib.util.find_spec("mosek") is not None
 
-# The inputs: the 418 quantum equivalence classes of the four-node mDAGs with every latent quantum that are not
+# The inputs: the 426 quantum equivalence classes of the four-node mDAGs with every latent quantum that are not
 # provably algebraic (996 structures up to relabelling, in 376 classical classes); every seed (three- and four-node)
 # is known from the start and the two Bell seed classes are inputs proven by identity (manuscript/piggybacks.md,
 # Section 1). The lookups (degradation, upward) are part of every group.
 EXPECTED_COUNTS = {
-    'inputs': 418,
-    'proven': 372,
+    'inputs': 426,
+    'proven': 380,
     'remaining': 46,
-    'labelled_inputs': 418,
+    'labelled_inputs': 426,
     'structures': 996,
     'structures proven': 935,
     'structures remaining': 61,
@@ -24,14 +24,14 @@ EXPECTED_COUNTS = {
     'classical classes of remaining': 46,
     'classical classes with proven and unproven': 0,
     'with identity': 2,
-    'with PD': 341,
+    'with PD': 349,
     'with node_stitching': 7,
     'with conditioning': 63,
-    'with naive_marginalization': 170,
-    'with teleportation_marginalization': 178,
-    'with marginalization (either kind)': 178,
+    'with naive_marginalization': 173,
+    'with teleportation_marginalization': 181,
+    'with marginalization (either kind)': 181,
     'only via identity': 0,
-    'only via PD': 164,
+    'only via PD': 169,
     'only via node_stitching': 0,
     'only via conditioning': 15,
     'only via naive_marginalization': 0,
@@ -43,16 +43,16 @@ EXPECTED_COUNTS = {
 # four closure Fritz stages. The cumulative stage counts (by the stage in which each transition was recorded) must
 # agree with the rungs of the ladder (by the recorded parameters).
 EXPECTED_STAGES = [
-    ('elementary', 366),
-    ('Fritz, parent predictor', 369),
-    ('Fritz, unsplit target, unsplit predictor, d-separation', 370),
-    ('Fritz, unsplit target, split predictor, d-separation', 370),
-    ('Fritz, split target, unsplit predictor, d-separation', 370),
-    ('Fritz, split target, split predictor, d-separation', 371),
-    ('Fritz, unsplit target, unsplit predictor, semigraphoid closure', 371),
-    ('Fritz, unsplit target, split predictor, semigraphoid closure', 372),
-    ('Fritz, split target, unsplit predictor, semigraphoid closure', 372),
-    ('Fritz, split target, split predictor, semigraphoid closure', 372),
+    ('elementary', 374),
+    ('Fritz, parent predictor', 377),
+    ('Fritz, unsplit target, unsplit predictor, d-separation', 378),
+    ('Fritz, unsplit target, split predictor, d-separation', 378),
+    ('Fritz, split target, unsplit predictor, d-separation', 378),
+    ('Fritz, split target, split predictor, d-separation', 379),
+    ('Fritz, unsplit target, unsplit predictor, semigraphoid closure', 379),
+    ('Fritz, unsplit target, split predictor, semigraphoid closure', 380),
+    ('Fritz, split target, unsplit predictor, semigraphoid closure', 380),
+    ('Fritz, split target, split predictor, semigraphoid closure', 380),
 ]
 EXPECTED_LADDER = [count for _, count in EXPECTED_STAGES]
 
@@ -157,7 +157,7 @@ def test_census_experiments():
 
     # "only via" of 1.1: (whole record, of which proven through a Fritz step, elementary stage alone)
     assert experiments.only_via_by_stage(baseline[0]) == {
-        'PD': (164, 0, 164), 'node_stitching': (0, 0, 0), 'conditioning': (15, 1, 14),
+        'PD': (169, 0, 169), 'node_stitching': (0, 0, 0), 'conditioning': (15, 1, 14),
         'naive_marginalization': (0, 0, 0), 'teleportation_marginalization': (9, 4, 5),
         'marginalization (either kind)': (11, 4, 7)}
 
@@ -176,7 +176,7 @@ def test_census_experiments():
     exit_off = experiments.experiment_early_exit(index, baseline)
     assert (exit_off['checks with the exit'], exit_off['checks without']) == (696, 706)
     assert (exit_off['certified with the exit'], exit_off['certified without']) == (37, 46)
-    assert exit_off['same proven classes'] and exit_off['same database'] and exit_off['database keys'] == 393
+    assert exit_off['same proven classes'] and exit_off['same database'] and exit_off['database keys'] == 401
 
     assert experiments.experiment_markov_target_set(index)['certified by markov'] == 0
 

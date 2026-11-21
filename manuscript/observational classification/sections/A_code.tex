@@ -1,0 +1,69 @@
+\section{Correspondence with the code}\label{app:code}
+
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}p{5.2cm}p{10.6cm}@{}}
+\toprule
+\textbf{In this note} & \textbf{In the repository}\\
+\midrule
+structure, source & \code{mDAG} (\code{mDAG\_advanced.py}): a directed structure and a simplicial complex whose
+  facets are the sources; \code{QmDAG} (\code{quantum\_mDAG.py}) for hybrids\\
+structural dominance (\cref{lem:monotone}) & \code{Observable\_unlabelled\_mDAGs.structural\_dominances}
+  (\code{metagraph\_advanced.py})\\
+premeasurable node (\cref{def:prem}) & \code{mDAG.is\_premeasurable}\\
+\cref{thm:split}, closed families & \code{mDAG.quantum\_splittable\_families}; generator
+  \code{generate\_weaker\_mDAGs\_FaceSplitting('quantum')}. For each $D$ the code takes the largest family; smaller
+  ones are sandwiched (\cref{sec:split})\\
+weak, moderate, strong face splitting (\AWS\ Props.~5, 7, 8) & \code{mDAG.weak\_splittable\_faces};
+  \code{mDAG.splittable\_faces} with the versions \code{'moderate'} and \code{'strong'}\\
+classical hypothesis (H1), (H2) (\AWS\ Prop.~4) & \code{mDAG.droppable\_edges}\\
+Rule A with shared settings and Rule B (\cref{prop:ruleA-settings,thm:ruleB}) &
+  \code{mDAG.quantum\_hlp\_origin\_ok} filters the classical candidates for
+  \code{quantum\_droppable\_edges} and \code{quantum\_addable\_edges}\\
+\cref{lem:simultaneous} & \code{mDAG.weaker\_mDAG\_HLP(rule)}, which drops every droppable edge of a structure that
+  has no addable one\\
+metagraph; quantum and classical classes & \code{QuantumMetagraph}, \code{ClassicalMetagraph.from\_quantum}; the
+  table \code{FACE\_SPLITTING\_VERSION} selects \code{'quantum'} or \code{'strong'};
+  \code{equivalence\_classes.ClassIndex} keys the census by class\\
+the upward rule (\cref{lem:upward}) & \code{ClassIndex.upward\_steps}\\
+\cref{prop:lift} & \code{QmDAG.lift}\\
+seeds, reductions, the search, the census & \code{known\_QC\_gaps.py}, \code{qc\_gap\_search.py}, \code{growth\_census.py},
+  \code{Special Applications/proving\_QC\_Gaps.py}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Tests.} \code{tests/test\_metagraph.py} pins the class counts of \cref{sec:census}, checks by brute force
+on every four-node structure that the family the code finds is the union of all closed families, and contains a
+pair of overlapping sources that are split together, the six-node pair of \cref{thm:sixnode} and the five groups
+of \cref{sec:open-four}.
+
+\paragraph{Scripts of this directory} (\code{scripts/}, outputs in \code{scripts/output/}). Where the text says
+``checked by a script'', it is one of these.
+\begin{itemize}
+\item \code{check\_examples.py}: every example, warning and open case of \cref{sec:split,sec:edge,sec:notquantum}
+  against the code's own tests of the hypotheses, and against the classes where the structure has three or four
+  nodes; the chains of steps in the remarks after \cref{thm:sixnode}; the four-node count after \cref{prop:ruleA-settings}.
+\item \code{class\_counts.py}: the number of quantum classes under each version of face splitting, the groups of
+  \cref{sec:open-four}, the two classes that need several sources split together (\exref{ex:together}), the
+  number of quantum classes inside each classical class, and the instances of the classical edge rule counted in
+  \cref{sec:open-summary}.
+\item \code{census\_facts.py}: the table of \cref{sec:census}, the sizes of the open classes, the proofs of the $13$
+  separated structures, and the numbers of \cref{fig:nesting}.
+\item \code{six\_node\_strategy.py}: properties (P1) and (P2) of the strategy of \cref{thm:sixnode}, numerically.
+\item \code{only\_via\_equivalence.py}: the table of \cref{sec:only-via}.
+\end{itemize}
+
+\paragraph{To reproduce.} From the repository root, with the dependencies of \code{pyproject.toml} installed:
+\begin{verbatim}
+pytest                                   # fast suite
+pytest -m slow                           # the census pins
+python "Special Applications/proving_QC_Gaps.py" --no-cache
+cd "manuscript/observational classification"
+python scripts/check_examples.py && python scripts/class_counts.py
+python scripts/class_counts.py --five     # include the five-node classification
+python scripts/census_facts.py && python scripts/six_node_strategy.py
+python scripts/only_via_equivalence.py
+./build.sh
+\end{verbatim}

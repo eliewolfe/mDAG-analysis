@@ -1,0 +1,81 @@
+{
+ "baselines": {
+  "all seeds; classical equivalence in the upward rule": {
+   "classes proven by the census over classes": 380,
+   "classes they lie in": 1,
+   "groups": [
+    {
+     "class size": 5,
+     "reached only through equivalence": [
+      "1\u21922, 2\u21923; Q{0,1}, Q{0,3}"
+     ],
+     "reached without equivalence": [
+      "0\u21921, 0\u21923, 1\u21922; Q{2,3}",
+      "0\u21921, 0\u21923, 1\u21922; Q{0,3}, Q{2,3}",
+      "0\u21923, 1\u21922; Q{0,1}, Q{2,3}",
+      "0\u21921, 0\u21923, 1\u21922; Q{0,1}, Q{2,3}"
+     ]
+    }
+   ],
+   "structures in those classes": 935,
+   "structures proven one by one": 934,
+   "structures reached only through equivalence": 1
+  },
+  "all seeds; no equivalence": {
+   "classes proven by the census over classes": 380,
+   "classes they lie in": 1,
+   "groups": [
+    {
+     "class size": 5,
+     "reached only through equivalence": [
+      "1\u21922, 2\u21923; Q{0,1}, Q{0,3}",
+      "0\u21921, 0\u21923, 1\u21922; Q{0,3}, Q{2,3}"
+     ],
+     "reached without equivalence": [
+      "0\u21921, 0\u21923, 1\u21922; Q{2,3}",
+      "0\u21923, 1\u21922; Q{0,1}, Q{2,3}",
+      "0\u21921, 0\u21923, 1\u21922; Q{0,1}, Q{2,3}"
+     ]
+    }
+   ],
+   "structures in those classes": 935,
+   "structures proven one by one": 933,
+   "structures reached only through equivalence": 2
+  },
+  "standard seeds; classical equivalence in the upward rule": {
+   "classes proven by the census over classes": 379,
+   "classes they lie in": 0,
+   "groups": [],
+   "structures in those classes": 930,
+   "structures proven one by one": 930,
+   "structures reached only through equivalence": 0
+  },
+  "standard seeds; no equivalence": {
+   "classes proven by the census over classes": 379,
+   "classes they lie in": 0,
+   "groups": [],
+   "structures in those classes": 930,
+   "structures proven one by one": 930,
+   "structures reached only through equivalence": 0
+  }
+ },
+ "deeper search": {
+  "all seeds; classical equivalence in the upward rule": {
+   "classes proven by the census over classes": 380,
+   "reached only through equivalence": [
+    "1\u21922, 2\u21923; Q{0,1}, Q{0,3}"
+   ],
+   "structures proven one by one": 934
+  },
+  "all seeds; no equivalence": {
+   "classes proven by the census over classes": 380,
+   "reached only through equivalence": [
+    "1\u21922, 2\u21923; Q{0,1}, Q{0,3}",
+    "0\u21921, 0\u21923, 1\u21922; Q{0,3}, Q{2,3}"
+   ],
+   "structures proven one by one": 933
+  }
+ },
+ "input classes": 426,
+ "structures": 996
+}

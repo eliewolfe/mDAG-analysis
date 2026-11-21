@@ -1,0 +1,141 @@
+{
+ "3": {
+  "input classes": 3,
+  "open classes": 0,
+  "proven classes": 3,
+  "sizes of the open classes": {},
+  "structures in open classes": 0,
+  "structures in proven classes": 5,
+  "structures in them": 5
+ },
+ "4": {
+  "input classes": 426,
+  "open classes": 46,
+  "proven classes": 380,
+  "sizes of the open classes": {
+   "1": 44,
+   "5": 1,
+   "12": 1
+  },
+  "structures in open classes": 61,
+  "structures in proven classes": 935,
+  "structures in them": 996
+ },
+ "classical classes": {
+  "all": 396,
+  "of those, every quantum class is an input of the census and proven": 22,
+  "open classes": 46,
+  "open classes that are the only quantum class of their classical class": 46,
+  "quantum classes inside those": 72,
+  "sizes of those": {
+   "2": 12,
+   "3": 4,
+   "4": 1,
+   "5": 2,
+   "6": 1,
+   "7": 1,
+   "9": 1
+  },
+  "with one quantum class": 374,
+  "with one quantum class, by status": {
+   "no gap possible": 20,
+   "open": 46,
+   "proven": 308
+  },
+  "with several quantum classes": 22
+ },
+ "separated by the quantum rule": {
+  "all proven": true,
+  "groups": [
+   [
+    {
+     "proof": "PD",
+     "proven": true,
+     "seed": "QG_Evans",
+     "structure": "0\u21921, 0\u21922, 0\u21923, 2\u21923; Q{0,1,3}, Q{0,2}"
+    },
+    {
+     "proof": "upward > PD",
+     "proven": true,
+     "seed": "QG_Evans",
+     "structure": "0\u21921, 0\u21922, 0\u21923, 2\u21923; Q{0,1,3}, Q{0,2}, Q{2,3}"
+    },
+    {
+     "proof": "upward > PD",
+     "proven": true,
+     "seed": "QG_Evans",
+     "structure": "0\u21921, 0\u21922, 0\u21923, 2\u21923; Q{0,1,3}, Q{0,2,3}"
+    }
+   ],
+   [
+    {
+     "proof": "PD",
+     "proven": true,
+     "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
+     "structure": "0\u21921, 0\u21922, 1\u21922, 2\u21923; Q{0,1}, Q{0,2,3}"
+    },
+    {
+     "proof": "upward > PD",
+     "proven": true,
+     "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
+     "structure": "0\u21921, 0\u21922, 1\u21922, 2\u21923; Q{0,1}, Q{0,2,3}, Q{1,2}"
+    },
+    {
+     "proof": "upward > PD",
+     "proven": true,
+     "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
+     "structure": "0\u21921, 0\u21922, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,2,3}"
+    }
+   ],
+   [
+    {
+     "proof": "PD",
+     "proven": true,
+     "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
+     "structure": "0\u21921, 0\u21922, 0\u21923, 1\u21922, 2\u21923; Q{0,1}, Q{0,2,3}"
+    },
+    {
+     "proof": "upward > PD",
+     "proven": true,
+     "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
+     "structure": "0\u21921, 0\u21922, 0\u21923, 1\u21922, 2\u21923; Q{0,1}, Q{0,2,3}, Q{1,2}"
+    },
+    {
+     "proof": "upward > PD",
+     "proven": true,
+     "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
+     "structure": "0\u21921, 0\u21922, 0\u21923, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,2,3}"
+    }
+   ],
+   [
+    {
+     "proof": "PD > degradation",
+     "proven": true,
+     "seed": "QG_Triangle",
+     "structure": "1\u21923, 2\u21923; Q{0,1,3}, Q{0,2,3}, Q{1,2}"
+    },
+    {
+     "proof": "upward > PD > degradation",
+     "proven": true,
+     "seed": "QG_Triangle",
+     "structure": "1\u21923, 2\u21923; Q{0,1,3}, Q{0,2,3}, Q{1,2,3}"
+    }
+   ],
+   [
+    {
+     "proof": "PD > degradation",
+     "proven": true,
+     "seed": "QG_Triangle",
+     "structure": "0\u21922, 1\u21922, 2\u21923; Q{0,1}, Q{0,2,3}, Q{1,2,3}"
+    },
+    {
+     "proof": "upward > PD > degradation",
+     "proven": true,
+     "seed": "QG_Triangle",
+     "structure": "0\u21922, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,2,3}, Q{1,2,3}"
+    }
+   ]
+  ],
+  "structures": 13
+ }
+}

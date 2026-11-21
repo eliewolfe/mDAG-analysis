@@ -37,7 +37,10 @@ class BoundedPaths:
     def __init__(self, explorer, resume_at):
         self.explorer = explorer
         self.resume_at = resume_at
-        self.reverse = S._reverse_edges(explorer)
+
+    @property
+    def reverse(self):
+        return S._reverse_edges(self.explorer)
 
     def forward(self, root, goals=None):
         initial = (root, Phase.AVAILABLE)
@@ -62,13 +65,15 @@ class BoundedPaths:
             return {key for key, phase in parents}
         return None
 
-    def to_goals(self, goals, tricks=None, keep=None):
+    def to_goals(self, goals, tricks=None, keep=None, *, reverse=None):
         """Shortest admissible suffix from every state, including zero-length seed hits."""
+        if reverse is None:
+            reverse = self.reverse
         routes = {(goal, phase): None for goal in sorted(goals) for phase in Phase}
         queue = deque(routes)
         while queue:
             key, phase = state = queue.popleft()
-            for edge in self.reverse.get(key, ()):
+            for edge in reverse.get(key, ()):
                 if (tricks is not None and edge.trick not in tricks) or (keep is not None and not keep(edge)):
                     continue
                 for prev in Phase:
@@ -250,7 +255,8 @@ def bounded_report(paths, inputs, named_seeds, groups, known=None, stage_counts=
     explorer = paths.explorer
     seed_ids = S._seed_keys(explorer, named_seeds, known)
     seeds = set(seed_ids)
-    routes = paths.to_goals(seeds)
+    reverse = paths.reverse   # share one snapshot across all counts for this report
+    routes = paths.to_goals(seeds, reverse=reverse)
     report = S.GapReport(inputs, named_seeds, {}, {}, [], {}, {}, explorer, [], known or {}, _seed_keys=seed_ids)
     report.bounded = paths
     report.screening = paths.screening
@@ -268,10 +274,8 @@ def bounded_report(paths, inputs, named_seeds, groups, known=None, stage_counts=
             report.seed_hit[k] = report.seed_keys[state[0]]
     report.remaining = [g for g in report.inputs if report.key(g) not in report.proven]
     inputs = set(report.input_ids)
-    all_tricks = frozenset(explorer.tricks) | S.LOOKUP_TRICKS | {'Fritz'}
-
     def count(tricks=None, keep=None):
-        reach = paths.to_goals(seeds, tricks, keep)
+        reach = paths.to_goals(seeds, tricks, keep, reverse=reverse)
         return sum((k, Phase.AVAILABLE) in reach for k in inputs)
 
     if stage_counts is None:
@@ -280,5 +284,5 @@ def bounded_report(paths, inputs, named_seeds, groups, known=None, stage_counts=
     report.stage_counts = list(stage_counts) + [(explorer.stage_names[-1], len(report.proven))]
     for name, (allowed, excluded) in groups.items():
         report.provable_with[name] = count(allowed)
-        report.only_via[name] = len(report.proven) - count(all_tricks - excluded)
+        report.only_via[name] = len(report.proven) - count(keep=lambda edge: edge.trick not in excluded)
     return report

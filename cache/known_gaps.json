@@ -126,7 +126,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -244,7 +244,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -609,7 +609,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -729,7 +729,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -914,7 +914,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -1035,7 +1035,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -1157,7 +1157,7 @@
    "versions": {
     "conditioning": 4,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -1280,7 +1280,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -1391,7 +1391,7 @@
    },
    "versions": {
     "Fritz": 8,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -1517,7 +1517,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -1660,7 +1660,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -1749,7 +1749,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -1916,55 +1916,18 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,14,0,1755": {
-   "certificate": "upward(('above', '{0:[1,2,3],1:[],2:[],3:[]}|[(0,1,3),(0,2,3),(1,2)]'), ('below', '{0:[],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3),(2,3)]')):\n    Children  : {0:[1,2,3],1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2,3),(1,2)]\nPD(('drop', 1),):\n    Children  : {0:[],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3),(2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
+   "certificate": "PD(('drop', 0),):\n    Children  : {0:[1,2,3],1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2,3),(1,2)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
    "chain": [
     {
      "params": [
       [
-       "above",
-       "{0:[1,2,3],1:[],2:[],3:[]}|[(0,1,3),(0,2,3),(1,2)]"
-      ],
-      [
-       "below",
-       "{0:[],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3),(2,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      6,
-      0,
-      1755
-     ],
-     "source": [
-      4,
-      14,
-      0,
-      1755
-     ],
-     "target": [
-      4,
-      6,
-      0,
-      1755
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      14,
-      0,
-      1755
-     ]
-    },
-    {
-     "params": [
-      [
        "drop",
-       1
+       0
       ]
      ],
      "produced": [
@@ -1975,7 +1938,7 @@
      ],
      "source": [
       4,
-      6,
+      14,
       0,
       1755
      ],
@@ -1988,7 +1951,7 @@
      "trick": "PD",
      "via": [
       4,
-      6,
+      14,
       0,
       1755
      ]
@@ -2086,56 +2049,18 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,14,0,183": {
-   "certificate": "upward(('above', '{0:[1,2,3],1:[],2:[],3:[]}|[(0,1,3),(0,2,3)]'), ('below', '{0:[],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]')):\n    Children  : {0:[1,2,3],1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2,3)]\nPD(('drop', 0),):\n    Children  : {0:[],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 3),):\n    Children  : {0:[1,2,3],1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
    "chain": [
     {
      "params": [
       [
-       "above",
-       "{0:[1,2,3],1:[],2:[],3:[]}|[(0,1,3),(0,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      6,
-      0,
-      219
-     ],
-     "source": [
-      4,
-      14,
-      0,
-      183
-     ],
-     "target": [
-      4,
-      6,
-      0,
-      219
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      14,
-      0,
-      183
-     ]
-    },
-    {
-     "params": [
-      [
        "drop",
-       0
+       3
       ]
      ],
      "produced": [
@@ -2146,9 +2071,9 @@
      ],
      "source": [
       4,
-      6,
+      14,
       0,
-      219
+      183
      ],
      "target": [
       3,
@@ -2159,9 +2084,9 @@
      "trick": "PD",
      "via": [
       4,
-      6,
+      14,
       0,
-      219
+      183
      ]
     }
    ],
@@ -2210,8 +2135,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -2299,7 +2223,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -2391,7 +2315,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -2525,7 +2449,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -2617,7 +2541,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -2753,7 +2677,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -2849,7 +2773,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -2933,7 +2857,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -3018,7 +2942,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -3153,7 +3077,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -3490,7 +3414,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -3633,7 +3557,7 @@
    },
    "versions": {
     "conditioning": 4,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -4141,7 +4065,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -4266,7 +4190,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -5403,7 +5327,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -5843,7 +5767,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -6085,7 +6009,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -6483,7 +6407,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -6638,7 +6562,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -6781,7 +6705,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -6862,7 +6786,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -7010,7 +6934,7 @@
     ]
    },
    "versions": {
-    "metagraph": 2,
+    "metagraph": 4,
     "node_stitching": 1
    },
    "via_cache": null
@@ -7090,51 +7014,14 @@
     ]
    },
    "versions": {
-    "metagraph": 2,
+    "metagraph": 4,
     "naive_marginalization": 1
    },
    "via_cache": null
   },
   "4,2,0,3255": {
-   "certificate": "upward(('above', '{0:[],1:[],2:[3],3:[]}|[(0,1),(0,2,3),(1,2,3)]'), ('below', '{0:[],1:[],2:[],3:[]}|[(0,1),(0,2,3),(1,2,3)]')):\n    Children  : {0:[],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2,3),(1,2,3)]\nPD(('drop', 2),):\n    Children  : {0:[],1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2,3),(1,2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
+   "certificate": "PD(('drop', 2),):\n    Children  : {0:[],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2,3),(1,2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[],1:[],2:[3],3:[]}|[(0,1),(0,2,3),(1,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[],1:[],2:[],3:[]}|[(0,1),(0,2,3),(1,2,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      0,
-      0,
-      1755
-     ],
-     "source": [
-      4,
-      2,
-      0,
-      3255
-     ],
-     "target": [
-      4,
-      0,
-      0,
-      1755
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      2,
-      0,
-      3255
-     ]
-    },
     {
      "params": [
       [
@@ -7150,9 +7037,9 @@
      ],
      "source": [
       4,
+      2,
       0,
-      0,
-      1755
+      3255
      ],
      "target": [
       3,
@@ -7163,9 +7050,9 @@
      "trick": "PD",
      "via": [
       4,
+      2,
       0,
-      0,
-      1755
+      3255
      ]
     },
     {
@@ -7253,8 +7140,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -7380,7 +7266,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -7505,7 +7391,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -7629,50 +7515,13 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,2,0,3767": {
-   "certificate": "upward(('above', '{0:[],1:[],2:[3],3:[]}|[(0,1,3),(0,2,3),(1,2,3)]'), ('below', '{0:[],1:[],2:[],3:[]}|[(0,1,3),(0,2,3),(1,2,3)]')):\n    Children  : {0:[],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2,3),(1,2,3)]\nPD(('drop', 3),):\n    Children  : {0:[],1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2,3),(1,2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
+   "certificate": "PD(('drop', 3),):\n    Children  : {0:[],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2,3),(1,2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[],1:[],2:[3],3:[]}|[(0,1,3),(0,2,3),(1,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[],1:[],2:[],3:[]}|[(0,1,3),(0,2,3),(1,2,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      0,
-      0,
-      3511
-     ],
-     "source": [
-      4,
-      2,
-      0,
-      3767
-     ],
-     "target": [
-      4,
-      0,
-      0,
-      3511
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      2,
-      0,
-      3767
-     ]
-    },
     {
      "params": [
       [
@@ -7688,9 +7537,9 @@
      ],
      "source": [
       4,
+      2,
       0,
-      0,
-      3511
+      3767
      ],
      "target": [
       3,
@@ -7701,9 +7550,9 @@
      "trick": "PD",
      "via": [
       4,
+      2,
       0,
-      0,
-      3511
+      3767
      ]
     },
     {
@@ -7792,8 +7641,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -7920,7 +7768,7 @@
    "versions": {
     "conditioning": 4,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -8048,7 +7896,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -8176,7 +8024,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -8260,7 +8108,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -8387,25 +8235,25 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,2,0,51539": {
-   "certificate": "PD(('drop', 0),):\n    Children  : {0:[],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(1,2),(2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "certificate": "naive_marginalization(('marginalize', 2),):\n    Children  : {0:[],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(1,2),(2,3)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
    "chain": [
     {
      "params": [
       [
-       "drop",
-       0
+       "marginalize",
+       2
       ]
      ],
      "produced": [
       3,
-      2,
       0,
-      43
+      43,
+      6
      ],
      "source": [
       4,
@@ -8415,11 +8263,11 @@
      ],
      "target": [
       3,
-      2,
       0,
-      43
+      43,
+      6
      ],
-     "trick": "PD",
+     "trick": "naive_marginalization",
      "via": [
       4,
       2,
@@ -8435,7 +8283,7 @@
     0,
     51539
    ],
-   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
+   "seed": "QG_Triangle",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -8470,8 +8318,8 @@
     ]
    },
    "versions": {
-    "PD": 1,
-    "metagraph": 2
+    "metagraph": 4,
+    "naive_marginalization": 1
    },
    "via_cache": null
   },
@@ -8599,7 +8447,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -8687,7 +8535,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -8818,7 +8666,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -8949,7 +8797,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -10273,7 +10121,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -10780,7 +10628,7 @@
     ]
    },
    "versions": {
-    "metagraph": 2,
+    "metagraph": 4,
     "teleportation_marginalization": 1
    },
    "via_cache": null
@@ -10920,7 +10768,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -11476,7 +11324,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -11619,7 +11467,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -11886,7 +11734,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -12028,7 +11876,7 @@
     ]
    },
    "versions": {
-    "metagraph": 2,
+    "metagraph": 4,
     "naive_marginalization": 1
    },
    "via_cache": null
@@ -12175,7 +12023,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -12330,7 +12178,7 @@
    },
    "versions": {
     "conditioning": 4,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -12459,55 +12307,18 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,20,0,183": {
-   "certificate": "upward(('above', '{0:[1,2],1:[2],2:[3],3:[]}|[(1,2,3)]'), ('below', '{0:[1,3],1:[2],2:[],3:[]}|[(1,2,3)]')):\n    Children  : {0:[1,2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(1,2,3)]\nPD(('drop', 3),):\n    Children  : {0:[1,3],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(2,3)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "certificate": "PD(('drop', 1),):\n    Children  : {0:[1,2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(1,2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(2,3)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
     {
      "params": [
       [
-       "above",
-       "{0:[1,2],1:[2],2:[3],3:[]}|[(1,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[1,3],1:[2],2:[],3:[]}|[(1,2,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      2,
-      0,
-      215
-     ],
-     "source": [
-      4,
-      20,
-      0,
-      183
-     ],
-     "target": [
-      4,
-      2,
-      0,
-      215
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      344,
-      0,
-      13
-     ]
-    },
-    {
-     "params": [
-      [
        "drop",
-       3
+       1
       ]
      ],
      "produced": [
@@ -12518,9 +12329,9 @@
      ],
      "source": [
       4,
-      2,
+      20,
       0,
-      215
+      183
      ],
      "target": [
       3,
@@ -12531,9 +12342,9 @@
      "trick": "PD",
      "via": [
       4,
-      74,
+      344,
       0,
-      14
+      13
      ]
     }
    ],
@@ -12984,8 +12795,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -13493,50 +13303,13 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,20,0,231": {
-   "certificate": "upward(('above', '{0:[1,3],1:[2],2:[3],3:[]}|[(1,2,3)]'), ('below', '{0:[1,3],1:[2],2:[],3:[]}|[(1,2,3)]')):\n    Children  : {0:[1,3],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(1,2,3)]\nPD(('drop', 3),):\n    Children  : {0:[1,3],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(2,3)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "certificate": "PD(('drop', 3),):\n    Children  : {0:[1,3],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(1,2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(2,3)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[1,3],1:[2],2:[3],3:[]}|[(1,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[1,3],1:[2],2:[],3:[]}|[(1,2,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      2,
-      0,
-      215
-     ],
-     "source": [
-      4,
-      20,
-      0,
-      231
-     ],
-     "target": [
-      4,
-      2,
-      0,
-      215
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      456,
-      0,
-      13
-     ]
-    },
     {
      "params": [
       [
@@ -13552,9 +13325,9 @@
      ],
      "source": [
       4,
-      2,
+      20,
       0,
-      215
+      231
      ],
      "target": [
       3,
@@ -13565,9 +13338,9 @@
      "trick": "PD",
      "via": [
       4,
-      74,
+      456,
       0,
-      14
+      13
      ]
     }
    ],
@@ -14018,8 +13791,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -14174,7 +13946,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -14329,7 +14101,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -14483,31 +14255,31 @@
     ]
    },
    "versions": {
-    "metagraph": 2,
+    "metagraph": 4,
     "naive_marginalization": 1
    },
    "via_cache": null
   },
   "4,20,0,2665": {
-   "certificate": "Fritz(('targets', (1,)), ('target_mode', 'split'), ('deleted', ((\"Q{1,3,1'}\",),)), ('predictor', (0,)), ('predictor_mode', 'split'), ('certificate', 'dsep')):\n    Children  : {0:[],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(1,3)]\nconditioning(('condition', 0),):\n    Children  : {0:[],1:[2],2:[3],3:[],4:[2]}\n    Classical : [(0,1,4)]\n    Quantum   : [(0,1),(0,2),(1,3)]\nteleportation_marginalization(('marginalize', 0),):\n    Children  : {1:[2],2:[3],3:[],4:[2]}\n    Classical : [(1,2,4)]\n    Quantum   : [(1,3),(1,2)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[1],1:[2],2:[]}\n    Classical : [(0,1)]\n    Quantum   : [(1,2)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "certificate": "Fritz(('targets', (2,)), ('target_mode', 'unsplit'), ('deleted', ((1,),)), ('predictor', (0,)), ('predictor_mode', 'split'), ('certificate', 'semigraphoid')):\n    Children  : {0:[],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(1,3)]\nnode_stitching((('sink', 0), ('source', 1)),):\n    Children  : {0:[],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
    "chain": [
     {
      "params": [
       [
        "targets",
        [
-        1
+        2
        ]
       ],
       [
        "target_mode",
-       "split"
+       "unsplit"
       ],
       [
        "deleted",
        [
         [
-         "Q{1,3,1'}"
+         1
         ]
        ]
       ],
@@ -14523,14 +14295,14 @@
       ],
       [
        "certificate",
-       "dsep"
+       "semigraphoid"
       ]
      ],
      "produced": [
+      4,
+      2,
       5,
-      1064,
-      22,
-      18769
+      202
      ],
      "source": [
       4,
@@ -14539,10 +14311,10 @@
       2665
      ],
      "target": [
-      5,
-      1064,
-      22,
-      18769
+      4,
+      2,
+      0,
+      3177
      ],
      "trick": "Fritz",
      "via": [
@@ -14555,67 +14327,40 @@
     {
      "params": [
       [
-       "condition",
-       0
-      ]
-     ],
-     "produced": [
-      4,
-      280,
-      7,
-      163
-     ],
-     "source": [
-      5,
-      1064,
-      22,
-      18769
-     ],
-     "target": [
-      4,
-      280,
-      7,
-      163
-     ],
-     "trick": "conditioning",
-     "via": [
-      5,
-      1064,
-      22,
-      18769
-     ]
-    },
-    {
-     "params": [
-      [
-       "marginalize",
-       0
+       [
+        "sink",
+        0
+       ],
+       [
+        "source",
+        1
+       ]
       ]
      ],
      "produced": [
       3,
-      12,
-      3,
-      5
-     ],
-     "source": [
-      4,
-      280,
-      7,
-      163
-     ],
-     "target": [
-      3,
-      2,
+      6,
       0,
       43
      ],
-     "trick": "teleportation_marginalization",
+     "source": [
+      4,
+      2,
+      0,
+      3177
+     ],
+     "target": [
+      3,
+      6,
+      0,
+      43
+     ],
+     "trick": "node_stitching",
      "via": [
       4,
-      280,
-      7,
-      163
+      6,
+      0,
+      202
      ]
     }
    ],
@@ -14626,7 +14371,7 @@
     0,
     2665
    ],
-   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
+   "seed": "QG_Evans",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -14662,9 +14407,8 @@
    },
    "versions": {
     "Fritz": 8,
-    "conditioning": 4,
-    "metagraph": 2,
-    "teleportation_marginalization": 1
+    "metagraph": 4,
+    "node_stitching": 1
    },
    "via_cache": null
   },
@@ -14792,7 +14536,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -14877,7 +14621,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -15006,7 +14750,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -15260,7 +15004,7 @@
    },
    "versions": {
     "Fritz": 8,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -15388,7 +15132,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -15472,7 +15216,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -15697,7 +15441,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -15824,7 +15568,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -15909,50 +15653,13 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,20,0,3255": {
-   "certificate": "upward(('above', '{0:[],1:[2],2:[3],3:[]}|[(0,1,2),(0,3),(1,2,3)]'), ('below', '{0:[],1:[],2:[3],3:[]}|[(0,1,2),(0,3),(1,2,3)]')):\n    Children  : {0:[],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,3),(1,2,3)]\nPD(('drop', 2),):\n    Children  : {0:[],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,3),(1,2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
+   "certificate": "PD(('drop', 2),):\n    Children  : {0:[],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,3),(1,2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[],1:[2],2:[3],3:[]}|[(0,1,2),(0,3),(1,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[],1:[],2:[3],3:[]}|[(0,1,2),(0,3),(1,2,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      2,
-      0,
-      1755
-     ],
-     "source": [
-      4,
-      20,
-      0,
-      3255
-     ],
-     "target": [
-      4,
-      2,
-      0,
-      1755
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      20,
-      0,
-      3255
-     ]
-    },
     {
      "params": [
       [
@@ -15968,9 +15675,9 @@
      ],
      "source": [
       4,
-      2,
+      20,
       0,
-      1755
+      3255
      ],
      "target": [
       3,
@@ -15981,9 +15688,9 @@
      "trick": "PD",
      "via": [
       4,
-      2,
+      20,
       0,
-      1755
+      3255
      ]
     },
     {
@@ -16075,51 +15782,13 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,20,0,3511": {
-   "certificate": "upward(('above', '{0:[],1:[2],2:[3],3:[]}|[(0,1,2),(0,2,3),(1,2,3)]'), ('below', '{0:[],1:[],2:[3],3:[]}|[(0,1,2),(0,2,3),(1,2,3)]')):\n    Children  : {0:[],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,2,3),(1,2,3)]\nPD(('drop', 2),):\n    Children  : {0:[],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,2,3),(1,2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
+   "certificate": "PD(('drop', 2),):\n    Children  : {0:[],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,2,3),(1,2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[],1:[2],2:[3],3:[]}|[(0,1,2),(0,2,3),(1,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[],1:[],2:[3],3:[]}|[(0,1,2),(0,2,3),(1,2,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      2,
-      0,
-      3511
-     ],
-     "source": [
-      4,
-      20,
-      0,
-      3511
-     ],
-     "target": [
-      4,
-      2,
-      0,
-      3511
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      20,
-      0,
-      3511
-     ]
-    },
     {
      "params": [
       [
@@ -16135,7 +15804,7 @@
      ],
      "source": [
       4,
-      2,
+      20,
       0,
       3511
      ],
@@ -16148,7 +15817,7 @@
      "trick": "PD",
      "via": [
       4,
-      2,
+      20,
       0,
       3511
      ]
@@ -16243,8 +15912,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -16800,7 +16468,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -16967,7 +16635,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -17054,7 +16722,7 @@
     ]
    },
    "versions": {
-    "metagraph": 2,
+    "metagraph": 4,
     "teleportation_marginalization": 1
    },
    "via_cache": null
@@ -17143,7 +16811,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -17275,7 +16943,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -17407,7 +17075,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -17495,7 +17163,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -17583,7 +17251,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -17714,7 +17382,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -17845,7 +17513,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -17977,7 +17645,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -18069,7 +17737,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -18161,7 +17829,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -18296,7 +17964,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -18431,7 +18099,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -18524,7 +18192,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -18616,7 +18284,7 @@
    },
    "versions": {
     "conditioning": 4,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -18706,7 +18374,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -18802,7 +18470,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -18902,7 +18570,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -18999,7 +18667,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -19095,50 +18763,13 @@
    },
    "versions": {
     "conditioning": 4,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,206,0,183": {
-   "certificate": "upward(('above', '{0:[1,2,3],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]'), ('below', '{0:[2,3],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]')):\n    Children  : {0:[1,2,3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\nPD(('drop', 0),):\n    Children  : {0:[2,3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 0),):\n    Children  : {0:[1,2,3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[1,2,3],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]"
-      ],
-      [
-       "below",
-       "{0:[2,3],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      204,
-      0,
-      183
-     ],
-     "source": [
-      4,
-      206,
-      0,
-      183
-     ],
-     "target": [
-      4,
-      204,
-      0,
-      183
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      206,
-      0,
-      183
-     ]
-    },
     {
      "params": [
       [
@@ -19154,7 +18785,7 @@
      ],
      "source": [
       4,
-      204,
+      206,
       0,
       183
      ],
@@ -19167,7 +18798,7 @@
      "trick": "PD",
      "via": [
       4,
-      204,
+      206,
       0,
       183
      ]
@@ -19226,8 +18857,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -19323,7 +18953,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -19423,7 +19053,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -19523,7 +19153,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -19627,55 +19257,18 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,206,0,91": {
-   "certificate": "upward(('above', '{0:[1,2,3],1:[2,3],2:[],3:[]}|[(0,1,3),(0,2)]'), ('below', '{0:[1,2,3],1:[],2:[3],3:[]}|[(0,1,2),(0,3)]')):\n    Children  : {0:[1,2,3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2)]\nPD(('drop', 2),):\n    Children  : {0:[1,2,3],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 1),):\n    Children  : {0:[1,2,3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
    "chain": [
     {
      "params": [
       [
-       "above",
-       "{0:[1,2,3],1:[2,3],2:[],3:[]}|[(0,1,3),(0,2)]"
-      ],
-      [
-       "below",
-       "{0:[1,2,3],1:[],2:[3],3:[]}|[(0,1,2),(0,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      78,
-      0,
-      91
-     ],
-     "source": [
-      4,
-      206,
-      0,
-      91
-     ],
-     "target": [
-      4,
-      78,
-      0,
-      91
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      206,
-      0,
-      91
-     ]
-    },
-    {
-     "params": [
-      [
        "drop",
-       2
+       1
       ]
      ],
      "produced": [
@@ -19686,7 +19279,7 @@
      ],
      "source": [
       4,
-      78,
+      206,
       0,
       91
      ],
@@ -19699,7 +19292,7 @@
      "trick": "PD",
      "via": [
       4,
-      78,
+      206,
       0,
       91
      ]
@@ -19757,88 +19350,13 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,2184,0,1619": {
-   "certificate": "upward(('above', '{0:[3],1:[3],2:[3],3:[]}|[(0,1),(0,2,3),(1,2,3)]'), ('below', '{0:[],1:[3],2:[3],3:[]}|[(0,1,3),(0,2,3),(1,2)]')):\n    Children  : {0:[3],1:[3],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2,3),(1,2,3)]\nupward(('above', '{0:[],1:[3],2:[3],3:[]}|[(0,1,3),(0,2,3),(1,2,3)]'), ('below', '{0:[],1:[],2:[],3:[]}|[(0,1,3),(0,2,3),(1,2,3)]')):\n    Children  : {0:[],1:[3],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2,3),(1,2,3)]\nPD(('drop', 3),):\n    Children  : {0:[],1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2,3),(1,2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
+   "certificate": "PD(('drop', 3),):\n    Children  : {0:[3],1:[3],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(1,2)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[3],1:[3],2:[3],3:[]}|[(0,1),(0,2,3),(1,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[],1:[3],2:[3],3:[]}|[(0,1,3),(0,2,3),(1,2)]"
-      ]
-     ],
-     "produced": [
-      4,
-      68,
-      0,
-      3795
-     ],
-     "source": [
-      4,
-      2184,
-      0,
-      1619
-     ],
-     "target": [
-      4,
-      68,
-      0,
-      3795
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      2184,
-      0,
-      1755
-     ]
-    },
-    {
-     "params": [
-      [
-       "above",
-       "{0:[],1:[3],2:[3],3:[]}|[(0,1,3),(0,2,3),(1,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[],1:[],2:[],3:[]}|[(0,1,3),(0,2,3),(1,2,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      0,
-      0,
-      3511
-     ],
-     "source": [
-      4,
-      68,
-      0,
-      3795
-     ],
-     "target": [
-      4,
-      0,
-      0,
-      3511
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      68,
-      0,
-      3799
-     ]
-    },
     {
      "params": [
       [
@@ -19854,9 +19372,9 @@
      ],
      "source": [
       4,
+      2184,
       0,
-      0,
-      3511
+      1619
      ],
      "target": [
       3,
@@ -19867,9 +19385,9 @@
      "trick": "PD",
      "via": [
       4,
+      2184,
       0,
-      0,
-      3511
+      1619
      ]
     },
     {
@@ -20258,93 +19776,18 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,2190,0,83": {
-   "certificate": "upward(('above', '{0:[1,2,3],1:[3],2:[3],3:[]}|[(0,1),(0,2,3)]'), ('below', '{0:[1,2,3],1:[],2:[3],3:[]}|[(0,1,3),(0,2)]')):\n    Children  : {0:[1,2,3],1:[3],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2,3)]\nupward(('above', '{0:[1,2,3],1:[],2:[3],3:[]}|[(0,1,3),(0,2,3)]'), ('below', '{0:[],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]')):\n    Children  : {0:[1,2,3],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2,3)]\nPD(('drop', 0),):\n    Children  : {0:[],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 3),):\n    Children  : {0:[1,2,3],1:[3],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
    "chain": [
     {
      "params": [
       [
-       "above",
-       "{0:[1,2,3],1:[3],2:[3],3:[]}|[(0,1),(0,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[1,2,3],1:[],2:[3],3:[]}|[(0,1,3),(0,2)]"
-      ]
-     ],
-     "produced": [
-      4,
-      78,
-      0,
-      211
-     ],
-     "source": [
-      4,
-      2190,
-      0,
-      83
-     ],
-     "target": [
-      4,
-      78,
-      0,
-      211
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      2190,
-      0,
-      91
-     ]
-    },
-    {
-     "params": [
-      [
-       "above",
-       "{0:[1,2,3],1:[],2:[3],3:[]}|[(0,1,3),(0,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      6,
-      0,
-      219
-     ],
-     "source": [
-      4,
-      78,
-      0,
-      211
-     ],
-     "target": [
-      4,
-      6,
-      0,
-      219
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      78,
-      0,
-      215
-     ]
-    },
-    {
-     "params": [
-      [
        "drop",
-       0
+       3
       ]
      ],
      "produced": [
@@ -20355,9 +19798,9 @@
      ],
      "source": [
       4,
-      6,
+      2190,
       0,
-      219
+      83
      ],
      "target": [
       3,
@@ -20368,9 +19811,9 @@
      "trick": "PD",
      "via": [
       4,
-      6,
+      2190,
       0,
-      219
+      83
      ]
     }
    ],
@@ -20798,8 +20241,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -21024,7 +20466,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -21108,7 +20550,7 @@
     ]
    },
    "versions": {
-    "metagraph": 2,
+    "metagraph": 4,
     "teleportation_marginalization": 1
    },
    "via_cache": null
@@ -21252,7 +20694,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -21341,7 +20783,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -21429,7 +20871,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -21562,50 +21004,13 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,28,0,183": {
-   "certificate": "upward(('above', '{0:[1],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]'), ('below', '{0:[],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]')):\n    Children  : {0:[1],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\nPD(('drop', 0),):\n    Children  : {0:[],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 0),):\n    Children  : {0:[1],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[1],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]"
-      ],
-      [
-       "below",
-       "{0:[],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      6,
-      0,
-      219
-     ],
-     "source": [
-      4,
-      28,
-      0,
-      183
-     ],
-     "target": [
-      4,
-      6,
-      0,
-      219
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      28,
-      0,
-      183
-     ]
-    },
     {
      "params": [
       [
@@ -21621,9 +21026,9 @@
      ],
      "source": [
       4,
-      6,
+      28,
       0,
-      219
+      183
      ],
      "target": [
       3,
@@ -21634,9 +21039,9 @@
      "trick": "PD",
      "via": [
       4,
-      6,
+      28,
       0,
-      219
+      183
      ]
     }
    ],
@@ -21685,8 +21090,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -21773,7 +21177,7 @@
     ]
    },
    "versions": {
-    "metagraph": 2,
+    "metagraph": 4,
     "teleportation_marginalization": 1
    },
    "via_cache": null
@@ -21906,7 +21310,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -22151,7 +21555,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -22283,7 +21687,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -22414,50 +21818,13 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,28,0,3255": {
-   "certificate": "upward(('above', '{0:[1],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3),(2,3)]'), ('below', '{0:[],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3),(2,3)]')):\n    Children  : {0:[1],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3),(2,3)]\nPD(('drop', 1),):\n    Children  : {0:[],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3),(2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
+   "certificate": "PD(('drop', 1),):\n    Children  : {0:[1],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3),(2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[1],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3),(2,3)]"
-      ],
-      [
-       "below",
-       "{0:[],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3),(2,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      6,
-      0,
-      1755
-     ],
-     "source": [
-      4,
-      28,
-      0,
-      3255
-     ],
-     "target": [
-      4,
-      6,
-      0,
-      1755
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      28,
-      0,
-      3255
-     ]
-    },
     {
      "params": [
       [
@@ -22473,9 +21840,9 @@
      ],
      "source": [
       4,
-      6,
+      28,
       0,
-      1755
+      3255
      ],
      "target": [
       3,
@@ -22486,9 +21853,9 @@
      "trick": "PD",
      "via": [
       4,
-      6,
+      28,
       0,
-      1755
+      3255
      ]
     },
     {
@@ -22584,51 +21951,13 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,28,0,3511": {
-   "certificate": "upward(('above', '{0:[1],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3),(1,2,3)]'), ('below', '{0:[],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3),(1,2,3)]')):\n    Children  : {0:[1],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3),(1,2,3)]\nPD(('drop', 1),):\n    Children  : {0:[],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3),(1,2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
+   "certificate": "PD(('drop', 1),):\n    Children  : {0:[1],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3),(1,2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[1],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3),(1,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3),(1,2,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      6,
-      0,
-      3511
-     ],
-     "source": [
-      4,
-      28,
-      0,
-      3511
-     ],
-     "target": [
-      4,
-      6,
-      0,
-      3511
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      28,
-      0,
-      3511
-     ]
-    },
     {
      "params": [
       [
@@ -22644,7 +21973,7 @@
      ],
      "source": [
       4,
-      6,
+      28,
       0,
       3511
      ],
@@ -22657,7 +21986,7 @@
      "trick": "PD",
      "via": [
       4,
-      6,
+      28,
       0,
       3511
      ]
@@ -22756,8 +22085,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -22848,7 +22176,7 @@
     ]
    },
    "versions": {
-    "metagraph": 2,
+    "metagraph": 4,
     "teleportation_marginalization": 1
    },
    "via_cache": null
@@ -22941,7 +22269,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -23077,7 +22405,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -23213,7 +22541,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -23305,7 +22633,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -23440,7 +22768,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -23575,7 +22903,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -23671,7 +22999,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -23810,7 +23138,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -23949,7 +23277,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -24092,50 +23420,13 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,280,0,1755": {
-   "certificate": "upward(('above', '{0:[2],1:[2],2:[3],3:[]}|[(0,1,2),(0,2,3),(1,2,3)]'), ('below', '{0:[],1:[],2:[3],3:[]}|[(0,1,2),(0,2,3),(1,2,3)]')):\n    Children  : {0:[2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,2,3),(1,2,3)]\nPD(('drop', 2),):\n    Children  : {0:[],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,2,3),(1,2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
+   "certificate": "PD(('drop', 2),):\n    Children  : {0:[2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2,3),(1,2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[2],1:[2],2:[3],3:[]}|[(0,1,2),(0,2,3),(1,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[],1:[],2:[3],3:[]}|[(0,1,2),(0,2,3),(1,2,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      2,
-      0,
-      3511
-     ],
-     "source": [
-      4,
-      280,
-      0,
-      1755
-     ],
-     "target": [
-      4,
-      2,
-      0,
-      3511
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      280,
-      0,
-      3511
-     ]
-    },
     {
      "params": [
       [
@@ -24151,9 +23442,9 @@
      ],
      "source": [
       4,
-      2,
+      280,
       0,
-      3511
+      1755
      ],
      "target": [
       3,
@@ -24164,9 +23455,9 @@
      "trick": "PD",
      "via": [
       4,
-      2,
+      280,
       0,
-      3511
+      1755
      ]
     },
     {
@@ -24212,48 +23503,7 @@
      ]
     }
    ],
-   "class_members": [
-    {
-     "classical_facets": [],
-     "edges": [
-      [
-       0,
-       2
-      ],
-      [
-       1,
-       2
-      ],
-      [
-       2,
-       3
-      ]
-     ],
-     "nodes": [
-      "0",
-      "1",
-      "2",
-      "3"
-     ],
-     "quantum_facets": [
-      [
-       0,
-       1,
-       2
-      ],
-      [
-       0,
-       2,
-       3
-      ],
-      [
-       1,
-       2,
-       3
-      ]
-     ]
-    }
-   ],
+   "class_members": [],
    "id": [
     4,
     280,
@@ -24303,20 +23553,19 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,280,0,2661": {
-   "certificate": "Fritz(('targets', (2,)), ('target_mode', 'split'), ('deleted', ((0, 1, \"Q{0,2,0',2'}\"),)), ('predictor', (0,)), ('predictor_mode', 'split'), ('certificate', 'parent')):\n    Children  : {0:[2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(1,3)]\nPD(('drop', 4),):\n    Children  : {0:[2],1:[2],2:[3],3:[],5:[3]}\n    Classical : [(0,1,2,5)]\n    Quantum   : [(1,3),(0,1,2)]\nteleportation_marginalization(('marginalize', 1),):\n    Children  : {0:[1,2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(1,2),(1,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(2,3)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "certificate": "Fritz(('targets', (1,)), ('target_mode', 'split'), ('deleted', ((\"Q{1,3,1'}\",),)), ('predictor', (0,)), ('predictor_mode', 'unsplit'), ('certificate', 'dsep')):\n    Children  : {0:[2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(1,3)]\nteleportation_marginalization(('marginalize', 0),):\n    Children  : {1:[2],2:[3],3:[],4:[2]}\n    Classical : [(1,2,4)]\n    Quantum   : [(1,3),(1,2)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[1],1:[2],2:[]}\n    Classical : [(0,1)]\n    Quantum   : [(1,2)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
     {
      "params": [
       [
        "targets",
        [
-        2
+        1
        ]
       ],
       [
@@ -24327,9 +23576,7 @@
        "deleted",
        [
         [
-         0,
-         1,
-         "Q{0,2,0',2'}"
+         "Q{1,3,1'}"
         ]
        ]
       ],
@@ -24341,18 +23588,18 @@
       ],
       [
        "predictor_mode",
-       "split"
+       "unsplit"
       ],
       [
        "certificate",
-       "parent"
+       "dsep"
       ]
      ],
      "produced": [
-      5,
-      34320,
-      15,
-      653
+      4,
+      280,
+      7,
+      163
      ],
      "source": [
       4,
@@ -24361,10 +23608,10 @@
       2661
      ],
      "target": [
-      5,
-      34320,
-      15,
-      653
+      4,
+      280,
+      7,
+      163
      ],
      "trick": "Fritz",
      "via": [
@@ -24377,54 +23624,21 @@
     {
      "params": [
       [
-       "drop",
-       4
-      ]
-     ],
-     "produced": [
-      4,
-      280,
-      0,
-      167
-     ],
-     "source": [
-      5,
-      34320,
-      15,
-      653
-     ],
-     "target": [
-      4,
-      20,
-      0,
-      107
-     ],
-     "trick": "PD",
-     "via": [
-      5,
-      34320,
-      15,
-      653
-     ]
-    },
-    {
-     "params": [
-      [
        "marginalize",
-       1
+       0
       ]
      ],
      "produced": [
       3,
       12,
-      0,
+      3,
       5
      ],
      "source": [
       4,
-      20,
-      0,
-      107
+      280,
+      7,
+      163
      ],
      "target": [
       3,
@@ -24435,9 +23649,9 @@
      "trick": "teleportation_marginalization",
      "via": [
       4,
-      344,
-      0,
-      197
+      280,
+      7,
+      163
      ]
     }
    ],
@@ -24488,8 +23702,7 @@
    },
    "versions": {
     "Fritz": 8,
-    "PD": 1,
-    "metagraph": 2,
+    "metagraph": 4,
     "teleportation_marginalization": 1
    },
    "via_cache": null
@@ -24735,7 +23948,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -24867,50 +24080,13 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,280,0,2775": {
-   "certificate": "upward(('above', '{0:[2],1:[2],2:[3],3:[]}|[(0,1,2),(0,3),(1,2,3)]'), ('below', '{0:[],1:[2],2:[3],3:[]}|[(0,1,2),(0,2,3),(1,3)]')):\n    Children  : {0:[2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,3),(1,2,3)]\nPD(('drop', 2),):\n    Children  : {0:[],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,2,3),(1,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
+   "certificate": "PD(('drop', 2),):\n    Children  : {0:[2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,3),(1,2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[2],1:[2],2:[3],3:[]}|[(0,1,2),(0,3),(1,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[],1:[2],2:[3],3:[]}|[(0,1,2),(0,2,3),(1,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      20,
-      0,
-      1755
-     ],
-     "source": [
-      4,
-      280,
-      0,
-      2775
-     ],
-     "target": [
-      4,
-      20,
-      0,
-      1755
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      280,
-      0,
-      2775
-     ]
-    },
     {
      "params": [
       [
@@ -24926,9 +24102,9 @@
      ],
      "source": [
       4,
-      20,
+      280,
       0,
-      1755
+      2775
      ],
      "target": [
       3,
@@ -24939,9 +24115,9 @@
      "trick": "PD",
      "via": [
       4,
-      20,
+      280,
       0,
-      1755
+      2775
      ]
     },
     {
@@ -25037,8 +24213,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -25169,7 +24344,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -25301,7 +24476,141 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
+   },
+   "via_cache": null
+  },
+  "4,280,0,3511": {
+   "certificate": "PD(('drop', 2),):\n    Children  : {0:[2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,2,3),(1,2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
+   "chain": [
+    {
+     "params": [
+      [
+       "drop",
+       2
+      ]
+     ],
+     "produced": [
+      3,
+      0,
+      0,
+      427
+     ],
+     "source": [
+      4,
+      280,
+      0,
+      3511
+     ],
+     "target": [
+      3,
+      0,
+      0,
+      427
+     ],
+     "trick": "PD",
+     "via": [
+      4,
+      280,
+      0,
+      3511
+     ]
+    },
+    {
+     "params": [
+      [
+       "classical",
+       [
+        [
+         0,
+         1
+        ],
+        [
+         0,
+         2
+        ]
+       ]
+      ]
+     ],
+     "produced": [
+      3,
+      0,
+      43,
+      6
+     ],
+     "source": [
+      3,
+      0,
+      0,
+      427
+     ],
+     "target": [
+      3,
+      0,
+      43,
+      6
+     ],
+     "trick": "degradation",
+     "via": [
+      3,
+      0,
+      0,
+      427
+     ]
+    }
+   ],
+   "class_members": [],
+   "id": [
+    4,
+    280,
+    0,
+    3511
+   ],
+   "seed": "QG_Triangle",
+   "structure": {
+    "classical_facets": [],
+    "edges": [
+     [
+      0,
+      2
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      3
+     ]
+    ],
+    "nodes": [
+     "0",
+     "1",
+     "2",
+     "3"
+    ],
+    "quantum_facets": [
+     [
+      0,
+      1,
+      2
+     ],
+     [
+      0,
+      2,
+      3
+     ],
+     [
+      1,
+      2,
+      3
+     ]
+    ]
+   },
+   "versions": {
+    "PD": 1,
+    "degradation": 1,
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -25393,7 +24702,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -25529,7 +24838,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -25664,7 +24973,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -25799,7 +25108,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -25935,7 +25244,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -26074,7 +25383,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -26213,7 +25522,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -26298,7 +25607,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -26387,7 +25696,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -26471,7 +25780,7 @@
    },
    "versions": {
     "conditioning": 4,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -26696,7 +26005,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -26780,7 +26089,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -26865,7 +26174,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -27230,50 +26539,13 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,328,0,183": {
-   "certificate": "upward(('above', '{0:[1],1:[2],2:[3],3:[]}|[(0,1,2),(0,2,3)]'), ('below', '{0:[3],1:[2],2:[],3:[]}|[(0,1,2),(0,1,3)]')):\n    Children  : {0:[1],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,2,3)]\nPD(('drop', 0),):\n    Children  : {0:[3],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "certificate": "PD(('drop', 0),):\n    Children  : {0:[1],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[1],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[1],1:[2],2:[3],3:[]}|[(0,1,2),(0,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[3],1:[2],2:[],3:[]}|[(0,1,2),(0,1,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      72,
-      0,
-      183
-     ],
-     "source": [
-      4,
-      328,
-      0,
-      183
-     ],
-     "target": [
-      4,
-      72,
-      0,
-      183
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      328,
-      0,
-      183
-     ]
-    },
     {
      "params": [
       [
@@ -27283,13 +26555,13 @@
      ],
      "produced": [
       3,
-      2,
+      12,
       0,
       43
      ],
      "source": [
       4,
-      72,
+      328,
       0,
       183
      ],
@@ -27302,7 +26574,7 @@
      "trick": "PD",
      "via": [
       4,
-      72,
+      328,
       0,
       183
      ]
@@ -27353,8 +26625,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -27442,7 +26713,7 @@
    },
    "versions": {
     "conditioning": 4,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -27530,7 +26801,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -27618,7 +26889,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -27706,7 +26977,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -27794,7 +27065,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -28039,7 +27310,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -28128,7 +27399,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -28278,7 +27549,7 @@
    },
    "versions": {
     "Fritz": 8,
-    "metagraph": 2,
+    "metagraph": 4,
     "teleportation_marginalization": 1
    },
    "via_cache": null
@@ -28371,7 +27642,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -28463,7 +27734,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -28555,7 +27826,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -28647,7 +27918,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -28739,7 +28010,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -28835,50 +28106,13 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,344,0,107": {
-   "certificate": "upward(('above', '{0:[1,2],1:[2],2:[3],3:[]}|[(0,1,2),(0,2,3)]'), ('below', '{0:[3],1:[2],2:[],3:[]}|[(0,1,2),(0,1,3)]')):\n    Children  : {0:[1,2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,2,3)]\nPD(('drop', 0),):\n    Children  : {0:[3],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "certificate": "PD(('drop', 0),):\n    Children  : {0:[1,2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(2,3)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[1,2],1:[2],2:[3],3:[]}|[(0,1,2),(0,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[3],1:[2],2:[],3:[]}|[(0,1,2),(0,1,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      72,
-      0,
-      183
-     ],
-     "source": [
-      4,
-      344,
-      0,
-      107
-     ],
-     "target": [
-      4,
-      72,
-      0,
-      183
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      344,
-      0,
-      183
-     ]
-    },
     {
      "params": [
       [
@@ -28888,15 +28122,15 @@
      ],
      "produced": [
       3,
-      2,
+      12,
       0,
-      43
+      5
      ],
      "source": [
       4,
-      72,
+      344,
       0,
-      183
+      107
      ],
      "target": [
       3,
@@ -28907,95 +28141,13 @@
      "trick": "PD",
      "via": [
       4,
-      72,
+      344,
       0,
-      183
+      107
      ]
     }
    ],
-   "class_members": [
-    {
-     "classical_facets": [],
-     "edges": [
-      [
-       0,
-       1
-      ],
-      [
-       0,
-       2
-      ],
-      [
-       1,
-       2
-      ],
-      [
-       2,
-       3
-      ]
-     ],
-     "nodes": [
-      "0",
-      "1",
-      "2",
-      "3"
-     ],
-     "quantum_facets": [
-      [
-       0,
-       1,
-       2
-      ],
-      [
-       0,
-       2,
-       3
-      ]
-     ]
-    },
-    {
-     "classical_facets": [],
-     "edges": [
-      [
-       0,
-       1
-      ],
-      [
-       0,
-       2
-      ],
-      [
-       1,
-       2
-      ],
-      [
-       2,
-       3
-      ]
-     ],
-     "nodes": [
-      "0",
-      "1",
-      "2",
-      "3"
-     ],
-     "quantum_facets": [
-      [
-       0,
-       1
-      ],
-      [
-       0,
-       2,
-       3
-      ],
-      [
-       1,
-       2
-      ]
-     ]
-    }
-   ],
+   "class_members": [],
    "id": [
     4,
     344,
@@ -29043,8 +28195,100 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
+   },
+   "via_cache": null
+  },
+  "4,344,0,1627": {
+   "certificate": "PD(('drop', 0),):\n    Children  : {0:[1,2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2,3),(1,2)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[1],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "chain": [
+    {
+     "params": [
+      [
+       "drop",
+       0
+      ]
+     ],
+     "produced": [
+      3,
+      12,
+      0,
+      43
+     ],
+     "source": [
+      4,
+      344,
+      0,
+      1627
+     ],
+     "target": [
+      3,
+      2,
+      0,
+      43
+     ],
+     "trick": "PD",
+     "via": [
+      4,
+      344,
+      0,
+      1627
+     ]
+    }
+   ],
+   "class_members": [],
+   "id": [
+    4,
+    344,
+    0,
+    1627
+   ],
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
+   "structure": {
+    "classical_facets": [],
+    "edges": [
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      3
+     ]
+    ],
+    "nodes": [
+     "0",
+     "1",
+     "2",
+     "3"
+    ],
+    "quantum_facets": [
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2,
+      3
+     ],
+     [
+      1,
+      2
+     ]
+    ]
+   },
+   "versions": {
+    "PD": 1,
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -29132,55 +28376,18 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,344,0,167": {
-   "certificate": "upward(('above', '{0:[1,2],1:[2],2:[3],3:[]}|[(0,1,2),(0,3)]'), ('below', '{0:[1,3],1:[2],2:[],3:[]}|[(0,1,3),(0,2)]')):\n    Children  : {0:[1,2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,3)]\nPD(('drop', 1),):\n    Children  : {0:[1,3],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "certificate": "PD(('drop', 2),):\n    Children  : {0:[1,2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
     {
      "params": [
       [
-       "above",
-       "{0:[1,2],1:[2],2:[3],3:[]}|[(0,1,2),(0,3)]"
-      ],
-      [
-       "below",
-       "{0:[1,3],1:[2],2:[],3:[]}|[(0,1,3),(0,2)]"
-      ]
-     ],
-     "produced": [
-      4,
-      74,
-      0,
-      91
-     ],
-     "source": [
-      4,
-      344,
-      0,
-      167
-     ],
-     "target": [
-      4,
-      74,
-      0,
-      91
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      344,
-      0,
-      167
-     ]
-    },
-    {
-     "params": [
-      [
        "drop",
-       1
+       2
       ]
      ],
      "produced": [
@@ -29191,9 +28398,9 @@
      ],
      "source": [
       4,
-      74,
+      344,
       0,
-      91
+      167
      ],
      "target": [
       3,
@@ -29204,9 +28411,9 @@
      "trick": "PD",
      "via": [
       4,
-      74,
+      344,
       0,
-      91
+      167
      ]
     }
    ],
@@ -29258,8 +28465,97 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
+   },
+   "via_cache": null
+  },
+  "4,344,0,183": {
+   "certificate": "PD(('drop', 0),):\n    Children  : {0:[1,2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[1],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "chain": [
+    {
+     "params": [
+      [
+       "drop",
+       0
+      ]
+     ],
+     "produced": [
+      3,
+      12,
+      0,
+      43
+     ],
+     "source": [
+      4,
+      344,
+      0,
+      183
+     ],
+     "target": [
+      3,
+      2,
+      0,
+      43
+     ],
+     "trick": "PD",
+     "via": [
+      4,
+      344,
+      0,
+      183
+     ]
+    }
+   ],
+   "class_members": [],
+   "id": [
+    4,
+    344,
+    0,
+    183
+   ],
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
+   "structure": {
+    "classical_facets": [],
+    "edges": [
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      3
+     ]
+    ],
+    "nodes": [
+     "0",
+     "1",
+     "2",
+     "3"
+    ],
+    "quantum_facets": [
+     [
+      0,
+      1,
+      2
+     ],
+     [
+      0,
+      2,
+      3
+     ]
+    ]
+   },
+   "versions": {
+    "PD": 1,
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -29351,7 +28647,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -29443,7 +28739,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -29535,50 +28831,13 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,344,0,2711": {
-   "certificate": "upward(('above', '{0:[1,2],1:[2],2:[3],3:[]}|[(0,1,2),(0,3),(2,3)]'), ('below', '{0:[1,3],1:[2],2:[],3:[]}|[(0,1,3),(0,2),(1,2)]')):\n    Children  : {0:[1,2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,3),(2,3)]\nPD(('drop', 0),):\n    Children  : {0:[1,3],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2),(1,2)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "certificate": "PD(('drop', 0),):\n    Children  : {0:[1,2],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,3),(2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[1],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[1,2],1:[2],2:[3],3:[]}|[(0,1,2),(0,3),(2,3)]"
-      ],
-      [
-       "below",
-       "{0:[1,3],1:[2],2:[],3:[]}|[(0,1,3),(0,2),(1,2)]"
-      ]
-     ],
-     "produced": [
-      4,
-      74,
-      0,
-      1627
-     ],
-     "source": [
-      4,
-      344,
-      0,
-      2711
-     ],
-     "target": [
-      4,
-      74,
-      0,
-      1627
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      344,
-      0,
-      2711
-     ]
-    },
     {
      "params": [
       [
@@ -29588,15 +28847,15 @@
      ],
      "produced": [
       3,
-      2,
+      12,
       0,
       43
      ],
      "source": [
       4,
-      74,
+      344,
       0,
-      1627
+      2711
      ],
      "target": [
       3,
@@ -29607,9 +28866,9 @@
      "trick": "PD",
      "via": [
       4,
-      74,
+      344,
       0,
-      1627
+      2711
      ]
     }
    ],
@@ -29665,8 +28924,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -29820,7 +29078,7 @@
    },
    "versions": {
     "Fritz": 8,
-    "metagraph": 2,
+    "metagraph": 4,
     "teleportation_marginalization": 1
    },
    "via_cache": null
@@ -29917,7 +29175,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -30013,7 +29271,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -30109,7 +29367,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -30205,7 +29463,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -30305,7 +29563,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -30393,7 +29651,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -30560,7 +29818,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -30652,7 +29910,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -30897,7 +30155,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -30989,7 +30247,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -31254,7 +30512,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -31350,7 +30608,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -31442,7 +30700,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -31538,7 +30796,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -31627,7 +30885,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -31720,7 +30978,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -31808,7 +31066,7 @@
    },
    "versions": {
     "conditioning": 4,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -31896,7 +31154,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -31985,50 +31243,13 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,456,0,183": {
-   "certificate": "upward(('above', '{0:[1,3],1:[2],2:[3],3:[]}|[(0,1,2),(0,2,3)]'), ('below', '{0:[3],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]')):\n    Children  : {0:[1,3],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,2,3)]\nPD(('drop', 0),):\n    Children  : {0:[3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 0),):\n    Children  : {0:[1,3],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[1],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[1,3],1:[2],2:[3],3:[]}|[(0,1,2),(0,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[3],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      76,
-      0,
-      183
-     ],
-     "source": [
-      4,
-      456,
-      0,
-      183
-     ],
-     "target": [
-      4,
-      76,
-      0,
-      183
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      456,
-      0,
-      183
-     ]
-    },
     {
      "params": [
       [
@@ -32038,26 +31259,26 @@
      ],
      "produced": [
       3,
-      6,
+      12,
       0,
       43
      ],
      "source": [
       4,
-      76,
+      456,
       0,
       183
      ],
      "target": [
       3,
-      6,
+      2,
       0,
       43
      ],
      "trick": "PD",
      "via": [
       4,
-      76,
+      456,
       0,
       183
      ]
@@ -32070,7 +31291,7 @@
     0,
     183
    ],
-   "seed": "QG_Evans",
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -32112,8 +31333,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -32205,7 +31425,7 @@
    },
    "versions": {
     "conditioning": 4,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -32297,23 +31517,23 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,456,0,2661": {
-   "certificate": "PD(('drop', 2),):\n    Children  : {0:[1,3],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,3),(1,2)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 3),):\n    Children  : {0:[1,3],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,3),(1,2)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[1],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
     {
      "params": [
       [
        "drop",
-       2
+       3
       ]
      ],
      "produced": [
       3,
-      6,
+      12,
       0,
       43
      ],
@@ -32325,7 +31545,7 @@
      ],
      "target": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -32345,7 +31565,7 @@
     0,
     2661
    ],
-   "seed": "QG_Evans",
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -32389,7 +31609,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -32481,7 +31701,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -32574,7 +31794,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -32670,7 +31890,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -32766,7 +31986,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -32862,7 +32082,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -32962,50 +32182,13 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,472,0,107": {
-   "certificate": "upward(('above', '{0:[1,2,3],1:[2],2:[3],3:[]}|[(0,1,2),(0,2,3)]'), ('below', '{0:[3],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]')):\n    Children  : {0:[1,2,3],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,2,3)]\nPD(('drop', 0),):\n    Children  : {0:[3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 0),):\n    Children  : {0:[1,2,3],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(2,3)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[1,2,3],1:[2],2:[3],3:[]}|[(0,1,2),(0,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[3],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      76,
-      0,
-      183
-     ],
-     "source": [
-      4,
-      472,
-      0,
-      107
-     ],
-     "target": [
-      4,
-      76,
-      0,
-      183
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      472,
-      0,
-      183
-     ]
-    },
     {
      "params": [
       [
@@ -33015,129 +32198,39 @@
      ],
      "produced": [
       3,
-      6,
+      12,
       0,
-      43
+      5
      ],
      "source": [
       4,
-      76,
+      472,
       0,
-      183
+      107
      ],
      "target": [
       3,
-      6,
+      2,
       0,
       43
      ],
      "trick": "PD",
      "via": [
       4,
-      76,
+      472,
       0,
-      183
+      107
      ]
     }
    ],
-   "class_members": [
-    {
-     "classical_facets": [],
-     "edges": [
-      [
-       0,
-       1
-      ],
-      [
-       0,
-       2
-      ],
-      [
-       0,
-       3
-      ],
-      [
-       1,
-       2
-      ],
-      [
-       2,
-       3
-      ]
-     ],
-     "nodes": [
-      "0",
-      "1",
-      "2",
-      "3"
-     ],
-     "quantum_facets": [
-      [
-       0,
-       1,
-       2
-      ],
-      [
-       0,
-       2,
-       3
-      ]
-     ]
-    },
-    {
-     "classical_facets": [],
-     "edges": [
-      [
-       0,
-       1
-      ],
-      [
-       0,
-       2
-      ],
-      [
-       0,
-       3
-      ],
-      [
-       1,
-       2
-      ],
-      [
-       2,
-       3
-      ]
-     ],
-     "nodes": [
-      "0",
-      "1",
-      "2",
-      "3"
-     ],
-     "quantum_facets": [
-      [
-       0,
-       1
-      ],
-      [
-       0,
-       2,
-       3
-      ],
-      [
-       1,
-       2
-      ]
-     ]
-    }
-   ],
+   "class_members": [],
    "id": [
     4,
     472,
     0,
     107
    ],
-   "seed": "QG_Evans",
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -33182,8 +32275,104 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
+   },
+   "via_cache": null
+  },
+  "4,472,0,1627": {
+   "certificate": "PD(('drop', 0),):\n    Children  : {0:[1,2,3],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2,3),(1,2)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[1],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "chain": [
+    {
+     "params": [
+      [
+       "drop",
+       0
+      ]
+     ],
+     "produced": [
+      3,
+      12,
+      0,
+      43
+     ],
+     "source": [
+      4,
+      472,
+      0,
+      1627
+     ],
+     "target": [
+      3,
+      2,
+      0,
+      43
+     ],
+     "trick": "PD",
+     "via": [
+      4,
+      472,
+      0,
+      1627
+     ]
+    }
+   ],
+   "class_members": [],
+   "id": [
+    4,
+    472,
+    0,
+    1627
+   ],
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
+   "structure": {
+    "classical_facets": [],
+    "edges": [
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      0,
+      3
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      3
+     ]
+    ],
+    "nodes": [
+     "0",
+     "1",
+     "2",
+     "3"
+    ],
+    "quantum_facets": [
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2,
+      3
+     ],
+     [
+      1,
+      2
+     ]
+    ]
+   },
+   "versions": {
+    "PD": 1,
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -33275,50 +32464,13 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,472,0,167": {
-   "certificate": "upward(('above', '{0:[1,2,3],1:[2],2:[3],3:[]}|[(0,1,2),(0,3)]'), ('below', '{0:[1,2,3],1:[],2:[3],3:[]}|[(0,1,2),(0,3)]')):\n    Children  : {0:[1,2,3],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,3)]\nPD(('drop', 2),):\n    Children  : {0:[1,2,3],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 2),):\n    Children  : {0:[1,2,3],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[1,2,3],1:[2],2:[3],3:[]}|[(0,1,2),(0,3)]"
-      ],
-      [
-       "below",
-       "{0:[1,2,3],1:[],2:[3],3:[]}|[(0,1,2),(0,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      78,
-      0,
-      91
-     ],
-     "source": [
-      4,
-      472,
-      0,
-      167
-     ],
-     "target": [
-      4,
-      78,
-      0,
-      91
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      472,
-      0,
-      167
-     ]
-    },
     {
      "params": [
       [
@@ -33334,9 +32486,9 @@
      ],
      "source": [
       4,
-      78,
+      472,
       0,
-      91
+      167
      ],
      "target": [
       3,
@@ -33347,9 +32499,9 @@
      "trick": "PD",
      "via": [
       4,
-      78,
+      472,
       0,
-      91
+      167
      ]
     }
    ],
@@ -33405,8 +32557,101 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
+   },
+   "via_cache": null
+  },
+  "4,472,0,183": {
+   "certificate": "PD(('drop', 0),):\n    Children  : {0:[1,2,3],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[1],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "chain": [
+    {
+     "params": [
+      [
+       "drop",
+       0
+      ]
+     ],
+     "produced": [
+      3,
+      12,
+      0,
+      43
+     ],
+     "source": [
+      4,
+      472,
+      0,
+      183
+     ],
+     "target": [
+      3,
+      2,
+      0,
+      43
+     ],
+     "trick": "PD",
+     "via": [
+      4,
+      472,
+      0,
+      183
+     ]
+    }
+   ],
+   "class_members": [],
+   "id": [
+    4,
+    472,
+    0,
+    183
+   ],
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
+   "structure": {
+    "classical_facets": [],
+    "edges": [
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      0,
+      3
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      3
+     ]
+    ],
+    "nodes": [
+     "0",
+     "1",
+     "2",
+     "3"
+    ],
+    "quantum_facets": [
+     [
+      0,
+      1,
+      2
+     ],
+     [
+      0,
+      2,
+      3
+     ]
+    ]
+   },
+   "versions": {
+    "PD": 1,
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -33502,7 +32747,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -33598,7 +32843,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -33694,50 +32939,13 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,472,0,2711": {
-   "certificate": "upward(('above', '{0:[1,2,3],1:[2],2:[3],3:[]}|[(0,1,2),(0,3),(2,3)]'), ('below', '{0:[1,2,3],1:[],2:[3],3:[]}|[(0,1,2),(0,3),(2,3)]')):\n    Children  : {0:[1,2,3],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,3),(2,3)]\nPD(('drop', 0),):\n    Children  : {0:[1,2,3],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,3),(2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "certificate": "PD(('drop', 0),):\n    Children  : {0:[1,2,3],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,3),(2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[1],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[1,2,3],1:[2],2:[3],3:[]}|[(0,1,2),(0,3),(2,3)]"
-      ],
-      [
-       "below",
-       "{0:[1,2,3],1:[],2:[3],3:[]}|[(0,1,2),(0,3),(2,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      78,
-      0,
-      1627
-     ],
-     "source": [
-      4,
-      472,
-      0,
-      2711
-     ],
-     "target": [
-      4,
-      78,
-      0,
-      1627
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      472,
-      0,
-      2711
-     ]
-    },
     {
      "params": [
       [
@@ -33747,15 +32955,15 @@
      ],
      "produced": [
       3,
-      2,
+      12,
       0,
       43
      ],
      "source": [
       4,
-      78,
+      472,
       0,
-      1627
+      2711
      ],
      "target": [
       3,
@@ -33766,9 +32974,9 @@
      "trick": "PD",
      "via": [
       4,
-      78,
+      472,
       0,
-      1627
+      2711
      ]
     }
    ],
@@ -33828,8 +33036,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -33929,7 +33136,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -34029,7 +33236,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -34129,7 +33336,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -34233,7 +33440,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -34372,7 +33579,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -34515,7 +33722,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -34661,7 +33868,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -35217,7 +34424,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -35590,7 +34797,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -35719,50 +34926,13 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,6,0,183": {
-   "certificate": "upward(('above', '{0:[1,3],1:[2,3],2:[],3:[]}|[(1,2,3)]'), ('below', '{0:[1,3],1:[2],2:[],3:[]}|[(1,2,3)]')):\n    Children  : {0:[1,3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,2,3)]\nPD(('drop', 3),):\n    Children  : {0:[1,3],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(2,3)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "certificate": "PD(('drop', 3),):\n    Children  : {0:[1,3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(2,3)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[1,3],1:[2,3],2:[],3:[]}|[(1,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[1,3],1:[2],2:[],3:[]}|[(1,2,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      2,
-      0,
-      215
-     ],
-     "source": [
-      4,
-      6,
-      0,
-      183
-     ],
-     "target": [
-      4,
-      2,
-      0,
-      215
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      92,
-      0,
-      13
-     ]
-    },
     {
      "params": [
       [
@@ -35778,9 +34948,9 @@
      ],
      "source": [
       4,
-      2,
+      6,
       0,
-      215
+      183
      ],
      "target": [
       3,
@@ -35791,9 +34961,9 @@
      "trick": "PD",
      "via": [
       4,
-      74,
+      92,
       0,
-      14
+      13
      ]
     }
    ],
@@ -36244,8 +35414,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -36327,25 +35496,25 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,6,0,2387": {
-   "certificate": "PD(('drop', 0),):\n    Children  : {0:[1],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,2),(1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 2),):\n    Children  : {0:[1],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,2),(1,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(2,3)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
     {
      "params": [
       [
        "drop",
-       0
+       2
       ]
      ],
      "produced": [
       3,
-      6,
+      12,
       0,
-      43
+      5
      ],
      "source": [
       4,
@@ -36355,7 +35524,7 @@
      ],
      "target": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -36446,7 +35615,7 @@
     0,
     2387
    ],
-   "seed": "QG_Evans",
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -36482,7 +35651,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -36637,7 +35806,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -36804,7 +35973,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -36888,7 +36057,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -36973,7 +36142,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -37058,55 +36227,18 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,6,0,2775": {
-   "certificate": "upward(('above', '{0:[],1:[2,3],2:[],3:[]}|[(0,1,3),(0,2),(1,2,3)]'), ('below', '{0:[],1:[],2:[3],3:[]}|[(0,1,2),(0,3),(1,2,3)]')):\n    Children  : {0:[],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2),(1,2,3)]\nPD(('drop', 2),):\n    Children  : {0:[],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,3),(1,2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
+   "certificate": "PD(('drop', 1),):\n    Children  : {0:[],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2),(1,2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
    "chain": [
     {
      "params": [
       [
-       "above",
-       "{0:[],1:[2,3],2:[],3:[]}|[(0,1,3),(0,2),(1,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[],1:[],2:[3],3:[]}|[(0,1,2),(0,3),(1,2,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      2,
-      0,
-      1755
-     ],
-     "source": [
-      4,
-      6,
-      0,
-      2775
-     ],
-     "target": [
-      4,
-      2,
-      0,
-      1755
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      6,
-      0,
-      2775
-     ]
-    },
-    {
-     "params": [
-      [
        "drop",
-       2
+       1
       ]
      ],
      "produced": [
@@ -37117,9 +36249,9 @@
      ],
      "source": [
       4,
-      2,
+      6,
       0,
-      1755
+      2775
      ],
      "target": [
       3,
@@ -37130,9 +36262,9 @@
      "trick": "PD",
      "via": [
       4,
-      2,
+      6,
       0,
-      1755
+      2775
      ]
     },
     {
@@ -37224,8 +36356,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -37355,7 +36486,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -37443,7 +36574,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -37575,23 +36706,23 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,6,0,43347": {
-   "certificate": "PD(('drop', 0),):\n    Children  : {0:[],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,3),(1,2),(1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 3),):\n    Children  : {0:[],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,3),(1,2),(1,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
     {
      "params": [
       [
        "drop",
-       0
+       3
       ]
      ],
      "produced": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -37603,7 +36734,7 @@
      ],
      "target": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -37623,7 +36754,7 @@
     0,
     43347
    ],
-   "seed": "QG_Evans",
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -37663,7 +36794,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -37751,7 +36882,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -37883,7 +37014,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -37975,7 +37106,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -38067,7 +37198,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -38147,25 +37278,25 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,6,0,91": {
-   "certificate": "PD(('drop', 0),):\n    Children  : {0:[1,3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,2),(1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 3),):\n    Children  : {0:[1,3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,2),(1,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(2,3)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
     {
      "params": [
       [
        "drop",
-       0
+       3
       ]
      ],
      "produced": [
       3,
-      6,
+      12,
       0,
-      43
+      5
      ],
      "source": [
       4,
@@ -38175,7 +37306,7 @@
      ],
      "target": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -38622,7 +37753,7 @@
     0,
     91
    ],
-   "seed": "QG_Evans",
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -38655,7 +37786,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -38794,7 +37925,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -39181,7 +38312,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -39336,7 +38467,7 @@
    },
    "versions": {
     "conditioning": 4,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -39679,7 +38810,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -39904,7 +39035,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -40031,7 +39162,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -40116,7 +39247,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -40244,50 +39375,13 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,68,0,2775": {
-   "certificate": "upward(('above', '{0:[],1:[3],2:[3],3:[]}|[(0,1),(0,2,3),(1,2,3)]'), ('below', '{0:[],1:[],2:[3],3:[]}|[(0,1,3),(0,2),(1,2,3)]')):\n    Children  : {0:[],1:[3],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2,3),(1,2,3)]\nPD(('drop', 3),):\n    Children  : {0:[],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2),(1,2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
+   "certificate": "PD(('drop', 3),):\n    Children  : {0:[],1:[3],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2,3),(1,2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[],1:[3],2:[3],3:[]}|[(0,1),(0,2,3),(1,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[],1:[],2:[3],3:[]}|[(0,1,3),(0,2),(1,2,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      2,
-      0,
-      3675
-     ],
-     "source": [
-      4,
-      68,
-      0,
-      2775
-     ],
-     "target": [
-      4,
-      2,
-      0,
-      3675
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      68,
-      0,
-      2775
-     ]
-    },
     {
      "params": [
       [
@@ -40303,9 +39397,9 @@
      ],
      "source": [
       4,
-      2,
+      68,
       0,
-      3675
+      2775
      ],
      "target": [
       3,
@@ -40316,9 +39410,9 @@
      "trick": "PD",
      "via": [
       4,
-      2,
+      68,
       0,
-      3675
+      2775
      ]
     },
     {
@@ -40410,51 +39504,13 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,68,0,3795": {
-   "certificate": "upward(('above', '{0:[],1:[3],2:[3],3:[]}|[(0,1,3),(0,2,3),(1,2,3)]'), ('below', '{0:[],1:[],2:[],3:[]}|[(0,1,3),(0,2,3),(1,2,3)]')):\n    Children  : {0:[],1:[3],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2,3),(1,2,3)]\nPD(('drop', 3),):\n    Children  : {0:[],1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2,3),(1,2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
+   "certificate": "PD(('drop', 3),):\n    Children  : {0:[],1:[3],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2,3),(1,2)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[],1:[3],2:[3],3:[]}|[(0,1,3),(0,2,3),(1,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[],1:[],2:[],3:[]}|[(0,1,3),(0,2,3),(1,2,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      0,
-      0,
-      3511
-     ],
-     "source": [
-      4,
-      68,
-      0,
-      3795
-     ],
-     "target": [
-      4,
-      0,
-      0,
-      3511
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      68,
-      0,
-      3799
-     ]
-    },
     {
      "params": [
       [
@@ -40470,9 +39526,9 @@
      ],
      "source": [
       4,
+      68,
       0,
-      0,
-      3511
+      3795
      ],
      "target": [
       3,
@@ -40483,9 +39539,9 @@
      "trick": "PD",
      "via": [
       4,
+      68,
       0,
-      0,
-      3511
+      3795
      ]
     },
     {
@@ -40531,44 +39587,7 @@
      ]
     }
    ],
-   "class_members": [
-    {
-     "classical_facets": [],
-     "edges": [
-      [
-       1,
-       3
-      ],
-      [
-       2,
-       3
-      ]
-     ],
-     "nodes": [
-      "0",
-      "1",
-      "2",
-      "3"
-     ],
-     "quantum_facets": [
-      [
-       0,
-       1,
-       3
-      ],
-      [
-       0,
-       2,
-       3
-      ],
-      [
-       1,
-       2,
-       3
-      ]
-     ]
-    }
-   ],
+   "class_members": [],
    "id": [
     4,
     68,
@@ -40614,8 +39633,137 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
+   },
+   "via_cache": null
+  },
+  "4,68,0,3799": {
+   "certificate": "PD(('drop', 3),):\n    Children  : {0:[],1:[3],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2,3),(1,2,3)]\ndegradation(('classical', ((0, 1), (0, 2))),):\n    Children  : {1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,3),(2,3),(1,2)]\n== known gap QG_Triangle:\n    Children  : {0:[],1:[],2:[]}\n    Classical : [(0,1),(0,2)]\n    Quantum   : [(1,2)]",
+   "chain": [
+    {
+     "params": [
+      [
+       "drop",
+       3
+      ]
+     ],
+     "produced": [
+      3,
+      0,
+      0,
+      427
+     ],
+     "source": [
+      4,
+      68,
+      0,
+      3799
+     ],
+     "target": [
+      3,
+      0,
+      0,
+      427
+     ],
+     "trick": "PD",
+     "via": [
+      4,
+      68,
+      0,
+      3799
+     ]
+    },
+    {
+     "params": [
+      [
+       "classical",
+       [
+        [
+         0,
+         1
+        ],
+        [
+         0,
+         2
+        ]
+       ]
+      ]
+     ],
+     "produced": [
+      3,
+      0,
+      43,
+      6
+     ],
+     "source": [
+      3,
+      0,
+      0,
+      427
+     ],
+     "target": [
+      3,
+      0,
+      43,
+      6
+     ],
+     "trick": "degradation",
+     "via": [
+      3,
+      0,
+      0,
+      427
+     ]
+    }
+   ],
+   "class_members": [],
+   "id": [
+    4,
+    68,
+    0,
+    3799
+   ],
+   "seed": "QG_Triangle",
+   "structure": {
+    "classical_facets": [],
+    "edges": [
+     [
+      1,
+      3
+     ],
+     [
+      2,
+      3
+     ]
+    ],
+    "nodes": [
+     "0",
+     "1",
+     "2",
+     "3"
+    ],
+    "quantum_facets": [
+     [
+      0,
+      1,
+      3
+     ],
+     [
+      0,
+      2,
+      3
+     ],
+     [
+      1,
+      2,
+      3
+     ]
+    ]
+   },
+   "versions": {
+    "PD": 1,
+    "degradation": 1,
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -40703,7 +39851,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -40791,7 +39939,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -40923,7 +40071,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -41054,7 +40202,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -41186,7 +40334,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -41278,7 +40426,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -41413,7 +40561,7 @@
    "versions": {
     "PD": 1,
     "degradation": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -44784,7 +43932,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -44939,50 +44087,13 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,70,0,151": {
-   "certificate": "upward(('above', '{0:[1],1:[2,3],2:[3],3:[]}|[(1,2,3)]'), ('below', '{0:[1],1:[2,3],2:[],3:[]}|[(1,2,3)]')):\n    Children  : {0:[1],1:[2,3],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(1,2,3)]\nPD(('drop', 2),):\n    Children  : {0:[1],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(2,3)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "certificate": "PD(('drop', 2),):\n    Children  : {0:[1],1:[2,3],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(1,2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(2,3)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[1],1:[2,3],2:[3],3:[]}|[(1,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[1],1:[2,3],2:[],3:[]}|[(1,2,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      6,
-      0,
-      151
-     ],
-     "source": [
-      4,
-      70,
-      0,
-      151
-     ],
-     "target": [
-      4,
-      6,
-      0,
-      151
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      394,
-      0,
-      11
-     ]
-    },
     {
      "params": [
       [
@@ -44998,7 +44109,7 @@
      ],
      "source": [
       4,
-      6,
+      70,
       0,
       151
      ],
@@ -45011,9 +44122,9 @@
      "trick": "PD",
      "via": [
       4,
-      28,
+      394,
       0,
-      13
+      11
      ]
     }
    ],
@@ -45134,8 +44245,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -45739,7 +44849,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -45906,50 +45016,13 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,70,0,183": {
-   "certificate": "upward(('above', '{0:[1,2],1:[2,3],2:[3],3:[]}|[(1,2,3)]'), ('below', '{0:[1,2],1:[3],2:[3],3:[]}|[(1,2,3)]')):\n    Children  : {0:[1,2],1:[2,3],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(1,2,3)]\nPD(('drop', 1),):\n    Children  : {0:[1,2],1:[3],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(1,2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(2,3)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "certificate": "PD(('drop', 1),):\n    Children  : {0:[1,2],1:[2,3],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(1,2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(2,3)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[1,2],1:[2,3],2:[3],3:[]}|[(1,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[1,2],1:[3],2:[3],3:[]}|[(1,2,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      68,
-      0,
-      183
-     ],
-     "source": [
-      4,
-      70,
-      0,
-      183
-     ],
-     "target": [
-      4,
-      68,
-      0,
-      183
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      906,
-      0,
-      11
-     ]
-    },
     {
      "params": [
       [
@@ -45965,7 +45038,7 @@
      ],
      "source": [
       4,
-      68,
+      70,
       0,
       183
      ],
@@ -45978,7 +45051,7 @@
      "trick": "PD",
      "via": [
       4,
-      904,
+      906,
       0,
       11
      ]
@@ -46479,51 +45552,13 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,70,0,211": {
-   "certificate": "upward(('above', '{0:[1,3],1:[2,3],2:[3],3:[]}|[(1,2,3)]'), ('below', '{0:[1,3],1:[2],2:[],3:[]}|[(1,2,3)]')):\n    Children  : {0:[1,3],1:[2,3],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(1,2,3)]\nPD(('drop', 3),):\n    Children  : {0:[1,3],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(1,2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(2,3)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "certificate": "PD(('drop', 3),):\n    Children  : {0:[1,3],1:[2,3],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(1,2)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(2,3)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[1,3],1:[2,3],2:[3],3:[]}|[(1,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[1,3],1:[2],2:[],3:[]}|[(1,2,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      2,
-      0,
-      215
-     ],
-     "source": [
-      4,
-      70,
-      0,
-      211
-     ],
-     "target": [
-      4,
-      2,
-      0,
-      215
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      2204,
-      0,
-      13
-     ]
-    },
     {
      "params": [
       [
@@ -46539,9 +45574,9 @@
      ],
      "source": [
       4,
-      2,
+      70,
       0,
-      215
+      211
      ],
      "target": [
       3,
@@ -46552,9 +45587,9 @@
      "trick": "PD",
      "via": [
       4,
-      74,
+      2204,
       0,
-      14
+      5
      ]
     }
    ],
@@ -48781,8 +47816,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -48949,7 +47983,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -49116,7 +48150,7 @@
    },
    "versions": {
     "conditioning": 4,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -49295,7 +48329,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -49383,7 +48417,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -49472,7 +48506,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -49560,50 +48594,13 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,70,0,3223": {
-   "certificate": "upward(('above', '{0:[],1:[2,3],2:[3],3:[]}|[(0,1),(0,3),(1,2,3)]'), ('below', '{0:[],1:[2,3],2:[],3:[]}|[(0,1),(0,3),(1,2,3)]')):\n    Children  : {0:[],1:[2,3],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,3),(1,2,3)]\nPD(('drop', 3),):\n    Children  : {0:[],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,3),(1,2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "certificate": "PD(('drop', 3),):\n    Children  : {0:[],1:[2,3],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,3),(1,2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[],1:[2,3],2:[3],3:[]}|[(0,1),(0,3),(1,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[],1:[2,3],2:[],3:[]}|[(0,1),(0,3),(1,2,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      6,
-      0,
-      2711
-     ],
-     "source": [
-      4,
-      70,
-      0,
-      3223
-     ],
-     "target": [
-      4,
-      6,
-      0,
-      2711
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      70,
-      0,
-      3223
-     ]
-    },
     {
      "params": [
       [
@@ -49619,9 +48616,9 @@
      ],
      "source": [
       4,
-      6,
+      70,
       0,
-      2711
+      3223
      ],
      "target": [
       3,
@@ -49632,9 +48629,9 @@
      "trick": "PD",
      "via": [
       4,
-      6,
+      70,
       0,
-      2711
+      3223
      ]
     }
    ],
@@ -49686,8 +48683,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -49779,7 +48775,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -49871,7 +48867,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -49963,7 +48959,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -50055,7 +49051,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -50151,7 +49147,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -50247,7 +49243,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -50803,7 +49799,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -50888,7 +49884,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -50972,7 +49968,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -51054,7 +50050,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -51138,7 +50134,7 @@
    },
    "versions": {
     "conditioning": 4,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -51226,7 +50222,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -51314,7 +50310,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -51402,7 +50398,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -51494,7 +50490,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -51578,7 +50574,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -51662,7 +50658,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -51747,7 +50743,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -51836,23 +50832,23 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,74,0,1683": {
-   "certificate": "PD(('drop', 2),):\n    Children  : {0:[1,3],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,3),(1,2)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 3),):\n    Children  : {0:[1,3],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,3),(1,2)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[1],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
     {
      "params": [
       [
        "drop",
-       2
+       3
       ]
      ],
      "produced": [
       3,
-      6,
+      12,
       0,
       43
      ],
@@ -51864,7 +50860,7 @@
      ],
      "target": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -51884,7 +50880,7 @@
     0,
     1683
    ],
-   "seed": "QG_Evans",
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -51924,7 +50920,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -52012,7 +51008,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -52101,50 +51097,13 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,74,0,183": {
-   "certificate": "upward(('above', '{0:[1,3],1:[2],2:[],3:[]}|[(0,1,2),(0,1,3)]'), ('below', '{0:[3],1:[2],2:[],3:[]}|[(0,1,2),(0,1,3)]')):\n    Children  : {0:[1,3],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\nPD(('drop', 0),):\n    Children  : {0:[3],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "certificate": "PD(('drop', 0),):\n    Children  : {0:[1,3],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[1,3],1:[2],2:[],3:[]}|[(0,1,2),(0,1,3)]"
-      ],
-      [
-       "below",
-       "{0:[3],1:[2],2:[],3:[]}|[(0,1,2),(0,1,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      72,
-      0,
-      183
-     ],
-     "source": [
-      4,
-      74,
-      0,
-      183
-     ],
-     "target": [
-      4,
-      72,
-      0,
-      183
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      74,
-      0,
-      183
-     ]
-    },
     {
      "params": [
       [
@@ -52160,7 +51119,7 @@
      ],
      "source": [
       4,
-      72,
+      74,
       0,
       183
      ],
@@ -52173,7 +51132,7 @@
      "trick": "PD",
      "via": [
       4,
-      72,
+      74,
       0,
       183
      ]
@@ -52224,8 +51183,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -52310,55 +51268,18 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,74,0,215": {
-   "certificate": "upward(('above', '{0:[1,3],1:[2],2:[],3:[]}|[(0,1,2),(0,2,3)]'), ('below', '{0:[],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]')):\n    Children  : {0:[1,3],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,2,3)]\nPD(('drop', 0),):\n    Children  : {0:[],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 2),):\n    Children  : {0:[1,3],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,2,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
    "chain": [
     {
      "params": [
       [
-       "above",
-       "{0:[1,3],1:[2],2:[],3:[]}|[(0,1,2),(0,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      6,
-      0,
-      219
-     ],
-     "source": [
-      4,
-      74,
-      0,
-      215
-     ],
-     "target": [
-      4,
-      6,
-      0,
-      219
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      74,
-      0,
-      215
-     ]
-    },
-    {
-     "params": [
-      [
        "drop",
-       0
+       2
       ]
      ],
      "produced": [
@@ -52369,9 +51290,9 @@
      ],
      "source": [
       4,
-      6,
+      74,
       0,
-      219
+      215
      ],
      "target": [
       3,
@@ -52382,9 +51303,9 @@
      "trick": "PD",
      "via": [
       4,
-      6,
+      74,
       0,
-      219
+      215
      ]
     }
    ],
@@ -52433,8 +51354,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -52522,7 +51442,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -52689,7 +51609,7 @@
    },
    "versions": {
     "conditioning": 4,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -52781,7 +51701,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -52948,7 +51868,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -53037,7 +51957,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -53125,7 +52045,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -53214,7 +52134,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -53306,7 +52226,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -53398,23 +52318,23 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,74,0,50835": {
-   "certificate": "PD(('drop', 2),):\n    Children  : {0:[1,3],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,3),(1,2),(2,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 3),):\n    Children  : {0:[1,3],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,3),(1,2),(2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[1],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]\n    (quantum-equivalent to the class representative)\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
     {
      "params": [
       [
        "drop",
-       2
+       3
       ]
      ],
      "produced": [
       3,
-      6,
+      12,
       0,
       43
      ],
@@ -53426,7 +52346,7 @@
      ],
      "target": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -53446,7 +52366,7 @@
     0,
     50835
    ],
-   "seed": "QG_Evans",
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -53490,7 +52410,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -53582,7 +52502,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -53678,7 +52598,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -53774,7 +52694,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -53859,23 +52779,23 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,76,0,1627": {
-   "certificate": "PD(('drop', 0),):\n    Children  : {0:[3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,3),(1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 1),):\n    Children  : {0:[3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,3),(1,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
     {
      "params": [
       [
        "drop",
-       0
+       1
       ]
      ],
      "produced": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -53887,7 +52807,7 @@
      ],
      "target": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -53907,7 +52827,7 @@
     0,
     1627
    ],
-   "seed": "QG_Evans",
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -53948,7 +52868,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -54036,23 +52956,23 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,76,0,183": {
-   "certificate": "PD(('drop', 0),):\n    Children  : {0:[3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 1),):\n    Children  : {0:[3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
     {
      "params": [
       [
        "drop",
-       0
+       1
       ]
      ],
      "produced": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -54064,7 +52984,7 @@
      ],
      "target": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -54084,7 +53004,7 @@
     0,
     183
    ],
-   "seed": "QG_Evans",
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -54122,23 +53042,23 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,76,0,2643": {
-   "certificate": "conditioning(('condition', 0),):\n    Children  : {0:[3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "conditioning(('condition', 1),):\n    Children  : {0:[3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(1,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
     {
      "params": [
       [
        "condition",
-       0
+       1
       ]
      ],
      "produced": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -54150,7 +53070,7 @@
      ],
      "target": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -54170,7 +53090,7 @@
     0,
     2643
    ],
-   "seed": "QG_Evans",
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -54210,7 +53130,7 @@
    },
    "versions": {
     "conditioning": 4,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -54377,23 +53297,23 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,76,0,2711": {
-   "certificate": "PD(('drop', 0),):\n    Children  : {0:[3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2),(1,2)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 1),):\n    Children  : {0:[3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2),(1,2)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
     {
      "params": [
       [
        "drop",
-       0
+       1
       ]
      ],
      "produced": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -54405,7 +53325,7 @@
      ],
      "target": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -54425,7 +53345,7 @@
     0,
     2711
    ],
-   "seed": "QG_Evans",
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -54466,23 +53386,23 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,76,0,42645": {
-   "certificate": "PD(('drop', 0),):\n    Children  : {0:[3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3),(1,2),(1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 1),):\n    Children  : {0:[3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3),(1,2),(1,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
     {
      "params": [
       [
        "drop",
-       0
+       1
       ]
      ],
      "produced": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -54494,7 +53414,7 @@
      ],
      "target": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -54514,7 +53434,7 @@
     0,
     42645
    ],
-   "seed": "QG_Evans",
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -54558,7 +53478,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -54650,7 +53570,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -54742,23 +53662,23 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,76,0,682323": {
-   "certificate": "PD(('drop', 0),):\n    Children  : {0:[3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(0,3),(1,2),(1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 1),):\n    Children  : {0:[3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(0,3),(1,2),(1,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
     {
      "params": [
       [
        "drop",
-       0
+       1
       ]
      ],
      "produced": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -54770,7 +53690,7 @@
      ],
      "target": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -54790,7 +53710,7 @@
     0,
     682323
    ],
-   "seed": "QG_Evans",
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -54838,7 +53758,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -55394,7 +54314,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -55482,50 +54402,13 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,78,0,151": {
-   "certificate": "upward(('above', '{0:[1,2,3],1:[],2:[3],3:[]}|[(0,1),(0,2,3)]'), ('below', '{0:[1,2,3],1:[],2:[],3:[]}|[(0,1),(0,2,3)]')):\n    Children  : {0:[1,2,3],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2,3)]\nPD(('drop', 2),):\n    Children  : {0:[1,2,3],1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 2),):\n    Children  : {0:[1,2,3],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[1,2,3],1:[],2:[3],3:[]}|[(0,1),(0,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[1,2,3],1:[],2:[],3:[]}|[(0,1),(0,2,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      14,
-      0,
-      91
-     ],
-     "source": [
-      4,
-      78,
-      0,
-      151
-     ],
-     "target": [
-      4,
-      14,
-      0,
-      91
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      78,
-      0,
-      151
-     ]
-    },
     {
      "params": [
       [
@@ -55541,9 +54424,9 @@
      ],
      "source": [
       4,
-      14,
+      78,
       0,
-      91
+      151
      ],
      "target": [
       3,
@@ -55554,9 +54437,9 @@
      "trick": "PD",
      "via": [
       4,
-      14,
+      78,
       0,
-      91
+      151
      ]
     }
    ],
@@ -55608,8 +54491,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -55702,23 +54584,23 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,78,0,1683": {
-   "certificate": "PD(('drop', 3),):\n    Children  : {0:[1,2,3],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(2,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "conditioning(('condition', 0),):\n    Children  : {0:[1,2,3],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
     {
      "params": [
       [
-       "drop",
-       3
+       "condition",
+       0
       ]
      ],
      "produced": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -55730,11 +54612,11 @@
      ],
      "target": [
       3,
-      6,
+      2,
       0,
       43
      ],
-     "trick": "PD",
+     "trick": "conditioning",
      "via": [
       4,
       78,
@@ -55750,7 +54632,7 @@
     0,
     1683
    ],
-   "seed": "QG_Evans",
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -55793,56 +54675,19 @@
     ]
    },
    "versions": {
-    "PD": 1,
-    "metagraph": 2
+    "conditioning": 4,
+    "metagraph": 4
    },
    "via_cache": null
   },
-  "4,78,0,183": {
-   "certificate": "upward(('above', '{0:[1,2,3],1:[],2:[3],3:[]}|[(0,1,2),(0,2,3)]'), ('below', '{0:[3],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]')):\n    Children  : {0:[1,2,3],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,2,3)]\nPD(('drop', 0),):\n    Children  : {0:[3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+  "4,78,0,1747": {
+   "certificate": "PD(('drop', 3),):\n    Children  : {0:[1,2,3],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2),(2,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
    "chain": [
     {
      "params": [
       [
-       "above",
-       "{0:[1,2,3],1:[],2:[3],3:[]}|[(0,1,2),(0,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[3],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      76,
-      0,
-      183
-     ],
-     "source": [
-      4,
-      78,
-      0,
-      183
-     ],
-     "target": [
-      4,
-      76,
-      0,
-      183
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      78,
-      0,
-      183
-     ]
-    },
-    {
-     "params": [
-      [
        "drop",
-       0
+       3
       ]
      ],
      "produced": [
@@ -55853,9 +54698,9 @@
      ],
      "source": [
       4,
-      76,
+      78,
       0,
-      183
+      1747
      ],
      "target": [
       3,
@@ -55866,7 +54711,100 @@
      "trick": "PD",
      "via": [
       4,
-      76,
+      78,
+      0,
+      1747
+     ]
+    }
+   ],
+   "class_members": [],
+   "id": [
+    4,
+    78,
+    0,
+    1747
+   ],
+   "seed": "QG_Evans",
+   "structure": {
+    "classical_facets": [],
+    "edges": [
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      0,
+      3
+     ],
+     [
+      2,
+      3
+     ]
+    ],
+    "nodes": [
+     "0",
+     "1",
+     "2",
+     "3"
+    ],
+    "quantum_facets": [
+     [
+      0,
+      1,
+      3
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      2,
+      3
+     ]
+    ]
+   },
+   "versions": {
+    "PD": 1,
+    "metagraph": 4
+   },
+   "via_cache": null
+  },
+  "4,78,0,183": {
+   "certificate": "PD(('drop', 0),):\n    Children  : {0:[1,2,3],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,2,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "chain": [
+    {
+     "params": [
+      [
+       "drop",
+       0
+      ]
+     ],
+     "produced": [
+      3,
+      2,
+      0,
+      43
+     ],
+     "source": [
+      4,
+      78,
+      0,
+      183
+     ],
+     "target": [
+      3,
+      2,
+      0,
+      43
+     ],
+     "trick": "PD",
+     "via": [
+      4,
+      78,
       0,
       183
      ]
@@ -55879,7 +54817,7 @@
     0,
     183
    ],
-   "seed": "QG_Evans",
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -55921,56 +54859,18 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,78,0,211": {
-   "certificate": "upward(('above', '{0:[1,2,3],1:[],2:[3],3:[]}|[(0,1,3),(0,2,3)]'), ('below', '{0:[],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]')):\n    Children  : {0:[1,2,3],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2,3)]\nPD(('drop', 0),):\n    Children  : {0:[],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 3),):\n    Children  : {0:[1,2,3],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
    "chain": [
     {
      "params": [
       [
-       "above",
-       "{0:[1,2,3],1:[],2:[3],3:[]}|[(0,1,3),(0,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      6,
-      0,
-      219
-     ],
-     "source": [
-      4,
-      78,
-      0,
-      211
-     ],
-     "target": [
-      4,
-      6,
-      0,
-      219
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      78,
-      0,
-      215
-     ]
-    },
-    {
-     "params": [
-      [
        "drop",
-       0
+       3
       ]
      ],
      "produced": [
@@ -55981,9 +54881,9 @@
      ],
      "source": [
       4,
-      6,
+      78,
       0,
-      219
+      211
      ],
      "target": [
       3,
@@ -55994,95 +54894,13 @@
      "trick": "PD",
      "via": [
       4,
-      6,
+      78,
       0,
-      219
+      211
      ]
     }
    ],
-   "class_members": [
-    {
-     "classical_facets": [],
-     "edges": [
-      [
-       0,
-       1
-      ],
-      [
-       0,
-       2
-      ],
-      [
-       0,
-       3
-      ],
-      [
-       2,
-       3
-      ]
-     ],
-     "nodes": [
-      "0",
-      "1",
-      "2",
-      "3"
-     ],
-     "quantum_facets": [
-      [
-       0,
-       1,
-       3
-      ],
-      [
-       0,
-       2,
-       3
-      ]
-     ]
-    },
-    {
-     "classical_facets": [],
-     "edges": [
-      [
-       0,
-       1
-      ],
-      [
-       0,
-       2
-      ],
-      [
-       0,
-       3
-      ],
-      [
-       2,
-       3
-      ]
-     ],
-     "nodes": [
-      "0",
-      "1",
-      "2",
-      "3"
-     ],
-     "quantum_facets": [
-      [
-       0,
-       1,
-       3
-      ],
-      [
-       0,
-       2
-      ],
-      [
-       2,
-       3
-      ]
-     ]
-    }
-   ],
+   "class_members": [],
    "id": [
     4,
     78,
@@ -56130,8 +54948,97 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
+   },
+   "via_cache": null
+  },
+  "4,78,0,215": {
+   "certificate": "PD(('drop', 3),):\n    Children  : {0:[1,2,3],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "chain": [
+    {
+     "params": [
+      [
+       "drop",
+       3
+      ]
+     ],
+     "produced": [
+      3,
+      6,
+      0,
+      43
+     ],
+     "source": [
+      4,
+      78,
+      0,
+      215
+     ],
+     "target": [
+      3,
+      6,
+      0,
+      43
+     ],
+     "trick": "PD",
+     "via": [
+      4,
+      78,
+      0,
+      215
+     ]
+    }
+   ],
+   "class_members": [],
+   "id": [
+    4,
+    78,
+    0,
+    215
+   ],
+   "seed": "QG_Evans",
+   "structure": {
+    "classical_facets": [],
+    "edges": [
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      0,
+      3
+     ],
+     [
+      2,
+      3
+     ]
+    ],
+    "nodes": [
+     "0",
+     "1",
+     "2",
+     "3"
+    ],
+    "quantum_facets": [
+     [
+      0,
+      1,
+      3
+     ],
+     [
+      0,
+      2,
+      3
+     ]
+    ]
+   },
+   "versions": {
+    "PD": 1,
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -56223,7 +55130,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -56402,7 +55309,7 @@
    },
    "versions": {
     "conditioning": 4,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -56498,7 +55405,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -56677,7 +55584,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -56770,7 +55677,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -56862,50 +55769,13 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,78,0,3223": {
-   "certificate": "upward(('above', '{0:[1,2,3],1:[],2:[3],3:[]}|[(0,1),(0,2,3),(1,3)]'), ('below', '{0:[1,2,3],1:[],2:[],3:[]}|[(0,1),(0,2,3),(1,3)]')):\n    Children  : {0:[1,2,3],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2,3),(1,3)]\nPD(('drop', 3),):\n    Children  : {0:[1,2,3],1:[],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2,3),(1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 3),):\n    Children  : {0:[1,2,3],1:[],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2,3),(1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[1,2,3],1:[],2:[3],3:[]}|[(0,1),(0,2,3),(1,3)]"
-      ],
-      [
-       "below",
-       "{0:[1,2,3],1:[],2:[],3:[]}|[(0,1),(0,2,3),(1,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      14,
-      0,
-      1627
-     ],
-     "source": [
-      4,
-      78,
-      0,
-      3223
-     ],
-     "target": [
-      4,
-      14,
-      0,
-      1627
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      78,
-      0,
-      3223
-     ]
-    },
     {
      "params": [
       [
@@ -56921,9 +55791,9 @@
      ],
      "source": [
       4,
-      14,
+      78,
       0,
-      1627
+      3223
      ],
      "target": [
       3,
@@ -56934,9 +55804,9 @@
      "trick": "PD",
      "via": [
       4,
-      14,
+      78,
       0,
-      1627
+      3223
      ]
     }
    ],
@@ -56992,8 +55862,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -57089,7 +55958,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -57185,7 +56054,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -57281,7 +56150,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -57377,7 +56246,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -57477,7 +56346,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -57577,7 +56446,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -57666,7 +56535,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -57754,7 +56623,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -57843,7 +56712,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -57935,55 +56804,18 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,904,0,237": {
-   "certificate": "upward(('above', '{0:[1,2],1:[3],2:[3],3:[]}|[(0,1,3),(0,2,3)]'), ('below', '{0:[],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]')):\n    Children  : {0:[1,2],1:[3],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2,3)]\nPD(('drop', 0),):\n    Children  : {0:[],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 3),):\n    Children  : {0:[1,2],1:[3],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
    "chain": [
     {
      "params": [
       [
-       "above",
-       "{0:[1,2],1:[3],2:[3],3:[]}|[(0,1,3),(0,2,3)]"
-      ],
-      [
-       "below",
-       "{0:[],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      6,
-      0,
-      219
-     ],
-     "source": [
-      4,
-      904,
-      0,
-      237
-     ],
-     "target": [
-      4,
-      6,
-      0,
-      219
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      904,
-      0,
-      237
-     ]
-    },
-    {
-     "params": [
-      [
        "drop",
-       0
+       3
       ]
      ],
      "produced": [
@@ -57994,9 +56826,9 @@
      ],
      "source": [
       4,
-      6,
+      904,
       0,
-      219
+      237
      ],
      "target": [
       3,
@@ -58007,9 +56839,9 @@
      "trick": "PD",
      "via": [
       4,
-      6,
+      904,
       0,
-      219
+      237
      ]
     }
    ],
@@ -58062,8 +56894,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -58156,7 +56987,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -58248,7 +57079,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -58344,7 +57175,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -58440,7 +57271,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -58540,7 +57371,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -58636,7 +57467,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -58736,7 +57567,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -58825,23 +57656,23 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,92,0,1627": {
-   "certificate": "PD(('drop', 0),):\n    Children  : {0:[1,3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,3),(1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 1),):\n    Children  : {0:[1,3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,3),(1,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
     {
      "params": [
       [
        "drop",
-       0
+       1
       ]
      ],
      "produced": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -58853,7 +57684,7 @@
      ],
      "target": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -58873,7 +57704,7 @@
     0,
     1627
    ],
-   "seed": "QG_Evans",
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -58918,50 +57749,13 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,92,0,167": {
-   "certificate": "upward(('above', '{0:[1,3],1:[2,3],2:[],3:[]}|[(0,1,3),(0,2)]'), ('below', '{0:[1,3],1:[2],2:[],3:[]}|[(0,1,3),(0,2)]')):\n    Children  : {0:[1,3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2)]\nPD(('drop', 1),):\n    Children  : {0:[1,3],1:[2],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
+   "certificate": "PD(('drop', 1),):\n    Children  : {0:[1,3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
-    {
-     "params": [
-      [
-       "above",
-       "{0:[1,3],1:[2,3],2:[],3:[]}|[(0,1,3),(0,2)]"
-      ],
-      [
-       "below",
-       "{0:[1,3],1:[2],2:[],3:[]}|[(0,1,3),(0,2)]"
-      ]
-     ],
-     "produced": [
-      4,
-      74,
-      0,
-      91
-     ],
-     "source": [
-      4,
-      92,
-      0,
-      167
-     ],
-     "target": [
-      4,
-      74,
-      0,
-      91
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      92,
-      0,
-      167
-     ]
-    },
     {
      "params": [
       [
@@ -58977,9 +57771,9 @@
      ],
      "source": [
       4,
-      74,
+      92,
       0,
-      91
+      167
      ],
      "target": [
       3,
@@ -58990,9 +57784,9 @@
      "trick": "PD",
      "via": [
       4,
-      74,
+      92,
       0,
-      91
+      167
      ]
     }
    ],
@@ -59044,8 +57838,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -59137,79 +57930,42 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,92,0,183": {
-   "certificate": "upward(('above', '{0:[1,3],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]'), ('below', '{0:[3],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]')):\n    Children  : {0:[1,3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\nPD(('drop', 0),):\n    Children  : {0:[3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 1),):\n    Children  : {0:[1,3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,2),(0,1,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
     {
      "params": [
       [
-       "above",
-       "{0:[1,3],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]"
-      ],
-      [
-       "below",
-       "{0:[3],1:[2,3],2:[],3:[]}|[(0,1,2),(0,1,3)]"
-      ]
-     ],
-     "produced": [
-      4,
-      76,
-      0,
-      183
-     ],
-     "source": [
-      4,
-      92,
-      0,
-      183
-     ],
-     "target": [
-      4,
-      76,
-      0,
-      183
-     ],
-     "trick": "upward",
-     "via": [
-      4,
-      92,
-      0,
-      183
-     ]
-    },
-    {
-     "params": [
-      [
        "drop",
-       0
+       1
       ]
      ],
      "produced": [
       3,
-      6,
+      2,
       0,
       43
      ],
      "source": [
       4,
-      76,
+      92,
       0,
       183
      ],
      "target": [
       3,
-      6,
+      2,
       0,
       43
      ],
      "trick": "PD",
      "via": [
       4,
-      76,
+      92,
       0,
       183
      ]
@@ -59222,7 +57978,7 @@
     0,
     183
    ],
-   "seed": "QG_Evans",
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -59264,8 +58020,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2,
-    "upward": 1
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -59357,7 +58112,7 @@
    },
    "versions": {
     "conditioning": 4,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -59449,7 +58204,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -59541,23 +58296,23 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,92,0,2711": {
-   "certificate": "PD(('drop', 0),):\n    Children  : {0:[1,3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2),(1,2)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 1),):\n    Children  : {0:[1,3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1,3),(0,2),(1,2)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
     {
      "params": [
       [
        "drop",
-       0
+       1
       ]
      ],
      "produced": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -59569,7 +58324,7 @@
      ],
      "target": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -59589,7 +58344,7 @@
     0,
     2711
    ],
-   "seed": "QG_Evans",
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -59634,7 +58389,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -59730,7 +58485,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -59826,23 +58581,23 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,92,0,42645": {
-   "certificate": "PD(('drop', 0),):\n    Children  : {0:[1,3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3),(1,2),(1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 1),):\n    Children  : {0:[1,3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3),(1,2),(1,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
     {
      "params": [
       [
        "drop",
-       0
+       1
       ]
      ],
      "produced": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -59854,7 +58609,7 @@
      ],
      "target": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -59874,7 +58629,7 @@
     0,
     42645
    ],
-   "seed": "QG_Evans",
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -59922,7 +58677,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
@@ -60018,23 +58773,23 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   },
   "4,92,0,682323": {
-   "certificate": "PD(('drop', 0),):\n    Children  : {0:[1,3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(0,3),(1,2),(1,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "PD(('drop', 1),):\n    Children  : {0:[1,3],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(0,3),(1,2),(1,3)]\n== known gap QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC:\n    Children  : {0:[],1:[2],2:[]}\n    Classical : []\n    Quantum   : [(0,1),(1,2)]",
    "chain": [
     {
      "params": [
       [
        "drop",
-       0
+       1
       ]
      ],
      "produced": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -60046,7 +58801,7 @@
      ],
      "target": [
       3,
-      6,
+      2,
       0,
       43
      ],
@@ -60066,7 +58821,7 @@
     0,
     682323
    ],
-   "seed": "QG_Evans",
+   "seed": "QG_Instrumental_C+QG_Instrumental_Edge+QG_Instrumental_EdgeC",
    "structure": {
     "classical_facets": [],
     "edges": [
@@ -60118,7 +58873,7 @@
    },
    "versions": {
     "PD": 1,
-    "metagraph": 2
+    "metagraph": 4
    },
    "via_cache": null
   }
@@ -60130,7 +58885,7 @@
   "PD": 1,
   "conditioning": 4,
   "degradation": 1,
-  "metagraph": 2,
+  "metagraph": 4,
   "naive_marginalization": 1,
   "node_stitching": 1,
   "teleportation_marginalization": 1,

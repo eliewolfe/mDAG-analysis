@@ -88,10 +88,11 @@ def census_worker(mode):
     for _ in range(2):
         start = time.perf_counter()
         with contextlib.redirect_stdout(io.StringIO()):
-            report, cache = module.run_search(verbose=False, use_cache=False)
+            # the ten-stage census: the deeper default would rebuild the five-node screen on every run
+            report, cache = module.run_search(verbose=False, use_cache=False, deep=False)
         times.append(time.perf_counter() - start)
         assert cache is None
-        assert [report.counts[k] for k in ('inputs', 'proven', 'remaining')] == [418, 372, 46]
+        assert [report.counts[k] for k in ('inputs', 'proven', 'remaining')] == [426, 380, 46]
         # repr preserves arbitrary-precision IDs and transition parameters without lossy integer conversion.
         payload = (sorted(report.counts.items()), report.stage_counts, search.ladder(report),
                    sorted(report.proven.items()), sorted(report.seed_hit.items()),

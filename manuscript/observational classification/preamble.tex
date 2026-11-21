@@ -1,0 +1,123 @@
+% Preamble of observational_classification.tex: packages, colours, the TikZ vocabulary of the figures, boxes, macros.
+\usepackage[a4paper,margin=2.35cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{booktabs,array,multirow}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{needspace}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,backgrounds,fit,shapes.geometric,decorations.pathreplacing,
+  decorations.pathmorphing}
+\usepackage[most]{tcolorbox}
+\usepackage[colorlinks=true,linkcolor=oiblue!80!black,citecolor=oigreen!70!black,urlcolor=oiblue!80!black]{hyperref}
+\usepackage[capitalise,noabbrev]{cleveref}
+
+% ---------------------------------------------------------------------------------------------------------------
+% Colours: the Okabe-Ito palette, which stays distinguishable under the common colour-vision deficiencies.
+% ---------------------------------------------------------------------------------------------------------------
+\definecolor{oiorange}{RGB}{230,159,0}
+\definecolor{oisky}{RGB}{86,180,233}
+\definecolor{oigreen}{RGB}{0,158,115}
+\definecolor{oiyellow}{RGB}{240,228,66}
+\definecolor{oiblue}{RGB}{0,114,178}
+\definecolor{oired}{RGB}{213,94,0}
+\definecolor{oipurple}{RGB}{204,121,167}
+\colorlet{qcol}{oipurple!82!black}      % quantum sources and what they send
+\colorlet{ccol}{oiblue}                 % classical data handed out by a source
+\colorlet{Cfill}{oisky!55}              % the part C that is split off
+\colorlet{Dfill}{oigreen!38}            % the part D that sees C
+\colorlet{splitcol}{oiorange}           % the source that is being split
+\colorlet{dropcol}{oired}               % the edge that is dropped
+\colorlet{premcol}{oiyellow!70}         % premeasurable nodes
+\colorlet{neutral}{black!55}            % boxes and discs that carry no status
+
+% ---------------------------------------------------------------------------------------------------------------
+% TikZ vocabulary. A structure is drawn with \vn (visible node), \qs (quantum source), \feed (source to members)
+% and \de (visible edge).
+% ---------------------------------------------------------------------------------------------------------------
+\tikzset{
+  mdag/.style={>={Stealth[length=2.0mm,width=1.6mm]}, line cap=round, line join=round, font=\small},
+  vis/.style={circle, draw=black, line width=0.7pt, fill=white, minimum size=6.6mm, inner sep=0pt, font=\small},
+  Cn/.style={vis, fill=Cfill},
+  Dn/.style={vis, fill=Dfill},
+  pre/.style={vis, fill=premcol},
+  src/.style={diamond, aspect=1, draw=qcol!75!black, line width=0.5pt, fill=qcol, minimum size=4.6mm, inner sep=0pt},
+  splitsrc/.style={src, draw=splitcol!70!black, fill=splitcol},
+  csrc/.style={src, draw=ccol!75!black, fill=ccol!65},
+  edge/.style={->, line width=0.8pt, black},
+  qedge/.style={->, line width=0.8pt, qcol},
+  splitedge/.style={->, line width=0.8pt, splitcol!85!black},
+  cedge/.style={->, line width=0.8pt, ccol, densely dashed},
+  dropedge/.style={->, line width=0.9pt, dropcol, densely dashed},
+  newedge/.style={->, line width=1.0pt, oigreen!75!black},
+  faint/.style={opacity=0.4},
+  lab/.style={font=\footnotesize, inner sep=1.5pt},
+  rel/.style={font=\Large},
+  tag/.style={font=\scriptsize\itshape, text=black!70},
+}
+\newcommand{\vn}[4][vis]{\node[#1] (#2) at (#3) {#4};}
+\newcommand{\qs}[3][src]{\node[#1] (#2) at (#3) {};}
+\newcommand{\feed}[3][qedge]{\foreach \target in {#3} {\draw[#1] (#2) -- (\target);}}
+\newcommand{\de}[3][edge]{\draw[#1] (#2) -- (#3);}
+% relation signs between two pictures
+\newcommand{\equivsign}{\ensuremath{\boldsymbol{\equiv}}}
+\newcommand{\nequivsign}{\ensuremath{\boldsymbol{\not\equiv}}}
+\newcommand{\openequivsign}{\ensuremath{\overset{?}{\equiv}}}
+
+% ---------------------------------------------------------------------------------------------------------------
+% Boxes
+% ---------------------------------------------------------------------------------------------------------------
+\tcbset{boxbase/.style={enhanced, breakable, boxrule=0.8pt, arc=1.6mm, left=2.2mm, right=2.2mm, top=1.6mm,
+                        bottom=1.6mm, fonttitle=\bfseries\small, before skip=9pt, after skip=9pt}}
+\newtcolorbox{rulebox}[1]{boxbase, unbreakable, colback=oiblue!4, colframe=oiblue, title={#1}}
+% valid examples are numbered automatically; give one a label with \begin{validbox}[label=ex:...]{title}
+\newtcolorbox[auto counter]{validbox}[2][]{boxbase, colback=oigreen!5, colframe=oigreen!85!black,
+  title={\checkmark\enspace Example~\thetcbcounter: #2}, #1}
+\newtcolorbox{warnbox}[1]{boxbase, colback=oired!5, colframe=oired, title={$\boldsymbol{\times}$\enspace Not like this: #1}}
+\newtcolorbox{cexbox}[1]{boxbase, unbreakable, colback=oired!4, colframe=oired, title={$\boldsymbol{\times}$\enspace Counterexample: #1}}
+\newtcolorbox{openq}[1]{boxbase, colback=oiorange!7, colframe=oiorange!90!black, title={?\enspace Open: #1}}
+\newtcolorbox{ideabox}[1]{boxbase, colback=black!3, colframe=black!55, title={#1}}
+
+% ---------------------------------------------------------------------------------------------------------------
+% Theorems
+% ---------------------------------------------------------------------------------------------------------------
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% ---------------------------------------------------------------------------------------------------------------
+% Macros
+% ---------------------------------------------------------------------------------------------------------------
+\newcommand{\Q}{\mathcal{Q}}                         % quantum model set
+\newcommand{\C}{\mathcal{C}}                         % classical model set
+\newcommand{\G}{G}
+\newcommand{\Pa}{\mathrm{Pa}}
+\newcommand{\pa}{\mathrm{pa}}
+\newcommand{\Tr}{\operatorname{Tr}}
+\newcommand{\Hil}{\mathcal{H}}
+\newcommand{\id}{\mathbf{1}}
+\newcommand{\ket}[1]{\lvert #1\rangle}
+\newcommand{\bra}[1]{\langle #1\rvert}
+\newcommand{\proj}[1]{\lvert #1\rangle\!\langle #1\rvert}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\str}[1]{\textsf{\small #1}}             % a structure in the repository's notation
+\newcommand{\qeq}{\equiv_{\Q}}
+\newcommand{\ceq}{\equiv_{\C}}
+\newcommand{\exref}[1]{Example~\ref{#1}}
+\newcommand{\AWS}{AWS}
+\setlist{itemsep=2pt, topsep=4pt}
+\setlength{\parskip}{4pt plus 1pt}
+\setlength{\parindent}{0pt}

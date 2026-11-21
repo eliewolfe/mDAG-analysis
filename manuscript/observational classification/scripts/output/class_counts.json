@@ -1,0 +1,263 @@
+{
+ "3": {
+  "HLP edges (quantum, classical)": [
+   12,
+   12
+  ],
+  "classes with the classical edge rule and the face splitting of the note": 8,
+  "classes with the wider Rule A, Rule B and strong face splitting": 8,
+  "classical classes": 8,
+  "classical classes by number of quantum classes inside": {
+   "1": 8
+  },
+  "classical classes with a latent-free DAG": 5,
+  "classical edge rule": {
+   "covered by the wider Rule A or Rule B": 24,
+   "instances": 24,
+   "not covered, different quantum classes": 0,
+   "not covered, same quantum class by other rules": 0,
+   "one instance for each pair": [],
+   "pairs of quantum classes that such an edge would join": 0,
+   "the pair of the four-node counterexample is one of them": null
+  },
+  "mDAGs": 46,
+  "of which hold inputs of the census": {
+   "1": 3
+  },
+  "versions": {
+   "moderate": {
+    "face-splitting edges": 18,
+    "input classes": 3,
+    "quantum classes": 8,
+    "structures in input classes": 5
+   },
+   "quantum": {
+    "face-splitting edges": 17,
+    "input classes": 3,
+    "quantum classes": 8,
+    "structures in input classes": 5
+   },
+   "strong": {
+    "face-splitting edges": 17,
+    "input classes": 3,
+    "quantum classes": 8,
+    "structures in input classes": 5
+   },
+   "weak": {
+    "face-splitting edges": 18,
+    "input classes": 3,
+    "quantum classes": 8,
+    "structures in input classes": 5
+   }
+  }
+ },
+ "4": {
+  "HLP edges (quantum, classical)": [
+   522,
+   648
+  ],
+  "classes with the classical edge rule and the face splitting of the note": 401,
+  "classes with the wider Rule A, Rule B and strong face splitting": 438,
+  "classical classes": 396,
+  "classical classes by number of quantum classes inside": {
+   "1": 374,
+   "2": 12,
+   "3": 4,
+   "4": 1,
+   "5": 2,
+   "6": 1,
+   "7": 1,
+   "9": 1
+  },
+  "classical classes with a latent-free DAG": 20,
+  "classical edge rule": {
+   "covered by the wider Rule A or Rule B": 1313,
+   "instances": 1627,
+   "not covered, different quantum classes": 79,
+   "not covered, same quantum class by other rules": 235,
+   "one instance for each pair": [
+    "0\u21921, 0\u21922, 0\u21923, 1\u21922, 1\u21923; Q{0,1,2}, Q{0,1,3}, edge 0\u21921",
+    "0\u21921, 0\u21922, 0\u21923, 1\u21922, 1\u21923; Q{0,1,3}, Q{0,2}, edge 1\u21923",
+    "0\u21921, 0\u21922, 0\u21923, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,2,3}, edge 0\u21922",
+    "0\u21921, 0\u21922, 0\u21923, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,2,3}, edge 1\u21922",
+    "0\u21921, 0\u21922, 0\u21923, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,3}, Q{2,3}, edge 1\u21922",
+    "0\u21921, 0\u21922, 0\u21923, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,3}, edge 1\u21922",
+    "0\u21921, 0\u21922, 0\u21923, 1\u21923, 2\u21923; Q{0,1,3}, Q{0,2,3}, edge 0\u21923",
+    "0\u21921, 0\u21922, 0\u21923, 1\u21923, 2\u21923; Q{0,1,3}, Q{0,2,3}, edge 1\u21923",
+    "0\u21921, 0\u21922, 0\u21923, 1\u21923, 2\u21923; Q{0,1}, Q{0,2,3}, Q{1,3}, edge 2\u21923",
+    "0\u21921, 0\u21922, 0\u21923, 1\u21923, 2\u21923; Q{0,1}, Q{0,2,3}, edge 2\u21923",
+    "0\u21921, 0\u21922, 0\u21923, 2\u21923; Q{0,1,2}, Q{0,2,3}, edge 0\u21922",
+    "0\u21921, 0\u21922, 0\u21923, 2\u21923; Q{0,1,3}, Q{0,2,3}, edge 0\u21923",
+    "0\u21921, 0\u21922, 0\u21923, 2\u21923; Q{0,1,3}, Q{0,2,3}, edge 2\u21923",
+    "0\u21921, 0\u21922, 0\u21923, 2\u21923; Q{0,1}, Q{0,2,3}, Q{1,3}, edge 2\u21923",
+    "0\u21921, 0\u21922, 0\u21923, 2\u21923; Q{0,1}, Q{0,2,3}, edge 2\u21923",
+    "0\u21921, 0\u21922, 0\u21923; Q{0,1,3}, Q{0,2,3}, Q{1,2}, edge 0\u21923",
+    "0\u21921, 0\u21922, 0\u21923; Q{0,1,3}, Q{0,2,3}, edge 0\u21923",
+    "0\u21921, 0\u21922, 1\u21922, 1\u21923, 2\u21923; Q{1,2,3}, edge 1\u21922",
+    "0\u21921, 0\u21922, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,2,3}, edge 0\u21922",
+    "0\u21921, 0\u21922, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,2,3}, edge 1\u21922",
+    "0\u21921, 0\u21922, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,3}, Q{2,3}, edge 1\u21922",
+    "0\u21921, 0\u21922, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,3}, edge 1\u21922",
+    "0\u21921, 0\u21922, 1\u21922, 2\u21923; Q{1,2,3}, edge 1\u21922",
+    "0\u21921, 0\u21923, 1\u21922, 1\u21923, 2\u21923; Q{1,2,3}, edge 1\u21923",
+    "0\u21921, 0\u21923, 1\u21922, 1\u21923, 2\u21923; Q{1,2,3}, edge 2\u21923",
+    "0\u21921, 0\u21923, 1\u21922, 1\u21923; Q{0,1,2}, Q{0,1,3}, edge 0\u21921",
+    "0\u21921, 0\u21923, 1\u21922, 1\u21923; Q{0,1,3}, Q{0,2}, edge 1\u21923",
+    "0\u21921, 0\u21923, 1\u21922, 1\u21923; Q{1,2,3}, edge 1\u21923",
+    "0\u21921, 0\u21923, 1\u21922; Q{0,1,2}, Q{0,1,3}, edge 0\u21921",
+    "0\u21921, 1\u21922, 1\u21923, 2\u21923; Q{1,2,3}, edge 2\u21923",
+    "0\u21921, 1\u21922, 1\u21923; Q{0,1,2}, Q{0,1,3}, Q{1,2,3}, edge 0\u21921",
+    "0\u21921, 1\u21922, 1\u21923; Q{0,1,2}, Q{0,1,3}, Q{2,3}, edge 0\u21921",
+    "0\u21921, 1\u21922, 1\u21923; Q{0,1,2}, Q{0,1,3}, edge 0\u21921",
+    "0\u21922, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,2,3}, Q{1,2,3}, edge 0\u21922",
+    "0\u21922, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,3}, Q{1,2,3}, edge 1\u21922",
+    "0\u21923, 1\u21923, 2\u21923; Q{0,1,3}, Q{0,2,3}, Q{1,2,3}, edge 0\u21923",
+    "0\u21923, 1\u21923, 2\u21923; Q{0,1}, Q{0,2,3}, Q{1,2,3}, edge 2\u21923",
+    "1\u21922, 1\u21923, 2\u21923; Q{0,1}, Q{0,3}, Q{1,2,3}, edge 2\u21923",
+    "1\u21922, 1\u21923; Q{0,1,3}, Q{0,2}, Q{1,2,3}, edge 1\u21923",
+    "1\u21922, 2\u21923; Q{0,1,2}, Q{0,2,3}, Q{1,2,3}, edge 1\u21922",
+    "1\u21922, 2\u21923; Q{0,1,2}, Q{0,3}, Q{1,2,3}, edge 1\u21922",
+    "1\u21923, 2\u21923; Q{0,1,3}, Q{0,2,3}, Q{1,2,3}, edge 1\u21923",
+    "1\u21923, 2\u21923; Q{0,1}, Q{0,2,3}, Q{1,2,3}, edge 2\u21923",
+    "2\u21923; Q{0,1,3}, Q{0,2,3}, Q{1,2,3}, edge 2\u21923",
+    "2\u21923; Q{0,1}, Q{0,2,3}, Q{1,2,3}, edge 2\u21923"
+   ],
+   "pairs of quantum classes that such an edge would join": 45,
+   "the pair of the four-node counterexample is one of them": true
+  },
+  "mDAGs": 2809,
+  "of which hold inputs of the census": {
+   "1": 354,
+   "2": 12,
+   "3": 4,
+   "4": 1,
+   "5": 2,
+   "6": 1,
+   "7": 1,
+   "9": 1
+  },
+  "quantum classes that need several sources split together": [
+   {
+    "classes under the weak rule": 9,
+    "members": [
+     "0\u21921, 0\u21922, 0\u21923, 1\u21923, 2\u21923; Q{0,1,3}, Q{0,2,3}",
+     "0\u21921, 0\u21922, 0\u21923, 1\u21923, 2\u21923; Q{0,1}, Q{0,2,3}",
+     "0\u21921, 0\u21922, 0\u21923, 1\u21923, 2\u21923; Q{0,1}, Q{0,2,3}, Q{1,3}",
+     "0\u21921, 0\u21922, 0\u21923, 1\u21923, 2\u21923; Q{0,1}, Q{0,2}",
+     "0\u21921, 0\u21922, 0\u21923, 1\u21923, 2\u21923; Q{0,1}, Q{0,2}, Q{0,3}",
+     "0\u21921, 0\u21922, 0\u21923, 1\u21923, 2\u21923; Q{0,1}, Q{0,2}, Q{0,3}, Q{1,3}, Q{2,3}",
+     "0\u21921, 0\u21922, 0\u21923, 1\u21923, 2\u21923; Q{0,1}, Q{0,2}, Q{0,3}, Q{2,3}",
+     "0\u21921, 0\u21922, 0\u21923, 1\u21923, 2\u21923; Q{0,1}, Q{0,2}, Q{1,3}, Q{2,3}",
+     "0\u21921, 0\u21922, 0\u21923, 1\u21923, 2\u21923; Q{0,1}, Q{0,2}, Q{2,3}"
+    ],
+    "structures": 9
+   },
+   {
+    "classes under the weak rule": 8,
+    "members": [
+     "0\u21923, 1\u21923, 2\u21923; Q{0,1,3}, Q{0,2,3}, Q{1,2,3}",
+     "0\u21923, 1\u21923, 2\u21923; Q{0,1}, Q{0,2,3}, Q{1,2,3}",
+     "0\u21923, 1\u21923, 2\u21923; Q{0,1}, Q{0,2}, Q{0,3}, Q{1,2,3}",
+     "0\u21923, 1\u21923, 2\u21923; Q{0,1}, Q{0,2}, Q{0,3}, Q{1,2}, Q{1,3}, Q{2,3}",
+     "0\u21923, 1\u21923, 2\u21923; Q{0,1}, Q{0,2}, Q{1,2,3}",
+     "0\u21923, 1\u21923, 2\u21923; Q{0,1}, Q{0,2}, Q{1,2}",
+     "0\u21923, 1\u21923, 2\u21923; Q{0,1}, Q{0,2}, Q{1,2}, Q{1,3}, Q{2,3}",
+     "0\u21923, 1\u21923, 2\u21923; Q{0,1}, Q{0,2}, Q{1,2}, Q{2,3}"
+    ],
+    "structures": 8
+   }
+  ],
+  "separated groups": [
+   {
+    "classical class": 43,
+    "quantum classes": [
+     [
+      "0\u21921, 0\u21922, 0\u21923, 2\u21923; Q{0,1,3}, Q{0,2}"
+     ],
+     [
+      "0\u21921, 0\u21922, 0\u21923, 2\u21923; Q{0,1,3}, Q{0,2}, Q{2,3}"
+     ],
+     [
+      "0\u21921, 0\u21922, 0\u21923, 2\u21923; Q{0,1,3}, Q{0,2,3}"
+     ]
+    ]
+   },
+   {
+    "classical class": 319,
+    "quantum classes": [
+     [
+      "0\u21921, 0\u21922, 1\u21922, 2\u21923; Q{0,1}, Q{0,2,3}"
+     ],
+     [
+      "0\u21921, 0\u21922, 1\u21922, 2\u21923; Q{0,1}, Q{0,2,3}, Q{1,2}"
+     ],
+     [
+      "0\u21921, 0\u21922, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,2,3}"
+     ]
+    ]
+   },
+   {
+    "classical class": 321,
+    "quantum classes": [
+     [
+      "0\u21921, 0\u21922, 0\u21923, 1\u21922, 2\u21923; Q{0,1}, Q{0,2,3}"
+     ],
+     [
+      "0\u21921, 0\u21922, 0\u21923, 1\u21922, 2\u21923; Q{0,1}, Q{0,2,3}, Q{1,2}"
+     ],
+     [
+      "0\u21921, 0\u21922, 0\u21923, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,2,3}"
+     ]
+    ]
+   },
+   {
+    "classical class": 101,
+    "quantum classes": [
+     [
+      "1\u21923, 2\u21923; Q{0,1,3}, Q{0,2,3}, Q{1,2}"
+     ],
+     [
+      "1\u21923, 2\u21923; Q{0,1,3}, Q{0,2,3}, Q{1,2,3}"
+     ]
+    ]
+   },
+   {
+    "classical class": 392,
+    "quantum classes": [
+     [
+      "0\u21922, 1\u21922, 2\u21923; Q{0,1}, Q{0,2,3}, Q{1,2,3}"
+     ],
+     [
+      "0\u21922, 1\u21922, 2\u21923; Q{0,1,2}, Q{0,2,3}, Q{1,2,3}"
+     ]
+    ]
+   }
+  ],
+  "versions": {
+   "moderate": {
+    "face-splitting edges": 899,
+    "input classes": 430,
+    "quantum classes": 450,
+    "structures in input classes": 996
+   },
+   "quantum": {
+    "face-splitting edges": 787,
+    "input classes": 426,
+    "quantum classes": 446,
+    "structures in input classes": 996
+   },
+   "strong": {
+    "face-splitting edges": 825,
+    "input classes": 418,
+    "quantum classes": 438,
+    "structures in input classes": 996
+   },
+   "weak": {
+    "face-splitting edges": 822,
+    "input classes": 441,
+    "quantum classes": 461,
+    "structures in input classes": 996
+   }
+  }
+ }
+}

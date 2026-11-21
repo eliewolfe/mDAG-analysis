@@ -30,11 +30,16 @@ UnlabelledId = Tuple[int, int, int, int]
 # Bump a piggyback's version when its map or its admissibility rule changes; cached proofs that relied on it are
 # then discarded (gap_cache.py). Fritz-type tricks share the mechanism but are versioned separately.
 PIGGYBACK_VERSIONS: Dict[str, int] = {
-    'metagraph': 2,                    # the class keys and the upward rule rest on the metagraph rules (structural
+    'metagraph': 4,                    # the class keys and the upward rule rest on the metagraph rules (structural
                                        #   dominance, face splitting, the premeasurable HLP rule, the lift); every
                                        #   cached proof of a class-keyed search carries this version
                                        #   2: the quantum HLP rule by pre-measurement of the other facet members, and
                                        #   the lift of facets with at most one non-premeasurable member
+                                       #   3: quantum classes use face splitting only for the families that no other
+                                       #   facet touches (mDAG.quantum_splittable_families); strong face splitting
+                                       #   (arXiv:2502.07891, Proposition 8) is kept for the classical classes
+                                       #   4: quantum HLP Rule A admits a single facet when every other member
+                                       #   sees all of the origin's visible parents
     'upward': 1,                       # gap(G') for G' structurally above G in G's classical class (lookup only)
     # 'identity' (an input that is a seed class) is a report label, not a transition: no version.
     'PD': 1,
@@ -431,7 +436,11 @@ class ClosureExplorer:
                     transition = self._child_transition(trick_name, params, key, g, child)
                     self._record(key, [transition])
                     self.expand(self.representatives[transition.target], only=followup)
-                    if not goals.isdisjoint(self.reachable(transition.target)):   # the child's lookups and follow-up included
+                    if hasattr(self, 'bounded'):
+                        # A bounded prefix and suffix must fit the same growth allowance.
+                        if self.bounded.forward(key, goals) is not None:
+                            return
+                    elif not goals.isdisjoint(self.reachable(transition.target)):   # the child's lookups and follow-up included
                         return   # proven: the trick is left unfinished for this root (not marked as applied)
             self.applied.setdefault(key, set()).add(applied_key)
 
@@ -686,9 +695,10 @@ def add_stage(report: GapReport, extra_tricks: Dict[str, Callable],
         report = build_report(explorer, inputs, seeds, _trick_groups_for(explorer, trick_groups), known=known)
     roots = list(dict.fromkeys(report.remaining)) if roots_only else list({explorer.key(g): g for g in inputs}.values())
     explorer.begin_stage(name, extra_tricks)   # the stage is counted even when nothing is left to expand
-    # Early exit: a root stops as soon as it reaches a seed, a cached known gap or an input proven earlier (an input
-    # proven in this very stage is not yet a goal; the next build_report chains the certificates anyway).
-    goals = set(_seed_keys(explorer, seeds, known)) | set(report.proven) if early_exit else None
+    goals = set(_seed_keys(explorer, seeds, known)) if early_exit else None
+    if goals is not None and not hasattr(explorer, 'bounded'):
+        # Unbounded proofs can also chain through any previously proven input.
+        goals.update(report.proven)
     for i, g in enumerate(roots):
         if verbose and i % 250 == 0:
             print(f"[{name}] expanding {i} of {len(roots)} roots; {len(explorer.edges)} structures")

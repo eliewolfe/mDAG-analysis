@@ -1,5 +1,5 @@
 """The quantum metagraph (equivalence_classes.ClassIndex, metagraph_advanced.QuantumMetagraph): its classes, the
-quantum-valid HLP rule, the lift of hybrids, the seed classes and the upward rule."""
+quantum-valid face-splitting and HLP rules, the lift of hybrids, the seed classes and the upward rule."""
 import numpy as np
 import pytest
 
@@ -23,7 +23,7 @@ def Q(edges, n, C, Qf):
 
 def test_class_counts_and_nesting(index):
     for n, (n_mdags, classical, quantum, latent_free, inputs, structures) in \
-            {3: (46, 8, 8, 5, 3, 5), 4: (2809, 396, 438, 20, 418, 996)}.items():
+            {3: (46, 8, 8, 5, 3, 5), 4: (2809, 396, 446, 20, 426, 996)}.items():
         Qm, Cm = index.quantum[n], index.classical[n]
         assert len(Qm.dict_uniqind_unlabelled_mDAGs) == n_mdags
         assert len(Cm.equivalence_classes_as_ids) == classical and len(Qm.equivalence_classes_as_ids) == quantum
@@ -39,16 +39,28 @@ def test_class_counts_and_nesting(index):
         assert Cm.structural_order is Qm.structural_order   # shared
 
 
-def test_quantum_hlp_rule_is_the_pre_measurement_rule(index):
+def test_quantum_hlp_rule_is_wider_rule_a_or_rule_b(index):
     Qm = index.quantum[4]
-    assert len(Qm.hlp_edge_list) == 528 and len(index.classical[4].hlp_edge_list) == 648
-    for md in Qm.dict_uniqind_unlabelled_mDAGs.values():
+    assert len(Qm.hlp_edge_list) == 522 and len(index.classical[4].hlp_edge_list) == 648
+    additional_drops = 0
+    for uid, md in Qm.dict_uniqind_unlabelled_mDAGs.items():
         facets = md.simplicial_complex_instance.simplicial_complex_as_sets
-        for a, b in md.droppable_edges:
-            others_ok = all(md.is_premeasurable(v) for F in facets if a in F for v in F if v not in (a, b))
-            assert md.quantum_hlp_origin_ok(a, b) == (md.is_premeasurable(a) or others_ok)
-            assert ((a, b) in md.quantum_droppable_edges) == md.quantum_hlp_origin_ok(a, b)
-        assert set(md.quantum_droppable_edges) <= set(md.droppable_edges)
+        edges = md.directed_structure_instance.as_set_of_tuples
+        parents = {v: {p for p, child in edges if child == v} for v in range(4)}
+        for classical, quantum in ((md.droppable_edges, md.quantum_droppable_edges),
+                                   (md.addable_edges, md.quantum_addable_edges)):
+            assert set(quantum) <= set(classical)
+            for a, b in classical:
+                sources = [F for F in facets if a in F]
+                rule_a = len(sources) == 1 and all(parents[a] <= parents[v] for v in sources[0])
+                rule_b = all(md.is_premeasurable(v) for F in sources for v in F if v not in (a, b))
+                assert ((a, b) in quantum) == (rule_a or rule_b)
+                if (a, b) in edges and (rule_a or rule_b):
+                    without = mDAG(DirectedStructure(edges - {(a, b)}, 4), md.simplicial_complex_instance)
+                    other_id = Qm.canonical_forms.canonical_of_int(without.unique_id)
+                    assert Qm.class_index_of[uid] == Qm.class_index_of[other_id]
+                    additional_drops += not (md.is_premeasurable(a) or rule_b)
+    assert additional_drops == 35
     # 0 -> 1 with Q{0,1}: 0 is premeasurable, so the edge is redundant classically and quantumly. With a setting 2 of
     # both 0 and 1 (Pa(0) = {2, Q01} inside Pa(1)) the facet {0,1} has no other member, so 1 holds every input of 0
     # and the pair's state is shared by the two alone: still quantum-redundant (second form of the rule).
@@ -64,11 +76,127 @@ def test_quantum_hlp_rule_is_the_pre_measurement_rule(index):
     # a member with two facets blocks the argument: 0 holds shares of Q{0,1,2} and Q{0,3}
     blocked = mDAG(DirectedStructure([(0, 1), (0, 2), (0, 3), (2, 3), (2, 1)], 4), Hypergraph([(0, 1, 2), (0, 3)], 4))
     assert (2, 1) in blocked.droppable_edges and (2, 1) not in blocked.quantum_droppable_edges
-    # a setting of a that the source does not know, with a third facet member that has a setting too: not droppable
+    # The third facet member sees the setting too, so wider Rule A applies although Rule B does not.
     setting = mDAG(DirectedStructure([(0, 1), (0, 2), (1, 2), (0, 3)], 4), Hypergraph([(1, 2, 3)], 4))
-    assert (1, 2) in setting.droppable_edges and (1, 2) not in setting.quantum_droppable_edges
+    assert not setting.is_premeasurable(3) and (1, 2) in setting.quantum_droppable_edges
     # the same with 3 premeasurable: the source of Q{1,2,3} measures 3's share, and 1 -> 2 becomes redundant
     assert (1, 2) in mDAG(DirectedStructure([(0, 1), (0, 2), (1, 2)], 4), Hypergraph([(1, 2, 3)], 4)).quantum_droppable_edges
+
+
+def test_wider_rule_a_requires_one_source_and_visibility_of_every_setting():
+    # 0 and 4 are settings of 1. All other source members see both; none is premeasurable.
+    edges = {(1, 2)} | {(p, v) for p in (0, 4) for v in (1, 2, 3, 5)}
+    source = Hypergraph([(1, 2, 3)], 6)
+    assert (1, 2) in mDAG(DirectedStructure(edges, 6), source).quantum_droppable_edges
+    assert (1, 2) in mDAG(DirectedStructure(edges - {(1, 2)}, 6), source).quantum_addable_edges
+    # One missing setting at a bystander violates Rule A; the target still satisfies the classical rule.
+    missing = mDAG(DirectedStructure(edges - {(4, 3)}, 6), source)
+    assert (1, 2) in missing.droppable_edges and (1, 2) not in missing.quantum_droppable_edges
+    # The target itself must see both settings and must share the source.
+    assert (1, 2) not in mDAG(DirectedStructure(edges - {(4, 2)}, 6), source).quantum_droppable_edges
+    assert (1, 2) not in mDAG(DirectedStructure(edges, 6), Hypergraph([(1, 3)], 6)).quantum_droppable_edges
+    two = mDAG(DirectedStructure(edges, 6), Hypergraph([(1, 2, 3), (1, 2, 5)], 6))
+    assert (1, 2) in two.droppable_edges and (1, 2) not in two.quantum_droppable_edges
+
+
+def test_wider_rule_a_simultaneous_drops_keep_settings_until_they_are_used():
+    edges = {(0, 1), (0, 2), (0, 3), (1, 2), (1, 3)}
+    sources = Hypergraph([(1, 2, 3), (0, 3)], 4)
+
+    def structure(remaining):
+        return mDAG(DirectedStructure(remaining, 4), sources)
+
+    md = structure(edges)
+    drops = {(1, 2), (1, 3), (0, 3)}
+    assert set(md.quantum_droppable_edges) == drops
+    assert list(md.weaker_mDAG_HLP('quantum')) == [structure(edges - drops).unique_id]
+    # Removing 0 -> 3 first destroys wider Rule A for 1 -> 2. Reverse topological order keeps it valid.
+    assert (1, 2) not in structure(edges - {(0, 3)}).quantum_droppable_edges
+    for edge in [(1, 2), (1, 3), (0, 3)]:
+        assert edge in structure(edges).quantum_droppable_edges
+        edges.remove(edge)
+
+
+def test_quantum_face_splitting_is_the_family_no_other_facet_touches(index):
+    """Face splitting for quantum classes (mDAG.quantum_splittable_families): for each D, the largest family of
+    facets C_i u D, each splittable, such that no facet outside the family contains a node of any C_i. Strong face
+    splitting (Proposition 8 of arXiv:2502.07891), which also lets a node of C_i sit in another facet containing D,
+    is proven for classical model sets only and stays in the classical metagraph."""
+    from itertools import combinations
+    Qm, Cm = index.quantum[4], index.classical[4]
+    assert len(Cm.face_splitting_edge_list) == 825 and len(Qm.face_splitting_edge_list) == 787
+    assert Qm._face_splitting_edge_lists is Cm._face_splitting_edge_lists       # read off in one pass, shared
+    families = 0
+    for md in Qm.dict_uniqind_unlabelled_mDAGs.values():
+        facets = [frozenset(int(v) for v in f) for f in md.simplicial_complex_instance.compressed_simplicial_complex]
+        parts = {}
+        for C, D in md.splittable_faces:
+            parts.setdefault(D, []).append(C)
+        # brute force: a family is valid when no facet outside it meets one of its parts; the valid families of
+        # one D are closed under union, and the pruned family is their union
+        expected = {}
+        for D, Cs in parts.items():
+            valid = [set(family) for r in range(1, len(Cs) + 1) for family in combinations(Cs, r)
+                     if not any(F & C for C in family for F in facets if F not in {c | D for c in family})]
+            if valid:
+                expected[D] = set().union(*valid)
+                assert expected[D] in valid
+        found = {D: set(Cs) for D, Cs in md.quantum_splittable_families}
+        assert found == expected and all(len(Cs) == len(set(Cs)) for _, Cs in md.quantum_splittable_families)
+        families += len(found)
+        # Evans' rule (no node of C in another facet) is always inside the family of its D
+        assert all(C in found[D] for C, D in md.weak_splittable_faces)
+        # and the family of each D is part of what the strong rule splits for that D, so the structure the quantum
+        # rule emits lies between this one and its strong split
+        assert all(Cs <= set(parts[D]) for D, Cs in found.items())
+    assert families > 0
+
+    def ids(md, version):
+        return set(md.generate_weaker_mDAGs_FaceSplitting(version))
+
+    def structure(edges, facets, n=4):
+        return mDAG(DirectedStructure(edges, n), Hypergraph(facets, n))
+
+    # parts that overlap only among themselves: {0,1,3} and {0,2,3} with 0, 1, 2 -> 3 split into {0,1} and {0,2}
+    # under both rules, although neither split is an instance of Evans' rule (0 lies in both facets)
+    fan = [(0, 3), (1, 3), (2, 3)]
+    both = structure(fan, [(0, 1, 3), (0, 2, 3)])
+    assert both.weak_splittable_faces == []
+    assert both.quantum_splittable_families == [(frozenset({3}), [frozenset({0, 1}), frozenset({0, 2})])]
+    assert ids(both, 'quantum') == ids(both, 'strong') == {structure(fan, [(0, 1), (0, 2)]).unique_id}
+    # a node of C in a facet that is not split: 0 lies in {0,2,3}, whose member 3 the node 2 does not see. The
+    # classical rule splits {0,1,2}; the quantum rule does not, and the two structures are separate quantum classes
+    chain = [(0, 1), (0, 2), (1, 2), (2, 3)]
+    unsplit, split = structure(chain, [(0, 1, 2), (0, 2, 3)]), structure(chain, [(0, 1), (0, 2, 3)])
+    assert unsplit.splittable_faces == [(frozenset({0, 1}), frozenset({2}))]
+    assert ids(unsplit, 'strong') == ids(unsplit, 'moderate') == {split.unique_id}
+    assert unsplit.quantum_splittable_families == [] and ids(unsplit, 'quantum') == set() == ids(unsplit, 'weak')
+    # the six-node pair whose quantum model sets differ (c, c', d, e = 0, 1, 2, 3; settings s, t = 4, 5)
+    settings = [(4, 1), (4, 2), (5, 3), (0, 2), (1, 2)]
+    six = structure(settings, [(0, 1, 2), (0, 2, 3)], 6)
+    assert six.splittable_faces == [(frozenset({0, 1}), frozenset({2}))]
+    assert ids(six, 'strong') == {structure(settings, [(0, 1), (0, 2, 3)], 6).unique_id}
+    assert ids(six, 'quantum') == set() == ids(six, 'weak')
+    with pytest.raises(ValueError):
+        six.generate_weaker_mDAGs_FaceSplitting('aggressive')
+    # the five four-node classical equivalences that rest on such a split alone: each group is inside one
+    # classical class and is 2 or 3 quantum classes of one structure each (438 + 8 = 446 quantum classes)
+    groups = [
+        ([(0, 1), (0, 2), (0, 3), (2, 3)], [[(0, 1, 3), (0, 2)], [(0, 1, 3), (0, 2), (2, 3)], [(0, 1, 3), (0, 2, 3)]]),
+        (chain, [[(0, 1), (0, 2, 3)], [(0, 1), (0, 2, 3), (1, 2)], [(0, 1, 2), (0, 2, 3)]]),
+        (chain + [(0, 3)], [[(0, 1), (0, 2, 3)], [(0, 1), (0, 2, 3), (1, 2)], [(0, 1, 2), (0, 2, 3)]]),
+        ([(1, 3), (2, 3)], [[(0, 1, 3), (0, 2, 3), (1, 2)], [(0, 1, 3), (0, 2, 3), (1, 2, 3)]]),
+        ([(0, 2), (1, 2), (2, 3)], [[(0, 1), (0, 2, 3), (1, 2, 3)], [(0, 1, 2), (0, 2, 3), (1, 2, 3)]]),
+    ]
+    separated = 0
+    for edges, complexes in groups:
+        uids = [structure(edges, facets).unique_unlabelled_id for facets in complexes]
+        assert len({Cm.class_index_of[uid] for uid in uids}) == 1
+        assert len({Qm.class_index_of[uid] for uid in uids}) == len(uids)
+        assert all(len(Qm.class_of(uid)) == 1 for uid in uids)
+        assert not any(uid in Cm.latent_free_equivalent_ids for uid in uids)
+        separated += len(uids) - 1
+    assert separated == 8
 
 
 def test_the_bell_settings_class_collapses_under_quantum_rules(index):
