@@ -30,7 +30,7 @@ UnlabelledId = Tuple[int, int, int, int]
 # Bump a piggyback's version when its map or its admissibility rule changes; cached proofs that relied on it are
 # then discarded (gap_cache.py). Fritz-type tricks share the mechanism but are versioned separately.
 PIGGYBACK_VERSIONS: Dict[str, int] = {
-    'metagraph': 3,                    # the class keys and the upward rule rest on the metagraph rules (structural
+    'metagraph': 4,                    # the class keys and the upward rule rest on the metagraph rules (structural
                                        #   dominance, face splitting, the premeasurable HLP rule, the lift); every
                                        #   cached proof of a class-keyed search carries this version
                                        #   2: the quantum HLP rule by pre-measurement of the other facet members, and
@@ -38,6 +38,8 @@ PIGGYBACK_VERSIONS: Dict[str, int] = {
                                        #   3: quantum classes use face splitting only for the families that no other
                                        #   facet touches (mDAG.quantum_splittable_families); strong face splitting
                                        #   (arXiv:2502.07891, Proposition 8) is kept for the classical classes
+                                       #   4: quantum HLP Rule A admits a single facet when every other member
+                                       #   sees all of the origin's visible parents
     'upward': 1,                       # gap(G') for G' structurally above G in G's classical class (lookup only)
     # 'identity' (an input that is a seed class) is a report label, not a transition: no version.
     'PD': 1,

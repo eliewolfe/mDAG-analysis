@@ -579,9 +579,10 @@ class mDAG:
     # ------------------------------------------------------------------
     # The HLP edge rule (Evans; Henson, Lal and Pusey): an edge a -> b between two members of a facet with
     # Pa(a) <= Pa(b) can be added or dropped without changing the classical model, since b sees everything a is
-    # a function of and the latent can carry a's noise. Quantumly the rule holds when a has no visible parent
-    # and exactly one latent parent (`is_premeasurable`): a's measurement is then fixed, so the facet's
-    # source can perform it and hand the outcome to a and to b. In the second form (quantum_hlp_origin_ok), every
+    # a function of and the latent can carry a's noise. Quantumly Rule A applies when a has exactly one source
+    # and every member of that source sees every visible parent of a. The source supplies a pre-measured state
+    # for each setting, and all members use the same entry. With no setting this is ordinary premeasurement.
+    # In the second form (quantum_hlp_origin_ok), every
     # member of a's facets except a and b is premeasurable. The sources pre-measure these bystanders and a's
     # remaining quantum resources are shared with b alone, so b computes a's output. Without these hypotheses the
     # rule can fail: Q{A,B,D}, Q{A,C,D}, Q{B,C} with A -> D lets D copy A's CHSH outcome against
@@ -596,17 +597,18 @@ class mDAG:
         return pa & ((1 << self.number_of_visible) - 1) == 0 and bin(pa >> self.number_of_visible).count('1') == 1
 
     def quantum_hlp_origin_ok(self, a: int, b: int) -> bool:
-        """Is the edge a -> b, with Pa(a) a subset of Pa(b), redundant for quantum model sets? Yes when b can obtain
-        a's value without it, which the pre-measurement argument gives in two forms: a is premeasurable (its facet's
-        source performs a's fixed measurement and hands the outcome to a and to b), or every member of a's facets
-        except a and b is premeasurable (each source performs those members' fixed measurements first and tells a and b
-        the outcomes; what is left of a's quantum resources is shared with b alone, and b, which knows every input
-        of a, can then compute a's output from shared classical randomness). The second form includes the facet
-        {a, b} with no other member, whatever visible parents a has."""
+        """Quantum test for a classically eligible edge a -> b. Rule A requires one source for a, with every
+        visible parent of a directly observed by every other member of that source. Rule B requires every member
+        of a's sources except a and b to be premeasurable. See the edge-dropping propositions in the note."""
         if self.is_premeasurable(a):
             return True
-        facets = self.simplicial_complex_instance.simplicial_complex_as_sets
-        return all(self.is_premeasurable(v) for F in facets if a in F for v in F if v != a and v != b)
+        sources = [F for F in self.simplicial_complex_instance.simplicial_complex_as_sets if a in F]
+        if len(sources) == 1:
+            parents = self.directed_structure_instance.parents_masks
+            settings = int(parents[a])
+            if all(settings & ~int(parents[v]) == 0 for v in sources[0]):
+                return True
+        return all(self.is_premeasurable(v) for F in sources for v in F if v != a and v != b)
 
     def _hlp_candidates_ok(self, pairs: Iterable[Tuple[int, int]], rule: str) -> List[Tuple[int, int]]:
         assert rule in ('classical', 'quantum'), rule
@@ -655,7 +657,9 @@ class mDAG:
 
     def weaker_mDAG_HLP(self, rule: str = 'classical'):
         """The id of this mDAG with all its HLP-droppable edges (under `rule`) dropped, when nothing is addable:
-        the equivalence edge of the metagraph (the addable case is reached from the structure that has the edges)."""
+        the equivalence edge of the metagraph (the addable case is reached from the structure that has the edges).
+        The batch can be dropped in reverse topological order of origins: each setting of the current origin is
+        earlier, so its edges to the target and to the other members of the Rule A source are still present."""
         droppable, addable = self.hlp_edges(rule)
         if droppable and not addable:
             new_bit_square_matrix = self.directed_structure_instance.as_bit_square_matrix.copy()

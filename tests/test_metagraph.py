@@ -39,16 +39,28 @@ def test_class_counts_and_nesting(index):
         assert Cm.structural_order is Qm.structural_order   # shared
 
 
-def test_quantum_hlp_rule_is_the_pre_measurement_rule(index):
+def test_quantum_hlp_rule_is_wider_rule_a_or_rule_b(index):
     Qm = index.quantum[4]
-    assert len(Qm.hlp_edge_list) == 528 and len(index.classical[4].hlp_edge_list) == 648
-    for md in Qm.dict_uniqind_unlabelled_mDAGs.values():
+    assert len(Qm.hlp_edge_list) == 522 and len(index.classical[4].hlp_edge_list) == 648
+    additional_drops = 0
+    for uid, md in Qm.dict_uniqind_unlabelled_mDAGs.items():
         facets = md.simplicial_complex_instance.simplicial_complex_as_sets
-        for a, b in md.droppable_edges:
-            others_ok = all(md.is_premeasurable(v) for F in facets if a in F for v in F if v not in (a, b))
-            assert md.quantum_hlp_origin_ok(a, b) == (md.is_premeasurable(a) or others_ok)
-            assert ((a, b) in md.quantum_droppable_edges) == md.quantum_hlp_origin_ok(a, b)
-        assert set(md.quantum_droppable_edges) <= set(md.droppable_edges)
+        edges = md.directed_structure_instance.as_set_of_tuples
+        parents = {v: {p for p, child in edges if child == v} for v in range(4)}
+        for classical, quantum in ((md.droppable_edges, md.quantum_droppable_edges),
+                                   (md.addable_edges, md.quantum_addable_edges)):
+            assert set(quantum) <= set(classical)
+            for a, b in classical:
+                sources = [F for F in facets if a in F]
+                rule_a = len(sources) == 1 and all(parents[a] <= parents[v] for v in sources[0])
+                rule_b = all(md.is_premeasurable(v) for F in sources for v in F if v not in (a, b))
+                assert ((a, b) in quantum) == (rule_a or rule_b)
+                if (a, b) in edges and (rule_a or rule_b):
+                    without = mDAG(DirectedStructure(edges - {(a, b)}, 4), md.simplicial_complex_instance)
+                    other_id = Qm.canonical_forms.canonical_of_int(without.unique_id)
+                    assert Qm.class_index_of[uid] == Qm.class_index_of[other_id]
+                    additional_drops += not (md.is_premeasurable(a) or rule_b)
+    assert additional_drops == 35
     # 0 -> 1 with Q{0,1}: 0 is premeasurable, so the edge is redundant classically and quantumly. With a setting 2 of
     # both 0 and 1 (Pa(0) = {2, Q01} inside Pa(1)) the facet {0,1} has no other member, so 1 holds every input of 0
     # and the pair's state is shared by the two alone: still quantum-redundant (second form of the rule).
@@ -64,11 +76,45 @@ def test_quantum_hlp_rule_is_the_pre_measurement_rule(index):
     # a member with two facets blocks the argument: 0 holds shares of Q{0,1,2} and Q{0,3}
     blocked = mDAG(DirectedStructure([(0, 1), (0, 2), (0, 3), (2, 3), (2, 1)], 4), Hypergraph([(0, 1, 2), (0, 3)], 4))
     assert (2, 1) in blocked.droppable_edges and (2, 1) not in blocked.quantum_droppable_edges
-    # a setting of a that the source does not know, with a third facet member that has a setting too: not droppable
+    # The third facet member sees the setting too, so wider Rule A applies although Rule B does not.
     setting = mDAG(DirectedStructure([(0, 1), (0, 2), (1, 2), (0, 3)], 4), Hypergraph([(1, 2, 3)], 4))
-    assert (1, 2) in setting.droppable_edges and (1, 2) not in setting.quantum_droppable_edges
+    assert not setting.is_premeasurable(3) and (1, 2) in setting.quantum_droppable_edges
     # the same with 3 premeasurable: the source of Q{1,2,3} measures 3's share, and 1 -> 2 becomes redundant
     assert (1, 2) in mDAG(DirectedStructure([(0, 1), (0, 2), (1, 2)], 4), Hypergraph([(1, 2, 3)], 4)).quantum_droppable_edges
+
+
+def test_wider_rule_a_requires_one_source_and_visibility_of_every_setting():
+    # 0 and 4 are settings of 1. All other source members see both; none is premeasurable.
+    edges = {(1, 2)} | {(p, v) for p in (0, 4) for v in (1, 2, 3, 5)}
+    source = Hypergraph([(1, 2, 3)], 6)
+    assert (1, 2) in mDAG(DirectedStructure(edges, 6), source).quantum_droppable_edges
+    assert (1, 2) in mDAG(DirectedStructure(edges - {(1, 2)}, 6), source).quantum_addable_edges
+    # One missing setting at a bystander violates Rule A; the target still satisfies the classical rule.
+    missing = mDAG(DirectedStructure(edges - {(4, 3)}, 6), source)
+    assert (1, 2) in missing.droppable_edges and (1, 2) not in missing.quantum_droppable_edges
+    # The target itself must see both settings and must share the source.
+    assert (1, 2) not in mDAG(DirectedStructure(edges - {(4, 2)}, 6), source).quantum_droppable_edges
+    assert (1, 2) not in mDAG(DirectedStructure(edges, 6), Hypergraph([(1, 3)], 6)).quantum_droppable_edges
+    two = mDAG(DirectedStructure(edges, 6), Hypergraph([(1, 2, 3), (1, 2, 5)], 6))
+    assert (1, 2) in two.droppable_edges and (1, 2) not in two.quantum_droppable_edges
+
+
+def test_wider_rule_a_simultaneous_drops_keep_settings_until_they_are_used():
+    edges = {(0, 1), (0, 2), (0, 3), (1, 2), (1, 3)}
+    sources = Hypergraph([(1, 2, 3), (0, 3)], 4)
+
+    def structure(remaining):
+        return mDAG(DirectedStructure(remaining, 4), sources)
+
+    md = structure(edges)
+    drops = {(1, 2), (1, 3), (0, 3)}
+    assert set(md.quantum_droppable_edges) == drops
+    assert list(md.weaker_mDAG_HLP('quantum')) == [structure(edges - drops).unique_id]
+    # Removing 0 -> 3 first destroys wider Rule A for 1 -> 2. Reverse topological order keeps it valid.
+    assert (1, 2) not in structure(edges - {(0, 3)}).quantum_droppable_edges
+    for edge in [(1, 2), (1, 3), (0, 3)]:
+        assert edge in structure(edges).quantum_droppable_edges
+        edges.remove(edge)
 
 
 def test_quantum_face_splitting_is_the_family_no_other_facet_touches(index):

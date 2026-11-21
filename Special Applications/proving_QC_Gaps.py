@@ -5,8 +5,9 @@ Inputs: the quantum observational equivalence classes of the 4-node mDAGs with e
 provably algebraic (no member is classically equivalent to a latent-free structure). The classes come from the
 quantum metagraph (metagraph_advanced.QuantumMetagraph, equivalence_classes.ClassIndex): its edges are structural
 dominance, face splitting for the families of facets whose parts C_i no other facet touches
-(mDAG.quantum_splittable_families) and the HLP edge rule in its pre-measurement form (mDAG.quantum_hlp_origin_ok).
-For an HLP edge a -> b, either a is premeasurable or every member of a's facets except a and b is premeasurable.
+(mDAG.quantum_splittable_families) and the quantum HLP edge rule (mDAG.quantum_hlp_origin_ok). For an HLP edge
+a -> b, either a has one source whose members all see a's visible parents, or every member of a's facets except
+a and b is premeasurable.
 Each strongly connected component is a proven quantum equivalence class. The classical metagraph uses strong face
 splitting and the unrestricted HLP rule. ALL COUNTS ARE OVER CLASSES; the report also gives the number
 of structures and of classical classes they comprise.

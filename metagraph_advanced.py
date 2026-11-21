@@ -122,8 +122,8 @@ class Observable_unlabelled_mDAGs:
     uses structural dominance, which is quantum-valid as it stands, and the two other rules only as far as they are
     proven for quantum model sets: face splitting for the families whose parts C_i no other facet touches
     (mDAG.quantum_splittable_families; beyond them the rule is not valid in general for quantum models, see the
-    comment in mDAG_advanced.py), and the HLP edge rule in its pre-measurement form (mDAG.quantum_hlp_origin_ok:
-    for a -> b, either a is premeasurable or every member of a's facets except a and b is premeasurable). Its
+    comment in mDAG_advanced.py), and the quantum HLP edge rule (mDAG.quantum_hlp_origin_ok): for a -> b, either a
+    has one source whose members all see its settings, or every member of a's facets except a and b is premeasurable. Its
     components are proven *quantum* observational equivalence classes, each inside one classical class. The two
     metagraphs share their nodes and structural dominances and differ in their face-splitting and HLP edges. Build
     the quantum one and derive the classical one with `ClassicalMetagraph.from_quantum`.
