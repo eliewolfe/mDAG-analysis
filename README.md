@@ -23,13 +23,14 @@ later runs reuse. Pass `--no-cache` to recompute it or `--depth-one` to run only
 The census searches over quantum observational equivalence classes. `metagraph_advanced.QuantumMetagraph`
 builds the metagraph whose edges are quantum-valid (structural dominance, face splitting for the families of facets
 whose parts $C_i$ no other facet touches, and the HLP edge rule in its pre-measurement form). For an HLP edge
-$a\to b$, either $a$ is premeasurable or every member of $a$'s facets except $a$ and $b$ is premeasurable.
+$a\to b$, the quantum rule applies if $a$ has one facet and all its other members see every visible parent of $a$,
+or if every member of $a$'s facets except $a$ and $b$ is premeasurable.
 `ClassicalMetagraph.from_quantum` uses the unrestricted HLP edges and strong
 face splitting for the classical classes (both fail for quantum models; the statements, proofs and counterexamples
 are in `manuscript/observational classification/observational_classification.pdf`), and `equivalence_classes.ClassIndex` keys every structure by its class. The nodes
 of the metagraph are enumerated by orbits from permutation tables (`canonical_forms.py`: canonical ids on demand,
 no dictionary over the labelled mDAGs) and held as scipy sparse matrices; both five-node metagraphs (1,718,596
-unlabelled mDAGs, 490,800 classical and 596,413 quantum classes) build in about five minutes within 3.5 GB. Tests:
+unlabelled mDAGs, 490,800 classical and 595,871 quantum classes) build in about five minutes within 3.5 GB. Tests:
 `pytest` (fast suite) and `pytest -m slow` (the census pins).
 
 Full metagraph enumeration supports up to five visible nodes with the current 64-bit permutation tables. Larger

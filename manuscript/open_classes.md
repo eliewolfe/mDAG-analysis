@@ -273,7 +273,7 @@ Three facts turn equivalences into gap transfers.
 
 ### 3.2 Classical equivalences the metagraph already has: nothing to gain
 
-One might hope that a classical equivalence which is not known to be quantum-valid, such as an uncertified HLP edge (1.0: 648 classical HLP edges against 528 certified quantumly) or one of the five face splits that the classical rule makes and the quantum rule does not (piggybacks.md 0.6), would merge an open class into a proven one if it were shown to hold quantumly. It cannot. Of the 396 classical classes on four nodes:
+One might hope that a classical equivalence which is not known to be quantum-valid, such as an uncertified HLP edge (1.0: 648 classical and 522 quantum HLP edges in the two metagraphs) or one of the five face splits that the classical rule makes and the quantum rule does not (piggybacks.md 0.6), would merge an open class into a proven one if it were shown to hold quantumly. It cannot. Of the 396 classical classes on four nodes:
 
 | quantum classes inside | classical classes | status of every quantum class inside |
 |---|---|---|
