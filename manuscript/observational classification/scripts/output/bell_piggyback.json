@@ -1,0 +1,63 @@
+{
+ "G1 certificate": [
+  "fix U (4)",
+  "make the settings source (0,1) classical",
+  "QG_Bell_Edge_Edge_SettingsC"
+ ],
+ "G1 through G5": [
+  "0\u21923, 1\u21922, 4\u21922, 4\u21923; Q{0,1}, Q{2,3}",
+  "0\u21921, 0\u21923, 1\u21922, 4\u21922, 4\u21923; Q{0,1}, Q{2,3}",
+  "0\u21921, 0\u21923, 1\u21922, 4\u21922, 4\u21923; Q{2,3}",
+  "0\u21921, 0\u21923, 1\u21922, 4\u21922, 4\u21923; Q{0,3}, Q{2,3}",
+  "0\u21921, 1\u21922, 4\u21922, 4\u21923; Q{0,3}, Q{2,3}"
+ ],
+ "equivalences in figure order": [
+  "Rule A",
+  "face splitting",
+  "reverse face splitting",
+  "Rule A"
+ ],
+ "node labels": {
+  "A": 3,
+  "B": 2,
+  "U": 4,
+  "X": 0,
+  "Y": 1
+ },
+ "search": {
+  "all seeds": {
+   "bounded follow-up": [
+    1,
+    2,
+    3
+   ],
+   "ten stages": [
+    1,
+    2,
+    3
+   ],
+   "with the four displayed equivalences": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ]
+  },
+  "common-cause seed": {
+   "bounded follow-up": [
+    1
+   ],
+   "ten stages": [
+    1
+   ],
+   "with the four displayed equivalences": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ]
+  }
+ }
+}

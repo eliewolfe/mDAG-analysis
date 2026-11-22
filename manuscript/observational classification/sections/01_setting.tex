@@ -1,103 +1,49 @@
-\section{Setting}\label{sec:setting}
+\section{Models and two proof tools}\label{sec:setting}
+A structure $\G$ is an mDAG \cite{Evans}: a directed acyclic graph on visible nodes $V$, together with
+independent sources. Each source is a set $F\subseteq V$ of at least two members, with no source contained in another. A node $v$ sees the
+outcomes of its visible parents $\Pa(v)$, called its \emph{settings}. For example,
+\str{0→1, 1→2; Q\{1,2\}} describes the instrumental scenario.
 
-\subsection{Structures}
-
-A \emph{structure} $\G$ is an mDAG \cite{Evans} whose facets are called sources here. It consists of
-\begin{itemize}
-\item a finite set $V$ of \emph{visible nodes};
-\item a directed acyclic graph on $V$, the \emph{visible edges}. An edge $a\to b$ has the \emph{origin} $a$ and the
-  \emph{target} $b$, and $b$ is said to \emph{see} $a$. $\Pa(v)$ denotes the visible parents of $v$, also called its
-  \emph{settings}, since their values select its measurement;
-\item a collection of \emph{sources}: subsets $F\subseteq V$ with at least two members, none contained in another.
-\end{itemize}
-A source stands for one latent system that is prepared independently of everything else and distributed to its
-members. A facet with a single member is private randomness, which every node has anyway and which is left
-implicit. In this note every source may be quantum. A structure is written as its visible edges followed by its
-sources: \str{0→1, 1→2; Q\{1,2\}} is the instrumental scenario.
-
-\subsection{Quantum and classical models}
-
-\begin{definition}[Quantum model]\label{def:model}
-A quantum model of $\G$ consists of
-\begin{itemize}
-\item for every source $F$ and member $v\in F$ a finite-dimensional Hilbert space $\Hil_{F,v}$, the \emph{share} of
-  $v$ in $F$, and a state $\rho_F$ on $\bigotimes_{v\in F}\Hil_{F,v}$;
-\item for every node $v$, which holds $\Hil_v=\bigotimes_{F\ni v}\Hil_{F,v}$ (and $\Hil_v=\mathbb{C}$ if $v$ is in
-  no source), and for every value $x_{\Pa(v)}$ of its settings, a POVM
-  $\{M_v^{x_v\mid x_{\Pa(v)}}\}_{x_v}$ on $\Hil_v$ with finitely many outcomes.
-\end{itemize}
-It produces the distribution
+\begin{definition}[Model sets]\label{def:model}
+A quantum source $F$ prepares a state $\rho_F$ on $\bigotimes_{v\in F}\Hil_{F,v}$. Each node $v$
+measures all its shares jointly, with a positive operator-valued measure (POVM) selected by its settings. For an assignment $x_V$,
 \begin{equation}\label{eq:trace}
-P(x_V)\;=\;\Tr\Bigl[\,\Bigl(\bigotimes_{v\in V} M_v^{x_v\mid x_{\Pa(v)}}\Bigr)\Bigl(\bigotimes_{F}\rho_F\Bigr)\Bigr].
+P(x_V)=\Tr\!\left[\left(\bigotimes_{v\in V}M_v^{x_v\mid x_{\Pa(v)}}\right)
+                           \left(\bigotimes_F\rho_F\right)\right].
 \end{equation}
-Here $\bigotimes_v\Hil_v$ and $\bigotimes_F\bigotimes_{v\in F}\Hil_{F,v}$ are the same space with the factors in a
-different order, and are identified. The \emph{quantum model set} $\Q(\G)$ is the set of distributions that the
-quantum models of $\G$ produce; all spaces are finite-dimensional and no closure is taken.
-A model is \emph{classical} when every $\rho_F$ is diagonal in a product basis and every POVM element is diagonal
-in the product of those bases; the \emph{classical model set} $\C(\G)$ is the set of distributions of the classical
-models.
+The distributions so obtained form $\Q(\G)$. Spaces are finite-dimensional, alphabets are finite, and
+no closure is taken. Diagonal states and measurements in compatible product bases give $\C(\G)$:
+each source supplies a classical latent variable, and each node samples a response using its settings
+and latents. Private randomness and private states can be absorbed into the measurement.
 \end{definition}
+On diagonal states the trace reduces to the familiar classical factorisation
+\[
+ P(x_V)=\sum_{\lambda}\prod_F p_F(\lambda_F)
+              \prod_v p_v(x_v\mid x_{\Pa(v)},\lambda_{F\ni v}).
+\]
+This makes the independence of different sources explicit. Quantumly a node receiving several
+shares may measure them jointly. That freedom is used by the relay in \cref{thm:sixnode}.
 
-Every visible node has a finite alphabet of outcomes, fixed in advance. An equality or an inclusion of model sets
-is meant for every choice of these alphabets; a strict inclusion, or a gap, is meant for some choice.
-
-Four remarks on reading \cref{eq:trace}.
-\begin{itemize}
-\item \emph{It is a number for each assignment $x_V$.} The operators of different nodes act on different tensor
-  factors, so they commute and no order of measurement has to be chosen. Summing over the outcome of the last node
-  in a topological order, then of the one before it, and so on, shows that the numbers add up to one; this is
-  where acyclicity is used. Every proof below is an identity between two such numbers, for each $x_V$ separately.
-\item \emph{A node may measure all its shares jointly.} $M_v$ acts on the tensor product of the shares of $v$ in all
-  its sources and need not factorise.
-\item \emph{Private randomness and private states are free.} A POVM need not be projective, so private randomness
-  is included; and a state held by one node alone can be absorbed into its POVM. This is why sources with one member
-  are never drawn.
-\item \emph{Classical models are the familiar ones.} A diagonal $\rho_F$ is a random variable $\lambda_F$, the
-  \emph{latent} of $F$, and \cref{eq:trace} becomes
-  $P(x_V)=\sum_\lambda\prod_F P(\lambda_F)\prod_v P(x_v\mid x_{\Pa(v)},\lambda_{F\ni v})$.
-  Hence $\C(\G)\subseteq\Q(\G)$.
-\end{itemize}
-
-\subsection{Equivalence, dominance and gaps}
-
-Two structures on the same visible nodes are \emph{quantum observationally equivalent}, $\G\qeq\G'$, when
-$\Q(\G)=\Q(\G')$, and \emph{classically observationally equivalent}, $\G\ceq\G'$, when $\C(\G)=\C(\G')$. A structure
-has a \emph{quantum-classical (QC) gap} when $\Q(\G)\not\subseteq\C(\G)$. Between two pictures, $\equiv$ without a
-subscript means that both equivalences hold, and $=$ joins two descriptions of the same model.
-
-One containment is free and is used in every proof.
+Summing outcomes in reverse topological order normalises \cref{eq:trace}. Model-set equalities and
+inclusions hold for every choice of visible alphabets. A \emph{QC gap} needs one choice with a
+distribution in $\Q(\G)\setminus\C(\G)$. We write $\qeq$ and $\ceq$ for equality of the respective sets.
 
 \begin{lemma}[Structural dominance]\label{lem:monotone}
-Let $\G'$ have the same visible nodes as $\G$, a subset of its visible edges, and every source of $\G'$ contained
-in a source of $\G$; we then say that $\G'$ is \emph{structurally below} $\G$. Then $\Q(\G')\subseteq\Q(\G)$ and
-$\C(\G')\subseteq\C(\G)$.
+If $\G'$ has the same visible nodes, uses a subset of the edges of $\G$, and each of its sources lies
+inside a source of $\G$, then $\Q(\G')\subseteq\Q(\G)$ and $\C(\G')\subseteq\C(\G)$.
 \end{lemma}
 \begin{proof}
-Assign to every source $F'$ of $\G'$ a source $\varphi(F')\supseteq F'$ of $\G$. Given a model of $\G'$, let the
-source $F$ of $\G$ emit $\bigotimes_{F'\in\varphi^{-1}(F)}\rho'_{F'}$, each factor going to the members of its $F'$,
-and let every node use its old POVM, ignoring the settings it has gained. The number \eqref{eq:trace} is
-unchanged, and a classical model stays classical.
+Assign each smaller source to a containing source. Each containing source distributes the tensor product
+of its assigned states, and every node ignores extra settings. This also works for diagonal models.
 \end{proof}
-
-So to prove $\G\qeq\G'$ when $\G'$ is structurally below $\G$, only $\Q(\G)\subseteq\Q(\G')$ needs an argument:
-given a model of the larger structure, build a model of the smaller one with the same distribution.
-
-\begin{corollary}[The sandwich]\label{cor:sandwich}
-Let $\G_1$ be structurally below $\G_2$, and $\G_2$ structurally below $\G_3$. If $\G_1\qeq\G_3$, then all three
-are quantum equivalent; likewise for $\ceq$.
+\begin{corollary}[Sandwich]\label{cor:sandwich}
+A structure lying structurally between two equivalent structures has the same model set as both,
+by the two inclusions above. This holds separately for quantum and classical models.
 \end{corollary}
-\begin{proof}
-$\Q(\G_1)\subseteq\Q(\G_2)\subseteq\Q(\G_3)=\Q(\G_1)$ by \cref{lem:monotone}.
-\end{proof}
 
-\subsection{Two tools: pre-measurement and the catalogue}
-
-\begin{definition}[Premeasurable node]\label{def:prem}
-A node is \emph{premeasurable} when it has no visible parent and is a member of exactly one source.
+\begin{definition}\label{def:prem}
+A \emph{premeasurable} node has one source and no visible parents.
 \end{definition}
-
-Such a node performs one fixed measurement on one share. Nothing it does depends on anything the source does not
-control, so the source can do it instead.
 
 \begin{lemma}[Pre-measurement]\label{lem:premeasure}
 Let $a$ be premeasurable with source $F$. Every quantum model of $\G$ can be replaced by a model of $\G$ with the
@@ -138,34 +84,15 @@ measurement of the register.
     \node[tag] at (2.0,-0.8) {the source measures it and tells every member};
   \end{scope}
 \end{tikzpicture}
-\caption{Pre-measurement (\cref{lem:premeasure}). The yellow node has no visible parent and one source. Its
-outcome becomes classical data inside the source's state; the other members may be anything (here $c$ has a
-setting $t$).}
+\caption{A fixed measurement can move into its source. Every member then receives a register containing the outcome, along with its conditional quantum share where needed.}
 \label{fig:premeasure}
 \end{figure}
 
-\Needspace{14\baselineskip}
-The second tool is not a lemma but a construction that recurs.
-
 \begin{ideabox}{The catalogue}
-Suppose that in some model the measurements of some nodes leave a group of other nodes holding a state $\tau_z$
-that depends on a classical value $z$, and that \emph{every node of the group will see $z$}: among its settings,
-or in a classical register that a source hands to all of them. Then a source that contains the group need not know
-$z$. It prepares the whole catalogue $\bigotimes_{z}\tau_z$, one entry for every possible value, and gives each
-node its share of every entry. Each node, once it has read $z$, measures its share of entry $z$ and ignores the
-others. In \cref{eq:trace} the unused entries contribute $\Tr\tau_{z'}=1$. \Cref{sec:split-idea} works out the
-smallest case.
-
-Two conditions are essential.
-\begin{description}[leftmargin=0.9cm,itemsep=1pt]
-\item[(i)] The index $z$ consists of values of \emph{visible} nodes. (A register filled by a pre-measurement
-  qualifies: it holds the outcome of a visible node.)
-\item[(ii)] \emph{Nobody outside the group} holds a system that is correlated with $\tau_z$ beyond the value $z$
-  itself.
-\end{description}
-The classical proofs that fail for quantum sources index the catalogue by the value of a latent, against (i). When
-the index is restricted to visible values, (ii) fails; this is what the counterexamples of \cref{sec:notquantum}
-exploit.
+Suppose the visible value $z$ leaves a group of nodes holding a state $\tau_z$. A source serving the group
+can prepare $\bigotimes_z\tau_z$ in advance. If every member learns $z$, each measures its share of the
+same entry. All unused entries have trace one. This works when the steered systems have no residual
+correlations with an outsider beyond $z$. Closure in \cref{thm:split} supplies precisely that guarantee.
 \end{ideabox}
 
 \begin{figure}[H]
@@ -187,7 +114,6 @@ exploit.
   \node[tag] at (1.2,-0.75) {the source prepares every entry};
   \node[tag] at (4.1,2.25) {every node holds a share of every entry};
 \end{tikzpicture}
-\caption{The catalogue. The source prepares one entry for every value $z$ that the node $y$ may output and sends
-all of them; the nodes that see $y$ use the matching entry and ignore the faint ones.}
+\caption{The source prepares all entries. Both receivers see $z=1$ and select their shares of the same entry.}
 \label{fig:catalogue}
 \end{figure}
