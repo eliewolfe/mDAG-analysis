@@ -1,5 +1,7 @@
 # mDAG-analysis
 
+For an illustrated introduction to proving quantum–classical gaps, see [Piggyback rules for quantum–classical gaps](manuscript/piggyback%20rules/piggyback_rules.pdf). The guide includes worked proofs of all four Fritz variants.
+
 ## Maintained branches
 
 This checkout documents **`main`**. The repository maintains [`main`](https://github.com/eliewolfe/mDAG-analysis/tree/main) and [`reversed-piggybacks`](https://github.com/eliewolfe/mDAG-analysis/tree/reversed-piggybacks) as separate development branches. See [the branch guide](BRANCHES.md) for their search modes, HLP rules, results, and maintenance policy.

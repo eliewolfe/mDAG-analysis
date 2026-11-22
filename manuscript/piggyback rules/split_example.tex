@@ -1,0 +1,18 @@
+\pageof{A copy predicts another copy}\label{sec:twocopies}
+Start with \(0\to1\to2\) and three quantum sources, on \(02,03,13\). Laboratory 0 has a child. We want 0 to keep its ordinary output, and we want to predict only one field of 3. Give 0 a copy \(0'\) with the same child 1. Give 3 a copy \(3'\). Now \(0'\) can announce the setting field \(3'\) while both original laboratories remain available.
+\duo{Inputs of the copies before restriction}{
+\cols{0/0,1/{0'},2/1,3/2,4/3,5/{3'}}
+\members{-.4}{\(02\)}{0,1,3}\members{-1.2}{\(03\)}{0,1,4,5}\members{-2}{\(13\)}{2,4,5}}
+{Inputs after restricting \(3'\)}{
+\cols{0/0,1/{0'},2/1,3/2,4/3,5/{3'}}
+\members{-.4}{\(02\)}{0,1,3}\members{-1.15}{\(03\)}{0,1,4}\classmembers{-1.9}{\(03\)}{0,1,4,5}
+\members{-2.6}{\(13\)}{2,4}}
+\captext{The row names refer to the sources in the original graph. Filled dots carry quantum systems and open squares carry classical data. In both panels the arrows are \(0\to1\), \(0'\to1\), \(1\to2\). The two copies share source \(03\). Source \(13\) still serves the original 3 after \(3'\) loses it.}
+
+\textbf{Why the prediction licenses the deletion.} Condition on the shared input \(03\). The source \(13\) can reach the predictor's child 1, but the path \(0'\to1\leftarrow13\) meets two arrowheads there and we have conditioned only on the shared source. The other paths from \(13\) to \(0'\) also close at a meeting of arrowheads or at the conditioned source. The private noise of \(3'\) has no route back to \(0'\). The table proof on p.~\pageref{sec:separate} applies.
+
+\textbf{Where the copy's other inputs go.} Sum over \(0'\). It shares no quantum source with its child 1, so it can relay its inputs to 1 classically. The result has arrows \(0\to1\to2\), quantum sources on \(02,03,13\), and classical sources on \(012\) and \(0133'\). In particular the larger classical source can carry to 1 the data used in predicting \(3'\).
+\begin{validbox}{Finish the proof}
+Postselect on 3, which has no visible parents. Its shares of the \(03\) and \(13\) sources give 0 and 1 a quantum link. Now 0 can teleport its share of \(02\) to its child 1. Forgetting 0 leaves \(1\to2\), a quantum source on \(12\), and a classical setting shared by \(1,3'\): an instrumental seed. Changing the order loses this route, since 0 and 1 had no quantum link before the postselection.
+\end{validbox}
+The copy \(0'\) needs to determine \(3'\), but can carry other information to 1. Deleting those other inputs to \(0'\) would require a second argument. This is the operational reason for using the one-way condition \(H(3'\mid 0')=0\).
