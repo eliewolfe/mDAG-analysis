@@ -1,80 +1,3 @@
-\section*{Summary}
-\addcontentsline{toc}{section}{Summary}
-
-\textbf{The question.} For causal structures with classical latent variables, three rules prove that two
-structures allow the same distributions: structural dominance, face splitting, and the edge rule of Henson, Lal
-and Pusey. Which of them remain valid when the latent variables are quantum systems? The classical proofs of the
-last two use the \emph{value} of a latent variable. A quantum system has no value; it has subsystems, which are
-measured. The answer matters for the repository this note comes from. Its \emph{census} lists every structure with
-up to four visible nodes and records whether it has a quantum-classical gap, and it counts \emph{classes} of
-structures proven to have the same quantum distributions. The classes are built with these rules.
-
-\textbf{The answer in one table.} A tick means proven. A cross means that the rule has a counterexample in this
-note; single instances of it may still hold.
-
-\begin{center}
-\small
-\renewcommand{\arraystretch}{1.25}
-\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{6.2cm}cc>{\raggedright\arraybackslash}p{2.3cm}@{}}
-\toprule
-\textbf{Rule} & \textbf{Hypothesis} & \textbf{Classical} & \textbf{Quantum} & \textbf{Where}\\
-\midrule
-Structural dominance & $\G'$ has some of the visible edges of $\G$, and every source of $\G'$ is contained in a
-  source of $\G$; then $\G'$ allows no more distributions than $\G$ & \checkmark & \checkmark & \cref{lem:monotone}\\
-\midrule
-\multicolumn{5}{@{}p{15.4cm}@{}}{\emph{Face splitting.} Sources $C_i\cup D$ are replaced by the sources $C_i$ and
-  $D$, when every node of $D$ has all nodes of $C=\bigcup_iC_i$ and all their visible parents as visible parents,
-  and \dots}\\
-\quad closed family & \dots\ every source that contains a node of $C$ is among those split
-  & \checkmark & \checkmark & \cref{thm:split}\\
-\quad moderate, strong & \dots\ a node of $C$ may also be a member of another source, if that source contains $D$
-  & \checkmark & $\boldsymbol{\times}$ & \cref{thm:sixnode}\\
-\midrule
-\multicolumn{5}{@{}p{15.4cm}@{}}{\emph{Edge dropping.} The edge $a\to b$ is removed, when $a$ is a member of at
-  least one source, $b$ is a member of every source of $a$ and has every visible parent of $a$ as a visible parent,
-  and \dots}\\
-\quad classical rule & \dots\ nothing more & \checkmark & $\boldsymbol{\times}$ & \cref{thm:hlp-settings,thm:hlp-four}\\
-\quad Rule A & \dots\ $a$ belongs to one source, and every other member sees all visible parents of $a$
-  & \checkmark & \checkmark & \cref{prop:ruleA-settings}\\
-\quad Rule B & \dots\ every other member besides $a,b$ is \emph{premeasurable} (no visible parent and exactly one source)
-  & \checkmark & \checkmark & \cref{thm:ruleB}\\
-\bottomrule
-\end{tabular}
-\end{center}
-
-\textbf{How to read the pictures.} \Cref{fig:legend} shows the graphical conventions, and \cref{fig:glance} the
-content of the table in pictures.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[mdag]
-  % a small structure
-  \vn{x}{0,-1.3}{$x$} \vn{a}{1.5,-1.3}{$a$} \vn{b}{3.3,-1.3}{$b$}
-  \qs{q}{2.4,-0.35}
-  \de{x}{a} \de{a}{b} \feed{q}{a,b}
-  \node[lab,anchor=north] at (1.65,-1.85) {\str{x→a, a→b; Q\{a,b\}}};
-  % legend
-  \begin{scope}[shift={(4.5,0.3)}]
-    \vn{l1}{0,0}{$v$} \node[lab,anchor=west] at (0.5,0) {visible node: its outcome is classical};
-    \draw[edge] (-0.3,-0.75) -- (0.3,-0.75); \node[lab,anchor=west] at (0.5,-0.75) {visible edge: carries the outcome};
-    \qs{l2}{0,-1.5} \draw[qedge] (l2) -- ++(0.45,-0.3); \node[lab,anchor=west] at (0.5,-1.5) {quantum source and its shares};
-    \qs[csrc]{l3}{0,-2.25} \draw[cedge] (l3) -- ++(0.45,-0.3); \node[lab,anchor=west] at (0.5,-2.25) {classical source and its data};
-    \qs[splitsrc]{l4}{0,-3.0} \draw[splitedge] (l4) -- ++(0.45,-0.3); \node[lab,anchor=west] at (0.5,-3.0) {source that a rule splits};
-  \end{scope}
-  \begin{scope}[shift={(11.0,0.3)}]
-    \vn[Cn]{m1}{0,0}{$c$} \node[lab,anchor=west] at (0.5,0) {part $C$: seen by $D$};
-    \vn[Dn]{m2}{0,-0.75}{$d$} \node[lab,anchor=west] at (0.5,-0.75) {part $D$: sees $C$};
-    \vn[pre]{m3}{0,-1.5}{$p$} \node[lab,anchor=west] at (0.5,-1.5) {premeasurable node};
-    \draw[dropedge] (-0.3,-2.25) -- (0.3,-2.25); \node[lab,anchor=west] at (0.5,-2.25) {edge that is dropped};
-    \draw[newedge] (-0.3,-3.0) -- (0.3,-3.0); \node[lab,anchor=west] at (0.5,-3.0) {edge that is added};
-  \end{scope}
-\end{tikzpicture}
-\caption{Conventions. A structure is also written as its visible edges followed by its sources,
-\str{Q\{\dots\}} for a quantum source. Between two pictures, $\equiv$ means that the quantum and the classical
-model sets are both equal; $\equiv_{\C}$ and $\not\equiv_{\Q}$ speak of one of them.}
-\label{fig:legend}
-\end{figure}
-
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[mdag,scale=0.69]
@@ -146,22 +69,37 @@ model sets are both equal; $\equiv_{\C}$ and $\not\equiv_{\Q}$ speak of one of t
     \node[ptitle=oired] at (p5.north west) {$\boldsymbol{\times}$ moderate and strong face splitting};
   \end{scope}
 \end{tikzpicture}
-\caption{The note at a glance. Top: the three rules that hold for quantum sources, each in a small instance
-(\cref{sec:split,sec:edge}). Bottom: two pairs of structures that the classical rules declare equivalent, and
-that are classically equivalent, but have different quantum model sets (\cref{sec:notquantum}).}
+\caption{Top: the three rules that hold for quantum sources, each in a small instance
+(\cref{sec:split,sec:edge}). Bottom: the classical edge and splitting rules can identify structures with different quantum model sets (\cref{sec:notquantum}).}
 \label{fig:glance}
 \end{figure}
 
-\Needspace{8\baselineskip}
-\textbf{Three things to remember.}
-\begin{enumerate}[leftmargin=*]
-\item \emph{Every quantum proof here uses one of two moves, and both condition on values of visible nodes only.}
-  \emph{Pre-measurement}: a source measures a share itself when the measurement is fixed anyway.
-  \emph{The catalogue}: a source prepares one state for every value that its receivers will later see, and they
-  use the matching one.
-\item \emph{The classical proofs that fail condition on the value of a latent variable} (\cref{sec:notquantum}).
-  In both cases the conclusion is false for quantum models, not only the proof.
-\item \emph{For the census nothing is lost.} With \cref{thm:split} in place of strong face splitting there are
-  $446$ classes of proven equivalence on four visible nodes instead of $438$, and the same $46$ classes remain
-  without a proven gap (\cref{sec:buys}).
-\end{enumerate}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[mdag]
+  % a small structure
+  \vn{x}{0,-1.3}{$x$} \vn{a}{1.5,-1.3}{$a$} \vn{b}{3.3,-1.3}{$b$}
+  \qs{q}{2.4,-0.35}
+  \de{x}{a} \de{a}{b} \feed{q}{a,b}
+  \node[lab,anchor=north] at (1.65,-1.85) {\str{x→a, a→b; Q\{a,b\}}};
+  % legend
+  \begin{scope}[shift={(4.5,0.3)}]
+    \vn{l1}{0,0}{$v$} \node[lab,anchor=west] at (0.5,0) {visible node: its outcome is classical};
+    \draw[edge] (-0.3,-0.75) -- (0.3,-0.75); \node[lab,anchor=west] at (0.5,-0.75) {visible edge: carries the outcome};
+    \qs{l2}{0,-1.5} \draw[qedge] (l2) -- ++(0.45,-0.3); \node[lab,anchor=west] at (0.5,-1.5) {quantum source and its shares};
+    \qs[csrc]{l3}{0,-2.25} \draw[cedge] (l3) -- ++(0.45,-0.3); \node[lab,anchor=west] at (0.5,-2.25) {classical source and its data};
+    \qs[splitsrc]{l4}{0,-3.0} \draw[splitedge] (l4) -- ++(0.45,-0.3); \node[lab,anchor=west] at (0.5,-3.0) {source that a rule splits};
+  \end{scope}
+  \begin{scope}[shift={(11.0,0.3)}]
+    \vn[Cn]{m1}{0,0}{$c$} \node[lab,anchor=west] at (0.5,0) {part $C$: seen by $D$};
+    \vn[Dn]{m2}{0,-0.75}{$d$} \node[lab,anchor=west] at (0.5,-0.75) {part $D$: sees $C$};
+    \vn[pre]{m3}{0,-1.5}{$p$} \node[lab,anchor=west] at (0.5,-1.5) {premeasurable node};
+    \draw[dropedge] (-0.3,-2.25) -- (0.3,-2.25); \node[lab,anchor=west] at (0.5,-2.25) {edge that is dropped};
+    \draw[newedge] (-0.3,-3.0) -- (0.3,-3.0); \node[lab,anchor=west] at (0.5,-3.0) {edge that is added};
+  \end{scope}
+\end{tikzpicture}
+\caption{Conventions. A structure is also written as its visible edges followed by its sources,
+\str{Q\{\dots\}} for a quantum source. Between two pictures, $\equiv$ means that the quantum and the classical
+model sets are both equal; $\equiv_{\C}$ and $\not\equiv_{\Q}$ speak of one of them.}
+\label{fig:legend}
+\end{figure}

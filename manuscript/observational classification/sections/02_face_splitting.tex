@@ -1,11 +1,6 @@
 \section{Face splitting}\label{sec:split}
-
-A source that contains two groups of nodes, $C$ and $D$, is more than is needed when $D$ learns through visible
-edges everything that $C$ does. Then the correlation between the two groups can travel along the edges, and the
-source can be split into one for $C$ and one for $D$. Throughout, $C$ is \emph{the part that is seen} and $D$
-\emph{the part that sees it}.
-
-\subsection{The rule}
+Think of $C$ as the part of a source whose outcomes are seen, and $D$ as the part that sees them.
+If $D$ can select its steered state from a catalogue, the two parts can be supplied separately.
 
 \begin{rulebox}{Face splitting for a closed family of sources}
 \begin{theorem}\label{thm:split}
@@ -46,48 +41,9 @@ discarding every set that has a single member or is contained in another source.
     \node[lab,text=qcol] at (0.45,2.95) {$C_1$}; \node[lab,text=qcol] at (3.55,2.95) {$C_2$};
   \end{scope}
 \end{tikzpicture}
-\caption{\Cref{thm:split} with $D=\{d\}$, $F_1=\{c_1,c_2,d\}$, $F_2=\{c_2,c_3,d\}$, so $C_1=\{c_1,c_2\}$ and
-$C_2=\{c_2,c_3\}$ overlap. (S1): the blue nodes are members of the orange sources only. (S2): $d$ sees
-$c_1,c_2,c_3$ and $y$, the setting of $c_1$. After the split, $d$ is in no source.}
+\caption{Two overlapping sources are split along $D=\{d\}$. The green receiver sees $c_1,c_2,c_3$ and the setting $y$. Splitting both orange sources leaves the blue nodes sharing the two smaller sources.}
 \label{fig:split-generic}
 \end{figure}
-
-\begin{minipage}{\linewidth}
-\paragraph{Relation to the classical rules.} For classical latents the rule is known in three strengths, all
-proved in Ansanelli, Wolfe and Spekkens \cite{AWS} (\AWS\ below), where the operation is read in the other
-direction and called \emph{facet-adding}. They differ in what replaces (S1):
-
-\begin{center}
-\small
-\renewcommand{\arraystretch}{1.2}
-\begin{tabular}{@{}p{4.0cm}p{6.0cm}ccc@{}}
-\toprule
-\textbf{Rule} & \textbf{A node of $C$ may also be a member of} & \textbf{Classical} & \textbf{Quantum}
-  & \textbf{Classes}\\
-\midrule
-weak (\AWS\ Prop.~5, from Evans \cite{Evans}) & no source but the one that is split & \checkmark & \checkmark & 461\\
-\textbf{\cref{thm:split}} & sources that are split together with it & \checkmark & \checkmark & 446\\
-moderate (\AWS\ Prop.~7) & remaining sources that contain $D$ & \checkmark & $\boldsymbol{\times}$ & 450\\
-strong (\AWS\ Prop.~8) & both & \checkmark & $\boldsymbol{\times}$ & 438\\
-\bottomrule
-\end{tabular}
-\end{center}
-\end{minipage}
-
-\Cref{thm:split} with $k=1$ is the weak rule. For $k\ge2$ it contains the instances of the strong rule in which
-the parts $C_i$ overlap only among themselves. It is not comparable with the moderate rule: each allows splits
-that the other does not. A cross means that the rule has a counterexample (\cref{sec:leaky}); single instances of
-it may still hold. The last column is the number of classes of four-node structures that the rule gives together
-with the other rules of Part~I (\cref{sec:census}).
-
-\subsection{The idea in the smallest case}\label{sec:split-idea}
-
-Take an edge $a\to b$ with a source $\{a,b\}$ on it, where $a$ has no setting and no other source
-(\cref{fig:split-idea}). In any quantum model, $a$ measures its share and obtains $x_a$; this leaves the share of
-$b$ in a state $\tau_{x_a}$ that is a known function of $x_a$. But $b$ receives $x_a$ along the edge. So nothing is
-lost if $b$ is handed, in advance, one state $\tau_x$ for every possible $x$, and uses the one that matches the
-value it receives. That catalogue is held by $b$ alone, so it is a private state of $b$, and what $a$ needs is
-only the reduced state of its own share, which is private too. The source has disappeared.
 
 \begin{figure}[H]
 \centering
@@ -121,152 +77,35 @@ the state that the outcome $x$ of $a$ would have left on the share of $b$.}
 \label{fig:split-idea}
 \end{figure}
 
-The general proof is the same argument with three additions: $C$ may have several nodes and settings, whose
-values join the index of the catalogue; $D$ may have several nodes, which then hold the catalogue jointly; and several
-sources may be split together, in which case an entry is a state of $D$'s shares of all of them.
+With just $a\to b$ and the source $\{a,b\}$, measuring $a$ leaves $b$ a state determined by $x_a$.
+The edge tells $b$ which state to prepare locally. For several receivers this private preparation becomes
+a shared catalogue. If $a$ also has a setting, every receiver needs that setting to select its entry.
 
-\subsection{Proof of the closed-family splitting rule}
-
-$\Q(\G')\subseteq\Q(\G)$ and $\C(\G')\subseteq\C(\G)$ hold by \cref{lem:monotone}, since $\G'$ is structurally
-below $\G$. For the converse fix a quantum model of $\G$.
-
-\emph{Step 1: what the nodes of $C$ do.} Let $Y=\Pa(C)\setminus C$ be the settings of nodes of $C$ that are not
-themselves in $C$. No node of $D$ is in $Y$: by (S2) it would be its own parent. So the index $z=(x_C,x_Y)$ used
-below contains no outcome of $D$. By (S1) a node $c\in C$ holds shares of the $F_i$ only, so the operator
+\begin{proof}[Proof of \cref{thm:split}]
+Structural dominance gives one inclusion. For the other, fix a model of the unsplit family and put
+$Y=\Pa(C)\setminus C$, $z=(x_C,x_Y)$. By (S1) the product $M_C(z)$ of the measurements at $C$
+acts only on shares of the $F_i$. After tracing out those shares, the operator left on $D$ is
 \[
-M_C^{x_C\mid x_Y}\;=\;\bigotimes_{c\in C}M_c^{x_c\mid x_{\Pa(c)}}
+ \tau_z=\Tr_C\!\left[(M_C(z)\otimes\id)\bigotimes_i\rho_{F_i}\right],
+ \qquad q_z=\Tr\tau_z.
 \]
-acts on $\Hil_C=\bigotimes_i\bigotimes_{c\in C_i}\Hil_{F_i,c}$, the shares of $C$. Let
-$K=\bigotimes_i\bigotimes_{d\in D}\Hil_{F_i,d}$ be the shares of $D$ in the split sources, and define
-\[
-\tau(x_C,x_Y)=\Tr_{\Hil_C}\Bigl[\bigl(M_C^{x_C\mid x_Y}\otimes\id_K\bigr)\bigotimes_{i}\rho_{F_i}\Bigr]\ \ \text{on }K,
-\qquad q(x_C,x_Y)=\Tr\,\tau(x_C,x_Y).
-\]
-This is the unnormalised state that the outcomes $x_C$, obtained with the settings $x_Y$, leave on $D$'s shares:
-the \emph{steered state}. Note that $q(x_C,x_Y)=\Tr\bigl[M_C^{x_C\mid x_Y}\bigotimes_i\rho_{C_i}\bigr]$ with
-$\rho_{C_i}=\Tr_{D}\,\rho_{F_i}$ the reduced state of $F_i$ on the shares of $C_i$.
+The trace $q_z$ is also the weight of $x_C$ at those settings when each $C_i$ receives its own reduced
+state $\Tr_D\rho_{F_i}$. Supply these reduced states independently and keep the old measurements at $C$.
+Let the new source on $D$ emit a catalogue with entry $\tau_z/q_z$ whenever $q_z>0$, and a fixed state
+otherwise. By (S2) each $d\in D$ reads $z$ and measures the matching entry together with its other shares.
+A singleton can prepare its entry privately, and a source containing $D$ can distribute the catalogue.
 
-\emph{Step 2: the distribution in terms of the steered state.} The state $\bigotimes_i\rho_{F_i}$ lives on
-$\Hil_C\otimes K$, because $F_i=C_i\cup D$. In \cref{eq:trace} the only operators that act on $\Hil_C$ are those
-of the nodes of $C$, and by Step~1 they act on nothing else. So the partial trace over $\Hil_C$ can be taken
-first:
-\begin{equation}\label{eq:split-P}
-P(x_V)=\Tr\Bigl[\Bigl(\bigotimes_{v\notin C}M_v^{x_v\mid x_{\Pa(v)}}\Bigr)\Bigl(\tau(x_C,x_Y)\otimes\bigotimes_{F\text{ remaining}}\rho_F\Bigr)\Bigr].
-\end{equation}
-
-\emph{Step 3: the model of $\G'$.} Let $\mathcal Z$ be the finite set of values $z=(x_C,x_Y)$. For $z\in\mathcal Z$
-put $\hat\tau_z=\tau(z)/q(z)$ if $q(z)>0$, and let $\hat\tau_z$ be a fixed state on $K$ otherwise (a diagonal
-one if the model is classical).
-\begin{itemize}
-\item The source $C_i$ emits $\rho_{C_i}$.
-\item The source $D$ emits the catalogue $\kappa=\bigotimes_{z\in\mathcal Z}\hat\tau_z$ on
-  $\bigotimes_{z}K^{(z)}$, every $d\in D$ receiving its share of every entry.
-\item Every $c\in C$ keeps its POVM. Its shares are the same spaces as before.
-\item Every $d\in D$ reads $z=(x_C,x_Y)$ from its settings, which (S2) allows, and applies
-  $M_d^{x_d\mid x_{\Pa(d)}}$ to its share of entry $z$ together with its other shares, and the identity to the
-  other entries. For each value of its settings this is a POVM.
-\item Every remaining source and every other node is unchanged.
-\end{itemize}
-A set that was discarded emits nothing. What it would emit is a private state of its single member, or is emitted
-in addition by a source of $\G'$ that contains it. (Only $D$ can be contained in another source, and only in a
-remaining one: the $C_i$ do not contain one another, because the $F_i$ do not; by (S1) no remaining source
-contains a node of $C$, so none contains a $C_i$ or is contained in one; and a remaining source inside $D$ would
-be inside $F_1$.)
-
-\emph{Step 4: the two distributions agree.} Fix $x_V$ and let $z=(x_C,x_Y)$ be read off from it. All nodes of $D$
-address the same entry $z$. In the new model the state is a product of the $\rho_{C_i}$, the catalogue and the
-remaining sources, so \cref{eq:trace} factorises into
-\[
-P'(x_V)=\underbrace{\Tr\Bigl[M_C^{x_C\mid x_Y}\bigotimes_i\rho_{C_i}\Bigr]}_{q(z)}\cdot
-\Tr\Bigl[\Bigl(\bigotimes_{v\notin C}M_v^{x_v\mid x_{\Pa(v)}}\Bigr)\Bigl(\hat\tau_z\otimes\bigotimes_{F\text{ remaining}}\rho_F\Bigr)\Bigr]
-\cdot\prod_{z'\ne z}\Tr\hat\tau_{z'} .
-\]
-The last factor is $1$. If $q(z)>0$, then $q(z)\,\hat\tau_z=\tau(z)$ and the product is the right-hand side of
-\cref{eq:split-P}. If $q(z)=0$, the positive operator $\tau(z)$ vanishes and both $P(x_V)$ and $P'(x_V)$ are $0$.
-Hence $P'=P$ and $\Q(\G)\subseteq\Q(\G')$.
-
-\emph{The classical model set.} If the given model is classical, then the $\hat\tau_z$ and the $\rho_{C_i}$ are
-diagonal and the new POVMs are diagonal, so the new model is classical: $\C(\G)\subseteq\C(\G')$. \qed
-
-\paragraph{What each hypothesis is for.}
-\begin{itemize}
-\item \textbf{(S2)} lets every $d$ read the index $z$, which consists of values of visible nodes: condition (i) of
-  the catalogue.
-\item \textbf{(S1)} makes $M_C^{x_C\mid x_Y}$ act on shares of the split sources alone (Step~1). What the outcomes
-  of $C$ leave behind then lives on shares held by $D$ and by nobody else: condition (ii) of the catalogue. The
-  last warning of this section shows what goes wrong otherwise, and \cref{sec:leaky} that the conclusion can then
-  be false.
-\item \textbf{Splitting several sources at once} is needed: see \exref{ex:together}.
-\end{itemize}
-
-\subsection{Valid examples}
-
-Each example names $D$, the $F_i$ and $C$, and gives the two structures in the letters of its picture; digits are
-used where a structure is taken from the repository's list. All examples and warnings of this note are checked
-against the code by a script (\cref{app:code}).
-
-\begin{validbox}[label=ex:edge-source]{a source on an edge}
-\begin{minipage}{0.55\linewidth}
-$D=\{b\}$, $F_1=\{a,b\}$, $C=\{a\}$. (S1): $a$ has no other source. (S2): $a\to b$, and $a$ has no setting.
-Both parts are single nodes, so the source disappears:\\[3pt]
-\str{a→b; Q\{a,b\}} \ $\equiv$ \ \str{a→b}.\\[3pt]
-In general, a two-member source on an edge is redundant whenever the origin has no other source and the target
-sees all its settings.
-\end{minipage}\hfill
-\begin{minipage}{0.42\linewidth}\centering
-\begin{tikzpicture}[mdag]
-  \vn[Cn]{a}{0,0}{$a$} \vn[Dn]{b}{1.6,0}{$b$} \qs[splitsrc]{q}{0.8,0.85} \feed[splitedge]{q}{a,b} \de{a}{b}
-  \node[rel] at (2.4,0.2) {\equivsign};
-  \begin{scope}[shift={(3.2,0)}] \vn[Cn]{a}{0,0}{$a$} \vn[Dn]{b}{1.6,0}{$b$} \de{a}{b} \end{scope}
-\end{tikzpicture}
-\end{minipage}
-\end{validbox}
-
-\begin{validbox}[label=ex:common-child]{two nodes with a common child}
-\begin{minipage}{0.55\linewidth}
-$D=\{d\}$, $F_1=\{a,b,d\}$, $C=\{a,b\}$. The source is split into $\{a,b\}$ and $\{d\}$:\\[3pt]
-\str{a→d, b→d; Q\{a,b,d\}} \ $\equiv$ \ \str{a→d, b→d; Q\{a,b\}}.\\[3pt]
-The catalogue of $d$ is indexed by the pair $(x_a,x_b)$.
-\end{minipage}\hfill
-\begin{minipage}{0.42\linewidth}\centering
-\begin{tikzpicture}[mdag]
-  \vn[Cn]{a}{0,1.3}{$a$} \vn[Cn]{b}{1.6,1.3}{$b$} \vn[Dn]{d}{0.8,0}{$d$} \qs[splitsrc]{q}{0.8,0.85}
-  \feed[splitedge]{q}{a,b,d} \de{a}{d} \de{b}{d}
-  \node[rel] at (2.4,0.65) {\equivsign};
-  \begin{scope}[shift={(3.2,0)}]
-    \vn[Cn]{a}{0,1.3}{$a$} \vn[Cn]{b}{1.6,1.3}{$b$} \vn[Dn]{d}{0.8,0}{$d$} \qs{q}{0.8,2.0}
-    \feed{q}{a,b} \de{a}{d} \de{b}{d}
-  \end{scope}
-\end{tikzpicture}
-\end{minipage}
-\end{validbox}
-
-\begin{validbox}[label=ex:two-D]{a part $D$ with two nodes}
-\begin{minipage}{0.55\linewidth}
-$D=\{d_1,d_2\}$, $F_1=\{c,d_1,d_2\}$, $C=\{c\}$. The two children keep a source of their own, which carries the
-catalogue; the entry they both use is a bipartite state:\\[3pt]
-\str{c→d$_1$, c→d$_2$; Q\{c,d$_1$,d$_2$\}} \ $\equiv$ \ \str{c→d$_1$, c→d$_2$; Q\{d$_1$,d$_2$\}}.
-\end{minipage}\hfill
-\begin{minipage}{0.42\linewidth}\centering
-\begin{tikzpicture}[mdag]
-  \vn[Cn]{c}{0.8,1.3}{$c$} \vn[Dn]{d1}{0,0}{$d_1$} \vn[Dn]{d2}{1.6,0}{$d_2$} \qs[splitsrc]{q}{0.8,0.42}
-  \feed[splitedge]{q}{c,d1,d2} \de{c}{d1} \de{c}{d2}
-  \node[rel] at (2.4,0.65) {\equivsign};
-  \begin{scope}[shift={(3.2,0)}]
-    \vn[Cn]{c}{0.8,1.3}{$c$} \vn[Dn]{d1}{0,0}{$d_1$} \vn[Dn]{d2}{1.6,0}{$d_2$} \qs{q}{0.8,-0.75}
-    \feed{q}{d1,d2} \de{c}{d1} \de{c}{d2}
-  \end{scope}
-\end{tikzpicture}
-\end{minipage}
-\end{validbox}
+For each assignment in \cref{eq:trace}, the weight $q_z$ times the selected state gives exactly $\tau_z$.
+Zero weight contributes zero in both models. Everything outside the family sees the same visible values
+and retains its old shares. Diagonal inputs give diagonal entries, proving the classical equality too.
+\end{proof}
 
 \begin{validbox}[label=ex:setting]{a setting that both nodes see}
 \begin{minipage}{0.55\linewidth}
 $D=\{d\}$, $F_1=\{c,d\}$, $C=\{c\}$, and $c$ has a setting $y$. (S2) asks that $d$ see $y$ as well, which
 holds:\\[3pt]
 \str{y→c, y→d, c→d; Q\{c,d\}} \ $\equiv$ \ \str{y→c, y→d, c→d}.\\[3pt]
-The catalogue is indexed by $(x_c,x_y)$. Without the edge $y\to d$ this is the instrumental scenario, and the
-split is wrong (see the first warning below).
+The catalogue is indexed by $(x_c,x_y)$. The edge $y\to d$ supplies the second index.
 \end{minipage}\hfill
 \begin{minipage}{0.42\linewidth}\centering
 \begin{tikzpicture}[mdag]
@@ -309,145 +148,24 @@ with $k=1$ alone the two structures stay in different classes.
 \end{minipage}
 \end{validbox}
 
-\begin{validbox}[label=ex:absorbed]{$D$ is absorbed by a remaining source}
-\begin{minipage}{0.55\linewidth}
-$D=\{d_1,d_2\}$, $F_1=\{c,d_1,d_2\}$, $C=\{c\}$, and a remaining source $\{d_1,d_2,e\}$, which contains no node of
-$C$. After the split, $D$ is contained in that source and is discarded; the source carries the catalogue next to
-its own state:\\[3pt]
-\str{c→d$_1$, c→d$_2$; Q\{c,d$_1$,d$_2$\}, Q\{d$_1$,d$_2$,e\}} \ $\equiv$\\
-\str{c→d$_1$, c→d$_2$; Q\{d$_1$,d$_2$,e\}}.
-\end{minipage}\hfill
-\begin{minipage}{0.42\linewidth}\centering
-\begin{tikzpicture}[mdag,scale=0.9]
-  \vn[Cn]{c}{0.8,2.4}{$c$} \vn[Dn]{d1}{0,1.2}{$d_1$} \vn[Dn]{d2}{1.6,1.2}{$d_2$} \vn{e}{0.8,-0.3}{$e$}
-  \qs[splitsrc]{q}{0.8,1.6} \qs{g}{0.8,0.55}
-  \feed[splitedge]{q}{c,d1,d2} \feed{g}{d1,d2,e} \de{c}{d1} \de{c}{d2}
-  \node[rel] at (2.45,1.1) {\equivsign};
-  \begin{scope}[shift={(3.3,0)}]
-    \vn[Cn]{c}{0.8,2.4}{$c$} \vn[Dn]{d1}{0,1.2}{$d_1$} \vn[Dn]{d2}{1.6,1.2}{$d_2$} \vn{e}{0.8,-0.3}{$e$}
-    \qs{g}{0.8,0.55}
-    \feed{g}{d1,d2,e} \de{c}{d1} \de{c}{d2}
-  \end{scope}
-\end{tikzpicture}
-\end{minipage}
-\end{validbox}
+\paragraph{Comparison with classical face splitting.}
+The classical rules of Ansanelli, Wolfe and Spekkens \cite{AWS} share the visibility condition (S2).
+They differ in which other sources may meet $C$. The last column gives the number of four-node classes
+if that splitting rule is used alongside the quantum edge rules.
 
-\begin{validbox}[label=ex:bell-source]{inside a Bell scenario with linked settings}
-\begin{minipage}{0.5\linewidth}
-A Bell scenario with outcomes $3$ and $2$ whose settings $0$ and $1$ are linked by $0\to1$, and a further source
-$\{0,3\}$ on the edge $0\to3$. That source is redundant as in \exref{ex:edge-source}: $D=\{3\}$, $C=\{0\}$; node
-$0$ is in no other source (S1) and has no setting (S2).\\[3pt]
-\str{0→1, 0→3, 1→2; Q\{0,3\}, Q\{2,3\}} \ $\equiv$\\ \str{0→1, 0→3, 1→2; Q\{2,3\}}.\\[3pt]
-This is one of the steps that make five structures a single class (\cref{sec:only-via}).
-\end{minipage}\hfill
-\begin{minipage}{0.47\linewidth}\centering
-\begin{tikzpicture}[mdag,scale=0.85]
-  \vn[Cn]{x}{0,1.5}{$0$} \vn{y}{2,1.5}{$1$} \vn[Dn]{a}{0,0}{$3$} \vn{b}{2,0}{$2$}
-  \qs[splitsrc]{s}{-0.85,0.75} \qs{q}{1,-0.75}
-  \feed[splitedge]{s}{x,a} \feed{q}{a,b} \de{x}{y} \de{x}{a} \de{y}{b}
-  \node[rel] at (2.95,0.6) {\equivsign};
-  \begin{scope}[shift={(3.9,0)}]
-    \vn[Cn]{x}{0,1.5}{$0$} \vn{y}{2,1.5}{$1$} \vn[Dn]{a}{0,0}{$3$} \vn{b}{2,0}{$2$}
-    \qs{q}{1,-0.75}
-    \feed{q}{a,b} \de{x}{y} \de{x}{a} \de{y}{b}
-  \end{scope}
-\end{tikzpicture}
-\end{minipage}
-\end{validbox}
-
-\paragraph{Smaller families.} For a given $D$, the union of two closed families that satisfy (S2) is again one, so
-there is a largest. Splitting only some of its sources gives a structure that is structurally between $\G$ and
-$\G'$ and hence equivalent to both (\cref{cor:sandwich}); in \exref{ex:together} this is the structure with the
-sources $\{a,b\}$ and $\{a,c,d\}$. It is therefore enough to apply \cref{thm:split} to the largest closed family
-of each $D$, which is what the repository does.
-
-\Needspace{6\baselineskip}
-\subsection{Not like this}
-
-\begin{warnbox}{$D$ must see the settings of $C$, not only $C$ itself}
-\begin{minipage}{0.56\linewidth}
-The instrumental scenario \str{0→1, 1→2; Q\{1,2\}} has a source on the edge $1\to2$, but its origin has the
-setting $0$, which the target does not see: (S2) fails. Removing the source would make node $2$ independent of
-node $0$ given node $1$. Already classically that is false: let the source emit a uniform bit $\lambda$, let node
-$1$ output $x_0\oplus\lambda$ and node $2$ output $\lambda$. So
-\[\text{\str{0→1, 1→2; Q\{1,2\}}}\ \not\equiv\ \text{\str{0→1, 1→2}}\]
-for classical and quantum models alike. Compare \exref{ex:setting}, where the edge from the setting to $d$ is
-present.
-\end{minipage}\hfill
-\begin{minipage}{0.41\linewidth}\centering
-\begin{tikzpicture}[mdag]
-  \vn{x}{0,0}{$0$} \vn[Cn]{a}{1.3,0}{$1$} \vn[Dn]{b}{2.6,0}{$2$} \qs[splitsrc]{q}{1.95,0.85}
-  \feed[splitedge]{q}{a,b} \de{x}{a} \de{a}{b}
-  \node[rel] at (1.3,-0.75) {\nequivsign};
-  \begin{scope}[shift={(0,-1.5)}]
-    \vn{x}{0,0}{$0$} \vn[Cn]{a}{1.3,0}{$1$} \vn[Dn]{b}{2.6,0}{$2$} \de{x}{a} \de{a}{b}
-  \end{scope}
-\end{tikzpicture}
-\end{minipage}
-\end{warnbox}
-
-\begin{warnbox}{every node of $D$ must see every node of $C$}
-\begin{minipage}{0.56\linewidth}
-In \str{a→b; Q\{a,b,c\}} the source cannot be split into $\{a\}$ and $\{b,c\}$: $b$ sees $a$, but $c$ does not, so
-(S2) fails for $D=\{b,c\}$. The split would make $a$ and $c$ independent, and with the three-member source they can
-be perfectly correlated. So
-\[\text{\str{a→b; Q\{a,b,c\}}}\ \not\equiv\ \text{\str{a→b; Q\{b,c\}}}\]
-for classical and quantum models alike. Compare \exref{ex:two-D}, where both children see $c$.
-\end{minipage}\hfill
-\begin{minipage}{0.41\linewidth}\centering
-\begin{tikzpicture}[mdag]
-  \vn[Cn]{a}{0,0}{$a$} \vn[Dn]{b}{1.5,0}{$b$} \vn[Dn]{c}{3.0,0}{$c$} \qs[splitsrc]{q}{1.5,0.95}
-  \feed[splitedge]{q}{a,b,c} \de{a}{b}
-  \node[rel] at (1.5,-0.75) {\nequivsign};
-  \begin{scope}[shift={(0,-1.5)}]
-    \vn[Cn]{a}{0,0}{$a$} \vn[Dn]{b}{1.5,0}{$b$} \vn[Dn]{c}{3.0,0}{$c$} \qs{q}{2.25,-0.85}
-    \feed{q}{b,c} \de{a}{b}
-  \end{scope}
-\end{tikzpicture}
-\end{minipage}
-\end{warnbox}
-
-\begin{warnbox}{no edge from one part to the other}
-\begin{minipage}{0.56\linewidth}
-\Cref{thm:split} never applies when no edge leads from one part of a source to the other. In the Bell scenario
-\str{0→2, 1→3; Q\{2,3\}} the split is plainly false: without the source, the outcomes $2$ and $3$ would be
-independent given the settings. (Which of the two parts is called $C$ makes no difference to the structure that a
-split produces; it matters only for the hypotheses, where $D$ is the part that sees the other.)
-\end{minipage}\hfill
-\begin{minipage}{0.41\linewidth}\centering
-\begin{tikzpicture}[mdag]
-  \vn{x}{0,1.3}{$0$} \vn{y}{2,1.3}{$1$} \vn{a}{0,0}{$2$} \vn{b}{2,0}{$3$} \qs[splitsrc]{q}{1,0.55}
-  \feed[splitedge]{q}{a,b} \de{x}{a} \de{y}{b}
-  \node[tag] at (1,-0.65) {this source cannot be split};
-\end{tikzpicture}
-\end{minipage}
-\end{warnbox}
-
-\begin{warnbox}{a node of $C$ must not be a member of a remaining source}
-\begin{minipage}{0.52\linewidth}
-This is hypothesis (S1), and it is the one place where the quantum rule is narrower than the classical ones. In
-the picture, $F=\{A,R,D\}$ is to be split into $\{A,R\}$ and $\{D\}$, and (S2) holds: $D$ sees $A$, $R$ and the
-setting $S$ of $A$. But $R$ is also a member of $J=\{R,D,E\}$, which cannot be split along with $F$ because $D$
-does not see $E$. Classically the split is valid (\AWS\ Prop.~7). In the strategy of \cref{thm:sixnode}, $R$'s
-Bell measurement entangles $A$ with $E$. At $x_S=2$, $A$'s Bell measurement then leaves $D$ and $E$ sharing a
-Bell state conditioned on both outcomes. The share that the catalogue would replace is entangled with $E$'s,
-violating (ii).
-
-\Cref{thm:sixnode} proves that these two structures have different quantum model sets. Without the setting $S$, or
-without the setting $T$, the split is valid again (remarks after \cref{thm:sixnode}). For five four-node
-structures of this shape the question is open (\cref{sec:open-four}).
-\end{minipage}\hfill
-\begin{minipage}{0.45\linewidth}\centering
-\begin{tikzpicture}[mdag]
-  \vn{s}{-0.9,2.6}{$S$} \vn[Cn]{A}{0,1.7}{$A$} \vn[Cn]{R}{1.9,1.7}{$R$} \vn[Dn]{D}{0.95,0}{$D$} \vn{E}{3.3,0}{$E$}
-  \vn{t}{3.9,1.2}{$T$}
-  \qs[splitsrc]{f}{0.95,1.15} \qs{g}{2.1,0.55}
-  \feed[splitedge]{f}{A,R,D} \feed{g}{R,D,E} \de{A}{D} \de{R}{D} \de{s}{A} \de{t}{E}
-  \draw[edge] (s) to[out=-120,in=170,looseness=1.2] (D);
-  \node[lab,text=splitcol!80!black] at (0.95,1.57) {$F$}; \node[lab,text=qcol] at (2.75,0.75) {$J$};
-  \draw[decorate,decoration={brace,amplitude=3pt,mirror},thick,black!60] (2.25,2.15) -- (1.55,2.15);
-  \node[tag,anchor=south] at (1.9,2.25) {joint measurement};
-  \node[tag] at (1.6,-0.7) {$E$ does not see what $R$ outputs};
-\end{tikzpicture}
-\end{minipage}
-\end{warnbox}
+\begin{center}\small
+\begin{tabular}{@{}lp{8cm}cr@{}}
+\toprule
+Splitting rule & Other sources allowed to meet $C$ & Quantum valid & Classes\\
+\midrule
+Weak & None for each individual split & yes & 461\\
+Closed family & Other sources split along with it & yes & 446\\
+Moderate & Remaining sources that contain $D$ & no & 450\\
+Strong & Both kinds & no & 438\\
+\bottomrule
+\end{tabular}
+\end{center}
+The joint split above goes beyond the weak rule. The six-node witness in \cref{sec:leaky} rules out
+moderate splitting in general, including as a special case of the strong rule. For a fixed $D$ the
+code need only split the largest closed family satisfying (S2). Splitting fewer sources gives an
+intermediate structure covered by the sandwich (\cref{cor:sandwich}).
