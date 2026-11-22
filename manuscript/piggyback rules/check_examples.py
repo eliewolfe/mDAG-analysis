@@ -48,6 +48,7 @@ def elementary():
 def predictions():
     triangle = graph(3, quantum=[(0, 1)], classical=[(0, 2), (1, 2)])
     bell = fritz(triangle, 2, (0, 1), "dsep", target_mode="split")
+    same(bell, graph(4, quantum=[(0, 1)], classical=[(0, 2), (1, 3)]))
     assert bell.unique_unlabelled_id == QG_Bell_C_C.unique_unlabelled_id
     tetrahedron = graph(4, quantum=[(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)])
     same(fritz(tetrahedron, 0, (1,), "dsep"), graph(3, quantum=[(1, 2)], classical=[(0, 1), (0, 2)]))
@@ -56,6 +57,7 @@ def predictions():
     kept, _ = kpc.fritz_deletion(3, {0})
     assert kpc.fritz_certificate(3, kept, {0}, use_lp=False) is None
     bell = fritz(kpc, 0, (3,), "semigraphoid", predictor_mode="split")
+    same(bell, graph(4, [(1, 2)], [(0, 2)], [(0, 3)]))
     assert bell.unique_unlabelled_id == QG_Bell_C_Edge.unique_unlabelled_id
     nodes, parents = kpc.lp_structure
     b, = parents[2] - {1}
@@ -92,14 +94,20 @@ def chains():
     g = graph(4, [(0, 1), (1, 2), (2, 3)], [(0, 1), (0, 2), (1, 3)])
     child = fritz(g, 0, (1,), "parent", pool="parents", target_mode="split")
     same(child, graph(4, [(0, 1), (1, 2), (3, 1)], [(0, 1), (0, 2)], [(0, 1, 3)]))
-    assert child.marginalize(0).unique_unlabelled_id == QG_Instrumental_EdgeC.unique_unlabelled_id
+    seed = child.marginalize(0)
+    same(seed, graph(3, [(2, 0), (0, 1)], [(0, 1)], [(0, 2)]))
+    assert seed.unique_unlabelled_id == QG_Instrumental_EdgeC.unique_unlabelled_id
 
     g = graph(4, [(0, 1), (1, 2)], [(0, 2), (0, 3), (1, 3)])
     child = fritz(g, 0, (3,), "dsep", predictor_mode="split", target_mode="split")
     same(child, graph(5, [(0, 1), (1, 2)], [(0, 2), (0, 3), (1, 3)],
                       [(0, 1, 2), (0, 1, 3, 4)]))
     assert child.conditioning_is_justified(3)
-    assert child.condition(3).marginalize(0).unique_unlabelled_id == QG_Instrumental_C.unique_unlabelled_id
+    after_selection = child.condition(3)
+    same(after_selection, graph(4, [(0, 1), (1, 2)], [(0, 1), (0, 2)], [(0, 1, 2), (0, 1, 3)]))
+    seed = after_selection.marginalize(0)
+    same(seed, graph(3, [(0, 1)], [(0, 1)], [(0, 2)]))
+    assert seed.unique_unlabelled_id == QG_Instrumental_C.unique_unlabelled_id
 
 
 def binary_sources():

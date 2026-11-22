@@ -32,7 +32,7 @@ KPC's prediction-free rule asks whether the extra visible independences of an ed
 \begin{rulebox}{Try the same idea on the KPC example}
 Retain \(E\ind(C,D)\) but remove the prediction of \(E\) by \(F\). On p.~\pageref{sec:kpc} the second deduction needed \(E\ind U\mid B,F\). Observing \(E\ind U\) gives no such conditional statement. The repository checks this prediction-free version of the KPC deletion and the test fails. In contrast, the three-circle example above needs just the one observable independence.
 \end{rulebox}
-The code can run this test with an empty prediction list. The default census uses the four Fritz variants described above.
+The code can run this test with an empty prediction list. The default census requires a prediction for its Fritz stages and uses the independence test after graphical separation. The entropy test can be selected as an alternative or run alongside it.
 
 \pageof{Follow a complete proof to an instrumental seed}\label{sec:chain}
 Start with the chain and sources from the parent example. Below, marks in one row are recipients of one independent source. Filled circles denote quantum shares and open squares denote copies of classical data. The visible arrows are given under each panel.

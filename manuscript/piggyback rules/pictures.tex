@@ -36,10 +36,11 @@
 % KPC keeps the paper's letters. A and B are names of sources.
 \newcommand{\kpcfig}[1]{\vtx{c}{0}{2.9}{C}\vtx{d}{0}{0}{D}
   \vtx{e}{3.9}{2.9}{E}\vtx{f}{3.9}{0}{F}\de{c}{d}
-  \qsrc{b}{1.95}{-.55}{d,f}\node[lab,below] at (b.south) {$B$};
+  \ifnum#1=2 \csrc{b}{1.95}{-.55}{d,f}\else \qsrc{b}{1.95}{-.55}{d,f}\fi
+  \node[lab,below] at (b.south) {$B$};
   \ifcase#1 \qsrc{a}{4.65}{1.45}{e,f}\node[lab,right] at (a.east) {$A$};\de[dropedge]{c}{e}\de[dropedge]{d}{e}
-  \or \csrc{a}{4.65}{1.45}{e,f}\node[lab,right] at (a.east) {$A'$};
-  \or \de[newedge]{e}{f}\fi}
+  \or \csrc{a}{4.65}{1.45}{e,f}\node[lab,right] at (a.east) {$A$};
+  \or \csrc{a}{4.65}{1.45}{e,f}\node[lab,right] at (a.east) {$A'$};\fi}
 % Draw all source memberships in crowded examples as an incidence diagram.
 \newcommand{\members}[3]{\node[anchor=east,font=\small] at (-.2,#1) {#2};
   \foreach \i in {#3}{\fill[qcol] (\i,#1) circle (2.7pt);}}
