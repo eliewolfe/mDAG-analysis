@@ -1,0 +1,50 @@
+% Parameters select successive graphs so surviving nodes keep their positions.
+\newcommand{\openingfig}[1]{\vtx{a}{2}{1.35}{1}\vtx{b}{0}{-.8}{2}\vtx{c}{4}{-.8}{3}
+  \qsrc{ab}{.25}{1.65}{a,b}\qsrc{ac}{3.75}{1.65}{a,c}\qsrc{bc}{2}{-1.35}{b,c}
+  \ifnum#1=1 \vn[pre]{z}{2,3}{$0$}\feed{ab}{z}\feed{ac}{z}
+  \draw[edge] (z) to[out=171,in=125] (b);\draw[edge] (z) to[out=9,in=55] (c);\fi}
+\newcommand{\bellsettings}[1]{\vtx{x}{0}{2.2}{X}\vtx{y}{3.8}{2.2}{Y}
+  \vtx{a}{0}{0}{A}\vtx{b}{3.8}{0}{B}\csrc{xy}{1.9}{2.9}{x,y}
+  \qsrc{ab}{1.9}{-.4}{a,b}\de{x}{a}\de{y}{b}\ifnum#1=1 \de[newedge]{x}{y}\fi}
+\newcommand{\margfig}[1]{\vtx{a}{1.6}{1.8}{1}\vtx{b}{3.4}{0}{2}\vtx{c}{0}{0}{3}
+  \de{a}{b}
+  \ifcase#1 \vtx{x}{3.5}{3.15}{0}\de{x}{a}
+    \qsrc{u}{.2}{2.85}{a,c,x}\qsrc{v}{4.45}{1.5}{x,b}
+  \or \qsrc{u}{0}{1.7}{a,c}\csrc{v}{3.8}{1.6}{a,b}
+  \or \qsrc{u}{0}{1.7}{a,c}\qsrc{v}{3.8}{1.6}{a,b}\fi}
+\newcommand{\swapfig}[1]{\vtx{b}{0}{0}{2}\vtx{c}{3.5}{0}{3}\vtx{a}{-1.1}{2.7}{1}\de{b}{c}
+  \qsrc{ab}{-1.45}{1.1}{a,b}
+  \ifnum#1=0 \vtx{x}{1.8}{2.75}{0}\qsrc{bx}{.3}{1.65}{b,x}\qsrc{cx}{3.35}{1.65}{c,x}
+  \else \qsrc{bc}{1.8}{1.5}{b,c}\fi}
+\newcommand{\stitchfig}[1]{\vtx{x}{0}{2}{u}\vtx{a}{0}{0}{a}\vtx{b}{3.5}{0}{b}
+  \de{x}{a}\qsrc{ab}{1.75}{-.8}{a,b}
+  \ifnum#1=0 \vtx{y}{3.5}{2}{x}\de{y}{b}\else\de[newedge]{a}{b}\fi}
+\newcommand{\splitfig}[1]{\vtx{p}{0}{2.5}{p}\vtx{c}{3.8}{-.5}{c}
+  \vtx{s}{.15}{0}{s}\de{p}{s}\de{s}{c}
+  \ifnum#1=1 \vtx{t}{3.65}{1.95}{s'}\de{p}{t}\de{t}{c}\csrc{r}{1.7}{.95}{s,t}\fi}
+% A slice of a sibling step. V is a removable, visible parent of S.
+\newcommand{\siblingfig}[1]{\vtx{s}{2.05}{0}{S}\vtx{w}{3.8}{1.9}{V}
+  \ifnum#1<2 \vtx{x}{0}{0}{X}\fi
+  \ifcase#1 \qsrc{l}{.9}{1.5}{x,s}\de[dropedge]{w}{s}
+  \or \csrc{l}{.9}{1.5}{x,s}
+  \fi}
+\newcommand{\trianglefig}[1]{\vtx{a}{0}{0}{A}\vtx{b}{3.8}{0}{B}\qsrc{ab}{1.9}{-.7}{a,b}
+  \ifnum#1<2 \vtx{r}{1.9}{2.8}{R}\fi
+  \ifcase#1 \csrc{u}{-.15}{1.75}{a,r}\csrc{v}{3.95}{1.75}{b,r}
+  \or \vtx{x}{-1.15}{2.8}{x}\vtx{y}{4.95}{2.8}{y}\csrc{u}{0}{1.6}{a,r,x}\csrc{v}{3.8}{1.6}{b,r,y}
+  \or \vtx{x}{0}{2.8}{x}\vtx{y}{3.8}{2.8}{y}\csrc{u}{-.55}{1.5}{a,x}\csrc{v}{4.35}{1.5}{b,y}\fi}
+% KPC keeps the paper's letters. A and B are names of sources.
+\newcommand{\kpcfig}[1]{\vtx{c}{0}{2.9}{C}\vtx{d}{0}{0}{D}
+  \vtx{e}{3.9}{2.9}{E}\vtx{f}{3.9}{0}{F}\de{c}{d}
+  \ifnum#1=2 \csrc{b}{1.95}{-.55}{d,f}\else \qsrc{b}{1.95}{-.55}{d,f}\fi
+  \node[lab,below] at (b.south) {$B$};
+  \ifcase#1 \qsrc{a}{4.65}{1.45}{e,f}\node[lab,right] at (a.east) {$A$};\de[dropedge]{c}{e}\de[dropedge]{d}{e}
+  \or \csrc{a}{4.65}{1.45}{e,f}\node[lab,right] at (a.east) {$A$};
+  \or \csrc{a}{4.65}{1.45}{e,f}\node[lab,right] at (a.east) {$A'$};\fi}
+% Draw all source memberships in crowded examples as an incidence diagram.
+\newcommand{\members}[3]{\node[anchor=east,font=\small] at (-.2,#1) {#2};
+  \foreach \i in {#3}{\fill[qcol] (\i,#1) circle (2.7pt);}}
+\newcommand{\classmembers}[3]{\node[anchor=east,font=\small] at (-.2,#1) {#2};
+  \foreach \i in {#3}{\draw[ccol,line width=.85pt] (\i,#1) rectangle ++(.115,.115);}}
+\newcommand{\cols}[1]{\foreach \i/\s in {#1}{\node[font=\small\bfseries] at (\i,.45) {$\s$};
+  \draw[black!15] (\i,.1)--(\i,-2.65);}}

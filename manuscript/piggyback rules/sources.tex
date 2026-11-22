@@ -1,0 +1,86 @@
+\pageof{Which piece of the announcement is predicted?}\label{sec:modes}
+A laboratory that records \((s_{\rm measurement},s_{\rm setting})\) can have its second field predicted while its first is still a quantum measurement outcome. The predictor can likewise keep a full result when only a field of it is needed. The two choices are independent.
+\begin{center}
+\begin{tabular}{@{}p{.20\linewidth}p{.34\linewidth}p{.36\linewidth}@{}}
+\toprule & \textbf{Predict the whole target} & \textbf{Predict a target field}\\\midrule
+Remove the predictor & Tetrahedron: 0 leaves after predicting 1. & Triangle: \(R\) leaves after predicting the two setting fields.\\[5pt]
+Keep the predictor & KPC: \(F\) stays available as a Bell outcome. & Split both: a predicting copy leaves and a target copy carries the setting.\\\bottomrule
+\end{tabular}
+\end{center}
+\textbf{Keeping a predictor that has children.} Make a copy with the same parents, sources and children. Restrict the target using the copy as predictor. Sum over the copy so that its children still have access to whatever it could have relayed. For a childless predictor the predicting copy can simply be deleted. The original laboratory stays, with its ordinary output. When reading P2, \(X\) denotes the full predicting announcement available during the proof.
+\duo{Split a predictor with a child}{\vtx{x}{0}{1.6}{X}\vtx{xp}{3.3}{1.6}{X'}\vtx{c}{1.65}{-.5}{c}
+\qsrc{l}{1.65}{2.65}{x,xp}\de{x}{c}\de{xp}{c}}
+{After summing over the copy}{\vtx{x}{0}{1.6}{X}\vtx{c}{1.65}{-.5}{c}
+\csrc{l}{2.4}{1.85}{x,c}\de{x}{c}}
+\captext{A local view of the relay with no teleportation channel to \(c\). The source shared by the copies can now supply classical data to \(c\). Other recipients of that source retain their shares.}
+\textbf{Predicting a target field.} First split the target into two laboratories with the same inputs. Restrict only the copy. In the single-laboratory experiment the original device records the two outputs together. The predictor can report the setting while the original field records the measurement result.
+\begin{ideabox}{Several targets and several predictors}
+One predictor can announce several predictions in one step, as \(R\) does in the triangle. For the graphical test each target must pass its own check in the graph before any restrictions. A set of predictors can also see more than any one member: their combined report can determine \(S\). Each member must have a channel to \(S\) in the construction used here. The four-node census tries single predictors. Its stronger independence and entropy checks are applied to single targets.
+\end{ideabox}
+
+\input{split_example}
+
+\pageof{Deletion using independence alone}\label{sec:nopred}
+KPC's prediction-free rule asks whether the extra visible independences of an edge-deleted graph are already enough. There is no predictor to remove. Draw the graph \(H\) obtained by deleting the proposed arrows from \(G\); keep the same source model. Test whether the original classical graphical independences, together with the observable independences of \(H\), imply the local classical independence requirements of \(H\).
+\duo{Direct and indirect routes}{\vtx{x}{0}{0}{X}\vtx{y}{1.8}{1.7}{Y}\vtx{z}{3.6}{0}{Z}
+\de{x}{y}\de{y}{z}\de[dropedge]{x}{z}}
+{Only the route through \(Y\)}{\vtx{x}{0}{0}{X}\vtx{y}{1.8}{1.7}{Y}\vtx{z}{3.6}{0}{Z}\de{x}{y}\de{y}{z}}
+\captext{A minimal example of the test. In the graph on the right the observable condition is \(Z\ind X\mid Y\). These three observed variables suffice to display the deduction; a larger graph may also have hidden sources.}
+\quant An experiment on \(H\) runs on \(G\) by ignoring the deleted arrows. Its visible distribution obeys every observable separation of \(H\).
+\clas In this example any classical distribution on the left factors as \(p(x)p(y\mid x)p(z\mid x,y)\). The extra observable condition allows the last factor to be written \(p(z\mid y)\) on its support. That is a classical model on the right. In general, derive all the needed local independences of \(H\) by the rules on p.~\pageref{sec:fresh}; their joint validity gives the corresponding factorization, even when classical hidden variables occur. Whenever \(H\) has a gap, this proof transfers it to \(G\). The simple three-circle example illustrates the implication between models; a gap is a separate premise.
+
+\begin{rulebox}{Try the same idea on the KPC example}
+Retain \(E\ind(C,D)\) but remove the prediction of \(E\) by \(F\). On p.~\pageref{sec:kpc} the second deduction needed \(E\ind U\mid B,F\). Observing \(E\ind U\) gives no such conditional statement. The repository checks this prediction-free version of the KPC deletion and the test fails. In contrast, the three-circle example above needs just the one observable independence.
+\end{rulebox}
+The code can run this test with an empty prediction list. The default census requires a prediction for its Fritz stages and uses the independence test after graphical separation. The entropy test can be selected as an alternative or run alongside it.
+
+\pageof{Follow a complete proof to an instrumental seed}\label{sec:chain}
+Start with the chain and sources from the parent example. Below, marks in one row are recipients of one independent source. Filled circles denote quantum shares and open squares denote copies of classical data. The visible arrows are given under each panel.
+\duo{1. Start with \(0\to1\to2\to3\)}{\cols{0/0,1/1,2/2,3/3}
+\members{-.4}{\(01\)}{0,1}\members{-1.2}{\(02\)}{0,2}\members{-2}{\(13\)}{1,3}}
+{2. Split 1; restrict \(1'\) to parent 0}{\cols{0/0,1/1,2/{1'},3/2,4/3}
+\members{-.4}{\(01\)}{0,1}\members{-1.2}{\(02\)}{0,3}\members{-2}{\(13\)}{1,4}}
+\captext{Panel 2 keeps \(0\to1\to2\to3\) and adds \(0\to1'\to2\). Only the predicted field has lost its source inputs. Its perfect prediction is an intermediate requirement.}
+\duo{3. Forget the predictor 0}{\cols{0/1,1/{1'},2/2,3/3}
+\members{-.4}{quantum}{0,2}\members{-1.2}{quantum}{0,3}\classmembers{-2}{classical}{0,1,2}}
+{4. Forget 1 using teleportation}{\cols{0/{1'},1/2,2/3}
+\members{-.4}{quantum}{1,2}\classmembers{-1.2}{classical}{0,1}}
+\captext{Panel 3 has \(1\to2\to3\) and \(1'\to2\). Panel 4 has \(1'\to2\to3\). The original field 1 shared a source with its child 2, so it could teleport to 2 its share of the state with 3.}
+\textbf{Read the panels backwards to prove the gap.} Panel 4 is an instrumental seed. Its setting \(1'\) can be sampled independently, the treatment 2 receives it and sends its outcome to 3, and 2 and 3 can measure a shared quantum state. The classical source over \(1',2\) could sample the setting and any randomness associated with it. This is the instrumental variant with both a setting edge and a shared setting source in the seed list \cite{Repo}.
+
+Every witness for panel 4 can therefore be run in panel 3 using teleportation. A classical explanation in panel 3 would give one in panel 4 by forgetting 1. The parent Fritz argument then carries the gap from panel 3 to panel 1: split the target, arrange its prediction, and forget the predictor. Panel 2 carries the temporary prediction. The gap proved for panel 1 can be used in a new argument with any witness.
+
+\pageof{What the search actually checked}\label{sec:record}
+The four-node search starts with 426 candidate classes after excluding the 20 classes whose distributions already have classical explanations on a graph with no hidden source. The table gives the ten stages of the depth-one run (\texttt{--depth-one}). The deeper default search finds more intermediate graphs and proves the same 380 input classes \cite{Repo}. A class here groups graphs connected by proven equivalences preserving both quantum and classical observed distributions. The elementary rules and known starting cases establish 374 classes; 52 go on to the Fritz stages.
+\begin{center}
+\begin{tabular}{@{}lrr@{}}\toprule
+First successful justification & Newly established classes & Cumulative\\\midrule
+Parent predictor & 3 & 377\\
+Graphical separation & 2 & 379\\
+Conditional-independence deductions & 1 & 380\\
+Entropy test on the same candidates & 0 additional & 380\\\bottomrule
+\end{tabular}
+\end{center}
+\textbf{Classes and candidate steps answer different questions.} At this search depth, 696 candidates reached the comparison after failing the graphical test. The two stronger calculations both accepted the same 37 and left 659 uncertified. Several successful steps may concern one class or lead to graphs whose gaps are still open. The equality of the 37 decisions is a measured result for this set. The entropy test can use all Shannon inequalities and full determinism; the independence calculation uses a smaller collection of deductions.
+\textbf{How a candidate is chosen.} For each predictor, first consider its children in the parent stage. The other stages consider nodes sharing a source with the predictor while excluding its children. A predictor that is both a parent and a sibling belongs to the first stage. The default also skips descendants of the predicted node: its private noise reaches any such predictor by a directed path, defeating the direct separation test. A descendant with a shared channel can still be certified by a stronger test. For each pair the kept inputs determine one deletion. The default stronger search tries the fresh-source conclusion; the direct, original-source conclusion is available as an option.
+\begin{center}\small
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{.40\linewidth}>{\raggedright\arraybackslash}p{.52\linewidth}@{}}\toprule
+Where to check the argument & Repository entry point\\\midrule
+Elementary transformations; predictor pool, deletion, test and removal & \texttt{quantum\_mDAG.py}: \texttt{fritz\_pool}, \texttt{fritz\_deletion}, \texttt{fritz\_certificate}, \texttt{fritz\_realise}\\
+Independent deductions; summed entropy test & \texttt{semigraphoid.py}; \texttt{entropic\_lp.py}, \texttt{EntropicLP.implies\_all}\\
+Four-node stages; KPC comparison & \texttt{tests/test\_baseline\_slow.py}, \texttt{tests/test\_fritz\_entropic.py}, \texttt{tests/test\_kpc\_figure4.py}\\\bottomrule
+\end{tabular}
+\end{center}
+\textbf{Reading the rules in reverse.} Start from a seed and look for graphs whose forward transformation gives that seed. For example, insert a relay on a visible edge or attach a laboratory which can announce a constant. Checking the forward conditions certifies each proposed predecessor. This enumerates more graphs with a gap; it uses the same implication proved in the forward presentation.
+
+\textbf{Reproduce the illustrated examples.} In the directory containing this PDF, run \texttt{python check\_examples.py} with the repository dependencies installed. It checks the labelled transformations, both complete chains, the KPC deductions and the two binary distributions. Run \texttt{./build.sh} to rebuild the PDF.
+
+\clearpage\markboth{Sources}{}
+\begin{thebibliography}{9}
+\bibitem{Fritz} T. Fritz, \emph{Beyond Bell's theorem: correlation scenarios}, New Journal of Physics 14, 103001 (2012). The triangle construction embeds Bell settings in recorded outcomes. \href{https://doi.org/10.1088/1367-2630/14/10/103001}{Article}.
+\bibitem{HLP} J. Henson, R. Lal and M. F. Pusey, \emph{Theory-independent limits on correlations from generalized Bayesian networks}, New Journal of Physics 16, 113043 (2014). Observable graphical separation in quantum networks. \href{https://doi.org/10.1088/1367-2630/16/11/113043}{Article}.
+\bibitem{Evans} R. J. Evans, \emph{Graphs for margins of Bayesian networks}, Scandinavian Journal of Statistics 43, 625--648 (2016). The classical graph after a node is marginalized.
+\bibitem{KPC} R. Khanna, M. F. Pusey and R. Colbeck, draft manuscript and accompanying notebook, Lemma 1 and Corollary 3. The repository reproduces the six-variable example, the independence argument, and the comparison with the draft's Figure 4. \href{https://github.com/eliewolfe/mDAG-analysis/blob/6af05cb/manuscript/kpc_figure4_vs_code.md}{Worked comparison}.
+\bibitem{Repo} \emph{Piggybacks for quantum-classical gaps}, mDAG-analysis, main revision \texttt{6af05cb}. Sections 0 and 2--5 give the elementary rules; Sections 6--8 give the Fritz constructions and their certificates; Appendix B gives the entropy test. \href{https://github.com/eliewolfe/mDAG-analysis/blob/6af05cb/manuscript/piggybacks.md}{Technical manuscript}.
+\bibitem{Equiv} \emph{Observational equivalence rules for quantum causal models}, companion illustrated note. Section 5 gives examples of transferring a gap within an equivalence class. \href{https://github.com/eliewolfe/mDAG-analysis/blob/6af05cb/manuscript/observational\%20classification/observational_classification.pdf}{Illustrated PDF}.
+\end{thebibliography}

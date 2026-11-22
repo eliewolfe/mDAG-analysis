@@ -1,0 +1,51 @@
+\documentclass[11pt]{article}
+\input{../observational classification/preamble}
+\usepackage{fancyhdr}
+\hypersetup{pdftitle={Piggyback rules for quantum--classical gaps},pdfauthor={mDAG-analysis}}
+\pagestyle{fancy}\fancyhf{}\fancyhead[L]{\small\itshape Piggyback rules for quantum--classical gaps}
+\fancyhead[R]{\small\itshape\leftmark}\fancyfoot[C]{\thepage}
+\renewcommand{\sectionmark}[1]{\markboth{#1}{}}
+\setlength{\headheight}{15pt}
+\newcommand{\quant}{\par\textbf{The quantum direction.} }
+\newcommand{\clas}{\par\textbf{The classical direction.} }
+\newcommand{\ind}{\mathrel{\perp\!\!\!\perp}}
+\newcommand{\pageof}[1]{\clearpage\section{#1}}
+\newcommand{\panel}[3]{\begin{minipage}[c]{#1\linewidth}\centering
+  \begin{tikzpicture}[mdag,x=0.83cm,y=0.83cm]#3\end{tikzpicture}\par
+  \smallskip{\small\bfseries #2\par}\end{minipage}}
+\newcommand{\duo}[4]{\begin{center}\panel{.46}{#1}{#2}\hfill
+ \panel{.46}{#3}{#4}\end{center}}
+\newcommand{\trio}[6]{\begin{center}\panel{.32}{#1}{#2}\hfill
+ \panel{.32}{#3}{#4}\hfill\panel{.32}{#5}{#6}\end{center}}
+\newcommand{\vtx}[4]{\vn{#1}{#2,#3}{$#4$}}
+\newcommand{\qsrc}[4]{\qs{#1}{#2,#3}\feed{#1}{#4}}
+\newcommand{\csrc}[4]{\qs[csrc]{#1}{#2,#3}\feed[cedge]{#1}{#4}}
+\newcommand{\captext}[1]{\par{\small\itshape #1\par}\medskip}
+\newcommand{\readat}[2]{\hyperref[#1]{#2 (p.~\pageref*{#1})}}
+\input{pictures}
+\begin{document}
+\thispagestyle{plain}
+{\LARGE\bfseries Piggyback rules for quantum--classical gaps\par}
+\smallskip{\large From a fixed output to Fritz's perfect predictions\par}
+\bigskip
+Suppose three laboratories can carry out a quantum experiment whose observations have no classical explanation. Can we prove the same about a fourth laboratory connected to those three? In the picture below, one choice settles the question: ask laboratory 0 to announce the same value on every run.
+\duo{Four laboratories}{\openingfig{1}}{After fixing the output of 0}{\openingfig{0}}
+\captext{On the left, the two black arrows carry 0's announcement. Each upper source also sends a share to 0. On the right, each pair of remaining laboratories shares its own independent source. This is the triangle.}
+\textbf{Rule for a fixed output.} Choose any visible laboratory. Remove it, erase its incoming and outgoing arrows, and remove it from each source's list of recipients. A source left with just one recipient can be supplied locally.
+\quant Run a triangle experiment on 1, 2 and 3. The upper sources can supply a spare, unused system to 0. Its children ignore its constant announcement. The other three laboratories reproduce the triangle statistics exactly.
+\clas Suppose a classical model explained these four outputs. Insert the constant into the instructions at 2 and 3. Discard 0. The three independent sources and the remaining instructions would now explain the triangle statistics classically. Choose a triangle experiment for which this is impossible and the four-laboratory gap follows.
+\begin{rulebox}{How to read every pair of pictures}
+Change the graph from left to right. Carry a known gap from right to left. The two directions answer different questions: \emph{What experiment do I recognize?} and \emph{Which experiment have I just proved has a gap?}
+\end{rulebox}
+\begin{center}
+\begin{tikzpicture}[mdag]
+\node[draw,rounded corners,inner sep=5pt] (g) at (0,0) {four laboratories};
+\node[draw,rounded corners,inner sep=5pt] (h) at (8,0) {triangle};
+\draw[edge] (g.north east) to[bend left=17] node[above,lab] {fix 0 and leave it out} (h.north west);
+\draw[newedge] (h.south west) to[bend left=17] node[below,lab,text=oigreen!55!black] {the triangle's known gap proves a gap here} (g.south east);
+\end{tikzpicture}
+\end{center}
+\input{elementary}
+\input{fritz}
+\input{sources}
+\end{document}
