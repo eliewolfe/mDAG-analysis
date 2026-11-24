@@ -1,99 +1,211 @@
-\pageof{Reading the rules}\label{sec:map}
-Each circle is a laboratory that reports a classical outcome. We call a laboratory that sends an arrow a \emph{parent} of its recipient, and the recipient its \emph{child}. An arrow from one circle to another allows the recipient to use that outcome. Each diamond is a new, independent source. A quantum source can send different parts of one state to several laboratories. A classical source can hand each recipient a copy of a random string. Each laboratory also has private randomness.
-\duo{Quantum source and two shares}{\vtx{a}{0}{0}{a}\vtx{b}{3}{0}{b}\qsrc{q}{1.5}{1.1}{a,b}}
-{Classical source and two copies}{\vtx{a}{0}{0}{a}\vtx{b}{3}{0}{b}\csrc{q}{1.5}{1.1}{a,b}}
-A graph has a \emph{quantum--classical gap} if some observed distribution can be produced using its permitted quantum resources and cannot be produced when every source is classical. A graph with an independently established gap is a \emph{seed}. We consider finite experiments and may choose the size of each laboratory's output. A laboratory can therefore report a pair, including a setting or a teleportation correction in addition to its usual result. A claim about a graph establishes the existence of a gap for some choice of output sizes.
+\section{Elementary piggybacks}\label{sec:elementary}
 
-\begin{rulebox}{Find a rule by the change you want to make}
-\begin{tabular}{@{}p{.47\linewidth}p{.45\linewidth}@{}}
-Fix a laboratory's announcement & Opening triangle example, p.~1\\
-Upgrade a source or add connections & \readat{sec:resources}{Compare resources}\\
-Forget an announcement & \readat{sec:forget}{Relay or teleport}\\
-Keep a selected outcome & \readat{sec:select}{Postselection}\\
-Identify a setting with an outcome & \readat{sec:stitch}{Stitch two nodes}\\
-Give one node two recorded outputs & \readat{sec:stitch}{Split a node}\\
-Remove inputs by perfect prediction & \readat{sec:template}{The shared argument}\\
-Use a parent as predictor & \readat{sec:parent}{Parent Fritz}\\
-Use separation in the original graph & \readat{sec:separate}{Original Fritz}\\
-Combine independence statements & \readat{sec:kpc}{The KPC example}\\
-Use an entropy inequality & \readat{sec:entropy}{The same KPC example}\\
-Delete edges using independence alone & \readat{sec:nopred}{Prediction-free deletion}
-\end{tabular}
-\end{rulebox}
-\textbf{Why these proofs can be chained.} Let \(P'\) be an arbitrary witness for the simpler graph. Construct a distribution in the original graph from which a specified operation recovers \(P'\). Prove that applying that operation to a classical explanation would explain \(P'\) classically. The contradiction proves a gap for the original graph. The next rule can now use that gap even if it constructs a very different witness.
+\subsection{Degradation}\label{sec:degradation}
+\begin{piggyback}{Degradation}
+Replace one or more quantum sources of \(G\) by classical sources with the same
+recipients. Simplify redundant facets to obtain \(H\).
+\end{piggyback}
+\begin{proposition}\label{prop:degradation}
+Degradation gives \(\Cset(G)=\Cset(H)\) and \(\Qset(H)\subseteq\Qset(G)\)
+on every common choice of visible alphabets. Hence \(\gap(H)\leq\gap(G)\).
+\end{proposition}
+\begin{proof}
+A quantum source in \(G\) can draw a classical label and send each recipient an
+orthogonal state encoding it. This implements every strategy of \(H\). In a
+classical explanation both types of source already supply random variables to the
+same recipients. Any source absorbed in the simplification can be reproduced by
+appending an independent variable to the larger source. Thus any witness on \(H\)
+is itself a witness on \(G\).
+\end{proof}
+Figure~\ref{fig:degradation} shows the final degradation to a triangle seed.
+The sources on \(BC\) and \(BD\) provide classical data that can serve as Bell settings. The source on \(CD\) supplies the entangled state \cite{Fritz}.
+\censusfigure{degradation}
 
-\trio{Forget a relay}{\vtx{a}{0}{0}{a}\vn[pre]{v}{1.7,0}{$v$}\vtx{b}{3.4}{0}{b}\de{a}{v}\de{v}{b}
-\draw[newedge] (a) to[bend right=40] (b);}
-{Select a joint outcome}{\vtx{a}{0}{0}{a}\vtx{b}{3.4}{0}{b}\vn[pre]{v}{1.7,1.5}{$v$}
-\qsrc{l}{0}{1.5}{a,v}\qsrc{r}{3.4}{1.5}{v,b}}
-{Predict a field}{\vtx{x}{0}{0}{X}\vtx{s}{3.4}{0}{S}\csrc{l}{1.7}{1.5}{x,s}
-\node[lab] at (1.7,-.65) {\(S=g(X)\)};}
-\captext{Three ways to recognize the next move: follow an arrow through a relay, look for two sources meeting at a measurement, or look for common data that two laboratories can both announce.}
+\subsection{Point distribution (value fixing)}\label{sec:fixing}
+\begin{piggyback}{Point distribution (value fixing)}
+Choose a visible vertex \(V\) in \(G\). Delete \(V\), its incident directed edges,
+and its membership in every facet to form \(H\).
+\end{piggyback}
+\begin{proposition}\label{prop:fixing}
+Every \(P_H\in\Qset(H)\) extends to a distribution on \(G\) with \(V\) constant.
+If this extension is classical on \(G\), its marginal belongs to \(\Cset(H)\).
+In particular, \(\gap(H)\leq\gap(G)\).
+\end{proposition}
+\begin{proof}
+Run the strategy for \(P_H\) at the surviving vertices. A source formerly incident
+to \(V\) may send it an unused register. Let \(V\) announce a fixed value \(v_0\)
+and its children ignore this input. Conversely, in any classical explanation of this
+distribution \(V=v_0\) almost surely. Substitute \(v_0\) into its children's
+kernels and omit its kernel. The source variables retain their original independent
+laws and their surviving recipients. This realizes \(P_H\) on \(H\).
+\end{proof}
+In Figure~\ref{fig:fixing} fixing \(D\) reduces the source on \(ACD\) to one on \(AC\). The source on \(BD\) becomes local to \(B\). The remaining arrows \(A\to B,C\) and sources on \(AB,AC\) form the Evans seed.
+\censusfigure{fixing}
 
-\pageof{When the same experiment still works}\label{sec:resources}
-\textbf{Upgrade a source.} Replace a shared classical source by a quantum one on the same recipients. One can also give a subset of its recipients an additional quantum source. A gap already present survives both changes.
-\duo{Triangle with an upgraded source}{\vtx{a}{0}{0}{A}\vtx{b}{3.8}{0}{B}\vtx{r}{1.9}{2.8}{R}
-\qsrc{ab}{1.9}{-.7}{a,b}\qsrc{u}{-.15}{1.75}{a,r}\csrc{v}{3.95}{1.75}{b,r}}
-{Known triangle seed}{\trianglefig{0}}
-\quant A quantum source can draw a classical label and send perfectly distinguishable copies. An optional extra source can send a fixed state. The old experiment still works.
-\clas After treating all sources as classical, the new graph gives exactly the old possibilities. In the subset case the larger source may distribute the extra independent string too, with the other recipients ignoring it.
+\subsection{Naive marginalization}\label{sec:naive}
+\begin{piggyback}{Naive marginalization}
+Let \(B\) and \(D\) be the visible parents and children of \(V\) in \(G\).
+Remove \(V\) and give each member of \(D\) every parent in \(B\).
+Each incident facet \(F\) retains its type on \(F\setminus\{V\}\), and supplies a
+new classical facet on \((F\setminus\{V\})\cup D\). Add a classical facet on
+\(D\) and simplify to obtain \(H\).
+\end{piggyback}
+\begin{proposition}\label{prop:naive}
+Each \(P_H\in\Qset(H)\) is the marginal of a quantum realization on \(G\).
+Every classical distribution on \(G\) has a marginal on the surviving vertices
+in \(\Cset(H)\). Consequently \(\gap(H)\leq\gap(G)\).
+\end{proposition}
+\begin{proof}
+For each incident facet, supply the state or classical variable used by the
+surviving recipients and append an independent copyable register for the new
+classical facet. Send the register to \(V\) and to its other source recipients.
+Let \(V\) announce the registers, its visible inputs, and a sample of the
+randomness shared by \(D\) in \(H\). Each child now reads exactly the information
+it uses in the \(H\) experiment.
 
-\textbf{Add connections within a classical equivalence class.} A gap passes to a graph with extra arrows or larger sources if both graphs allow the same classical distributions. If both quantum and classical sets agree, a gap passes in either direction.
-\duo{The graph with an extra arrow}{\bellsettings{1}}{Bell settings with a common cause}{\bellsettings{0}}
-\quant Ignore the extra arrow. Every old experiment still runs.
-\clas Here \(X\) takes input only from the settings source and its private randomness. That source can sample \(X\) in advance and give it to both settings laboratories. Thus it can simulate the added arrow in a classical model. Equality of the classical sets ensures the old witness is still outside them.
-\textbf{When can a source work equally well in either form?} Suppose all but at most one recipient have no visible parent and receive no other shared source. Each such laboratory makes a fixed measurement. The source can make those measurements itself, send the outcomes as classical data, and tell the remaining recipient which conditional state to prepare locally. This preserves the quantum statistics when the source becomes classical. A free setting that reads a single source in the Bell example has precisely this property \cite{Equiv}.
+For a classical model of \(G\), put each source variable formerly reaching \(V\)
+into the enlarged classical facet with the same other recipients. Put \(V\)'s
+private random seed into the facet shared by its children. Given these variables
+and the values from \(B\), every child can reconstruct the same output of \(V\)
+and apply its original kernel. This gives the classical marginal on \(H\), the
+usual latent projection in this setting \cite{Evans}.
+\end{proof}
+Figure~\ref{fig:naive} illustrates the purpose of the classical facets.
+The sources on \(AC\) and \(BC\) can each supply a classical label to \(C\), which forwards the two labels to \(D\). After summing over \(C\), the classical sources on \(AD,BD\) and the original quantum source on \(AB\) form a triangle seed.
+\censusfigure{naive}
 
-\begin{ideabox}{Why check the classical sets?}
-Add every forward arrow in a time ordering of the laboratories of an ordinary Bell experiment. The enlarged classical graph can sample \emph{any} observed distribution, one outcome at a time conditional on all its predecessors. Even a Bell violation has a classical explanation with those extra communications.
-\end{ideabox}
+\subsection{Marginalization with teleportation}\label{sec:teleportation}
+\begin{piggyback}{Marginalization with teleportation}
+Perform naive marginalization. Let \(T\subseteq D\) be the children sharing
+a quantum source with \(V\) in \(G\). For every quantum facet \(F\ni V\), allow a
+quantum source on \((F\setminus\{V\})\cup T\) in \(H\).
+\end{piggyback}
+\begin{proposition}\label{prop:teleportation}
+Every quantum experiment on \(H\) can be realized as a marginal on \(G\) by
+teleporting subsystems to vertices in \(T\). Every classical marginal from \(G\)
+still belongs to \(\Cset(H)\), so \(\gap(H)\leq\gap(G)\).
+\end{proposition}
+\begin{proof}
+For a desired state on the enlarged facet, the source in \(G\) sends the shares
+of its original surviving recipients directly. It places at \(V\) the distinct
+subsystems for the additional recipients. For each such recipient \(t\), some
+source already serving \(V\) and \(t\) can provide an extra maximally entangled
+pair, independent of its other systems. At \(V\), a Bell measurement of the
+subsystem and one half of the pair yields a correction label. The visible arrow
+\(V\to t\) carries this label as one component of \(V\)'s output. Laboratory \(t\)
+applies the indicated correction before its measurement. Teleportation implements
+the identity channel, including on subsystems entangled with the other recipients
+\cite{Teleport}. Repeating it for separate subsystems and using the classical
+registers of Proposition~\ref{prop:naive} realizes the desired marginal with all
+Bell outcomes included.
 
-\pageof{Forget an announcement}\label{sec:forget}
-Forgetting \(v\) means summing over every value \(v\) reported. A child can still receive information that \(v\) forwarded during the experiment. In this example, 0 sends its announcement to 1 and shares a separate source with 2.
-\trio{Before forgetting 0}{\margfig{0}}{Ordinary relay}{\margfig{1}}{With teleportation}{\margfig{2}}
-\captext{The source between 1 and 3 stays quantum in both outputs. Look at the new link between 1 and 2: the ordinary relay supplies shared classical data. Teleportation also permits a quantum state there. The visible edge \(1\to2\) stays in all three pictures.}
+For a classical model the reconstruction in Proposition~\ref{prop:naive} still
+applies. A larger source can carry any classical variable required by a subset
+of its recipients. This gives the classical recovery on \(H\).
+\end{proof}
+In Figure~\ref{fig:teleportation} \(B\) holds a share of a state with \(D\). A quantum source on \(BC\) and the arrow \(B\to C\) allow \(B\) to teleport its share to \(C\). The resulting graph has \(A\to C\to D\) and a quantum source on \(CD\), an instrumental seed.
+\censusfigure{teleportation}
 
-\textbf{Ordinary marginalization.} Give each visible child of \(v\) all of \(v\)'s visible parents. Every incident source keeps its other recipients and its type. Add a classical source for its other recipients together with all of \(v\)'s children. Add shared classical randomness over the children for \(v\)'s private random choice. A classical source contained in a larger classical or quantum source can be absorbed by it.
-\quant Run the desired resources for the surviving recipients. Each old source can also send a random string to \(v\) and its other recipients. Let \(v\) report the strings, its visible inputs and a private seed. Every child can extract what it needs.
-\clas A child with these inputs can recompute the old announcement of \(v\). Sampling its noise once for all children preserves their joint distribution.
+\subsection{Node stitching}\label{sec:stitching}
+\begin{piggyback}{Node stitching}
+Choose a visible \(X\) with no visible parents or shared sources, and a distinct
+visible \(A\) outside the descendants of \(X\). Delete \(X\), replacing each
+\(X\to D\) by \(A\to D\), to obtain \(H\). The census uses a childless \(A\).
+\end{piggyback}
+\begin{proposition}\label{prop:stitching}
+The stitched graph is acyclic. Every quantum distribution on \(H\) can be
+recovered from an experiment on \(G\) by retaining the diagonal \(X=A\), and this
+recovery takes any classical explanation of that experiment to one on \(H\).
+Thus \(\gap(H)\leq\gap(G)\).
+\end{proposition}
+\begin{proof}
+No former child of \(X\) can have a directed path to \(A\), by the hypothesis on
+descendants. Choose \(X\) independently and uniformly from the alphabet
+\(\mathcal A\) of \(A\). Run the strategy of \(H\) on \(G\), giving each former
+child of \(X\) the value of \(X\) where its strategy calls for \(A\). For a visible
+record \((a,w)\), where \(w\) denotes the other surviving outputs, the operations
+on the branch \(X=a,A=a\) coincide with those on the same record in \(H\).
+The product of the local operations therefore gives
+\begin{equation}
+ P_H(a,w)=|\mathcal A|\,P_G(X=a,A=a,W=w).
+ \label{eq:stitch}
+\end{equation}
+In particular the diagonal has probability \(1/|\mathcal A|\).
 
-\textbf{Marginalization with teleportation.} Let \(T\) be the children of \(v\) that already share a quantum source with \(v\). Each quantum source incident to \(v\) may now also distribute quantum shares to every member of \(T\).
-\quant Place each destination subsystem at \(v\). For a child in \(T\), its old shared quantum source can additionally supply an entangled pair. Laboratory \(v\) measures its half together with the subsystem and sends the classical correction through the visible arrow. The child recovers its subsystem. Distinct destinations receive distinct subsystems.
-\clas The ordinary classical explanation just constructed still fits the enlarged sources. In the picture, making the 1--3 source classical in the rightmost graph reaches an instrumental seed: 3 supplies a setting to 1 through shared data, 1 sends its outcome to 2, and 1 and 2 share a quantum state.
+In a classical explanation on \(G\), fix the exogenous variables except for
+\(X\)'s private randomness. The value \(a\) is then determined independently
+of \(X\). Use that value in place of \(X\) in its former children's response
+functions. Averaging over the fixed variables gives exactly
+\eqref{eq:stitch}, since the independent uniform draw matches each \(a\) with the
+same probability. The rewired response functions form a classical model of \(H\).
+\end{proof}
+The recorded stitch in Figure~\ref{fig:stitching} uses the independently generated \(B\) as a substitute for \(A\) at \(C,D\). The stitched graph has \(A\to C,D\) with independent sources on \(AC,AD\), the Evans seed. Equation~\eqref{eq:stitch} explains why that
+identification can be made even when the output distribution is highly nonuniform.
+\censusfigure{stitching}
 
-\pageof{Keep only selected runs}\label{sec:select}
-Choose a node \(v\) and an outcome of positive probability. Keep runs with that outcome, then drop \(v\). Let \(B\) be its visible parents and let its \emph{siblings} be the laboratories sharing a source with it. Add a classical source for \(B\) and all siblings together, and a quantum source for all its quantum siblings. Existing sources keep their surviving recipients.
-\duo{Laboratory 0 measures two shares}{\swapfig{0}}{Conditioned on one Bell outcome}{\swapfig{1}}
-\captext{Here 0 has no visible parents. A joint measurement at 0 can leave 2 and 3 entangled on the selected runs. The other source, between 1 and 2, survives.}
-\begin{rulebox}{Two checks before postselecting}
-Every visible grandparent of \(v\) must also be its parent. Every source touching \(B\) must either include \(v\) or have all its recipients inside \(B\).
-\end{rulebox}
-\quant One source at \(v\) draws the desired shared label; the others guess it uniformly. Keep agreements. Every label has the same chance of acceptance, so its desired law survives. If there is no such source, \(v\) draws the label. Prepare the new quantum state at \(v\), teleport the outside shares, and select the outcomes needing no correction.
+\subsection{Postselection}\label{sec:postselection}
+\begin{piggyback}{Postselection}
+Let \(B\) be the visible parents of \(V\), \(S\) its source siblings
+(the other recipients of its incident sources), and \(S_Q\subseteq S\) its
+quantum-source siblings. Require every visible parent of a node in \(B\) to lie
+in \(B\). Require every source incident to \(B\) either to reach \(V\) or to
+have all its recipients inside \(B\). Delete \(V\), retain the surviving parts of
+all sources, and add a classical facet on \(B\cup S\) and a quantum facet on \(S_Q\).
+\end{piggyback}
+\begin{proposition}\label{prop:postselection}
+Under these conditions, for each \(P_H\in\Qset(H)\) there is a quantum
+experiment on \(G\) and an outcome \(v_0\) of positive probability with
+\(P_G(\,\cdot\mid V=v_0)=P_H\). If \(P_G\) has a classical explanation on \(G\),
+then \(P_H\in\Cset(H)\). Hence \(\gap(H)\leq\gap(G)\).
+\end{proposition}
+\begin{proof}
+Let \(\mu\) and \(\rho\) supply the new classical and quantum facets in the
+desired experiment. Work before absorbing redundant facets, assigning unused
+resources trivial states when necessary. If \(V\) has an incident source, use
+one such source to draw a label with law \(p(\mu)\). Have each other incident
+source draw an independent uniform guess from the same finite alphabet. Each
+source supplies its own label to \(V\) and its other recipients. The probability
+that all guesses agree with the first label is positive and independent of its
+value. On this event the outside siblings have the required common label. If there
+is no incident source, \(V\) draws \(\mu\) itself.
 
-The parents announce uniform guesses. Laboratory \(v\) can run their intended measurements in causal order: their visible parents lie in \(B\), sources wholly inside \(B\) can be prepared locally, and every source reaching both \(B\) and the outside can deliver the parents' shares to \(v\). Keep runs where the guesses match the measured outputs. For each possible output record the chance of a match is the same. The accepted records and outside systems thus have the desired joint statistics.
-\clas Condition the old sources feeding \(v\) or lying inside \(B\) on the selected outcome. The new classical source can draw this joint sample and the conditional parent outputs together. Give each parent its coordinate and each sibling its original source data. Other sources remain independent, and children of \(v\) can insert its selected value.
-\textbf{A failed check.} Each parent \(p_i\) and its outside observer \(o_i\) report the same fair bit, independently for the two pairs. Select when the parents agree. The outside observers now share a fair bit. In the proposed graph the new source reaches only the parents, so \(o_1,o_2\) must be independent. The original sources each violate the second check.
+At \(V\), prepare \(\rho\) and teleport each share for \(S_Q\setminus B\) using
+an independent entangled pair from a source shared with its recipient. Select
+only identity Bell outcomes. These outcomes have constant, positive probability
+for every input, and leave the outside systems with the correct joint state
+without sending a correction. Retain at \(V\) the shares for \(B\). The sources
+incident to \(V\) can also deliver there the parents' intended shares of each
+surviving facet. A source internal to \(B\) can be simulated entirely at \(V\).
 
-\duo{Select when the parents agree}{
-\vtx{o}{0}{1.6}{o_1}\vtx{p}{1.4}{0}{p_1}\vtx{v}{2.8}{-1.1}{v}
-\vtx{r}{4.2}{0}{p_2}\vtx{t}{5.6}{1.6}{o_2}
-\csrc{l}{1.4}{1.6}{o,p}\csrc{k}{4.2}{1.6}{r,t}\de{p}{v}\de{r}{v}}
-{The attempted replacement}{
-\vtx{o}{0}{1.6}{o_1}\vtx{p}{1.4}{0}{p_1}
-\vtx{r}{4.2}{0}{p_2}\vtx{t}{5.6}{1.6}{o_2}
-\csrc{l}{1.4}{1.6}{o,p}\csrc{k}{4.2}{1.6}{r,t}\csrc{u}{2.8}{-1.1}{p,r}}
-
-\pageof{Stitch two nodes or split one}\label{sec:stitch}
-\textbf{Stitching.} Choose \(x\) with no visible parents and no shared source. Choose \(a\ne x\) outside its descendants. Delete \(x\) and let its children receive \(a\) instead. This condition keeps the new arrows acyclic. The search chooses a childless \(a\).
-\duo{Bell experiment with free setting \(x\)}{\stitchfig{0}}{Use the value \(a\) as that setting}{\stitchfig{1}}
-\quant In the Bell experiment sample \(x\) independently and uniformly from the alphabet of \(a\). Run the desired right-hand strategy, feeding \(x\) to the former children wherever it asks for \(a\). On the diagonal \(x=a\) every instruction receives precisely the intended value. For each outcome \(a\) and each record \(w\) at the remaining laboratories, the distribution in the stitched graph is
+Each parent announces a uniform guess for its intended outcome, drawn independently
+of all other guesses and systems.
+At \(V\), execute the intended parent operations in causal order. All their
+visible inputs are earlier members of \(B\), and the second admissibility
+condition supplies their remaining inputs as just described. Let \(V=v_0\)
+precisely on agreement of all the source labels, successful identity
+teleportations, and agreement of the actual parent announcements with these
+simulated parent outputs. The independent uniform parent guesses contribute a
+constant factor \(\prod_{b\in B}|\mathcal A_b|^{-1}\) to the probability of
+every intended parent record. On acceptance every outside child reads the
+intended record, including any parent outputs used as controls. The parent
+operations can be evaluated first since they have no outside visible ancestors.
+For each full record \((b,w)\) of the parents and the other surviving laboratories,
 \[
-   P'(a,w)=\frac{P(x=a,a,w)}{P_X(a)}=|\mathcal A|\,P(x=a,a,w),
+  P_G(b,w,V=v_0)=c\,P_H(b,w),
 \]
-where \(\mathcal A\) is the set of possible values of \(a\). The denominator is constant because \(x\) was chosen uniformly. Each run in the stitched experiment is represented on the diagonal with the same weight.
-\clas Fix all classical random choices except \(x\). The value of \(a\) is already determined independently of \(x\). Wire that value into the former children of \(x\). Averaging these runs gives exactly the same normalized diagonal. A gap on the right therefore proves one on the left.
+where \(c>0\) is the product of the label-agreement probability, the identity
+Bell outcome probabilities, and the uniform parent-match factors. Normalizing
+therefore recovers \(P_H\), including on records of zero probability.
 
-\textbf{Splitting.} Replace \(s\) by \(s,s'\). Each inherits its visible parents, its outgoing arrows, and membership in each of its sources. Also give the pair shared classical randomness, which can be carried by any source they already share.
-\duo{One output can be a pair}{\splitfig{0}}{Two visible coordinates}{\splitfig{1}}
-\quant One laboratory can carry out both split laboratories' measurements on their respective systems and announce the pair. Each child can read either coordinate.
-\clas With one laboratory reporting a pair, its conditional distribution given its inputs can be sampled from one private random seed. Give the split laboratories the same seed and inputs. They compute the same pair and each reports its own coordinate. Children again receive both. Thus a gap for the split graph proves a gap for the original. Fritz uses this when one coordinate records a setting and the other records a measurement result.
+For a classical explanation, collect the source variables incident to \(V\),
+the sources internal to \(B\), and the parent outputs in a single tuple.
+Condition its joint law on \(V=v_0\). By the two conditions, the parent block and
+the selection event depend only on these sources, the block's local randomness
+and \(V\)'s local randomness. All remaining independent sources retain their
+original laws and their independence of the sampled tuple. A new classical
+source on \(B\cup S\) draws the tuple from this posterior. Each parent reports its
+coordinate, each outside sibling uses the source variables it previously read,
+and each child of \(V\) inserts \(v_0\) into its kernel. Every other laboratory uses its original kernel. This samples the conditional law on \(H\).
+\end{proof}
+Figure~\ref{fig:postselection} shows the parent-free case. The sources on \(AC\) and \(AD\) let \(A\) perform a joint measurement. Conditioning on its specified outcome supplies entanglement on \(CD\), while the arrows \(B\to C\to D\) survive. This yields an instrumental seed.
+\censusfigure{postselection}

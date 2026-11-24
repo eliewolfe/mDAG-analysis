@@ -1,50 +1,245 @@
-% Parameters select successive graphs so surviving nodes keep their positions.
-\newcommand{\openingfig}[1]{\vtx{a}{2}{1.35}{1}\vtx{b}{0}{-.8}{2}\vtx{c}{4}{-.8}{3}
-  \qsrc{ab}{.25}{1.65}{a,b}\qsrc{ac}{3.75}{1.65}{a,c}\qsrc{bc}{2}{-1.35}{b,c}
-  \ifnum#1=1 \vn[pre]{z}{2,3}{$0$}\feed{ab}{z}\feed{ac}{z}
-  \draw[edge] (z) to[out=171,in=125] (b);\draw[edge] (z) to[out=9,in=55] (c);\fi}
-\newcommand{\bellsettings}[1]{\vtx{x}{0}{2.2}{X}\vtx{y}{3.8}{2.2}{Y}
-  \vtx{a}{0}{0}{A}\vtx{b}{3.8}{0}{B}\csrc{xy}{1.9}{2.9}{x,y}
-  \qsrc{ab}{1.9}{-.4}{a,b}\de{x}{a}\de{y}{b}\ifnum#1=1 \de[newedge]{x}{y}\fi}
-\newcommand{\margfig}[1]{\vtx{a}{1.6}{1.8}{1}\vtx{b}{3.4}{0}{2}\vtx{c}{0}{0}{3}
-  \de{a}{b}
-  \ifcase#1 \vtx{x}{3.5}{3.15}{0}\de{x}{a}
-    \qsrc{u}{.2}{2.85}{a,c,x}\qsrc{v}{4.45}{1.5}{x,b}
-  \or \qsrc{u}{0}{1.7}{a,c}\csrc{v}{3.8}{1.6}{a,b}
-  \or \qsrc{u}{0}{1.7}{a,c}\qsrc{v}{3.8}{1.6}{a,b}\fi}
-\newcommand{\swapfig}[1]{\vtx{b}{0}{0}{2}\vtx{c}{3.5}{0}{3}\vtx{a}{-1.1}{2.7}{1}\de{b}{c}
-  \qsrc{ab}{-1.45}{1.1}{a,b}
-  \ifnum#1=0 \vtx{x}{1.8}{2.75}{0}\qsrc{bx}{.3}{1.65}{b,x}\qsrc{cx}{3.35}{1.65}{c,x}
-  \else \qsrc{bc}{1.8}{1.5}{b,c}\fi}
-\newcommand{\stitchfig}[1]{\vtx{x}{0}{2}{u}\vtx{a}{0}{0}{a}\vtx{b}{3.5}{0}{b}
-  \de{x}{a}\qsrc{ab}{1.75}{-.8}{a,b}
-  \ifnum#1=0 \vtx{y}{3.5}{2}{x}\de{y}{b}\else\de[newedge]{a}{b}\fi}
-\newcommand{\splitfig}[1]{\vtx{p}{0}{2.5}{p}\vtx{c}{3.8}{-.5}{c}
-  \vtx{s}{.15}{0}{s}\de{p}{s}\de{s}{c}
-  \ifnum#1=1 \vtx{t}{3.65}{1.95}{s'}\de{p}{t}\de{t}{c}\csrc{r}{1.7}{.95}{s,t}\fi}
-% A slice of a sibling step. V is a removable, visible parent of S.
-\newcommand{\siblingfig}[1]{\vtx{s}{2.05}{0}{S}\vtx{w}{3.8}{1.9}{V}
-  \ifnum#1<2 \vtx{x}{0}{0}{X}\fi
-  \ifcase#1 \qsrc{l}{.9}{1.5}{x,s}\de[dropedge]{w}{s}
-  \or \csrc{l}{.9}{1.5}{x,s}
+% Coordinate unit: mm. Each declaration lists visible vertices, sources, then
+% every directed edge, including source-to-recipient edges. Qn denotes psi_n,
+% Cn denotes lambda_n, and Bp is the second output field B'. Figure panels
+% use these declarations verbatim, without scaling the picture or its text.
+\definecolor{censusBrown}{HTML}{886340}
+\definecolor{censusAmber}{HTML}{83500D}
+\definecolor{censusVisible}{HTML}{FFFBF2}
+\definecolor{censusGreen}{HTML}{245E43}
+\definecolor{censusGreenLine}{HTML}{42805A}
+\definecolor{censusMint}{HTML}{E5F3E7}
+\definecolor{censusRed}{HTML}{913E46}
+\definecolor{censusRedLine}{HTML}{AF5960}
+\definecolor{censusRose}{HTML}{FBE8E7}
+\definecolor{censusInk}{HTML}{41454A}
+\tikzset{
+  census node/.style={inner sep=0pt,outer sep=.23pt,minimum size=8mm,line width=.55pt,
+    font=\normalfont\fontsize{10.5}{11}\selectfont},
+  census visible/.style={census node,rectangle,rounded corners=.8mm,
+    draw=censusBrown,
+    fill=censusVisible,text=censusAmber},
+  census latent/.style={census node,circle},
+  census Q/.style={census latent,draw=censusGreenLine,fill=censusMint,text=censusGreen},
+  census C/.style={census latent,draw=censusRedLine,fill=censusRose,text=censusRed},
+  census edge/.style={-{Latex[length=1.65mm,width=1.08mm]},line width=.58pt,
+    shorten >=.25pt,shorten <=.3pt}
+}
+\newcommand{\censusLabelBp}{\mathbf B'}
+\newcommand{\censusVisibleLabel}[1]{%
+  \ifcsname censusLabel#1\endcsname\csname censusLabel#1\endcsname
+  \else\mathbf{#1}\fi}
+\def\censusSymbolQ{\psi}
+\def\censusSymbolC{\lambda}
+\def\censusLineQ{censusGreenLine}
+\def\censusLineC{censusRedLine}
+\def\censusSource#1#2\relax#3#4{%
+  \node[census #1] (#1#2) at (#3,#4) {$\csname censusSymbol#1\endcsname_{#2}$};}
+\newcommand{\censusPlot}[3]{%
+  \begin{tikzpicture}[x=1mm,y=1mm,baseline=(current bounding box.center)]
+    \path[use as bounding box] (-3,-4) rectangle (64,48);
+    \foreach \v/\xx/\yy in {#1}{
+      \node[census visible] (\v) at (\xx,\yy) {$\censusVisibleLabel{\v}$};}
+    \foreach \v/\xx/\yy in {#2}{\expandafter\censusSource\v\relax{\xx}{\yy}}
+    \begin{scope}[on background layer]
+      \foreach \tail/\head in {#3}{
+        \def\edgecolor{censusInk}%
+        \expandafter\censusEdgeColor\tail\relax
+        \draw[census edge,draw=\edgecolor] (\tail) -- (\head);}
+    \end{scope}
+  \end{tikzpicture}}
+% Visible C and classical source Cn share an initial. Only sources have a suffix
+% after Q or C. The primed visible Bp always uses the visible-arrow color.
+\def\censusEdgeColor#1#2\relax{%
+  \if\relax\detokenize{#2}\relax\else
+    \ifcsname censusLine#1\endcsname\edef\edgecolor{\csname censusLine#1\endcsname}\fi
   \fi}
-\newcommand{\trianglefig}[1]{\vtx{a}{0}{0}{A}\vtx{b}{3.8}{0}{B}\qsrc{ab}{1.9}{-.7}{a,b}
-  \ifnum#1<2 \vtx{r}{1.9}{2.8}{R}\fi
-  \ifcase#1 \csrc{u}{-.15}{1.75}{a,r}\csrc{v}{3.95}{1.75}{b,r}
-  \or \vtx{x}{-1.15}{2.8}{x}\vtx{y}{4.95}{2.8}{y}\csrc{u}{0}{1.6}{a,r,x}\csrc{v}{3.8}{1.6}{b,r,y}
-  \or \vtx{x}{0}{2.8}{x}\vtx{y}{3.8}{2.8}{y}\csrc{u}{-.55}{1.5}{a,x}\csrc{v}{4.35}{1.5}{b,y}\fi}
-% KPC keeps the paper's letters. A and B are names of sources.
-\newcommand{\kpcfig}[1]{\vtx{c}{0}{2.9}{C}\vtx{d}{0}{0}{D}
-  \vtx{e}{3.9}{2.9}{E}\vtx{f}{3.9}{0}{F}\de{c}{d}
-  \ifnum#1=2 \csrc{b}{1.95}{-.55}{d,f}\else \qsrc{b}{1.95}{-.55}{d,f}\fi
-  \node[lab,below] at (b.south) {$B$};
-  \ifcase#1 \qsrc{a}{4.65}{1.45}{e,f}\node[lab,right] at (a.east) {$A$};\de[dropedge]{c}{e}\de[dropedge]{d}{e}
-  \or \csrc{a}{4.65}{1.45}{e,f}\node[lab,right] at (a.east) {$A$};
-  \or \csrc{a}{4.65}{1.45}{e,f}\node[lab,right] at (a.east) {$A'$};\fi}
-% Draw all source memberships in crowded examples as an incidence diagram.
-\newcommand{\members}[3]{\node[anchor=east,font=\small] at (-.2,#1) {#2};
-  \foreach \i in {#3}{\fill[qcol] (\i,#1) circle (2.7pt);}}
-\newcommand{\classmembers}[3]{\node[anchor=east,font=\small] at (-.2,#1) {#2};
-  \foreach \i in {#3}{\draw[ccol,line width=.85pt] (\i,#1) rectangle ++(.115,.115);}}
-\newcommand{\cols}[1]{\foreach \i/\s in {#1}{\node[font=\small\bfseries] at (\i,.45) {$\s$};
-  \draw[black!15] (\i,.1)--(\i,-2.65);}}
+\newcommand{\Diagram}[4]{%
+  \expandafter\newcommand\csname censusPanel#1\endcsname{\censusPlot{#2}{#3}{#4}}}
+\newcommand{\censusPanel}[2]{%
+  \begin{minipage}[c]{.46\linewidth}\centering
+    \csname censusPanel#1\endcsname\par\vspace{.7mm}
+    {\small\sffamily #2\par}
+  \end{minipage}}
+\newcommand{\censusPair}[6]{%
+  \expandafter\newcommand\csname censusFigure#1\endcsname{%
+    \begin{figure}[htbp]
+      \centering
+      \censusPanel{#2}{\textbf{(a)}\enspace #3}\hfill
+      \makebox[0pt]{\raisebox{2ex}{$\longrightarrow$}}\hfill
+      \censusPanel{#4}{\textbf{(b)}\enspace #5}
+      \caption{#6}\label{fig:#1}
+    \end{figure}}}
+\newcommand{\censusfigure}[1]{\csname censusFigure#1\endcsname}
+
+\Diagram{deg-before}
+  {B/30/38,C/8/7,D/52/7}
+  {Q1/9/29,Q2/51/29,Q3/30/5}
+  {Q1/B,Q1/C,Q2/B,Q2/D,Q3/C,Q3/D}
+\Diagram{deg-after}
+  {B/30/38,C/8/7,D/52/7}
+  {C1/9/29,C2/51/29,Q3/30/5}
+  {C1/B,C1/C,C2/B,C2/D,Q3/C,Q3/D}
+\censusPair{degradation}{deg-before}{All-quantum triangle}
+  {deg-after}{Two classical sources}
+  {Source degradation in the census triangle. The preceding move removed an
+   isolated laboratory \(A\). Degrading the sources on \(BC\) and \(BD\)
+   gives \(\lambda_1\) and \(\lambda_2\). Laboratory \(B\) can record
+   both settings, while \(C,D\) retain their shared state \(\psi_3\).}
+
+\Diagram{fix-before}
+  {A/28/23,B/8/22,C/52/34,D/30/4}
+  {Q1/16/38,Q2/53/12,Q3/9/4}
+  {A/B,A/C,A/D,Q1/A,Q1/B,Q2/A,Q2/C,Q2/D,Q3/B,Q3/D}
+\Diagram{fix-after}
+  {A/28/23,B/8/22,C/52/34}
+  {Q1/16/38,Q2/53/12}
+  {A/B,A/C,Q1/A,Q1/B,Q2/A,Q2/C}
+\censusPair{fixing}{fix-before}{Four laboratories}{fix-after}{Fix \(D\)}
+  {Fixing the leaf \(D\) gives the Evans seed. The \(ACD\) source
+   projects to \(AC\). The \(BD\) source now supplies only \(B\), which
+   can prepare its share locally. Both arrows from \(A\) to the surviving
+   leaves remain.}
+
+\Diagram{naive-before}
+  {A/8/8,B/52/8,C/30/26,D/30/43}
+  {Q1/30/4,Q2/8/28,Q3/52/28}
+  {C/D,Q1/A,Q1/B,Q2/A,Q2/C,Q3/B,Q3/C}
+\Diagram{naive-after}
+  {A/8/8,B/52/8,D/30/43}
+  {Q1/30/4,C2/8/28,C3/52/28}
+  {Q1/A,Q1/B,C2/A,C2/D,C3/B,C3/D}
+\censusPair{naive}{naive-before}{Classical message \(C\to D\)}
+  {naive-after}{Marginalize \(C\)}
+  {Ordinary marginalization gives a triangle with recorder \(D\). In panel (a) \(C\) sends the two classical labels from its incident
+   sources to \(D\). The independent state \(\psi_1\) between \(A,B\)
+   supplies the measurement outcomes.}
+
+\Diagram{tele-before}
+  {A/7/38,B/8/15,C/33/32,D/56/15}
+  {Q1/32/17,Q2/32/3}
+  {A/B,A/C,B/C,C/D,Q1/B,Q1/C,Q2/B,Q2/D}
+\Diagram{tele-after}
+  {A/7/38,C/33/32,D/56/15}
+  {Q2/32/3}
+  {A/C,C/D,Q2/C,Q2/D}
+\censusPair{teleportation}{tele-before}{Teleportation channel \(BC\)}
+  {tele-after}{Marginalize \(B\)}
+  {Teleportation yields the instrumental chain \(A\to C\to D\).
+   Laboratory \(B\) can teleport its share of \(\psi_2\) to \(C\)
+   using \(\psi_1\) and its classical message. The surviving \(CD\)
+   source is indexed by the transported state.}
+
+\Diagram{stitch-before}
+  {A/30/15,B/30/38,C/8/15,D/52/15}
+  {Q1/16/3,Q2/44/3}
+  {B/C,B/D,Q1/A,Q1/C,Q2/A,Q2/D}
+\Diagram{stitch-after}
+  {A/30/28,C/8/15,D/52/15}
+  {Q1/16/3,Q2/44/3}
+  {A/C,A/D,Q1/A,Q1/C,Q2/A,Q2/D}
+\censusPair{stitching}{stitch-before}{Sink \(A\) and source \(B\)}
+  {stitch-after}{Stitch \(B\) onto \(A\)}
+  {Stitching gives the Evans seed. The independent sources still feed
+   \(AC\) and \(AD\). The children \(C,D\) now receive the output of
+   \(A\) on their visible input wires.}
+
+\Diagram{post-before}
+  {B/7/38,C/14/9,D/49/9,A/46/38}
+  {Q1/25/26,Q2/57/25}
+  {B/C,C/D,Q1/A,Q1/C,Q2/A,Q2/D}
+\Diagram{post-after}
+  {B/7/38,C/14/9,D/49/9}
+  {Q3/33/28}
+  {B/C,C/D,Q3/C,Q3/D}
+\censusPair{postselection}{post-before}{Two independent states at \(A\)}
+  {post-after}{Postselect at \(A\)}
+  {Conditioning on a designated joint-measurement outcome at \(A\) can
+   prepare a shared state for \(C,D\). The fresh index \(3\) denotes
+   this combined resource. The wire \(B\to C\) supplies the setting
+   in the resulting instrumental experiment.}
+
+\Diagram{split-before}
+  {A/12/23,B/26/42,C/36/23,D/47/23}
+  {Q1/0/23,Q2/24/23,Q3/60/23}
+  {A/B,B/C,C/D,Q1/A,Q1/B,Q2/A,Q2/C,Q3/B,Q3/D}
+\Diagram{split-after}
+  {A/12/23,B/26/42,Bp/26/3,C/36/23,D/47/23}
+  {Q1/0/23,Q2/24/23,Q3/60/23}
+  {A/B,A/Bp,B/C,Bp/C,C/D,Q1/A,Q1/B,Q1/Bp,Q2/A,Q2/C,Q3/B,Q3/Bp,Q3/D}
+\censusPair{splitting}{split-before}{One reported field at \(B\)}
+  {split-after}{Split \(B\) into two fields}
+  {Target splitting inside a recorded parent-prediction step. Both fields
+   receive the inputs of \(B\) and report to \(C\). Their common private
+   randomness can be included in either enlarged source. Panel (b) is the
+   intermediate graph before any input to \(B'\) is restricted.}
+
+\Diagram{parent-before}
+  {A/12/23,B/26/42,Bp/26/3,C/36/23,D/47/23}
+  {Q1/0/23,Q2/24/23,Q3/60/23}
+  {A/B,A/Bp,B/C,Bp/C,C/D,Q1/A,Q1/B,Q2/A,Q2/C,Q3/B,Q3/D}
+\Diagram{parent-after}
+  {B/16/30,C/35/15,D/57/27,Bp/14/0}
+  {Q2/35/33,Q3/38/44,C2/14/15}
+  {B/C,Bp/C,C/D,Q2/B,Q2/C,Q3/B,Q3/D,C2/B,C2/Bp,C2/C}
+\censusPair{parent}{parent-before}{Only \(A\) supplies \(B'\)}
+  {parent-after}{Marginalize predictor \(A\)}
+  {Parent prediction applied to Fig.~\ref{fig:splitting}(b).
+   Removing both source inputs of \(B'\) leaves it predictable by \(A\).
+   Laboratory \(A\) uses \(\psi_1\) to teleport its share of
+   \(\psi_2\) to \(B\). It also relays a classical register from the
+   \(AC\) source, giving \(\lambda_2\) on \(B,B',C\).
+   The next census move marginalizes \(B\) to obtain an instrumental seed.}
+
+\Diagram{dsep-before}
+  {A/8/41,B/40/31,C/52/3,D/20/13}
+  {Q1/52/41,Q2/20/31,Q3/8/3,Q4/40/13}
+  {Q1/A,Q1/B,Q1/C,Q2/A,Q2/B,Q2/D,Q3/A,Q3/C,Q3/D,Q4/B,Q4/C,Q4/D}
+\Diagram{dsep-after}
+  {B/30/38,C/8/7,D/52/7}
+  {C1/9/29,C2/51/29,Q3/30/5}
+  {C1/B,C1/C,C2/B,C2/D,Q3/C,Q3/D}
+\censusPair{dsep}{dsep-before}{Four independent triple sources}
+  {dsep-after}{Restrict \(B\) and forget \(A\)}
+  {Graphical separation certifies the prediction of \(B\) by \(A\).
+   The shared sources \(\psi_1,\psi_2\) supply classical information
+   to \(B\). The unseen \(\psi_4\) drops its share at \(B\). Removing
+   \(A\) leaves both \(\psi_3\) and \(\psi_4\) on \(CD\). Their tensor
+   product is drawn as \(\psi_3\) in the resulting triangle.}
+
+\Diagram{kpc-before}
+  {C/9/37,D/9/9,E/50/37,F/50/9}
+  {Q1/57/23,Q2/30/5}
+  {C/D,C/E,D/E,Q1/E,Q1/F,Q2/D,Q2/F}
+\Diagram{kpc-after}
+  {C/9/37,D/9/9,E/50/37,F/50/9}
+  {C1/57/23,Q2/30/5}
+  {C/D,C1/E,C1/F,Q2/D,Q2/F}
+\censusPair{semigraphoid}{kpc-before}{\(F\) predicts \(E\)}
+  {kpc-after}{Restrict the inputs of \(E\)}
+  {The recorded semigraphoid step on the Khanna--Pusey--Colbeck graph.
+   The Bell experiment uses \(\lambda_1\) for the setting shared by
+   \(E,F\) and \(\psi_2\) for the state measured by \(D,F\). The
+   proof constructs a fresh source on \(EF\) in the classical explanation,
+   allowing both visible arrows into \(E\) to be deleted.}
+\censusPair{entropic}{kpc-before}{Prediction constraint \(H(E\mid F)=0\)}
+  {kpc-after}{Bell experiment}
+  {The entropy program certifies the same deletion as
+   Fig.~\ref{fig:semigraphoid}. Its restricted observable model supplies
+   \(I(E:CD)=0\). The entropy proof uses this independence and perfect
+   prediction to justify replacing the source of \(E,F\) by
+   \(\lambda_1\). The census stores the semigraphoid certificate for this step.}
+
+\Diagram{up-before}
+  {A/8/36,B/29/36,C/51/36,D/29/6}
+  {Q1/51/12}
+  {A/B,A/D,B/C,B/D,Q1/B,Q1/C,Q1/D}
+\Diagram{up-after}
+  {A/8/36,B/29/36,C/51/36,D/29/6}
+  {Q1/51/12}
+  {A/B,A/D,B/C,Q1/B,Q1/C,Q1/D}
+\censusPair{upward}{up-before}{Additional parent \(B\) of \(D\)}
+  {up-after}{Delete \(B\to D\)}
+  {Upward transfer in the cold search. The deletion leaves
+   the common source of \(B,C,D\) and the direct input \(A\to D\)
+   intact. A gap established on the right transfers to the left. The
+   stored census proof for this input class uses a different first move.}
