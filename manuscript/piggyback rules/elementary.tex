@@ -59,9 +59,17 @@ Let \(B\) and \(D\) be the visible parents and children of \(V\) in
 \(\Gtarget\). Remove \(V\) and give each child every parent in \(B\).
 For a source on \(F\) that supplied \(V\), keep a source of the same type on
 \(F\setminus\{V\}\) and add a classical source on \((F\setminus\{V\})\cup D\).
-Add a classical source on \(D\) for \(V\)'s private randomness. Simplify the
+Add a classical source on \(D\) for \(V\)'s private randomness. Simplify\footnotemark{} the
 sources to obtain \(\Gfamiliar\).
 \end{piggyback}
+\footnotetext{In a classical realization, exogenization writes the hidden output
+of \(V\) as a function of the parent values and an independent random seed. Each child
+can evaluate the function from the forwarded inputs and the shared seed.
+Then prune redundant latents. A source with no recipients can be deleted,
+and a single recipient can prepare a local resource. A source can absorb an
+independent source on a subset of its recipients by carrying an extra register.
+Either type can carry a classical register, and a quantum source can also
+carry a quantum subsystem.}
 \begin{proposition}\label{prop:naive}
 Every quantum distribution on \(\Gfamiliar\) is a marginal of a quantum
 distribution on \(\Gtarget\). The corresponding marginal of any classical
@@ -130,7 +138,7 @@ state on \(BD\) reaches \(C\) through the teleportation channel on \(BC\).
 In \(\Gtarget\), choose a visible \(X\) with no visible parents or shared
 sources, and a distinct visible \(A\) outside the descendants of \(X\).
 Delete \(X\) and replace each arrow \(X\to D\) by \(A\to D\) to obtain
-\(\Gfamiliar\). The census uses a childless \(A\).
+\(\Gfamiliar\).
 \end{piggyback}
 \begin{proposition}\label{prop:stitching}
 The stitched graph is acyclic. Every quantum distribution on \(\Gfamiliar\)
@@ -164,7 +172,11 @@ the source values and seeds therefore gives \eqref{eq:stitch}, a classical
 realization of \(\Pfamiliar\) on \(\Gfamiliar\).
 \end{proof}
 In Figure~\ref{fig:stitching}, \(B\) serves as a stand-in for \(A\) at the
-laboratories \(C,D\). The uniform match probability in \eqref{eq:stitch}
+laboratories \(C,D\).\footnote{The census enumerates the source--sink
+case of stitching, the inverse of interrupting a vertex into an exogenous
+setting and a childless outcome. Proposition~\ref{prop:stitching} also
+allows \(A\) to have children. Redirecting the arrows creates a cycle
+exactly when \(A\) is a descendant of \(X\), including a direct child.} The uniform match probability in \eqref{eq:stitch}
 works even when the output of \(A\) is nonuniform.
 \censusfigure{stitching}
 
