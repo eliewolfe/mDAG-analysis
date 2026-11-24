@@ -77,8 +77,8 @@ def check_pair(cap, five_ids):
         selected = sum(any(t.trick == 'upward' for t in path) for path in enabled.proven.values())
         moves = {t for edges in enabled.explorer.edges.values() for t in edges if t.trick == 'upward'}
         assert selected == 45 and len(moves) == 156
-        step = enabled.proven[4, 6, 0, 183][0]
-        assert step.trick == 'upward' and step.target == (4, 2, 0, 215)
+        step = enabled.proven[4, 2, 0, 3255][0]
+        assert step.trick == 'upward' and step.target == (4, 0, 0, 1755)
         print(f'Depth one: {database} database keys, {selected} selected proofs use one of '
               f'{len(moves)} recorded upward transitions.')
     else:

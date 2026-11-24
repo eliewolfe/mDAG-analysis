@@ -42,6 +42,49 @@ Entropic certificate beyond the above & 0 & 380\\
 \end{tabular}
 \end{table}
 
+\paragraph{Which examples distinguish the rules?}
+Removing a rule can send a class through stages that the original search
+never visited. To test whether an input needs a rule, we reran the census
+from the named seeds with the rule disabled from the outset. We allowed
+one growth step, up to six visible vertices, with the usual screening and
+quantum equivalences. Necessity in Table~\ref{tab:examples} refers to
+proofs found within that search. For a graph with another proof, we
+instead asked which single census moves connect the two displayed
+classes, trying every member of the starting class.
+
+\begin{table}[htbp]
+\centering
+\caption{What the illustrated proofs need. A direct move connects the
+displayed classes in one census operation.}\label{tab:examples}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{.36\linewidth}>{\raggedright\arraybackslash}p{.58\linewidth}@{}}
+\toprule
+Rule & What distinguishes the example\\
+\midrule
+Value fixing and postselection &
+Each illustrated input loses its proof when its rule is removed.
+The searches then prove 269 and 369 classes, respectively.\\
+Node splitting and parent prediction &
+The same input loses its proof in each of two searches, one forbidding
+actual copies, the other omitting parent predictions.\\
+Sibling prediction by d-separation &
+The tetrahedron loses its proof with the graphical test disabled and
+the census's default certificate targets retained.\\
+Semigraphoid and entropic certificates &
+The KPC input loses its proof when both stronger tests are omitted.
+Each test certifies the same displayed restriction.\\
+Degradation, both forms of marginalization, stitching and upward transfer &
+For each displayed pair, only the indicated rule gives the direct census
+move. Each four-node input also has a gap proof by another route.\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The marginalization comparison concerns the two standalone graph
+operations. A Fritz move can still remove a predictor internally.
+Moreover, a laboratory with access to a teleportation channel can always
+choose to send classical data alone. The distinction in the table
+concerns the graphs returned by the two census rules.
+
 The four-node search uses one predictor per candidate. The parent stage
 allows a predicting parent that also shares a source with the predicted
 vertex. The sibling stage considers predictors with a channel to the
@@ -93,27 +136,24 @@ witness on \(\Gtarget\). Equality of the classical model sets rules out
 a classical model of the witness on \(\Gtarget\).
 \end{proof}
 
-In Figure~\ref{fig:upward}, the target graph has an additional arrow
-\(B\to D\). In a classical model, \(A\), the source on \(BCD\), and a
-private seed determine \(B\)'s output. The source on \(BCD\) can carry
-the independent seed, so \(D\) can compute \(B\) using the inputs in
-the familiar graph. The two graphs therefore admit the same classical
-distributions. In the quantum model, \(D\) can ignore the arrow
-\(B\to D\) to run the familiar experiment.
+In Figure~\ref{fig:upward}, \(B\) shares both of \(A\)'s sources.
+In a classical model, either shared source can draw the private seed for
+\(A\), independently of all existing source variables, and supply that
+same draw to \(A,B\). Then \(B\) has all the inputs needed to compute
+\(A\)'s response, so deleting \(A\to B\) preserves every classical
+distribution. In a quantum experiment the target can ignore the edge.
+The reverse inclusion fails for a different experiment in which \(A,C,S\)
+run a Fritz triangle and \(B\) copies the full output of \(A\). An
+inflation argument rules out this distribution on the graph without
+the edge \cite{ObsClassification}.
 
-Fixing \(D\) in the familiar graph gives the instrumental seed
-\(A\to B\to C\) with a quantum source on \(BC\). The census thus records
-an upward lookup to a class with a gap. The two graphs share a classical
-equivalence class and occupy distinct classes under the proven quantum
-equivalences. The lookup establishes
-\(\Qset(\Gfamiliar)\subseteq\Qset(\Gtarget)\). Equality of the two quantum
-model sets remains undecided by the lookup.
-
-Fixing or marginalizing the childless \(D\) directly in \(\Gtarget\)
-gives the same instrumental seed. Removing \(C\) leaves \(B,D\) with
-the visible parent \(A\) and a shared source. A classical shared source
-can sample any joint conditional law of \(B,D\) given \(A\), so removing
-\(C\) gives a graph without a gap.
+The recorded upward lookup goes directly between these distinct
+four-node classes. Fixing \(A\) in the familiar graph leaves \(BC\) and
+\(BS\) as the recipients of its two tripartite sources, giving the all-quantum triangle
+on \(B,C,S\). Degrading its \(BC\) and \(CS\) sources gives the hybrid
+seed of Figure~\ref{fig:degradation}. This witness, with \(A\) constant,
+therefore transfers along the lookup. Fixing \(A\) directly in the target graph gives the same
+triangle and provides a shorter proof of the input gap.
 \censusfigure{upward}
 
 \Needspace{6\baselineskip}
@@ -161,7 +201,7 @@ identify the same set of open classes whose gaps would follow from a gap
 at the candidate.
 
 The script \texttt{check\_examples.py} verifies the illustrated census
-moves. The script \texttt{check\_upward.py} reproduces the paired searches
+moves. The script \texttt{check\_selection.py} reruns the rule omissions in Table~\ref{tab:examples}. The script \texttt{check\_upward.py} reproduces the paired searches
 and compares the established gaps and the implications among the open
 classes.
 
@@ -202,6 +242,9 @@ companion notebook \texttt{piggyback\_check.nb}, discussed in the
 \bibitem{Repo} \emph{Piggybacks for quantum--classical gaps},
 mDAG-analysis technical manuscript and four-node census.
 \href{https://github.com/eliewolfe/mDAG-analysis/blob/main/manuscript/piggybacks.md}{Technical manuscript}.
+\bibitem{ObsClassification} \emph{Observational equivalence rules for quantum
+causal models}, theorem on the four-node edge rule without settings.
+\href{https://github.com/eliewolfe/mDAG-analysis/blob/main/manuscript/observational\%20classification/observational_classification.pdf}{Companion manuscript}.
 \bibitem{Open} \emph{The 46 open classes: what would follow from what},
 mDAG-analysis four-node census.
 \href{https://github.com/eliewolfe/mDAG-analysis/blob/1159e18/manuscript/open_classes.md}{Open-class calculations}.

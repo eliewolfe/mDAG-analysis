@@ -52,13 +52,13 @@ def fritz_params(target, predictor, deleted, certificate, target_mode='unsplit',
 # Each chain starts at the labelled member stored in "via". Each child retains its
 # surviving original labels in index order, with the split copy appended.
 CASES = {
-    'deg': ('4,0,0,1619', 'QG_Triangle', [
-        ('PD', (('drop', 0),)), ('degradation', (('classical', ((0, 1), (0, 2))),))]),
-    'fix': ('4,14,0,1627', 'QG_Evans', [('PD', (('drop', 3),))]),
-    'naive': ('4,2,0,3221', 'QG_Triangle', [('naive_marginalization', (('marginalize', 2),))]),
-    'tele': ('4,20,0,107', 'QG_Instrumental_Edge', [('teleportation_marginalization', (('marginalize', 1),))]),
-    'stitch': ('4,2,0,3177', 'QG_Evans', [('node_stitching', ((('outcome', 0), ('source', 1)),))]),
-    'post': ('4,2,0,1685', 'QG_Instrumental_Edge', [('conditioning', (('condition', 0),))]),
+    'deg': ('4,0,0,1755', 'QG_Triangle', [
+        ('PD', (('drop', 2),)), ('degradation', (('classical', ((0, 1), (0, 2))),))]),
+    'fix': ('4,328,0,107', 'QG_Instrumental_Edge', [('PD', (('drop', 0),))]),
+    'naive': ('4,2,0,3163', 'QG_Instrumental_C', [('PD', (('drop', 1),))]),
+    'tele': ('4,28,0,107', 'QG_Evans', [('teleportation_marginalization', (('marginalize', 0),))]),
+    'stitch': ('4,2,0,3155', 'QG_Instrumental_C', [('PD', (('drop', 0),))]),
+    'post': ('4,328,0,163', 'QG_Instrumental_Edge', [('conditioning', (('condition', 0),))]),
     'split': ('4,328,0,3171', 'QG_Instrumental_EdgeC', [
         ('Fritz', fritz_params(1, 0, ("Q{0,1,1'}", "Q{1,3,1'}"), 'parent', target_mode='split')),
         ('teleportation_marginalization', (('marginalize', 0),))]),
@@ -66,9 +66,9 @@ CASES = {
         ('Fritz', fritz_params(1, 0, ('Q{1,2,3}',), 'dsep'))]),
     'kpc': ('4,20,0,3177', 'QG_Bell_C_Edge', [
         ('Fritz', fritz_params(3, 0, (1, 2), 'semigraphoid', predictor_mode='split'))]),
-    # The checked-in alternative fixes D immediately. The upward transition is
-    # verified separately against the structural lookup and the cold census.
-    'up': ('4,6,0,183', 'QG_Instrumental_Edge', [('PD', (('drop', 3),))]),
+    # The stored proof fixes A directly. The cold proof follows the upward lookup first.
+    'up': ('4,2,0,3255', 'QG_Triangle', [
+        ('PD', (('drop', 2),)), ('degradation', (('classical', ((0, 1), (0, 2))),))]),
 }
 
 
@@ -96,7 +96,7 @@ def replay(index, cache, case):
         g, = [child for actual, child in moves if actual == params]
         assert g.unique_unlabelled_id == tuple(step['produced']) and index.key(g) == tuple(step['target'])
         path.append(g)
-    assert g.unique_unlabelled_id == SEEDS[seed].unique_unlabelled_id
+    assert index.key(g) == index.key(SEEDS[seed])
     assert entry['seed'] == index.seed_keys(SEEDS)[index.key(g)]
     return path
 
@@ -188,15 +188,45 @@ def split_checks(g, child, endpoint):
     return split, restricted
 
 
-def upward_checks(index, upper, seed):
-    edges = {(0, 1), (0, 3), (1, 2), (1, 3)}
-    assert upper.unique_id == graph(4, edges, quantum=[(1, 2, 3)]).unique_id
-    lower = graph(4, edges - {(1, 3)}, quantum=[(1, 2, 3)])
-    assert index.key(lower) == (4, 2, 0, 215)
+def joint_prediction_checks(index, tetrahedron):
+    # First remove A after predicting the split fields B' and C'.
+    def joint_move(g, predictor, targets, mode):
+        children = []
+        for params, child in g.fritz_steps(target_mode=mode, use_lp=False, max_visible=5):
+            step = dict(params)
+            if (step['predictor'], step['targets'], step['certificate']) == ((predictor,), targets, 'dsep'):
+                children.append(child)
+        result, = children
+        return result
+
+    # Direct Markov relations can also certify both copies jointly, outside the
+    # standard census stages that test just one field with the stronger engines.
+    split = tetrahedron.split_node(1).split_node(2)
+    _, parents = split.lp_structure
+    restricted = dict(parents)
+    for target in (4, 5):
+        restricted[target], _ = split.fritz_deletion(target, {0})
+    assert split._semigraphoid_certificate(frozenset({0}), restricted, (4, 5), try_markov=True) == 'markov'
+
+    work = joint_move(tetrahedron, 0, (1, 2), 'split')
+    # Surviving order is B,C,D,B',C'. D now predicts the same two fields.
+    assert work.unique_id == graph(5, classical=[(0, 1, 3, 4), (0, 2, 3), (1, 2, 4)],
+                                   quantum=[(0, 1, 2)]).unique_id
+    bell = joint_move(work, 2, (3, 4), 'unsplit')
+    assert bell.unique_id == graph(4, classical=[(0, 2), (1, 3)], quantum=[(0, 1)]).unique_id
+    assert index.key(bell) == index.key(SEEDS['QG_Bell_C_C'])
+
+
+def upward_checks(index, upper, triangle):
+    # C,S,A,B here correspond to labels 0,1,2,3 in the census.
+    facets = [(0, 1), (0, 2, 3), (1, 2, 3)]
+    assert upper.unique_id == graph(4, [(2, 3)], quantum=facets).unique_id
+    lower = graph(4, quantum=facets)
+    assert index.key(lower) == (4, 0, 0, 1755)
     assert index.classical_class(index.key(upper)) == index.classical_class(index.key(lower))
     params, = [dict(p) for p, rep in index.upward_steps(upper) if index.key(rep) == index.key(lower)]
     assert params == {'above': str(upper.as_mDAG), 'below': str(lower.as_mDAG)}
-    assert lower.fix_to_point_distribution_QmDAG(3).unique_id == seed.unique_id
+    assert lower.fix_to_point_distribution_QmDAG(2).unique_id == triangle.unique_id
     return lower
 
 
@@ -270,20 +300,54 @@ def labelled(g, names):
     return (set(names), edges, *facets)
 
 
+def check_unique_direct_rule(index, source, target, expected, use_mosek):
+    """Try every one-step rule on every member, even when the census found a seed early."""
+    from qc_gap_search import default_stages
+
+    # Each Fritz stage contributes its own predictor pool, target and predictor modes,
+    # and certification settings. Run the actual generators, without a root/stage cutoff.
+    generators = list(index.lookup_tricks().items()) + [('degradation', degradation)]
+    engine = 'both' if use_mosek else 'semigraphoid'
+    for _, stage_rules, _, _, _ in default_stages(max_visible=6, engine=engine):
+        generators.extend(stage_rules.items())
+    target_key = index.key(target)
+    members = index.members(index.key(source), fallback=source)
+    hits = {name for member in members for name, generate in generators
+            if any(index.key(child) == target_key for _, child in generate(member))}
+    assert hits == {expected}, (index.key(source), target_key, expected, hits)
+
+
 def main(use_mosek):
     index = ClassIndex((3, 4), verbose=False)
     cache = GapCache.load(seeds=SEEDS, keyed_by='class')
     paths = {case: replay(index, cache, case) for case in CASES}
-    # The second example in the stitching section retains the outcome's original child.
-    childful = graph(4, [(0, 3), (1, 2)], quantum=[(1, 2), (1, 3)])
-    params = ((('outcome', 1), ('source', 0)),)
-    stitched = dict(childful.node_stitching_steps())[params]
-    assert stitched.unique_id == paths['stitch'][-1].unique_id
+    # The naive and stitching figures follow recorded alternatives to the cached proofs.
+    stitch_input, _ = paths['stitch']
+    stitch_params = ((('outcome', 1), ('source', 0)),)
+    stitched = dict(stitch_input.node_stitching_steps())[stitch_params]
+    assert stitched.unique_unlabelled_id == SEEDS['QG_Evans'].unique_unlabelled_id
+    fix_input, _ = paths['fix']
+    ordinary = fix_input.marginalize(0, apply_teleportation=False)
+    assert ordinary.unique_id == graph(3, [(0, 1), (1, 2)], [(0, 1, 2)], [(1, 2)]).unique_id
+    teleport_input, _ = paths['tele']
+    ordinary = teleport_input.marginalize(0, apply_teleportation=False)
+    assert ordinary.unique_id == graph(3, [(0, 1), (0, 2)], [(0, 1)], [(0, 2)]).unique_id
+    post_input, _ = paths['post']
+    assert post_input.fix_to_point_distribution_QmDAG(0).unique_id == graph(3, [(0, 1), (1, 2)]).unique_id
+    naive_input, _ = paths['naive']
+    naive = naive_input.marginalize(2, apply_teleportation=False)
+    assert index.key(naive) == (3, 0, 3, 53)
+    hybrid_seed = dict(naive.degradation_steps())[(('classical', ((1, 2),)),)]
+    assert hybrid_seed.unique_unlabelled_id == SEEDS['QG_Triangle'].unique_unlabelled_id
+    all_quantum_triangle = graph(3, quantum=[(0, 1), (0, 2), (1, 2)])
+    assert naive_input.marginalize(2).unique_id == all_quantum_triangle.unique_id
+    assert naive_input.fix_to_point_distribution_QmDAG(2).unique_id == graph(3, quantum=[(0, 1), (1, 2)]).unique_id
     split, restricted = split_checks(*paths['split'])
+    joint_prediction_checks(index, paths['dsep'][0])
     kpc_checks(*paths['kpc'], use_mosek)
     binary_sources()
-    upper, instrument = paths['up']
-    lower = upward_checks(index, upper, instrument)
+    upper, triangle, _ = paths['up']
+    lower = upward_checks(index, upper, triangle)
 
     panels = panel_graphs()
     expected = {}
@@ -291,10 +355,12 @@ def main(use_mosek):
         expected[prefix + '-before'] = labelled(before, before_labels)
         expected[prefix + '-after'] = labelled(after, after_labels)
 
-    _, triangle, hybrid = paths['deg']
-    pair('deg', triangle, 'BCD', hybrid, 'BCD')
-    for key, survivors in [('fix', 'ABC'), ('naive', 'ABD'), ('tele', 'ACD'),
-                           ('stitch', 'ACD'), ('post', 'BCD'), ('dsep', 'BCD')]:
+    recorded_lower, triangle, hybrid = paths['deg']
+    assert recorded_lower.unique_id == lower.unique_id
+    pair('deg', triangle, 'CSB', hybrid, 'CSB')
+    pair('naive', naive_input, 'ABCD', naive, 'ABD')
+    pair('stitch', stitch_input, 'ABCD', stitched, 'BCD')
+    for key, survivors in [('fix', 'BCD'), ('tele', 'BCD'), ('post', 'BCD'), ('dsep', 'BCD')]:
         before, after = paths[key]
         pair(key, before, 'ABCD', after, survivors)
     before, child, _ = paths['split']
@@ -302,7 +368,19 @@ def main(use_mosek):
     pair('split', before, 'ABCD', split, copy_labels)
     pair('parent', restricted, copy_labels, child, copy_labels[1:])
     pair('kpc', paths['kpc'][0], 'FCDE', paths['kpc'][1], 'FCDE')
-    pair('up', upper, 'ABCD', lower, 'ABCD')
+    pair('up', upper, 'CSAB', lower, 'CSAB')
+    for rule, before, after in [
+        ('degradation', triangle, hybrid),
+        ('PD', *paths['fix']),
+        ('naive_marginalization', naive_input, naive),
+        ('teleportation_marginalization', *paths['tele']),
+        ('node_stitching', stitch_input, stitched),
+        ('conditioning', *paths['post']),
+        ('upward', upper, lower),
+    ]:
+        check_unique_direct_rule(index, before, after, rule, use_mosek)
+    if use_mosek:
+        assert entropy.TIMEOUTS[0] == 0, 'An LP timed out in the direct-rule comparison'
     assert set(expected) == set(panels), (expected.keys() - panels.keys(), panels.keys() - expected.keys())
     for panel, spec in expected.items():
         assert spec == panels[panel], (panel, spec, panels[panel])

@@ -72,83 +72,84 @@
 \newcommand{\censusfigure}[1]{\csname censusFigure#1\endcsname}
 
 \Diagram{deg-before}
-  {B/30/38,C/8/7,D/52/7}
-  {Q1/9/29,Q2/51/29,Q3/30/5}
-  {Q1/B,Q1/C,Q2/B,Q2/D,Q3/C,Q3/D}
+  {C/30/38,B/8/7,S/52/7}
+  {Q1/9/29,Q3/51/29,Q2/30/5}
+  {Q1/B,Q1/C,Q3/C,Q3/S,Q2/B,Q2/S}
 \Diagram{deg-after}
-  {B/30/38,C/8/7,D/52/7}
-  {C1/9/29,C2/51/29,Q3/30/5}
-  {C1/B,C1/C,C2/B,C2/D,Q3/C,Q3/D}
+  {C/30/38,B/8/7,S/52/7}
+  {C1/9/29,C3/51/29,Q2/30/5}
+  {C1/B,C1/C,C3/C,C3/S,Q2/B,Q2/S}
 \censusPair{degradation}{deg-before}{All-quantum triangle}
-  {deg-after}{Two classical sources}
-  {Changing \(\psi_1\) on \(BC\) and \(\psi_2\) on \(BD\) to classical
-   sources \(\lambda_1,\lambda_2\) gives the triangle seed. An earlier
-   move removed the isolated \(A\). Laboratory \(B\) can record both
-   settings, while \(C,D\) share the state \(\psi_3\).}
+  {deg-after}{Two sources made classical}
+  {Degrading \(\psi_1\) on \(BC\) and \(\psi_3\) on \(CS\) gives the
+   classical sources \(\lambda_1,\lambda_3\). Laboratory \(C\) records
+   both settings, while \(B,S\) measure \(\psi_2\). This is the final
+   step after the upward lookup in Figure~\ref{fig:upward} and fixing \(A\).}
 
 \Diagram{fix-before}
-  {A/28/23,B/8/22,C/52/34,D/30/4}
-  {Q1/16/38,Q2/53/12,Q3/9/4}
-  {A/B,A/C,A/D,Q1/A,Q1/B,Q2/A,Q2/C,Q2/D,Q3/B,Q3/D}
+  {A/10/36,B/13/8,C/35/8,D/54/30}
+  {Q1/2/21,Q2/32/31}
+  {A/B,B/C,C/D,Q1/A,Q1/B,Q2/A,Q2/C,Q2/D}
 \Diagram{fix-after}
-  {A/28/23,B/8/22,C/52/34}
-  {Q1/16/38,Q2/53/12}
-  {A/B,A/C,Q1/A,Q1/B,Q2/A,Q2/C}
-\censusPair{fixing}{fix-before}{Four laboratories}{fix-after}{Fix \(D\)}
-  {Fixing the output of the leaf \(D\) gives the Evans seed. Source
-   \(\psi_2\) now reaches \(A,C\), and \(B\) can prepare the surviving share
-   of \(\psi_3\) locally. The arrows \(A\to B\) and \(A\to C\) remain.}
+  {B/13/8,C/35/8,D/54/30}
+  {Q2/32/31}
+  {B/C,C/D,Q2/C,Q2/D}
+\censusPair{fixing}{fix-before}{Two source inputs at \(A\)}{fix-after}{Fix \(A\)}
+  {Fixing \(A\) to a constant removes its message to \(B\).
+   Source \(\psi_2\) now supplies only \(C,D\), and the surviving share of
+   \(\psi_1\) can be prepared locally at \(B\). The setting \(B\), wire
+   \(C\to D\), and shared state on \(CD\) give an instrumental seed.}
 
 \Diagram{naive-before}
   {A/8/8,B/52/8,C/30/26,D/30/43}
   {Q1/30/4,Q2/8/28,Q3/52/28}
-  {C/D,Q1/A,Q1/B,Q2/A,Q2/C,Q3/B,Q3/C}
+  {C/D,Q1/A,Q1/B,Q2/A,Q2/C,Q3/B,Q3/C,Q3/D}
 \Diagram{naive-after}
   {A/8/8,B/52/8,D/30/43}
-  {Q1/30/4,C2/8/28,C3/52/28}
-  {Q1/A,Q1/B,C2/A,C2/D,C3/B,C3/D}
+  {Q1/30/4,C2/8/28,Q3/52/28}
+  {Q1/A,Q1/B,C2/A,C2/D,Q3/B,Q3/D}
 \censusPair{naive}{naive-before}{Classical message \(C\to D\)}
   {naive-after}{Marginalize \(C\)}
-  {Ordinary marginalization of \(C\) gives a triangle with recorder \(D\).
-   In panel (a), \(C\) forwards a label from \(\psi_2\) on \(AC\) and a
-   label from \(\psi_3\) on \(BC\) to \(D\). In panel (b), \(\lambda_2\)
-   shares the first label with \(A,D\) and \(\lambda_3\) shares the second
-   with \(B,D\). Laboratories \(A,B\) still share the state \(\psi_1\).}
+  {Ordinary marginalization makes a classical register from the \(AC\)
+   source available to \(A,D\), drawn as \(\lambda_2\). The original
+   \(BCD\) source retains the \(B,D\) shares and can also carry its own
+   forwarded classical register. Degrading this last quantum source gives
+   the triangle seed with setting recorder \(D\).}
 
 \Diagram{tele-before}
-  {A/7/38,B/8/15,C/33/32,D/56/15}
-  {Q1/32/17,Q2/32/3}
-  {A/B,A/C,B/C,C/D,Q1/B,Q1/C,Q2/B,Q2/D}
+  {A/8/35,B/29/22,C/9/6,D/52/9}
+  {Q1/48/35,Q2/2/21}
+  {A/B,B/C,B/D,Q1/A,Q1/B,Q1/D,Q2/A,Q2/C}
 \Diagram{tele-after}
-  {A/7/38,C/33/32,D/56/15}
-  {Q2/32/3}
-  {A/C,C/D,Q2/C,Q2/D}
-\censusPair{teleportation}{tele-before}{Teleportation channel \(BC\)}
-  {tele-after}{Marginalize \(B\)}
-  {Marginalizing \(B\) with teleportation gives the instrumental chain
-   \(A\to C\to D\). Laboratory \(B\) uses \(\psi_1\) and the arrow \(B\to C\)
-   to teleport the \(B\) subsystem of \(\psi_2\) to \(C\). Panel (b)
-   labels the resulting state shared by \(C,D\) as \(\psi_2\).}
+  {B/29/22,C/9/6,D/52/9}
+  {Q1/48/35,Q2/2/21}
+  {B/C,B/D,Q1/B,Q1/D,Q2/B,Q2/C}
+\censusPair{teleportation}{tele-before}{Entanglement shared by \(A,B\)}
+  {tele-after}{Marginalize \(A\)}
+  {The source \(\psi_1\) on \(ABD\) can supply an entangled pair to
+   \(A,B\) alongside the desired state for \(B,D\). Laboratory \(A\)
+   uses the pair to teleport its share of \(\psi_2\) to \(B\) and
+   sends the correction along \(A\to B\). The two states on \(BC\)
+   and \(BD\) give the Evans seed.}
 
 \Diagram{stitch-before}
-  {A/30/15,B/30/38,C/8/15,D/52/15}
+  {A/52/38,B/30/28,C/8/15,D/52/15}
   {Q1/16/3,Q2/44/3}
-  {B/C,B/D,Q1/A,Q1/C,Q2/A,Q2/D}
+  {A/D,B/C,Q1/B,Q1/C,Q2/B,Q2/D}
 \Diagram{stitch-after}
-  {A/30/28,C/8/15,D/52/15}
+  {B/30/28,C/8/15,D/52/15}
   {Q1/16/3,Q2/44/3}
-  {A/C,A/D,Q1/A,Q1/C,Q2/A,Q2/D}
-\censusPair{stitching}{stitch-before}{Outcome \(A\) and setting \(B\)}
-  {stitch-after}{Stitch \(B\) onto \(A\)}
-  {Stitching \(B\) onto \(A\) redirects the arrows into \(C,D\) and gives
-   the Evans seed. In panel (a), the proof keeps records with \(B=A\).
-   In panel (b), \(A\) sends the same output to \(C,D\) along the redirected
-   arrows. The sources on \(AC\) and \(AD\) remain independent.}
+  {B/C,B/D,Q1/B,Q1/C,Q2/B,Q2/D}
+\censusPair{stitching}{stitch-before}{Outcome \(B\) and setting \(A\)}
+  {stitch-after}{Stitch \(A\) onto \(B\)}
+  {The stitch retains the wire \(B\to C\) and redirects \(A\to D\)
+   to \(B\to D\). Keeping records with \(A=B\) supplies the Evans
+   experiment on the right, with two independent sources incident to \(B\).}
 
 \Diagram{post-before}
   {B/7/38,C/14/9,D/49/9,A/46/38}
   {Q1/25/26,Q2/57/25}
-  {B/C,C/D,Q1/A,Q1/C,Q2/A,Q2/D}
+  {A/B,B/C,C/D,Q1/A,Q1/C,Q2/A,Q2/D}
 \Diagram{post-after}
   {B/7/38,C/14/9,D/49/9}
   {Q3/33/28}
@@ -156,8 +157,9 @@
 \censusPair{postselection}{post-before}{Two independent states at \(A\)}
   {post-after}{Postselect at \(A\)}
   {Postselecting a joint-measurement outcome at \(A\) leaves \(C,D\)
-   with a shared state, drawn as \(\psi_3\). The arrows \(B\to C\) and
-   \(C\to D\) survive, giving the instrumental seed.}
+   with a shared state, drawn as \(\psi_3\). On the selected branch
+   \(B\) receives a fixed value from \(A\). It supplies a setting to \(C\)
+   in the resulting instrumental experiment.}
 
 \Diagram{split-before}
   {A/12/23,B/26/42,C/36/23,D/47/23}
@@ -232,16 +234,16 @@
    census records the semigraphoid certificate for the move.}
 
 \Diagram{up-before}
-  {A/8/36,B/29/36,C/51/36,D/29/6}
-  {Q1/51/12}
-  {A/B,A/D,B/C,B/D,Q1/B,Q1/C,Q1/D}
+  {A/30/28,B/30/7,C/9/38,S/51/38}
+  {Q1/12/24,Q2/48/24,Q3/30/42}
+  {A/B,Q1/A,Q1/B,Q1/C,Q2/A,Q2/B,Q2/S,Q3/C,Q3/S}
 \Diagram{up-after}
-  {A/8/36,B/29/36,C/51/36,D/29/6}
-  {Q1/51/12}
-  {A/B,A/D,B/C,Q1/B,Q1/C,Q1/D}
-\censusPair{upward}{up-before}{Additional parent \(B\) of \(D\)}
-  {up-after}{Delete \(B\to D\)}
-  {The upward-transfer lookup deletes \(B\to D\) while retaining the
-   source on \(BCD\) and the arrow \(A\to D\). A gap on the right
-   establishes a gap on the left. The search from named seeds recorded
-   the lookup. The stored proof for the input class fixes \(D\) directly.}
+  {A/30/28,B/30/7,C/9/38,S/51/38}
+  {Q1/12/24,Q2/48/24,Q3/30/42}
+  {Q1/A,Q1/B,Q1/C,Q2/A,Q2/B,Q2/S,Q3/C,Q3/S}
+\censusPair{upward}{up-before}{Target with \(A\to B\)}
+  {up-after}{Remove the visible arrow}
+  {The two graphs share every source and have the same classical model set.
+   The quantum model set on the right is strictly smaller. An upward
+   lookup transfers a gap from right to left. Fixing \(A\) on either side
+   gives an all-quantum triangle on \(B,C,S\).}

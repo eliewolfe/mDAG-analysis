@@ -49,8 +49,11 @@ the kernel for \(V\). The original independent source variables continue to supp
 recipients. The resulting model gives
 \(\Pfamiliar\) on \(\Gfamiliar\).
 \end{proof}
-Figure~\ref{fig:fixing} shows how fixing the output of \(D\) leaves the two
-branches of the Evans experiment.
+In Figure~\ref{fig:fixing}, fixing \(A\) leaves \(B\) free to serve as
+the instrumental setting. Naively marginalizing \(A\) would forward a classical
+register from its \(ACD\) source to \(B\), giving all three remaining
+laboratories access to a common classical source. That source alone can
+sample any joint law on \(B,C,D\).
 \censusfigure{fixing}
 
 \subsection{Naive marginalization}\label{sec:naive}
@@ -93,8 +96,12 @@ can reconstruct the output of \(V\) and use the original response kernel.
 The reconstructed model gives the classical marginal on \(\Gfamiliar\)
 \cite{Evans}.
 \end{proof}
-Figure~\ref{fig:naive} shows how \(D\) inherits the labels sent through \(C\)
-and becomes the recorder in the triangle seed.
+In Figure~\ref{fig:naive}, fixing \(C\) would leave only the sources on
+\(AB\) and \(BD\). Ordinary marginalization gives a third, classical
+source on \(AD\), and degrading the source on \(BD\) completes the
+triangle seed. Teleportation through the \(BCD\) source would instead
+give an all-quantum triangle. The input gap has another proof by fixing
+\(B\), which gives a graph in the instrumental seed class.
 \censusfigure{naive}
 
 \subsection{Marginalization with teleportation}\label{sec:teleportation}
@@ -129,8 +136,10 @@ The classical reconstruction in Proposition~\ref{prop:naive} still
 applies. Each enlarged source can provide the classical register required
 by a subset of the recipients.
 \end{proof}
-Figure~\ref{fig:teleportation} shows how the share that \(B\) holds of the
-state on \(BD\) reaches \(C\) through the teleportation channel on \(BC\).
+Ordinary marginalization of \(A\) in Figure~\ref{fig:teleportation}
+would give a classical source on \(BC\) and a quantum source on \(BD\).
+The Evans witness uses quantum states on both branches, which the
+teleportation step supplies in a single move.
 \censusfigure{teleportation}
 
 \subsection{Node stitching}\label{sec:stitching}
@@ -172,13 +181,11 @@ each \(a\) with the same probability. Averaging the rewired responses over
 the source values and seeds therefore gives \eqref{eq:stitch}, a classical
 realization of \(\Pfamiliar\) on \(\Gfamiliar\).
 \end{proof}
-In Figure~\ref{fig:stitching}, \(B\) serves as a stand-in for \(A\) at the
-laboratories \(C,D\). The uniform match probability in \eqref{eq:stitch}
-holds for every distribution of \(A\). A second census example starts
-with \(A\to D\), \(B\to C\), and independent quantum sources on
-\(BC\) and \(BD\). Stitching the setting \(A\) onto the outcome \(B\)
-keeps \(B\to C\) and redirects \(A\to D\) to \(B\to D\), again
-giving the Evans seed.
+Fixing \(A\) in Figure~\ref{fig:stitching} gives a second proof of
+the input gap. Now the \(BD\) source can draw a classical setting for
+\(D\) to record and \(B\) to use, while \(B,C\) share a quantum state
+and communicate along \(B\to C\). The resulting graph belongs to the
+instrumental seed class.
 \censusfigure{stitching}
 
 \subsection{Postselection}\label{sec:postselection}
@@ -250,7 +257,8 @@ variables from the original sources, and each child of \(V\) uses \(v_0\)
 in the original response kernel. Every other laboratory uses the original response kernel. The resulting
 classical model on \(\Gfamiliar\) produces \(\Pfamiliar\).
 \end{proof}
-Figure~\ref{fig:postselection} shows the case with no visible parents of
-the selected laboratory. A joint measurement at \(A\) supplies the shared
-state used by \(C,D\) in an instrumental seed.
+Fixing \(A\) in Figure~\ref{fig:postselection} would leave each of its
+independent sources with a single recipient. The surviving chain
+\(B\to C\to D\) would then have no shared state. Conditioning on the
+joint measurement is what supplies the state for the instrumental witness.
 \censusfigure{postselection}

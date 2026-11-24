@@ -34,7 +34,10 @@ coordinates, giving a classical model on \(\Gfamiliar\) for the witness.
 \end{proof}
 Figure~\ref{fig:splitting} shows the split of \(B\) into \(B,B'\) before
 the parent-prediction step. The subsequent restriction changes the
-inputs of \(B'\), while \(B\) keeps the original quantum input.
+inputs of \(B'\), while \(B\) keeps the original quantum input. When
+the census of Section~\ref{sec:census} is rerun with all node splits
+disabled, the search establishes 377 of the usual 380 gaps. The
+illustrated graph belongs to one of the three classes whose proof is lost.
 \censusfigure{splitting}
 
 \paragraph{Which output is predicted?}
@@ -99,7 +102,10 @@ for the witness on \(\Gfamiliar\), a contradiction.
 \end{proof}
 In Figure~\ref{fig:parent}, \(A\) predicts \(B'\) while \(B\) keeps
 the quantum input shared with \(D\). A later marginalization of \(B\)
-with teleportation gives an instrumental seed.
+with teleportation gives an instrumental seed. Allowing splits but
+omitting parent prediction leaves this class and one other unresolved
+among the 380, even when the search permits six visible vertices and
+one move that increases their number.
 \censusfigure{parent}
 
 \paragraph{The common restriction for sibling predictors.}
@@ -178,8 +184,23 @@ The sources on \(ABC\) and \(ABD\) supply both laboratories.
 Conditioning on the sources on \(ABC\) and \(ABD\) separates \(A\) from
 the source on \(BCD\).
 The restriction keeps only the first two sources at \(B\), as classical
-inputs. Removing \(A\) gives the triangle seed.
+inputs. Removing \(A\) gives the triangle seed. Omitting the graphical
+test while keeping the usual certificate targets leaves only the
+tetrahedron unresolved among the 380. The fresh-source argument
+requires a single retained hidden parent, and \(B\) retains two.
+If one asks instead for the
+Markov equalities of \(G_1\) itself, both tests below also certify
+this deletion.
 \censusfigure{dsep}
+
+The same tetrahedron admits a two-step proof ending at Bell. Split
+\(B,C\), let \(A\) predict \(B',C'\) jointly, and remove \(A\).
+Only the joint d-separation rule reaches the resulting five-vertex graph
+in one census move. The stronger census tests examine a single predicted
+field at a time. If applied jointly, the semigraphoid argument can also
+justify the restriction using the direct Markov relations. Now let \(D\) predict the same two fields and remove \(D\). The fields
+\(B',C'\) are the Bell settings, each sharing a classical source with
+its own outcome, and \(B,C\) share the quantum source.
 
 \subsection{Fritz III. The semigraphoid certificate}\label{sec:semigraphoid}
 \begin{piggyback}{Fritz III. The semigraphoid certificate}
@@ -252,7 +273,10 @@ d-separation test cannot remove \(D\to E\). After the restriction,
 \(E\) receives only the classical register shared with \(F\).
 The restricted graph therefore gives \(E\ind U\), where \(U=(C,D)\).
 The observable independence is an instance of P3 \cite{KPC}.
-The census records a single transition to Bell. The authors' separate
+The census records a single transition to Bell. Across the 380
+established classes, this is the only one that loses its proof when
+the search retains parent prediction and d-separation but omits both
+stronger tests. The authors' separate
 draft represents the predictor's setting field as a vertex and shows
 intermediate steps (draft Figure~4, discussed in Ref.~\cite{KPCdraft}).
 \censusfigure{semigraphoid}
@@ -339,6 +363,15 @@ A second application of the chain rule, in its two orders, gives
 \end{align}
 Both terms on the right are nonnegative. In particular \(I(F;U\mid M,E)=0\).
 The entropy equalities establish all factors in \eqref{eq:kpc-factor}.
+More generally, the chain rule and nonnegativity justify every
+semigraphoid inference, so a semigraphoid proof also gives an entropic
+one under the same premises. The converse can fail in principle.
+When the depth-one comparison in Section~\ref{sec:census} continued
+testing each input class after finding a proof, both tests still
+agreed on every candidate. They certified the same 46 of 706
+restrictions examined after d-separation failed. In a separate run of
+the standard one-growth census up to six vertices, the tests again agreed,
+certifying the same 78 of 1,462 candidates. No LP solve timed out.
 \censusfigure{entropic}
 
 For a larger graph, sum the nonnegative local Markov quantities in the chosen
