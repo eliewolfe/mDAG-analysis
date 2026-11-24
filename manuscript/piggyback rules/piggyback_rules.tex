@@ -25,7 +25,11 @@
 \newtheorem{proposition}{Proposition}
 \newcommand{\Cset}{\mathcal C}
 \newcommand{\Qset}{\mathcal Q}
-\newcommand{\gap}{\gamma}
+\DeclareMathOperator{\gap}{\text{\normalfont\sffamily\bfseries Gap}}
+\newcommand{\Gtarget}{G_{\text{target}}}
+\newcommand{\Gfamiliar}{G_{\text{familiar}}}
+\newcommand{\Ptarget}{P_{\text{target}}}
+\newcommand{\Pfamiliar}{P_{\text{familiar}}}
 \newcommand{\ind}{\mathrel{\perp\!\!\!\perp}}
 \newcommand{\pa}{\operatorname{pa}}
 \newcommand{\ch}{\operatorname{ch}}
@@ -45,89 +49,92 @@
 {\large Graph transformations and perfect prediction in causal networks\par}
 \end{center}
 \begin{abstract}
-A causal network has a quantum--classical gap if independent quantum sources can
-produce an observed distribution that independent classical sources cannot reproduce on
-the same graph. A gap in one network can establish a gap in another, even when the
-experiments have different numbers of observed variables. We give the graph operations
-and distributional arguments that justify these transfers. Six elementary operations
-use source degradation, fixed outputs, marginalization, stitching, or postselection.
-The Fritz constructions use one observed outcome to predict a field of another.
-We show how graphical separation, conditional independence, and entropy inequalities
-certify the restrictions imposed by this prediction. The examples come from the
-four-visible-node census, in which these methods and known seed experiments establish
-gaps for 380 of 426 candidate classes.
+A causal network has a quantum--classical gap when an experiment with independent
+quantum sources produces correlations that independent classical sources cannot
+reproduce on the same network. A \emph{piggyback} uses a witness from one graph to
+establish a gap on another. The elementary rules use source degradation, value
+fixing, marginalization with or without teleportation, stitching, or postselection.
+The Fritz rules use outputs that another laboratory can predict exactly. We
+illustrate each rule with a step from the four-node census, where piggybacks and
+known witnesses establish gaps in 380 of 426 candidate classes.
 \end{abstract}
 
-\section{Models, witnesses, and the direction of a proof}\label{sec:setting}
-In a Bell experiment, two laboratories measure a shared state in response to settings.
-The resulting distribution can violate a constraint satisfied by every classical model
-with the same causal structure \cite{Bell}. Suppose a larger network contains the
-resources for this experiment. To establish a gap one must also explain why the extra
-communications and sources fail to give a classical explanation of the constructed
-observations. This second question determines which graph transformations can be used
-in a proof.
+\section{From a familiar witness to a new gap}\label{sec:setting}
+In a Bell experiment, two laboratories measure a shared state in response to
+settings. The resulting distribution can violate a Bell inequality and so
+witness a quantum--classical gap \cite{Bell}. Suppose we want to establish a
+gap in a larger network. Can the larger network reproduce the Bell experiment?
+Could the extra arrows and sources give the Bell correlations a classical
+explanation? A piggyback answers both questions.
 
-A graph \(G\) has a directed acyclic graph of visible laboratories and two families
-of independent sources. A directed edge between laboratories carries the full classical
-output of its tail. A source with recipient set \(F\), also called a \emph{facet},
-supplies either a classical random variable accessible to all of \(F\), or a
-multipartite quantum state with a subsystem for each recipient. A laboratory reports
-a classical result from a local operation on its systems, conditional on its classical
-inputs. It may use private randomness. We allow finite output alphabets and
-finite-dimensional systems, and may enlarge an alphabet when constructing a witness.
-
-The set \(\Cset(G)\) consists of distributions attainable when all sources are
-classical. The set \(\Qset(G)\) allows quantum states at the designated quantum
-sources, and contains \(\Cset(G)\). In the all-classical model the joint law factors
-into independent source laws and one stochastic kernel per laboratory. Its
-\emph{expanded DAG} contains a vertex for each source, with an arrow to each
-recipient. We can also represent a stochastic kernel by a deterministic response and
-a private, independent noise variable. We include these noise vertices explicitly
-when testing whether a predictor could learn a laboratory's private random choice.
-
-We use finite classical source alphabets. For finite visible outputs this convention
-also covers classical models originally given with continuous sources. With all other
-source laws and all responses fixed, conditioning on one source gives a vector of
-observed probabilities in a finite-dimensional simplex. Its mean belongs to their convex hull, so Carathéodory's theorem gives a finite
-mixture with those same observed probabilities.
-Apply this argument to each independent source in turn. A stochastic response with
-finitely many input configurations can likewise use a finite random table, with an
-output drawn for each configuration in advance.
-
-In the figures a slightly rounded square with an upright capital letter denotes
-a visible laboratory. Red circles \(\lambda_i\) denote classical sources and green
-circles \(\psi_i\) denote quantum sources. Source arrows have the colour of their source. An arrow between visible laboratories carries the observed output of its tail.
-The indices distinguish independent sources, and the panel labels identify
-successive graph operations.
-
-A source left with only one recipient can be prepared locally. A classical source on
-a subset of another source's recipients can be carried as an independent classical
-register of the larger source. A quantum source can likewise carry an additional
-independent state on a subset of its recipients. We identify graphs that differ by
-these redundancies. In particular, a proof may specify the resources before these
-simplifications and a figure may depict the resulting maximal facets.
-
-Write \(\gap(G)=1\) if, for some choice of alphabets, there is a witness
-\(P\in\Qset(G)\setminus\Cset(G)\), and \(\gap(G)=0\) otherwise. In a
-\emph{piggyback}, the search transforms an input \(G\) into a graph \(H\) and the proof
-runs in the opposite direction, as expressed by
+The \emph{target graph} \(\Gtarget\) is the graph whose gap we seek to establish.
+A piggyback turns the target graph into a \emph{familiar graph} \(\Gfamiliar\).
+Write \(\gap(G)\) for the statement
+that some quantum experiment on \(G\) produces a distribution with no classical
+explanation on \(G\). The graph operation and the gap implication run in opposite
+directions:
 \begin{equation}
-   G \xrightarrow{\ \text{graph operation}\ } H,
-   \qquad \gap(H)=1\ \Longrightarrow\ \gap(G)=1 .
-   \label{eq:direction}
+  \begin{aligned}
+  \text{Graph operation} &\quad \Gtarget \longrightarrow \Gfamiliar ,\\
+  \text{Gap transfer} &\quad \gap(\Gfamiliar) \implies \gap(\Gtarget) .
+  \end{aligned}
+  \label{eq:direction}
 \end{equation}
-We call the transfer from \(H\) to \(G\) \emph{\qcn} because \(\gap(H)\leq\gap(G)\).
-We use \emph{gap-preserving} as a less precise shorthand for this implication.
-The indicator records existence only. The results concern no quantitative distance
-between model sets.
+We call a witness transfer \emph{\qcn} when a gap in the familiar graph
+guarantees a gap in the target graph. We use \emph{gap-preserving} as shorthand.
 
-Each proof begins with an arbitrary witness \(P_H\) on \(H\). It constructs a
-quantum experiment on \(G\) with distribution \(P_G\), and specifies how to recover
-\(P_H\) from its observations. If \(P_G\) had a classical model on \(G\), the same
-recovery would yield a classical model for \(P_H\) on \(H\). This contradiction proves
-\eqref{eq:direction}. A sequence of graph operations therefore gives a proof when it
-ends at a graph with an established gap, called a \emph{seed}. The witness for an
-intermediate graph can have any finite alphabets allowed by the next construction.
+Each proof starts with a witness distribution \(\Pfamiliar\) on the familiar
+graph and constructs a quantum distribution \(\Ptarget\) on the target graph.
+A classical model for \(\Ptarget\) would give a classical model for
+\(\Pfamiliar\), contradicting the choice of witness. The search can chain
+several piggybacks until reaching a graph with an established gap, called a
+\emph{seed}, then transfer the witness back along the chain.
+
+\paragraph{Model conventions.}
+The visible vertices of a graph \(G\) are laboratories. A directed arrow
+between laboratories carries the sending laboratory's full classical output.
+The directed arrows form an acyclic graph. Independent sources supply either
+a shared random variable or a quantum state with one subsystem per recipient.
+We call the set of recipients of a source its \emph{facet}. Each laboratory
+operates on the systems and classical inputs available locally and reports an
+outcome. We allow private randomness, finite output alphabets, and
+finite-dimensional systems. A witness construction may enlarge an output
+alphabet.
+
+Write \(\Cset(G)\) for the distributions attainable with classical sources
+and \(\Qset(G)\) for the distributions that also allow quantum states at
+the designated quantum sources. For any choice of visible alphabets,
+\(\Cset(G)\subseteq\Qset(G)\). A witness is a distribution in
+\(\Qset(G)\setminus\Cset(G)\) for the chosen alphabets.
+
+In a classical model, independent sources and one response kernel per
+laboratory determine the joint distribution. The \emph{expanded DAG} draws
+each source as a vertex with an arrow to each recipient. A response kernel
+can also be represented by a deterministic response and an independent
+private random seed. We draw a separate vertex for each private seed when
+testing which inputs a predictor can learn.
+
+Finite classical sources suffice for finite visible alphabets. Fix the laws
+of all but one source and keep all response kernels fixed. Each value of the
+remaining source gives a vector of observed probabilities. The observed
+probability vector is an average of the conditional vectors, so
+Carathéodory's theorem represents the average by a finite mixture. Applying
+the same argument to each source in turn preserves the observed distribution.
+With finitely many inputs, each response kernel can sample a finite table
+with one output for each input configuration.
+
+\paragraph{Reading the figures.}
+Rounded squares mark visible laboratories. Red circles \(\lambda_i\) mark
+classical sources, and green circles \(\psi_i\) mark quantum sources. Each
+source arrow takes the colour of the source. Arrows between panels show
+the direction of the graph edits in \eqref{eq:direction}.
+
+A laboratory can prepare a source resource locally when the laboratory is
+the only recipient. A source can also carry an independent classical register
+for a subset of its recipients. A quantum source can carry an additional
+independent state for a subset. We identify graphs that differ only by
+local preparation or the choice to combine redundant sources. A figure may therefore draw a single source where
+the proof uses separate resources.
 
 \input{elementary}
 \input{fritz}

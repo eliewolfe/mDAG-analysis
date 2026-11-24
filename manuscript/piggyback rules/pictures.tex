@@ -81,10 +81,10 @@
   {C1/B,C1/C,C2/B,C2/D,Q3/C,Q3/D}
 \censusPair{degradation}{deg-before}{All-quantum triangle}
   {deg-after}{Two classical sources}
-  {Source degradation in the census triangle. The preceding move removed an
-   isolated laboratory \(A\). Degrading the sources on \(BC\) and \(BD\)
-   gives \(\lambda_1\) and \(\lambda_2\). Laboratory \(B\) can record
-   both settings, while \(C,D\) retain their shared state \(\psi_3\).}
+  {Changing \(\psi_1\) on \(BC\) and \(\psi_2\) on \(BD\) to classical
+   sources \(\lambda_1,\lambda_2\) gives the triangle seed. An earlier
+   move removed the isolated \(A\). Laboratory \(B\) can record both
+   settings, while \(C,D\) share the state \(\psi_3\).}
 
 \Diagram{fix-before}
   {A/28/23,B/8/22,C/52/34,D/30/4}
@@ -95,10 +95,9 @@
   {Q1/16/38,Q2/53/12}
   {A/B,A/C,Q1/A,Q1/B,Q2/A,Q2/C}
 \censusPair{fixing}{fix-before}{Four laboratories}{fix-after}{Fix \(D\)}
-  {Fixing the leaf \(D\) gives the Evans seed. The \(ACD\) source
-   projects to \(AC\). The \(BD\) source now supplies only \(B\), which
-   can prepare its share locally. Both arrows from \(A\) to the surviving
-   leaves remain.}
+  {Fixing the output of the leaf \(D\) gives the Evans seed. Source
+   \(\psi_2\) now reaches \(A,C\), and \(B\) can prepare the surviving share
+   of \(\psi_3\) locally. The arrows \(A\to B\) and \(A\to C\) remain.}
 
 \Diagram{naive-before}
   {A/8/8,B/52/8,C/30/26,D/30/43}
@@ -110,9 +109,11 @@
   {Q1/A,Q1/B,C2/A,C2/D,C3/B,C3/D}
 \censusPair{naive}{naive-before}{Classical message \(C\to D\)}
   {naive-after}{Marginalize \(C\)}
-  {Ordinary marginalization gives a triangle with recorder \(D\). In panel (a) \(C\) sends the two classical labels from its incident
-   sources to \(D\). The independent state \(\psi_1\) between \(A,B\)
-   supplies the measurement outcomes.}
+  {Ordinary marginalization of \(C\) gives a triangle with recorder \(D\).
+   In panel (a), \(C\) forwards a label from \(\psi_2\) on \(AC\) and a
+   label from \(\psi_3\) on \(BC\) to \(D\). In panel (b), \(\lambda_2\)
+   shares the first label with \(A,D\) and \(\lambda_3\) shares the second
+   with \(B,D\). Laboratories \(A,B\) still share the state \(\psi_1\).}
 
 \Diagram{tele-before}
   {A/7/38,B/8/15,C/33/32,D/56/15}
@@ -124,10 +125,10 @@
   {A/C,C/D,Q2/C,Q2/D}
 \censusPair{teleportation}{tele-before}{Teleportation channel \(BC\)}
   {tele-after}{Marginalize \(B\)}
-  {Teleportation yields the instrumental chain \(A\to C\to D\).
-   Laboratory \(B\) can teleport its share of \(\psi_2\) to \(C\)
-   using \(\psi_1\) and its classical message. The surviving \(CD\)
-   source is indexed by the transported state.}
+  {Marginalizing \(B\) with teleportation gives the instrumental chain
+   \(A\to C\to D\). Laboratory \(B\) uses \(\psi_1\) and the arrow \(B\to C\)
+   to teleport the \(B\) subsystem of \(\psi_2\) to \(C\). Panel (b)
+   labels the resulting state shared by \(C,D\) as \(\psi_2\).}
 
 \Diagram{stitch-before}
   {A/30/15,B/30/38,C/8/15,D/52/15}
@@ -139,9 +140,10 @@
   {A/C,A/D,Q1/A,Q1/C,Q2/A,Q2/D}
 \censusPair{stitching}{stitch-before}{Sink \(A\) and source \(B\)}
   {stitch-after}{Stitch \(B\) onto \(A\)}
-  {Stitching gives the Evans seed. The independent sources still feed
-   \(AC\) and \(AD\). The children \(C,D\) now receive the output of
-   \(A\) on their visible input wires.}
+  {Stitching \(B\) onto \(A\) redirects the arrows into \(C,D\) and gives
+   the Evans seed. In panel (a), the proof keeps records with \(B=A\).
+   In panel (b), \(A\) sends the same output to \(C,D\) along the redirected
+   arrows. The sources on \(AC\) and \(AD\) remain independent.}
 
 \Diagram{post-before}
   {B/7/38,C/14/9,D/49/9,A/46/38}
@@ -153,10 +155,9 @@
   {B/C,C/D,Q3/C,Q3/D}
 \censusPair{postselection}{post-before}{Two independent states at \(A\)}
   {post-after}{Postselect at \(A\)}
-  {Conditioning on a designated joint-measurement outcome at \(A\) can
-   prepare a shared state for \(C,D\). The fresh index \(3\) denotes
-   this combined resource. The wire \(B\to C\) supplies the setting
-   in the resulting instrumental experiment.}
+  {Postselecting a joint-measurement outcome at \(A\) leaves \(C,D\)
+   with a shared state, drawn as \(\psi_3\). The arrows \(B\to C\) and
+   \(C\to D\) survive, giving the instrumental seed.}
 
 \Diagram{split-before}
   {A/12/23,B/26/42,C/36/23,D/47/23}
@@ -168,10 +169,10 @@
   {A/B,A/Bp,B/C,Bp/C,C/D,Q1/A,Q1/B,Q1/Bp,Q2/A,Q2/C,Q3/B,Q3/Bp,Q3/D}
 \censusPair{splitting}{split-before}{One reported field at \(B\)}
   {split-after}{Split \(B\) into two fields}
-  {Target splitting inside a recorded parent-prediction step. Both fields
-   receive the inputs of \(B\) and report to \(C\). Their common private
-   randomness can be included in either enlarged source. Panel (b) is the
-   intermediate graph before any input to \(B'\) is restricted.}
+  {Splitting \(B\) into \(B,B'\) gives both fields the original inputs
+   of \(B\) and sends both outputs to \(C\). Either source enlarged by the
+   split can supply the shared private randomness. Panel (b) shows the
+   intermediate graph before parent prediction restricts \(B'\).}
 
 \Diagram{parent-before}
   {A/12/23,B/26/42,Bp/26/3,C/36/23,D/47/23}
@@ -183,12 +184,13 @@
   {B/C,Bp/C,C/D,Q2/B,Q2/C,Q3/B,Q3/D,C2/B,C2/Bp,C2/C}
 \censusPair{parent}{parent-before}{Only \(A\) supplies \(B'\)}
   {parent-after}{Marginalize predictor \(A\)}
-  {Parent prediction applied to Fig.~\ref{fig:splitting}(b).
-   Removing both source inputs of \(B'\) leaves it predictable by \(A\).
-   Laboratory \(A\) uses \(\psi_1\) to teleport its share of
-   \(\psi_2\) to \(B\). It also relays a classical register from the
-   \(AC\) source, giving \(\lambda_2\) on \(B,B',C\).
-   The next census move marginalizes \(B\) to obtain an instrumental seed.}
+  {Laboratory \(A\) predicts \(B'\). Panel (a) shows the intermediate
+   graph obtained by removing the two source inputs to \(B'\) from
+   Figure~\ref{fig:splitting}(b). Marginalizing \(A\) gives panel (b).
+   Laboratory \(A\) uses \(\psi_1\) to teleport the share of \(\psi_2\) to
+   \(B\) and forwards a classical register from the \(AC\) source, giving
+   \(\lambda_2\) on \(B,B',C\). The next census move marginalizes \(B\)
+   to reach an instrumental seed.}
 
 \Diagram{dsep-before}
   {A/8/41,B/40/31,C/52/3,D/20/13}
@@ -200,11 +202,11 @@
   {C1/B,C1/C,C2/B,C2/D,Q3/C,Q3/D}
 \censusPair{dsep}{dsep-before}{Four independent triple sources}
   {dsep-after}{Restrict \(B\) and forget \(A\)}
-  {Graphical separation certifies the prediction of \(B\) by \(A\).
-   The shared sources \(\psi_1,\psi_2\) supply classical information
-   to \(B\). The unseen \(\psi_4\) drops its share at \(B\). Removing
-   \(A\) leaves both \(\psi_3\) and \(\psi_4\) on \(CD\). Their tensor
-   product is drawn as \(\psi_3\) in the resulting triangle.}
+  {Laboratory \(A\) predicts \(B\) using the sources \(\psi_1,\psi_2\).
+   The d-separation test allows \(B\) to drop the input from \(\psi_4\)
+   and to receive only classical data from \(\psi_1,\psi_2\). Removing
+   \(A\) leaves both \(\psi_3\) and \(\psi_4\) on \(CD\). Panel (b) draws
+   the tensor product as \(\psi_3\).}
 
 \Diagram{kpc-before}
   {C/9/37,D/9/9,E/50/37,F/50/9}
@@ -216,18 +218,18 @@
   {C/D,C1/E,C1/F,Q2/D,Q2/F}
 \censusPair{semigraphoid}{kpc-before}{\(F\) predicts \(E\)}
   {kpc-after}{Restrict the inputs of \(E\)}
-  {The recorded semigraphoid step on the Khanna--Pusey--Colbeck graph.
-   The Bell experiment uses \(\lambda_1\) for the setting shared by
-   \(E,F\) and \(\psi_2\) for the state measured by \(D,F\). The
-   proof constructs a fresh source on \(EF\) in the classical explanation,
-   allowing both visible arrows into \(E\) to be deleted.}
+  {When \(F\) predicts \(E\), the semigraphoid certificate allows
+   deletion of \(C\to E\) and \(D\to E\). In the Bell graph, \(\lambda_1\)
+   supplies the setting at \(E,F\), and \(\psi_2\) supplies the state
+   measured at \(D,F\). The proof constructs a fresh source on \(EF\)
+   in the classical model.}
 \censusPair{entropic}{kpc-before}{Prediction constraint \(H(E\mid F)=0\)}
   {kpc-after}{Bell experiment}
-  {The entropy program certifies the same deletion as
-   Fig.~\ref{fig:semigraphoid}. Its restricted observable model supplies
-   \(I(E:CD)=0\). The entropy proof uses this independence and perfect
-   prediction to justify replacing the source of \(E,F\) by
-   \(\lambda_1\). The census stores the semigraphoid certificate for this step.}
+  {The entropy program certifies the deletion of \(C\to E\) and
+   \(D\to E\), the same census move as Figure~\ref{fig:semigraphoid}.
+   The proof uses \(H(E\mid F)=0\) and the observable independence
+   \(I(E;CD)=0\) to justify a fresh classical source on \(EF\). The
+   census records the semigraphoid certificate for the move.}
 
 \Diagram{up-before}
   {A/8/36,B/29/36,C/51/36,D/29/6}
@@ -239,7 +241,7 @@
   {A/B,A/D,B/C,Q1/B,Q1/C,Q1/D}
 \censusPair{upward}{up-before}{Additional parent \(B\) of \(D\)}
   {up-after}{Delete \(B\to D\)}
-  {Upward transfer in the cold search. The deletion leaves
-   the common source of \(B,C,D\) and the direct input \(A\to D\)
-   intact. A gap established on the right transfers to the left. The
-   stored census proof for this input class uses a different first move.}
+  {The upward-transfer lookup deletes \(B\to D\) while retaining the
+   source on \(BCD\) and the arrow \(A\to D\). A gap on the right
+   establishes a gap on the left. The search from named seeds recorded
+   the lookup. The stored proof for the input class fixes \(D\) directly.}

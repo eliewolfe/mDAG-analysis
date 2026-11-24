@@ -1,26 +1,24 @@
 \section{The four-node census}\label{sec:census}
-The census starts from four-visible-node structures in which every shared source is quantum. It groups these structures using proven observational
-equivalences that preserve both their classical and their quantum models
-\cite{Repo}. Among 446 such classes, 20 contain a graph without shared latent
-sources. In those classes the two models coincide. The remaining 426 classes,
-containing 996 structures up to relabelling, are the inputs to the search.
-A recorded step identifies the particular member to which the transformation
-was applied. Its labelled output can belong to a class represented in the
-database by a different graph. The proofs terminate at variants of the Bell,
-triangle, instrumental, and Evans experiments. Their established quantum
-violations supply the starting witnesses
-\cite{Bell,Fritz,Instrumental,EvansGap}.
+The census starts from graphs with four visible vertices and every source quantum.
+Proven observational equivalences group graphs with the same classical
+and quantum model sets \cite{Repo}. Of the 446 classes, 20 contain a graph
+without shared latent sources and admit identical classical and quantum
+distributions. The search starts from the other 426 classes, which
+contain 996 graphs up to relabelling.
 
-Table~\ref{tab:census} reports the stages at which the depth-one search first
-establishes a gap for an input class. In this search a Fritz step is tried at an
-input, followed by elementary moves or lookups. The deeper search also applies
-Fritz moves to intermediate graphs. The first stage of the depth-one search includes the seeds,
-elementary transformations, and the upward transfer proved in
-Appendix~\ref{app:upward}. For the remaining 52 classes it tries parent
-prediction, then the sibling d-separation test, and then the stronger
-certificates. The illustrative split in Figure~\ref{fig:splitting} belongs to
-the parent step in Figure~\ref{fig:parent}; splitting is used inside a
-Fritz step and has no separate stage in the table.
+Each recorded move names the class member to which the rule applies.
+The labelled graph produced by the rule may differ from the representative
+of the resulting class. A proof ends at an established Bell, triangle,
+instrumental, or Evans witness \cite{Bell,Fritz,Instrumental,EvansGap}.
+
+Table~\ref{tab:census} shows when each stage of the depth-one search
+establishes a gap. The first stage finds proofs for 374 classes using
+the seeds, elementary rules, and the upward-transfer lookup from
+Appendix~\ref{app:upward}. For the remaining 52 classes, the search
+tries a Fritz move at an input and follows the move with elementary
+rules or lookups. The deeper search also tries Fritz moves on intermediate
+graphs. The split in Figure~\ref{fig:splitting} takes place within the
+parent-prediction step in Figure~\ref{fig:parent}.
 
 \begin{table}[htbp]
 \centering
@@ -39,91 +37,101 @@ Entropic certificate beyond the above & 0 & 380\\
 \end{tabular}
 \end{table}
 
-In the four-node run each candidate uses one predictor. The parent stage admits
-every predicting parent, even one that also shares a source with the target.
-The sibling pool requires a channel to the target from each predictor considered.
-The proof of Proposition~\ref{prop:dsep} needs a channel for sharing a seed
-with at least one predictor per target. The default search omits descendants
-of the target because its private noise reaches any such predictor along a directed
-path, defeating the direct separation test. A descendant with a shared source
-can still satisfy the semigraphoid or entropic test when explicitly considered.
+The four-node search uses one predictor per candidate. The parent stage
+allows a predicting parent that also shares a source with the predicted
+vertex. The sibling stage considers predictors with a channel to the
+predicted vertex. For the general d-separation argument of
+Proposition~\ref{prop:dsep}, each predicted vertex needs a channel to
+at least one predictor for sharing a seed. The default search omits
+descendant predictors. The private seed of a predicted vertex has a
+directed path to each descendant, preventing the required d-separation.
+A descendant with a shared source can still satisfy the semigraphoid
+or entropic test when considered.
 
-Of the 696 candidates compared after d-separation failed, the semigraphoid and
-entropic checks both certified the same 37 and left 659 undecided. A successful
-certificate validates the transformation even if the resulting graph has yet to
-reach a seed. Thus 37 successful candidate restrictions and one newly certified
-input class count different outcomes. In total, 935 structures belong to the
-380 classes with a known gap. The remaining 61 structures belong to the 46 open
-classes.
+Of the 696 candidates that reached the stronger tests after d-separation
+failed, both tests certified the same 37 restrictions and left 659
+undecided. A certified restriction adds a proof of a gap when the
+search can reach a seed from the resulting graph. The search establishes
+gaps for 935 graphs in 380 classes. The 46 open classes contain 61 graphs.
 
-The three parent cases take the total from 374 to 377, the two graphical cases to 379, and the KPC case to 380. These six classes illustrate why the search retains more than
-one mode of prediction. All three classes established at the parent stage use a
-split target. Of the two established by d-separation, the tetrahedron of
-Figure~\ref{fig:dsep} needs no split, while the other admits a successful step
-with both target and predictor in split mode. The last class contains the KPC
-graph of Figures~\ref{fig:semigraphoid} and~\ref{fig:entropic}. Retaining its
-childless predictor leaves the ordinary Bell outcome at \(F\) available. These
-examples also explain how a four-node census can have proof paths with five
-visible vertices. A temporary extra vertex can distinguish a setting from
-a result.
+Each of the three classes established by parent prediction uses a split
+predicted field. Of the two classes established by d-separation, the
+tetrahedron in Figure~\ref{fig:dsep} requires no split. The other admits
+a step with both the predictor and the predicted vertex split. The last
+class contains the Khanna--Pusey--Colbeck graph of
+Figures~\ref{fig:semigraphoid} and~\ref{fig:entropic}. Retaining the
+childless predictor \(F\) preserves the Bell outcome. Splitting a node
+can give a five-vertex graph along a proof that starts with four vertices.
 
 \appendix
 \section{Upward transfer within a classical equivalence class}\label{app:upward}
 \begin{piggyback}{Upward transfer}
-Starting at \(G\), find a structurally lower graph \(H\) on the same visible
-variables within its classical observational equivalence class. The search
-records a lookup from \(G\) to \(H\). A known gap transfers upward from \(H\)
-to \(G\).
+Find a graph \(\Gfamiliar\) on the same visible variables as
+\(\Gtarget\), with fewer resources and the same classical model set.
+The search records a lookup from \(\Gtarget\) to \(\Gfamiliar\).
+A gap transfers upward from \(\Gfamiliar\) to \(\Gtarget\).
 \end{piggyback}
 \begin{proposition}\label{prop:upward}
-Suppose the visible labels are aligned, \(\Cset(G)=\Cset(H)\) for the chosen
-alphabets, and every resource of \(H\) can be realized on \(G\) by ignoring
-extra directed edges, extra sources, or extra source recipients. Then every
-witness on \(H\) for those alphabets is a witness on \(G\). If the hypotheses
-hold for all finite visible alphabets, the transfer is \qcn.
+Suppose the visible labels are aligned and the two graphs admit the
+same classical distributions for the chosen alphabets. Suppose also
+that the resources of \(\Gtarget\) can implement every experiment on
+\(\Gfamiliar\) by omitting the extra arrows, sources, or recipients.
+Any witness on \(\Gfamiliar\) for the chosen alphabets is a witness on
+\(\Gtarget\). If the hypotheses hold for all finite visible alphabets,
+then \(\gap(\Gfamiliar)\implies\gap(\Gtarget)\).
 \end{proposition}
 \begin{proof}
-A strategy on \(H\) runs on \(G\) by ignoring the added inputs, letting unused
-sources distribute fixed states, and sending unused registers to any extra
-recipients. Hence \(\Qset(H)\subseteq\Qset(G)\). A witness outside \(\Cset(H)\)
-is also outside \(\Cset(G)\) by the assumed equality. The very same observed
-distribution therefore witnesses the gap on \(G\).
+Run the familiar experiment on \(\Gtarget\). The laboratories can ignore
+added inputs. Unused sources can distribute fixed states and any extra
+recipients can receive unused registers. The strategy produces the familiar
+witness on \(\Gtarget\). Equality of the classical model sets rules out
+a classical model of the witness on \(\Gtarget\).
 \end{proof}
 
-In Figure~\ref{fig:upward}, graph \(G\) on the left has the additional edge \(B\to D\) relative to \(H\) on the right.
-The output of \(B\) in a classical model is determined by \(A\), the source
-shared by \(B,C,D\), and a private random seed. The shared source may also
-supply that independent seed. Laboratory \(D\), which already receives both
-\(A\) and the shared source, can then reconstruct \(B\) locally. This explains
-why the two graphs admit the same classical models. Any strategy on \(H\) runs on \(G\), where \(D\) can ignore the arrow. The class of \(H\) has a gap because fixing \(D\) leaves the instrumental graph
-\(A\to B\to C\) with a quantum source on \(BC\). This identifies an actual
-recorded lookup to a class with a gap. The two graphs lie in the same classical
-class and in distinct classes under the census's proved quantum equivalences.
-Upward transfer uses \(\Qset(H)\subseteq\Qset(G)\). Whether these particular
-quantum model sets are equal is undecided by the lookup. Fixing \(D\) directly in \(G\)
-also reaches the instrumental seed. Marginalizing \(D\), which has no children,
-gives the same three-node graph. If \(C\) is removed instead, both \(B\) and \(D\)
-receive \(A\) and a shared source. They can sample any conditional distribution
-of \(B,D\) given \(A\), so that alternative gives a graph without a gap.
+In Figure~\ref{fig:upward}, the target graph has an additional arrow
+\(B\to D\). In a classical model, \(A\), the source on \(BCD\), and a
+private seed determine \(B\)'s output. The source on \(BCD\) can carry
+the independent seed, so \(D\) can compute \(B\) using the inputs in
+the familiar graph. The two graphs therefore admit the same classical
+distributions. In the quantum model, \(D\) can ignore the arrow
+\(B\to D\) to run the familiar experiment.
+
+Fixing \(D\) in the familiar graph gives the instrumental seed
+\(A\to B\to C\) with a quantum source on \(BC\). The census thus records
+an upward lookup to a class with a gap. The two graphs share a classical
+equivalence class and occupy distinct classes under the proven quantum
+equivalences. The lookup establishes
+\(\Qset(\Gfamiliar)\subseteq\Qset(\Gtarget)\). Equality of the two quantum
+model sets remains undecided by the lookup.
+
+Fixing or marginalizing the childless \(D\) directly in \(\Gtarget\)
+gives the same instrumental seed. Removing \(C\) leaves \(B,D\) with
+the visible parent \(A\) and a shared source. A classical shared source
+can sample any joint conditional law of \(B,D\) given \(A\), so removing
+\(C\) gives a graph without a gap.
 \censusfigure{upward}
 
+\Needspace{6\baselineskip}
 \paragraph{Effect of disabling upward transfer.}
-The depth-one census recorded 156 upward transitions and used at least one in
-45 selected proofs of input classes. To determine whether any established gap
-relied on this rule, the census was rerun from the same named seeds with upward
-lookups disabled from the outset. It used the same equivalence classes, other
-transformations and search bounds, and began with no previously cached proofs.
-Table~\ref{tab:ablation} compares three search budgets. At every budget the two
-runs establish the same 380 input classes, leave the same 46 classes open, and
-establish the same set of input and intermediate keys. A key counts one stored
-equivalence class or unlabelled intermediate graph, including seeds. Different
-choices of valid proof can therefore explain some of the same gaps.
+The depth-one census recorded 156 upward transitions and selected a proof
+using upward transfer for 45 input classes. To test whether the gaps
+depended on upward transfer, the census ran from the same named seeds
+with and without the lookup. Both runs used the same equivalences,
+other transformations and search bounds, and both started without
+cached proofs.
+
+Table~\ref{tab:ablation} compares the three search budgets. In each case,
+both runs establish gaps in the same 380 input classes and leave the
+same 46 classes open. Both runs also establish gaps for the same families
+of intermediate graphs. A known key represents a stored equivalence
+class or an intermediate graph up to relabelling, and can include a seed.
 
 \begin{table}[htbp]
 \centering
-\caption{Reruns with upward transfer enabled and disabled. An entry applies to
-both settings. The cap bounds the visible count of a recorded output after the complete
-move. A temporary split inside a move may exceed it.}\label{tab:ablation}
+\caption{Census results with upward transfer enabled and disabled. Both runs
+give the same counts at each budget. The cap bounds the number of visible
+vertices after a complete move. A temporary split inside a move can exceed
+the cap.}\label{tab:ablation}
 \begin{tabular}{@{}lrrr@{}}
 \toprule
 Search budget & Proven inputs & Open inputs & Known keys\\
@@ -135,22 +143,22 @@ Deeper search, cap six & 380 & 46 & 477\\
 \end{tabular}
 \end{table}
 
-Disabling upward transfer also preserved the implications among the open inputs.
-Using the class numbers in the census \cite{Open}, a hypothetical gap in class~1
-would establish gaps in classes 2, 3, 6 and 7. These are the only four
-implications between distinct open classes found under the recorded bounds.
-For the cap-six comparison, the search followed paths from each open input
-with at most one recorded move whose output had more visible vertices than its input, then
-screened out known gap-free targets. Both runs returned the same 1,608 candidate
-targets, including 609 reached by more than one open input. For every target
-the set of inputs that would benefit from a gap there was identical in the
-two runs. These counts describe the recorded searches at the indicated bounds.
-Proposition~\ref{prop:upward} applies independently of them.
+The implications among the 46 open classes also agree. Using the class
+numbers of the census \cite{Open}, a gap in class~1 would establish gaps
+in classes 2, 3, 6 and 7. The two runs find exactly four implications
+between distinct open classes at the reported search bounds.
 
-The script \texttt{check\_examples.py} in the article directory verifies the
-illustrated census examples. The companion script \texttt{check\_upward.py}
-reproduces the paired census runs, compares their sets of established gaps,
-and checks the implications among the open classes.
+At cap six, each search follows paths with at most one move that increases
+the recorded number of visible vertices. After excluding known gap-free
+graphs, both runs leave the same 1,608 candidate graphs, of which 609 are
+reachable from more than one open class. For every candidate, both runs
+identify the same set of open classes whose gaps would follow from a gap
+at the candidate.
+
+The script \texttt{check\_examples.py} verifies the illustrated census
+moves. The script \texttt{check\_upward.py} reproduces the paired searches
+and compares the established gaps and the implications among the open
+classes.
 
 \begin{thebibliography}{99}
 \bibitem{Bell} J. S. Bell, On the Einstein Podolsky Rosen paradox,
