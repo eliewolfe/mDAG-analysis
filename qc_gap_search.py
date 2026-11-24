@@ -43,7 +43,7 @@ PIGGYBACK_VERSIONS: Dict[str, int] = {
     'upward': 1,                       # gap(G') for G' structurally above G in G's classical class (lookup only)
     # 'identity' (an input that is a seed class) is a report label, not a transition: no version.
     'PD': 1,
-    'node_stitching': 1,               # formerly 'interruption'
+    'node_stitching': 2,               # outcomes may have children
     'conditioning': 4,                 # 1 visible grandparents; 2 latent grandparents; 3 guessing parents' children;
                                        #   4 condition 3 dropped (the conditioned node recomputes its parents)
     'naive_marginalization': 1,

@@ -18,11 +18,11 @@ are two classes and the three instrumental seeds one; the triangle seed with two
 stays a degradation target (its all-quantum class is proven through the degradation lookup). Seed classes that are
 inputs are proven by the identity piggyback.
 
-The primary search retains the ten-stage historical record, then expands the surviving branches with at most
+The primary search runs the ten-stage cascade, then expands the surviving branches with at most
 one Fritz growth per path. The classical metagraphs screen provably gap-free branches through five nodes.
 The named seeds anchor every bounded certificate, even if a disk gap cache exists. Use --max-visible and
 --resume-at to select the output cap and the size for non-growing closure after a reduction. --depth-one
-reproduces the original cascade alone; --no-screen disables gap-free pruning for comparison.
+runs the ten-stage cascade alone; --no-screen disables gap-free pruning for comparison.
 
 Options (see qc_gap_search.default_stages): the closure tries the `relabel` target set only (lp_markov_target=True
 turns `markov` back on). The predictor pool of the certified stages is the latent siblings of the target that are
@@ -210,7 +210,7 @@ if __name__ == '__main__':
     parser.add_argument('--max-visible', type=int, help="maximum number of visible nodes in a search branch")
     parser.add_argument('--resume-at', type=int, choices=(4, 5), help="size at which non-growing closure resumes")
     parser.add_argument('--engine', choices=ENGINES)
-    parser.add_argument('--depth-one', dest='deep', action='store_false', help="run the original cascade alone")
+    parser.add_argument('--depth-one', dest='deep', action='store_false', help="run the ten-stage cascade alone")
     parser.add_argument('--no-screen', dest='screen', action='store_false')
     parser.add_argument('--no-entropic', dest='with_entropic', action='store_false')
     parser.add_argument('--no-split-predictors', dest='with_split_predictors', action='store_false')

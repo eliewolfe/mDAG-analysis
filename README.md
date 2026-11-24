@@ -21,7 +21,9 @@ The package is managed with poetry (`poetry install`). Two dependencies deserve 
 
 Run the four-node census with `python "Special Applications/proving_QC_Gaps.py"`. The default search allows
 one Fritz step to grow a structure to six nodes. Its first run also builds a five-node screening table, which
-later runs reuse. Pass `--no-cache` to recompute it or `--depth-one` to run only the original ten stages.
+later runs reuse. Pass `--no-cache` to recompute it or `--depth-one` to run only the ten-stage cascade.
+Node stitching can identify a free setting (a visible node with no parents or shared sources)
+with any distinct visible node outside its directed descendants, including a node that already has children.
 The census searches over quantum observational equivalence classes. `metagraph_advanced.QuantumMetagraph`
 builds the metagraph whose edges are quantum-valid (structural dominance, face splitting for the families of facets
 whose parts $C_i$ no other facet touches, and the HLP edge rule in its pre-measurement form). For an HLP edge

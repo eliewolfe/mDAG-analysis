@@ -137,8 +137,9 @@ state on \(BD\) reaches \(C\) through the teleportation channel on \(BC\).
 \begin{piggyback}{Node stitching}
 In \(\Gtarget\), choose a visible \(X\) with no visible parents or shared
 sources, and a distinct visible \(A\) outside the descendants of \(X\).
-Delete \(X\) and replace each arrow \(X\to D\) by \(A\to D\) to obtain
-\(\Gfamiliar\).
+Delete \(X\) and redirect each arrow \(X\to D\) to start at \(A\).
+Retain the original children of \(A\), drawing a single arrow to any
+child that \(X\) and \(A\) already shared. This gives \(\Gfamiliar\).
 \end{piggyback}
 \begin{proposition}\label{prop:stitching}
 The stitched graph is acyclic. Every quantum distribution on \(\Gfamiliar\)
@@ -172,12 +173,12 @@ the source values and seeds therefore gives \eqref{eq:stitch}, a classical
 realization of \(\Pfamiliar\) on \(\Gfamiliar\).
 \end{proof}
 In Figure~\ref{fig:stitching}, \(B\) serves as a stand-in for \(A\) at the
-laboratories \(C,D\).\footnote{The census enumerates the source--sink
-case of stitching, the inverse of interrupting a vertex into an exogenous
-setting and a childless outcome. Proposition~\ref{prop:stitching} also
-allows \(A\) to have children. Redirecting the arrows creates a cycle
-exactly when \(A\) is a descendant of \(X\), including a direct child.} The uniform match probability in \eqref{eq:stitch}
-works even when the output of \(A\) is nonuniform.
+laboratories \(C,D\). The uniform match probability in \eqref{eq:stitch}
+holds for every distribution of \(A\). A second census example starts
+with \(A\to D\), \(B\to C\), and independent quantum sources on
+\(BC\) and \(BD\). Stitching the setting \(A\) onto the outcome \(B\)
+keeps \(B\to C\) and redirects \(A\to D\) to \(B\to D\), again
+giving the Evans seed.
 \censusfigure{stitching}
 
 \subsection{Postselection}\label{sec:postselection}

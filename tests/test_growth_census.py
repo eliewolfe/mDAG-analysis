@@ -140,7 +140,7 @@ def test_deeper_census_proofs_and_hierarchy(proving_QC_Gaps, tmp_path):
     reached = {k: report.bounded.forward(k) for k in numbers}
     assert {k: warm.bounded.forward(k) for k in numbers} == reached
     targets = set().union(*reached.values())
-    assert len(targets) == 15615
+    assert len(targets) == 15619
     candidates = {key for key in targets
                   if not report.screening.verdict(report.explorer.representatives[key]).startswith('gap-free')}
     assert len(candidates) == 1608

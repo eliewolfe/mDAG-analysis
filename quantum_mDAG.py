@@ -339,13 +339,19 @@ class QmDAG:
 
 
     def node_stitching(self, node_with_no_children: int, node_with_no_parents: int) -> "QmDAG":
-        """We make the children of the node with no parents into the children of the node that previously had no children, and then we remove the node with no parents."""
-        remaining_nodes = self.visible_nodes[:node_with_no_parents] + self.visible_nodes[(node_with_no_parents + 1):]
-        new_directed_edges = set(self.directed_structure_instance.edge_list)
-        for edge in self.directed_structure_instance.edge_list:
-            if edge[0] == node_with_no_parents:
-                new_directed_edges.add((node_with_no_children, edge[1]))
-                new_directed_edges.remove(edge)
+        """Identify an exogenous setting with an outcome outside its descendants (Proposition 5).
+
+        The historical keyword node_with_no_children names the outcome; its existing children are retained.
+        """
+        outcome, source = node_with_no_children, node_with_no_parents
+        if source not in self.exogenous_visible_nodes:
+            raise ValueError("the setting must be an exogenous visible node")
+        excluded = self.directed_structure_instance.adjMat.descendantsplus_of(source)
+        if outcome not in self.visible_nodes or outcome in excluded:
+            raise ValueError("the outcome must be a distinct visible non-descendant of the setting")
+        remaining_nodes = self.visible_nodes[:source] + self.visible_nodes[source + 1:]
+        new_directed_edges = {(outcome if parent == source else parent, child)
+                              for parent, child in self.directed_structure_instance.edge_list}
         return QmDAG(
                 LabelledDirectedStructure(remaining_nodes, list(new_directed_edges)),
                 LabelledHypergraph(remaining_nodes, self.C_simplicial_complex_instance.simplicial_complex_as_sets),
@@ -353,16 +359,20 @@ class QmDAG:
                 )
 
 
-    # The forward map stitches the exogenous node onto the sink; its inverse interrupts a node. Old name kept.
+    # Historical name for the graph operation.
     interruption_creation = node_stitching
 
-    def _subinterruptions(self) -> Set["QmDAG"]:
-        for node_with_no_children in self.vis_nodes_with_no_children:
-            for node_with_no_parents in self.exogenous_visible_nodes:
-                if node_with_no_children in self.directed_structure_instance.adjMat.descendantsplus_of(node_with_no_parents):
-                    continue  # we don't want to create a cycle
-                yield self.interruption_creation(node_with_no_children, node_with_no_parents)
-    
+    def _stitching_pairs(self) -> Iterable[Tuple[int, int]]:
+        for source in sorted(self.exogenous_visible_nodes):
+            excluded = self.directed_structure_instance.adjMat.descendantsplus_of(source)
+            for outcome in self.visible_nodes:
+                if outcome not in excluded:
+                    yield outcome, source
+
+    def _subinterruptions(self) -> Iterable["QmDAG"]:
+        for outcome, source in self._stitching_pairs():
+            yield self.node_stitching(outcome, source)
+
     @cached_property
     def subinterruptions(self) -> Set["QmDAG"]:
         return set(self._subinterruptions())
@@ -686,15 +696,11 @@ class QmDAG:
             yield (('drop', node),), self.fix_to_point_distribution_QmDAG(node)
 
     def node_stitching_steps(self) -> Iterable[Tuple[Tuple, "QmDAG"]]:
-        """Stitch an exogenous node onto a childless sink by post-selecting on their equality (Section 5); the
-        inverse map interrupts a node, hence the old name 'interruption'."""
+        """Enumerate census stitches with at least three surviving visible nodes (Section 5)."""
         if self.number_of_visible <= 3:
             return
-        for sink in sorted(self.vis_nodes_with_no_children):
-            for source in sorted(self.exogenous_visible_nodes):
-                if sink in self.directed_structure_instance.adjMat.descendantsplus_of(source):
-                    continue
-                yield ((('sink', int(sink)), ('source', int(source))),), self.node_stitching(sink, source)
+        for outcome, source in self._stitching_pairs():
+            yield ((('outcome', int(outcome)), ('source', int(source))),), self.node_stitching(outcome, source)
 
     def conditioning_steps(self, strict_latents: bool = True) -> Iterable[Tuple[Tuple, "QmDAG"]]:
         """Condition on one visible node where conditioning_is_justified (Section 4)."""

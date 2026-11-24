@@ -285,7 +285,7 @@ The second half of the equality certifies no step that the first half does not. 
 
 All three tests accept the extra deletion in that example: d-separation, the semigraphoid test and the entropic test. They are right to, because they examine the classical direction, and the classical direction is true. What fails is the quantum direction, which no test examines: the gap of the result is witnessed by a distribution that cannot be produced in the starting structure with the two nodes equal.
 
-The code's rule avoids this by keeping the roles apart. The predicted node loses arrows. The predicting node loses none, and when it is removed its children inherit everything it could see. As a check on the code's own rule: on the 20 four-node classes that provably have no gap, its 42,962 steps of this kind produce 4,023 distinct results, and none of them reaches a structure with a known gap.
+The code's rule avoids this by keeping the roles apart. The predicted node loses arrows. The predicting node loses none, and when it is removed its children inherit everything it could see. As a check on the code's own rule: on the 20 four-node classes that provably have no gap, its 42,962 steps of this kind produce 4,023 distinct results, and none of them reaches a structure with a known gap. The downstream search includes stitching a free setting onto any distinct outcome outside its descendants, including outcomes with children.
 
 None of this touches Figure 4. There $F_S$ is childless, the two ways of deleting coincide, and the gap is established for an explicit quantum strategy in which the equality holds. The difference matters for a search that has to apply the step blindly to 996 structures and then look the result up in a list of known gaps.
 

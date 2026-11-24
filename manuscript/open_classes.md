@@ -8,7 +8,7 @@ The question (Roger Colbeck): tell the code that one open class has a gap, see w
 
 1. **There is a hierarchy, and it is small.** Exactly one open class has others hanging on it. If **class 1** had a gap, **classes 2, 3, 6 and 7** would follow: 5 classes, 16 of the 61 open structures. Class 1 is the KPC structure with one more source, shared by $D$ and $E.$ No other open class would prove any other.
 2. **Two families of hybrid structures would each settle several classes.** A hybrid has some of its sources classical. The KPC structure with a *classical* source shared by $C,$ $D$ and $E$ would settle classes 1, 2, 3, 6 and 7; a hybrid of the structure `0→1, 1→2, 1→3` would settle classes 4 and 5, which do not piggyback onto each other. Section 1.4 lists them.
-3. **Thirty-nine classes share no candidate with another open class.** Within the one-growth budget the open classes reach 15,615 keys. Screening leaves 1,608, including 69 six-node structures for which the full classical metagraph was unavailable. Section 1.5 gives the counts and the six-node saturation argument.
+3. **Thirty-nine classes share no candidate with another open class.** Within the one-growth budget the open classes reach 15,619 keys. Screening leaves 1,608, including 69 six-node structures for which the full classical metagraph was unavailable. Section 1.5 gives the counts and the six-node saturation argument.
 4. **Going deeper establishes additional hybrid gaps.** The depth-one, deeper cap-five, and deeper cap-six records prove 401, 434, and 477 input or intermediate keys respectively. They prove the same 380 of 426 four-node input classes. The cap-six record is used throughout the hierarchy.
 
 | Target | Settles | Status |
@@ -202,9 +202,11 @@ The table counts distinct keys reached from at least one open class with a singl
 | Visibles | Reached | No quantum source | Latent-free classical class | Saturated by a shared source | Every quantum source replaceable | Candidates |
 |---|---:|---:|---:|---:|---:|---:|
 | 3 | 93 | 17 | 74 | 0 | 1 | 1 |
-| 4 | 13,697 | 43 | 12,586 | 0 | 10 | 1,058 |
+| 4 | 13,701 | 43 | 12,590 | 0 | 10 | 1,058 |
 | 5 | 1,717 | 70 | 1,162 | 0 | 5 | 480 |
 | 6 | 108 | 0 | untested | 39 | 0 | 69 |
+
+Allowing a stitching outcome to retain children adds four reachable four-node keys relative to the childless-outcome search. All four have a classical equivalent without shared sources, so the screened candidate sets and the four implications among open classes agree across the two searches.
 
 The classical test forgets source colours and removes dominated facets. Membership in a classical class containing a latent-free DAG implies equality of the classical and quantum models. The five-node membership set contains 708,635 canonical IDs. At six nodes we use a sufficient saturation test. Suppose one source reaches a set of parties, and the remaining parties form a complete DAG and each sends its value to every source member. The complete DAG can sample any joint law of the remaining parties. The source and the broadcast values then suffice to sample any joint conditional law of the source members. This certifies 39 six-node keys. In particular, the apparent common six-node target of classes 38–46 has a root broadcasting to five parties with a shared source. Its classical model already contains every distribution.
 

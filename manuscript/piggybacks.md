@@ -116,7 +116,7 @@ A **QmDAG** ([`quantum_mDAG.QmDAG`](../quantum_mDAG.py#L101)) is a causal struct
 
 For a structure $G$ write $\mathcal C(G)$ for the set of distributions over $V$ realisable with all latents classical (a Bayesian network with latent variables), and $\mathcal Q(G)$ for the set realisable when the quantum facets carry quantum states on which their children perform measurements, classical facets and visible edges remaining classical channels. Always $\mathcal C(G)\subseteq\mathcal Q(G).$ The structure $G$ has a **QC gap** when $\mathcal Q(G)\not\subseteq\mathcal C(G).$
 
-The **effective DAG** of a QmDAG ([`QmDAG.effective_DAG_data`](../quantum_mDAG.py#L485)) is the ordinary DAG on the visible nodes, one node per facet and one private-noise node per visible node; [`QmDAG.lp_structure`](../quantum_mDAG.py#L522) is the same without the noise nodes. A "parent" of a visible node below is a parent in the effective DAG: a visible parent or a facet containing the node.
+The **effective DAG** of a QmDAG ([`QmDAG.effective_DAG_data`](../quantum_mDAG.py#L495)) is the ordinary DAG on the visible nodes, one node per facet and one private-noise node per visible node; [`QmDAG.lp_structure`](../quantum_mDAG.py#L532) is the same without the noise nodes. A "parent" of a visible node below is a parent in the effective DAG: a visible parent or a facet containing the node.
 
 ### 0.2 Piggybacks
 
@@ -382,14 +382,14 @@ The inputs are the 426 quantum equivalence classes of [1.0](#10-the-four-node-co
 |---|---|---|
 | identity (the input is a seed class) | 2 | 0 |
 | point distribution | 349 | 169 |
-| node stitching | 7 | 0 |
+| node stitching | 12 | 0 |
 | postselection | 63 | 15 |
 | naive marginalization | 173 | 0 |
 | teleportation marginalization | 181 | 9 |
 | marginalization, either kind (both removed at once) | 181 | 11 |
 | all elementary piggybacks | 374 | |
 
-Of the 426 input classes, 374 are proven by the elementary stage and 52 are left for the Fritz stages. Node stitching, whose characteristic product is a Bell variant derived from an instrumental variant, has no exclusive proof: the Bell classes it reaches are seeds ([9.4](#94-why-node-stitching-and-naive-marginalization-show-few-exclusive-proofs)). Removing the naive marginalization alone loses nothing, since the two marginalizations coincide wherever the removed node has no quantum facet; removing the teleportation one loses 9 classes, those where the relayed entanglement is what the proof needs; removing both loses 11.
+Of the 426 input classes, 374 are proven by the elementary stage and 52 are left for the Fritz stages. Stitching with lookups proves 12 classes, five more than the search restricted to childless outcomes. Removing stitching from the full search loses no input proofs ([9.4](#94-why-node-stitching-and-naive-marginalization-show-few-exclusive-proofs)). Removing the naive marginalization alone loses nothing, since the two marginalizations coincide wherever the removed node has no quantum facet; removing the teleportation one loses 9 classes, those where the relayed entanglement is what the proof needs; removing both loses 11.
 
 The "only via" column above is measured on the historical ten-stage record, including its Fritz stages. The deeper bounded record gives 14 for postselection, 5 for teleportation marginalization and 7 for either marginalization. The other entries agree. The historical count includes Fritz proofs that need a subsequent elementary trick. Among the six historical Fritz certificates, one contributes to the 15 classes for postselection, four to the 9 for teleportation marginalization and four to the 11 for marginalization of either kind ([8.9](#89-the-six-classes-that-need-a-fritz-step)). Within the elementary stage alone these three counts are 14, 5 and 7, and point distribution keeps its 169.
 
@@ -434,7 +434,7 @@ The second table names the six classes explicitly, one row per class with every 
 
 ## 2. Point distribution (`PD`)
 
-**Map.** Remove one visible node $v$ together with all its edges and its membership in facets; write $G-v$ for the result, so $G'=G-v$ ([`QmDAG.fix_to_point_distribution_QmDAG`](../quantum_mDAG.py#L201); trick `PD`, [`QmDAG.pd_steps`](../quantum_mDAG.py#L681)). $\pi$ is the marginal over $v.$
+**Map.** Remove one visible node $v$ together with all its edges and its membership in facets; write $G-v$ for the result, so $G'=G-v$ ([`QmDAG.fix_to_point_distribution_QmDAG`](../quantum_mDAG.py#L201); trick `PD`, [`QmDAG.pd_steps`](../quantum_mDAG.py#L691)). $\pi$ is the marginal over $v.$
 
 **The quantum direction.** Given $P'\in\mathcal Q(G'),$ let $v$ output a constant and every other node run its $G'$ strategy; call the resulting distribution $P.$ Its marginal over $v$ is $P',$ and $P\in\mathcal Q(G)$ because the children of $v$ may ignore a constant input.
 
@@ -446,7 +446,7 @@ The second table names the six classes explicitly, one row per class with every 
 
 ## 3. Marginalization, naive and with teleportation (`naive_marginalization`, `teleportation_marginalization`)
 
-**Map.** Remove the visible node $v$ ([`QmDAG.marginalize(node, apply_teleportation)`](../quantum_mDAG.py#L377)) and change the rest of the structure as follows:
+**Map.** Remove the visible node $v$ ([`QmDAG.marginalize(node, apply_teleportation)`](../quantum_mDAG.py#L387)) and change the rest of the structure as follows:
 
 * every visible parent of $v$ becomes a parent of every visible child of $v;$
 * every facet $F$ containing $v$ loses $v$ (a quantum facet stays quantum on $F\setminus v$), and in addition a *classical* facet over $(F\setminus v)$ and all visible children of $v$ is added;
@@ -470,7 +470,7 @@ The children then hold exactly the resources of $G'.$ $\square$
 
 The same move, marginalizing a relay node that holds no facet, proves other inputs as well, for instance 0→1→2; Q{0,2}, Q{0,3}, where marginalizing 1 relays the setting 0 to 2 and gives 0→2; Q{0,2}, Q{0,3}, which degrades to [`QG_Instrumental_C`](../known_QC_gaps.py#L41).
 
-**Order dependence.** Teleportation is not symmetric, so marginalizing several nodes in different orders can give different structures; wherever the code removes several nodes it enumerates every order ([`QmDAG.fritz_realise`](../quantum_mDAG.py#L902), through [`QmDAG._marginalize_nodes`](../quantum_mDAG.py#L889)).
+**Order dependence.** Teleportation is not symmetric, so marginalizing several nodes in different orders can give different structures; wherever the code removes several nodes it enumerates every order ([`QmDAG.fritz_realise`](../quantum_mDAG.py#L908), through [`QmDAG._marginalize_nodes`](../quantum_mDAG.py#L895)).
 
 ---
 
@@ -532,7 +532,7 @@ The result is a classical model of $G'$ for $P(\cdot\mid x_0).$ $\square$
 
 ## 5. Node stitching (`node_stitching`)
 
-**Map.** Let $x$ be an exogenous node (no visible parents, no non-singleton facet: [`QmDAG.exogenous_visible_nodes`](../quantum_mDAG.py#L138)) and $y$ a node that is not a descendant of $x,$ so that $G'$ is acyclic. Remove $x;$ its visible children become children of $y$ ([`QmDAG.node_stitching(node_with_no_children=y, node_with_no_parents=x)`](../quantum_mDAG.py#L341)). The search additionally restricts $y$ to childless nodes; the proof does not need this. $\pi$ is the renormalised diagonal $x=y$ of $P$:
+**Map.** Choose an exogenous visible setting $x$ (no visible parents and no shared facet) and a distinct visible outcome $y$ outside the descendants of $x$. Delete $x$ and replace each arrow $x\to d$ by $y\to d$. Keep the existing children of $y$, counting a shared child only once. No redirected arrow can create a directed cycle, since a path from a child of $x$ to $y$ would make $y$ a descendant of $x$. The census enumerates all such ordered pairs. The graph operation is [`QmDAG.node_stitching(y, x)`](../quantum_mDAG.py#L341). The recovery $\pi$ takes the renormalised diagonal $x=y$ of $P$:
 
 ```math
 \pi(P)(y,\text{rest})=\frac{P(x{=}y,\;y,\;\text{rest})}{P_x(y)},
@@ -540,13 +540,15 @@ The result is a classical model of $G'$ for $P(\cdot\mid x_0).$ $\square$
 
 where $P_x$ is the marginal of $x$ (uniform for every constructed distribution, so the denominator is then a constant).
 
-**The quantum direction.** Given $P'\in\mathcal Q(G'),$ in $G$ let $x$ be uniform, let the former children of $x$ treat the value of $x$ as they treated $y$ in $G',$ and let every other node run its $G'$ strategy. Then $`P(x,y,\text{rest})=P_x(x)\,P'^{\,do(y:=x)}(y,\text{rest}),`$ where the right factor is the distribution of the $G'$ strategy with the input that the former children of $x$ now take from $y$ fixed to $x$ (an edge intervention). Fixing that input to the value $y$ actually takes changes nothing, so $`P'^{\,do(y:=y)}=P'`$ and $\pi(P)=P'.$
+**The quantum direction.** Given $P'\in\mathcal Q(G')$, choose $x$ uniformly from the alphabet of $y$, independently of all sources. In $G$, each child newly connected to $y$ in $G'$ uses $x$ for the corresponding input. A child that already reads $y$ can keep that input and ignore $x$. All other operations are those of $G'$. For each observed record $(y,w)$, the branch on which $x=y$ therefore uses exactly the operations of $G'$ on that record, with $P(x=y,y,w)=P_x(y)P'(y,w)$. This proves $\pi(P)=P'$.
 
-**The classical direction.** Let $M$ be a classical model of $G$ for a distribution with $x$ uniform; $x$ is independent of all latents of $M.$ Define a model of $G'$ in which every node keeps its kernel, except that the former children of $x$ receive $y$ in place of $x.$ Since $y\notin\mathrm{desc}(x),$ the value $Y(\lambda)$ does not depend on $x$ and the new model is acyclic; its distribution is $`\sum_\lambda p(\lambda)[y=Y(\lambda)]\,[\text{rest}=f(\lambda,x{:=}Y(\lambda))],`$ which is the diagonal $x=Y(\lambda)$ of $M$'s distribution divided by $P_x(y),$ that is $\pi(P).$ Other children of $y$ read $y$ in both structures. $\square$
+**The classical direction.** Let $M$ be a classical model of $G$ for a distribution with $x$ uniform; $x$ is independent of all latents of $M.$ Define a model of $G'$ in which every node keeps its kernel, except that the former children of $x$ receive $y$ in place of $x.$ Since $y\notin\mathrm{desc}(x),$ the value $Y(\lambda)$ does not depend on $x$ and the new model is acyclic; its distribution is $`\sum_\lambda p(\lambda)[y=Y(\lambda)]\,[\text{rest}=f(\lambda,x{:=}Y(\lambda))],`$ which is the diagonal $x=Y(\lambda)$ of $M$'s distribution divided by $P_x(y),$ that is $\pi(P).$ At a common child of $x$ and $y$, supply the single recorded value $y$ to both old input slots. Children originally connected only to $y$ still read $y$. $\square$
 
 **Example.** [`QG_Bell_Edge_Edge`](../known_QC_gaps.py#L83) is 0→2, 1→3; Q{2,3}. Stitching with $x=1$ (exogenous) and $y=2$ (childless, not a descendant of 1) removes 1 and makes 3 a child of 2: 0→2→3; Q{2,3}, which is [`QG_Instrumental_Edge`](../known_QC_gaps.py#L39). The postselection $x=y$ identifies Bob's setting with Alice's outcome. Read as a piggyback: a gap in the instrumental scenario implies a gap in the Bell scenario. Likewise 0→2, 1→3; Q{1,3}, Q{2,3} maps with $x=0,$ $y=3$ to 1→3→2; Q{1,3}, Q{2,3}, which degrades to [`QG_Instrumental_EdgeC`](../known_QC_gaps.py#L40), and [`QG_Bell_C_Edge`](../known_QC_gaps.py#L80) (0→2; C{1,3}, Q{2,3}) maps to [`QG_Instrumental_C`](../known_QC_gaps.py#L41).
 
-**Naming.** The map *stitches* the exogenous node $x$ onto the sink $y$ by postselecting $x=y.$ Its inverse, which cuts a node into an exogenous source and a sink and distributes the children ([Appendix A](#appendix-a-the-piggybacks-in-reverse)), is the operation named interruption.
+**A census outcome with a child.** In class `4,2,0,3155`, the search applies stitching to the member with arrows $0\to3$, $1\to2$ and quantum sources on $\lbrace 1,2\rbrace$ and $\lbrace 1,3\rbrace$. The free setting is $x=0$ and the outcome is $y=1$, which already sends its value to 2. Redirect $0\to3$ to $1\to3$ and retain $1\to2$. The output is the Evans seed on the original labels $1,2,3$. To recover its witness, choose 0 uniformly from the alphabet of 1 and select records with equal values at 0 and 1. Laboratory 2 always reads 1, and laboratory 3 reads the same value on the selected records. This step was unavailable when the census required the outcome to be childless.
+
+**Naming.** The map *stitches* the free setting $x$ onto the outcome $y$ by postselecting $x=y$. Its reverse, *interruption*, restores a free setting and assigns visible children to the setting, the outcome, or both ([Appendix A.5](#a5-node-stitching-in-reverse-interruption)).
 
 ---
 
@@ -596,7 +598,7 @@ The Fritz piggyback comes in four versions, which differ only in how the deletio
 
 The unit of the piggyback is a predictor set $\mathbf X$ together with a set $T$ of predicted nodes, its **targets**. Each target's deletion is read off the predictor: $s$ keeps $\mathrm{common}(s),$ what $\mathbf X$ sees, and loses $\mathrm{others}(s),$ everything $\mathbf X$ cannot see, all of it or nothing (Section [8](#8-the-fritz-search-procedure-qmdagfritz_steps-qc_gap_searchfritz_tricks) states the procedure). Deleting a single parent $p\to s$ while $s$ keeps another parent $q$ that $\mathbf X$ cannot see is not a candidate: the predictors cannot predict $s,$ and no other piggyback justifies the lone deletion.
 
-Example: 1→3, 2→3; Q{0,2}, Q{0,3}, Q{1,2}. Predictor 0 deletes 1→3 and 2→3 together and reaches C{0,3}, Q{0,2}, Q{1,2}, which degrades to [`QG_Bell_C_C`](../known_QC_gaps.py#L78) (a semigraphoid-closure step, example 2 of [7.8](#78-further-examples-from-the-census)), whereas neither structure with only one of the two edges deleted is reachable from the input by any trick of the toolkit, out of 760 reachable structures. Across the four-node census, of the single-target Fritz steps that delete two or more non-noise parents, more than half have no reachable single-edge intermediate.
+Example: 1→3, 2→3; Q{0,2}, Q{0,3}, Q{1,2}. Predictor 0 deletes 1→3 and 2→3 together and reaches C{0,3}, Q{0,2}, Q{1,2}, which degrades to [`QG_Bell_C_C`](../known_QC_gaps.py#L78) (a semigraphoid-closure step, example 2 of [7.8](#78-further-examples-from-the-census)). The Fritz restriction deletes the two invisible parents together. In the [earlier search with childless stitching outcomes](https://github.com/eliewolfe/mDAG-analysis/blob/6bc3361/manuscript/piggybacks.md), neither single-edge deletion was among the 760 structures reachable from this input. In that search more than half of the single-target Fritz steps deleting two or more non-noise parents had no reachable single-edge intermediate.
 
 **Several targets at once.** One predictor may predict several nodes in the same step, each restricted to what the predictor sees of it; such a step is called a **joint step**. Theorem [6.6](#66-theorem-d-separation-certificate) is stated for a set $T,$ and its classical direction replaces the kernels one at a time. This is Fritz's original argument: in the triangle, node 2 predicts copies of 0 and of 1 together, and when 2 is then removed what is left is the Bell structure with classical settings ([6.3](#63-example-the-triangle-fritzs-original-argument)).
 
@@ -649,7 +651,7 @@ Node splitting is never run on its own: the split structure has one more visible
 * **Unsplit predictor** (`predictor_mode='unsplit'`). $x$ itself is removed ([6.1](#61-the-mechanism), **Removing the predictor**); the component is integrated out with it and nothing more is needed.
 * **Split predictor** (`predictor_mode='split'`). $x$ is to stay in $G',$ so the component has to be coarse-grained away, and **coarse-graining the output of a node with children is unsound**: a classical model of $G_1$ for the fine-grained distribution may let the children of $x$ read the correlated subvariable $X_S$ through the visible edge, and no model for the coarsened distribution need exist. The sound way to keep a predictor is node splitting with a *full* copy: $x$ is split into $x$ and $x'$ with the same parents and the same children, $x'$ is the predictor, and $x'$ is removed as an unsplit predictor would be.
 
-For a childless $x$ the split mode coincides with keeping $x$ untouched (the childless copy is deleted). For a childful $x$ the copy is marginalized, which relays to $x$'s children everything the correlated subvariable could have told them. ([`QmDAG.fritz_steps`](../quantum_mDAG.py#L920) splits each childful predictor before justifying and realising the step.)
+For a childless $x$ the split mode coincides with keeping $x$ untouched (the childless copy is deleted). For a childful $x$ the copy is marginalized, which relays to $x$'s children everything the correlated subvariable could have told them. ([`QmDAG.fritz_steps`](../quantum_mDAG.py#L926) splits each childful predictor before justifying and realising the step.)
 
 Example of the unsound shortcut: 0→1; Q{0,1}, Q{0,2}, Q{1,2} is saturated (latent-free equivalent, so it has no gap), yet "0 predicts 2, 0 kept untouched" would output 0→1; C{0,2}, Q{0,1}, which is [`QG_Instrumental_C`](../known_QC_gaps.py#L41): node 1 learns the instrument 2 from 0's fine-grained output, which is exactly what the Bonet inequality forbids the binary treatment to transmit. With the full copy marginalized, the step gives on the same example 0→1; C{0,1,2}, Q{0,1}, where the instrument also shares randomness with the outcome, no gap.
 
@@ -658,7 +660,7 @@ Example of the unsound shortcut: 0→1; Q{0,1}, Q{0,2}, Q{1,2} is saturated (lat
 * **Unsplit target** (`target_mode='unsplit'`): $s$ itself is restricted to $\mathrm{common}(s).$
 * **Split target** (`target_mode='split'`): $s$ is split and the deletion is applied to the copy $s',$ so the original keeps all of its parents while $s'$ keeps $\mathrm{common}(s).$
 
-The copy must keep the children of $s$: the classical direction turns a classical model in which $s$ outputs a pair $(s_1,s_2)$ into a model with $s:=s_1$ and $s':=s_2,$ and the children of $s$ may depend on $s_2.$ Removing an edge $s'\to c$ would be an unjustified deletion; those edges can only go later, by a piggyback that justifies it. [`fritz_steps`](../quantum_mDAG.py#L920) literally calls [`split_node`](../quantum_mDAG.py#L649) first and then runs the unsplit-target step on the copy; the pair's shared facet is absorbed by the facet the copy shares with the predictors.
+The copy must keep the children of $s$: the classical direction turns a classical model in which $s$ outputs a pair $(s_1,s_2)$ into a model with $s:=s_1$ and $s':=s_2,$ and the children of $s$ may depend on $s_2.$ Removing an edge $s'\to c$ would be an unjustified deletion; those edges can only go later, by a piggyback that justifies it. [`fritz_steps`](../quantum_mDAG.py#L926) literally calls [`split_node`](../quantum_mDAG.py#L659) first and then runs the unsplit-target step on the copy; the pair's shared facet is absorbed by the facet the copy shares with the predictors.
 
 Both target modes and both predictor modes are available to both certificates. How the search records the modes, and at which stages it applies them, is described in Sections [8](#8-the-fritz-search-procedure-qmdagfritz_steps-qc_gap_searchfritz_tricks) and [9](#9-search-certificates-and-the-four-node-census-qc_gap_searchpy-special-applicationsproving_qc_gapspy).
 
@@ -689,7 +691,7 @@ Compared with the certified piggybacks of [6.6](#66-theorem-d-separation-certifi
 * The deletion is **maximal**: $s$ keeps the edges from the predictors only, so a facet shared by $s$ and a predictor is deleted as well, where a sibling predictor would keep it (classical for $s$). Nothing is lost by this: the predictor has the child $s,$ so it (or its copy) is always marginalized, and the marginalization re-creates the classical facet over the facet's other members and the predictor's children, $s$ included, that the sub-maximal deletion would have kept; on the census the two deletions give identical output structures for every pair.
 * There is **no certificate**: the hypothesis the certified piggybacks must establish, that the function $g(\mathbf X)$ factors through parents $s$ keeps, is immediate because $\mathbf X$ consists of such parents.
 
-In the code the pool `'parents'` lists the visible parents of a target ([`QmDAG.fritz_pool`](../quantum_mDAG.py#L739)), [`QmDAG.fritz_deletion`](../quantum_mDAG.py#L769) performs the maximal deletion for them, and [`QmDAG.fritz_certificate`](../quantum_mDAG.py#L796) returns the label `parent` without a test; the census runs this piggyback as its own stage, before every certified one ([9.1](#91-the-cascade-and-the-deeper-census)). A predictor that is both a visible parent and a latent sibling of $s$ belongs here, not to the certified pools.
+In the code the pool `'parents'` lists the visible parents of a target ([`QmDAG.fritz_pool`](../quantum_mDAG.py#L745)), [`QmDAG.fritz_deletion`](../quantum_mDAG.py#L775) performs the maximal deletion for them, and [`QmDAG.fritz_certificate`](../quantum_mDAG.py#L802) returns the label `parent` without a test; the census runs this piggyback as its own stage, before every certified one ([9.1](#91-the-cascade-and-the-deeper-census)). A predictor that is both a visible parent and a latent sibling of $s$ belongs here, not to the certified pools.
 
 **What the step achieves.** What the step does to $s$ is a real reduction: the parents of $s$ other than the predictors are gone for good, and no elementary piggyback deletes them. What the predictor's departure adds back is a classical version of the predictor's own inputs: unsplit, the predictor is marginalized (it has the child $s$) and relays its parents to $s$ and to its other children as edges and a classical facet; split, the copy $x'$ is a twin parent of $s,$ $s$ keeps the edge from $x'$ only, and marginalizing $x'$ relays $\mathrm{Pa}(x)$ to $s$ together with a classical facet over $x$'s children. The third route of [6.8](#68-example-deleting-a-visible-edge-three-routes) is the smallest example: 1 loses 0→1 and Q{1,2} and gains C{0,1,3}. After the step $s$ has no quantum parent at all.
 
@@ -713,7 +715,7 @@ Do this for each $s\in T$ in turn: every replacement leaves the joint distributi
 
 **Remarks on the test.** The set test is equivalent to the conjunction of the per-edge tests $\mathbf X\perp_d v\mid\mathrm{Pa}(s)\setminus\lbrace v\rbrace$ over $v\in\mathrm{others}(s),$ by the weak-union and intersection properties of d-separation. Since $\mathrm{others}(s)$ always contains the private noise of $s,$ the d-separation test fails for every predictor that is a descendant of $s$ (the semigraphoid closure of Section [7](#7-the-semigraphoid-closure-certificate-for-the-fritz-piggyback-semigraphoidpy-qmdag_semigraphoid_certificate) does not, [8.10](#810-experiment-descendants-as-predictors)).
 
-**In the code.** The implementation is [`QmDAG.fritz_certificate`](../quantum_mDAG.py#L796), which hands the parent case $\mathbf X\subseteq\mathrm{Pa}(s)$ to [6.5](#65-the-parent-predictor-deletion-without-a-certificate) (label `parent`) and otherwise tests the set at once with networkx's `is_d_separator`; the candidate is built by [`QmDAG._restrict_target`](../quantum_mDAG.py#L885) from the kept set, and the predictors are removed by [`QmDAG.fritz_realise`](../quantum_mDAG.py#L902).
+**In the code.** The implementation is [`QmDAG.fritz_certificate`](../quantum_mDAG.py#L802), which hands the parent case $\mathbf X\subseteq\mathrm{Pa}(s)$ to [6.5](#65-the-parent-predictor-deletion-without-a-certificate) (label `parent`) and otherwise tests the set at once with networkx's `is_d_separator`; the candidate is built by [`QmDAG._restrict_target`](../quantum_mDAG.py#L891) from the kept set, and the predictors are removed by [`QmDAG.fritz_realise`](../quantum_mDAG.py#L908).
 
 ### 6.7 Example: the tetrahedron, unsplit target and unsplit predictor
 
@@ -735,7 +737,7 @@ The one census input that needs a `Fritz` step of the cheapest kind and nothing 
 
 Nothing in the mechanism distinguishes a visible parent of $s$ from a facet: $\mathrm{Pa}(s)$ contains both, and a parent the predictor cannot see is deleted either way.
 
-**Input.** 0→1, 0→3; Q{1,2}, Q{2,3} (a census input, though one that node stitching already proves: stitching the sink 2 onto the source 0 gives [`QG_Evans`](../known_QC_gaps.py#L43)).
+**Input.** 0→1, 0→3; Q{1,2}, Q{2,3} (a census input, though one that node stitching already proves: stitching the free setting 0 onto outcome 2 gives [`QG_Evans`](../known_QC_gaps.py#L43)).
 
 Three routes delete the edge 0→1. Routes 1 and 2 need a certificate and reach a seed; both are recorded by the search ([`tests/test_fritz.py`](../tests/test_fritz.py)). Route 3 is the parent piggyback of [6.5](#65-the-parent-predictor-deletion-without-a-certificate), which needs none, and it reaches a structure without a gap.
 
@@ -860,7 +862,7 @@ The two have the same hypotheses and the same target sets (the statements to be 
 
 This subsection fixes the statements the proof system works with, its rules, the compact form in which the engine stores a set of statements, and the d-separation models that serve as hypotheses and as target sets.
 
-**Variables and notation.** The variables are those of a classical model of $G$: the visible nodes and the facet latents ([`QmDAG.lp_structure`](../quantum_mDAG.py#L522); quantum facets are ordinary latent variables here, since only classical models are analysed, F2), $n$ of them, 5 to 12 in the census, one more per split. Write $\langle A,B\mid C\rangle$ for "$`A`$ is independent of $B$ given $C$", for disjoint sets of variables. Such a statement is called a triplet.
+**Variables and notation.** The variables are those of a classical model of $G$: the visible nodes and the facet latents ([`QmDAG.lp_structure`](../quantum_mDAG.py#L532); quantum facets are ordinary latent variables here, since only classical models are analysed, F2), $n$ of them, 5 to 12 in the census, one more per split. Write $\langle A,B\mid C\rangle$ for "$`A`$ is independent of $B$ given $C$", for disjoint sets of variables. Such a statement is called a triplet.
 
 **Semigraphoids.** The independences that hold in a given distribution form a **semigraphoid** (Pearl and Paz; Studený): a set of triplets closed under four rules:
 
@@ -901,7 +903,7 @@ The engine computes d-separation models directly rather than by closure, with a 
 
 Here $s$ is the predicted node and $\mathbf X$ the predicting set (for a split predictor, [6.4](#64-node-splitting-split-and-unsplit-predictors-split-and-unsplit-targets-qmdagsplit_node), the copy $x'$). Three kinds of fact hold for the joint distribution of *every* classical model of $G$ for the constructed distribution, and the certificate starts from all three:
 
-1. **Markov($G$).** The d-separation model of $G$ over the visible nodes and the facets, with the private noises integrated out: a d-separation among these nodes in the effective DAG is one in [`lp_structure`](../quantum_mDAG.py#L522), and (F2) for classical models makes it an independence of the joint. It is computed once per structure and cached ([`QmDAG._semigraphoid_model`](../quantum_mDAG.py#L601)).
+1. **Markov($G$).** The d-separation model of $G$ over the visible nodes and the facets, with the private noises integrated out: a d-separation among these nodes in the effective DAG is one in [`lp_structure`](../quantum_mDAG.py#L532), and (F2) for classical models makes it an independence of the joint. It is computed once per structure and cached ([`QmDAG._semigraphoid_model`](../quantum_mDAG.py#L611)).
 
 2. **Perfect prediction, $H(s\mid\mathbf X)=0.$** A vanishing conditional entropy is not a conditional independence, and a semigraphoid has no cell for it. What the closure takes from it is the statement that **$\mathbf X$ is a sufficient statistic for $s$: $s$ is conditionally independent of every other variable given $\mathbf X$**,
 
@@ -1122,7 +1124,7 @@ This shows what a piggyback would have to look like for the LP to justify it and
 
 ## 8. The Fritz search procedure (`QmDAG.fritz_steps`, `qc_gap_search.fritz_tricks`)
 
-This section is self-contained. Throughout, $\mathbf X$ is the predictor set (a single node $X$ in the census), $s$ a predicted node, called a **target** in the code, and parents are parents in the effective DAG: the visible parents of a node, the facets containing it, and its private noise. The procedure is written in a few short methods of [`QmDAG`](../quantum_mDAG.py#L101) that are read top to bottom ([`fritz_pool`](../quantum_mDAG.py#L739), [`fritz_targets`](../quantum_mDAG.py#L842), [`fritz_deletion`](../quantum_mDAG.py#L769), [`fritz_certificate`](../quantum_mDAG.py#L796), [`fritz_realise`](../quantum_mDAG.py#L902), [`fritz_steps`](../quantum_mDAG.py#L920)), so that any Fritz step in a certificate can be re-derived without leaving the class.
+This section is self-contained. Throughout, $\mathbf X$ is the predictor set (a single node $X$ in the census), $s$ a predicted node, called a **target** in the code, and parents are parents in the effective DAG: the visible parents of a node, the facets containing it, and its private noise. The procedure is written in a few short methods of [`QmDAG`](../quantum_mDAG.py#L101) that are read top to bottom ([`fritz_pool`](../quantum_mDAG.py#L745), [`fritz_targets`](../quantum_mDAG.py#L848), [`fritz_deletion`](../quantum_mDAG.py#L775), [`fritz_certificate`](../quantum_mDAG.py#L802), [`fritz_realise`](../quantum_mDAG.py#L908), [`fritz_steps`](../quantum_mDAG.py#L926)), so that any Fritz step in a certificate can be re-derived without leaving the class.
 
 **The unit of the search** is a predictor set $\mathbf X$ together with the targets it predicts ([6.2](#62-the-unit-a-predictor-and-its-targets) gives the definition). The search does not choose edges: it picks a predictor set, runs through its candidate targets in a fixed order, and at each target *reads off* the predictor which parents to delete, so that the only question left is whether that deletion is justified. Nothing is enumerated over subsets of parents: for one $(\mathbf X, s)$ there is exactly one candidate deletion, and if it is not justified the search moves to the next target, not to a smaller deletion.
 
@@ -1153,7 +1155,7 @@ A node with neither channel cannot predict $s$ for an arbitrary $P',$ since it w
 * `pool='parents'`: the visible parents of the target. A predictor from this pool is called a **parent predictor**, whether or not it also shares a facet with the target. This is the pool of the **parent stage** ([8.4](#84-parent-predictors-the-free-piggyback-as-its-own-stage)).
 * `pool='siblings'`: the latent siblings that are *not* visible parents. A predictor from this pool is called a **sibling predictor**. This is the pool of the **certified stages**: the d-separation stages and the closure stages of [8.7](#87-two-kinds-of-stage-d-separation-breadth-first-then-the-semigraphoid-closure-with-early-exit), whose steps need a certificate.
 
-A node that is both a parent and a sibling is thus handled once, by the parent stage, with the maximal deletion (`pool='siblings+parents'` lists both). [`fritz_pool(s)`](../quantum_mDAG.py#L739) lists the predictors of a target with this bound; [`fritz_targets(X)`](../quantum_mDAG.py#L842) inverts it, listing the nodes whose pool contains the predictor, and is what the predictor-first loop iterates over ([8.7](#87-two-kinds-of-stage-d-separation-breadth-first-then-the-semigraphoid-closure-with-early-exit)).
+A node that is both a parent and a sibling is thus handled once, by the parent stage, with the maximal deletion (`pool='siblings+parents'` lists both). [`fritz_pool(s)`](../quantum_mDAG.py#L745) lists the predictors of a target with this bound; [`fritz_targets(X)`](../quantum_mDAG.py#L848) inverts it, listing the nodes whose pool contains the predictor, and is what the predictor-first loop iterates over ([8.7](#87-two-kinds-of-stage-d-separation-breadth-first-then-the-semigraphoid-closure-with-early-exit)).
 
 **Order.**
 
@@ -1209,7 +1211,7 @@ The three examples of [8.2](#82-what-a-predictor-sees-and-the-deletion-it-dictat
 
 ### 8.4 Parent predictors: the free piggyback as its own stage
 
-**Why no certificate, and why the deletion is larger.** Let $X$ be a visible parent of $s$ (with or without a shared facet). The soundness statement of [8.3](#83-justifying-the-deletion-one-set-two-certificates-qmdagfritz_certificate) asks that in every classical model with $s=g(X),$ $s$ be a function of the parents it keeps. If $s$ keeps $X,$ that is already true, with nothing to show: this is the parent piggyback of [6.5](#65-the-parent-predictor-deletion-without-a-certificate), and [`fritz_certificate`](../quantum_mDAG.py#L796) returns `parent` without a test. For the same reason the deletion is larger than for a sibling: [`fritz_deletion`](../quantum_mDAG.py#L769) lets $s$ keep the edge from $X$ alone, a facet shared by $X$ and $s$ included in the deletion, where a sibling predictor keeps the shared facets ([8.2](#82-what-a-predictor-sees-and-the-deletion-it-dictates-qmdagfritz_deletion)).
+**Why no certificate, and why the deletion is larger.** Let $X$ be a visible parent of $s$ (with or without a shared facet). The soundness statement of [8.3](#83-justifying-the-deletion-one-set-two-certificates-qmdagfritz_certificate) asks that in every classical model with $s=g(X),$ $s$ be a function of the parents it keeps. If $s$ keeps $X,$ that is already true, with nothing to show: this is the parent piggyback of [6.5](#65-the-parent-predictor-deletion-without-a-certificate), and [`fritz_certificate`](../quantum_mDAG.py#L802) returns `parent` without a test. For the same reason the deletion is larger than for a sibling: [`fritz_deletion`](../quantum_mDAG.py#L775) lets $s$ keep the edge from $X$ alone, a facet shared by $X$ and $s$ included in the deletion, where a sibling predictor keeps the shared facets ([8.2](#82-what-a-predictor-sees-and-the-deletion-it-dictates-qmdagfritz_deletion)).
 
 **The parent stage.** The parent piggyback is run as the first Fritz stage of the cascade ([9.1](#91-the-cascade-and-the-deeper-census)), over the pool of visible parents, with both target modes and both predictor modes ([6.4](#64-node-splitting-split-and-unsplit-predictors-split-and-unsplit-targets-qmdagsplit_node)). Everything that each root of the search (a structure the stage is applied to) produces is recorded ([9.1](#91-the-cascade-and-the-deeper-census)). The certified stages never see a parent predictor, since their pool is the latent siblings that are not visible parents ([8.1](#81-the-pool-and-its-order-qmdagfritz_pool-qmdagfritz_targets)). (The `relabel` target set would not even apply to a parent predictor, since the kept set is not a single facet.)
 
@@ -1267,14 +1269,14 @@ Unrestricted expansion can revisit large intermediates at substantial cost; the 
 
 The historical cascade of [9.1](#91-the-cascade-and-the-deeper-census) runs the Fritz trick in the parent stage ([8.4](#84-parent-predictors-the-free-piggyback-as-its-own-stage)) and then in two groups of four stages, one stage per pair of modes in each group. A structure that a stage is applied to is a **root of the search**. The parent stage behaves like a d-separation stage: every root of the search is recorded in full.
 
-**The d-separation stages.** [`fritz_steps`](../quantum_mDAG.py#L920) runs with the closure off (`use_lp=False`; the flag is named after the LP of [Appendix B](#appendix-b-the-entropic-lp-as-an-alternative-certificate-engine-entropic_lppy-qmdag_entropic_certificate), the alternative engine). For every predictor set it
+**The d-separation stages.** [`fritz_steps`](../quantum_mDAG.py#L926) runs with the closure off (`use_lp=False`; the flag is named after the LP of [Appendix B](#appendix-b-the-entropic-lp-as-an-alternative-certificate-engine-entropic_lppy-qmdag_entropic_certificate), the alternative engine). For every predictor set it
 
 1. visits every target, reads off the deletion and runs the d-separation test;
 2. emits the single steps and then the joint steps of that predictor set.
 
-The explorer records everything the root of the search produces, breadth-first, with no early exit (it never stops before the root of the search is recorded in full). The test is cheap, so there is nothing to save (the four d-separation stages take about a second each or less in the census, [9.1](#91-the-cascade-and-the-deeper-census)), and recording every d-separation route keeps what is recorded, and with it the database of proven structures ([9.5](#95-the-known-gap-database-the-search-establishes)), independent of the order in which the predictors of a root of the search happen to be tried. (The joint steps themselves would survive early exit either way: [`fritz_steps`](../quantum_mDAG.py#L920) collects a predictor's certified targets before emitting any of its joint steps.)
+The explorer records everything the root of the search produces, breadth-first, with no early exit (it never stops before the root of the search is recorded in full). The test is cheap, so there is nothing to save (the four d-separation stages take about a second each or less in the census, [9.1](#91-the-cascade-and-the-deeper-census)), and recording every d-separation route keeps what is recorded, and with it the database of proven structures ([9.5](#95-the-known-gap-database-the-search-establishes)), independent of the order in which the predictors of a root of the search happen to be tried. (The joint steps themselves would survive early exit either way: [`fritz_steps`](../quantum_mDAG.py#L926) collects a predictor's certified targets before emitting any of its joint steps.)
 
-**The closure stages.** [`fritz_steps`](../quantum_mDAG.py#L920) runs with `lp_only` (a flag likewise named after the LP). The loop is the same, with four differences:
+**The closure stages.** [`fritz_steps`](../quantum_mDAG.py#L926) runs with `lp_only` (a flag likewise named after the LP). The loop is the same, with four differences:
 
 * a pair that d-separation certifies is skipped (its step is already recorded);
 * a pair that d-separation rejects goes to the semigraphoid closure (Section [7](#7-the-semigraphoid-closure-certificate-for-the-fritz-piggyback-semigraphoidpy-qmdag_semigraphoid_certificate); the LP of [Appendix B](#appendix-b-the-entropic-lp-as-an-alternative-certificate-engine-entropic_lppy-qmdag_entropic_certificate) with `--engine lp`);
@@ -1518,7 +1520,7 @@ Among candidates that d-separation rejects, the closure succeeds for roughly one
 
 The exclusive counts and examples in this subsection describe the historical record.
 
-**Node stitching.** Its characteristic product is a Bell variant derived from an instrumental variant. In an earlier census, which started from the three-node seeds alone, it was the sole route for exactly the three Bell variants that could be proven at all. Now that the Bell classes are seeds, every class it proves (seven in all) is also reachable by PD or postselection ([1.1](#11-the-census-over-quantum-classes)). Node stitching is the only reduction that re-uses an outcome as a setting; how much it contributes is bounded by how many Bell-type structures the input set contains that the seed list does not already hold.
+**Node stitching.** Allowing outcomes with children raises the number of classes reachable using stitching and the lookups from seven to twelve. Four of the additional classes have a new stitching route to an Evans seed, and one has a new route to an instrumental seed. Section [5](#5-node-stitching-node_stitching) gives one of the Evans transitions. The depth-one record contains 278 stitching transitions, including 171 with an outcome that already has children. None of those 171 appears in the selected shortest proofs. All twelve classes also reach a seed through the other census rules, so the exclusive count is zero. An earlier search with only the three-node seeds and the childless-outcome rule used stitching as the sole route to three Bell variants.
 
 **The two marginalizations.** They coincide at a node without a quantum facet, so naive marginalization alone is never exclusive: wherever it applies, the teleportation version makes the same move. The 9 classes lost without teleportation marginalization are where the removed node holds a quantum share and relaying it to the node's children is what the proof needs. Postselection covers part of the same ground, since postselecting on a node $v$ without visible parents adds a quantum facet over all quantum siblings of $v$ (entanglement swapping), the same connection teleportation relays to the children of $v,$ only not restricted to children; what postselection cannot provide is the relayed visible input of $v,$ and where that input matters, or where postselection is blocked by a grandparent, teleportation marginalization is the route. An earlier census, which closed the unsplit-predictor Fritz trick over everything reachable, found alternative routes for all of these; the elementary stage alone does not.
 
@@ -1565,7 +1567,7 @@ The [`params`](../qc_gap_search.py#L66) read, trick by trick:
 * point distribution: `(('drop', v),)`;
 * both marginalizations: `(('marginalize', v),)`;
 * postselection: `(('condition', v),)`;
-* node stitching: `((('sink', y), ('source', x)),)`;
+* node stitching: `((('outcome', y), ('source', x)),)`;
 * a degradation: `(('classical', (facet, ...)),)`;
 * the upward rule: `(('above', G), ('below', G'))`;
 * a Fritz step: `targets`, `target_mode`, `deleted` (the labels of the deleted set $D$ of [8.2](#82-what-a-predictor-sees-and-the-deletion-it-dictates-qmdagfritz_deletion): node indices, a prime for a copy, `Q{…}` or `C{…}` for a facet), `predictor`, `predictor_mode`, [`certificate`](../tests/test_fritz_entropic.py#L28) (`parent`, `dsep`, `semigraphoid` or `entropic`) and, when several predictors are marginalized, `order`.
@@ -1781,7 +1783,7 @@ This subsection lists four variants of the Fritz piggyback or of its certificate
 
   Whether the `relabel` certificates of two targets can be composed, so that a set with closure-certified members could be admitted without the joint certificate, is open.
 
-* **The prediction-free edge-deletion piggyback** (KPC, Corollary 3): the same closure without the perfect-prediction hypothesis certifies deleting edges justified by the new graph's independences alone. The code can check it ([`QmDAG._semigraphoid_certificate(..., predicted=())`](../quantum_mDAG.py#L615)), but it is not exposed as a trick, that is, as a piggyback the search applies ([0.7](#07-the-census-the-seeds-and-the-names-of-the-tricks)).
+* **The prediction-free edge-deletion piggyback** (KPC, Corollary 3): the same closure without the perfect-prediction hypothesis certifies deleting edges justified by the new graph's independences alone. The code can check it ([`QmDAG._semigraphoid_certificate(..., predicted=())`](../quantum_mDAG.py#L625)), but it is not exposed as a trick, that is, as a piggyback the search applies ([0.7](#07-the-census-the-seeds-and-the-names-of-the-tricks)).
 
 ---
 
@@ -1858,9 +1860,9 @@ The reverse of the postselection step in the split-predictor example of [6.10](#
 
 ### A.5 Node stitching in reverse: interruption
 
-Forward (Section [5](#5-node-stitching-node_stitching)): remove the exogenous node $x$ and give its visible children to the sink $y.$
+Forward (Section [5](#5-node-stitching-node_stitching)): remove the exogenous node $x$ and give its visible children to the outcome $y$, which keeps its existing children.
 
-Inverse, which is the operation that deserves the name *interruption*: choose a node $y$ of $G'$ and a subset of its visible children, cut those children off from $y$ and give them to a new exogenous node $x$ (no visible parents, no facets), with $y$ not a descendant of $x,$ which is automatic. The inverse image is one member per node and subset of its children, so it is tiny and exact.
+Inverse (*interruption*): choose an outcome $y$ of $G'$ and add a free setting $x$ with no parents or shared sources. For each child of $y$, independently keep the arrow from $y$, move it to $x$, or give the child arrows from both. These three choices exhaust the possible original parents at that child. The setting cannot have a path to $y$ because each of its children was downstream of $y$ in $G'$. For $k$ labelled children this gives $3^k$ assignments before identifying isomorphic graphs. The all-retained assignment restores an isolated setting.
 
 Examples:
 

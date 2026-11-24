@@ -6791,13 +6791,13 @@
    "via_cache": null
   },
   "4,2,0,3177": {
-   "certificate": "node_stitching((('sink', 0), ('source', 1)),):\n    Children  : {0:[],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "node_stitching((('outcome', 0), ('source', 1)),):\n    Children  : {0:[],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
    "chain": [
     {
      "params": [
       [
        [
-        "sink",
+        "outcome",
         0
        ],
        [
@@ -6935,7 +6935,7 @@
    },
    "versions": {
     "metagraph": 4,
-    "node_stitching": 1
+    "node_stitching": 2
    },
    "via_cache": null
   },
@@ -14261,7 +14261,7 @@
    "via_cache": null
   },
   "4,20,0,2665": {
-   "certificate": "Fritz(('targets', (2,)), ('target_mode', 'unsplit'), ('deleted', ((1,),)), ('predictor', (0,)), ('predictor_mode', 'split'), ('certificate', 'semigraphoid')):\n    Children  : {0:[],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(1,3)]\nnode_stitching((('sink', 0), ('source', 1)),):\n    Children  : {0:[],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
+   "certificate": "Fritz(('targets', (2,)), ('target_mode', 'unsplit'), ('deleted', ((1,),)), ('predictor', (0,)), ('predictor_mode', 'split'), ('certificate', 'semigraphoid')):\n    Children  : {0:[],1:[2],2:[3],3:[]}\n    Classical : []\n    Quantum   : [(0,1),(0,2),(1,3)]\nnode_stitching((('outcome', 0), ('source', 1)),):\n    Children  : {0:[],1:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]\n== known gap QG_Evans:\n    Children  : {0:[2,3],2:[],3:[]}\n    Classical : []\n    Quantum   : [(0,2),(0,3)]",
    "chain": [
     {
      "params": [
@@ -14328,7 +14328,7 @@
      "params": [
       [
        [
-        "sink",
+        "outcome",
         0
        ],
        [
@@ -14408,7 +14408,7 @@
    "versions": {
     "Fritz": 8,
     "metagraph": 4,
-    "node_stitching": 1
+    "node_stitching": 2
    },
    "via_cache": null
   },
@@ -58887,7 +58887,7 @@
   "degradation": 1,
   "metagraph": 4,
   "naive_marginalization": 1,
-  "node_stitching": 1,
+  "node_stitching": 2,
   "teleportation_marginalization": 1,
   "upward": 1
  }

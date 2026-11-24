@@ -57,7 +57,7 @@ CASES = {
     'fix': ('4,14,0,1627', 'QG_Evans', [('PD', (('drop', 3),))]),
     'naive': ('4,2,0,3221', 'QG_Triangle', [('naive_marginalization', (('marginalize', 2),))]),
     'tele': ('4,20,0,107', 'QG_Instrumental_Edge', [('teleportation_marginalization', (('marginalize', 1),))]),
-    'stitch': ('4,2,0,3177', 'QG_Evans', [('node_stitching', ((('sink', 0), ('source', 1)),))]),
+    'stitch': ('4,2,0,3177', 'QG_Evans', [('node_stitching', ((('outcome', 0), ('source', 1)),))]),
     'post': ('4,2,0,1685', 'QG_Instrumental_Edge', [('conditioning', (('condition', 0),))]),
     'split': ('4,328,0,3171', 'QG_Instrumental_EdgeC', [
         ('Fritz', fritz_params(1, 0, ("Q{0,1,1'}", "Q{1,3,1'}"), 'parent', target_mode='split')),
@@ -274,6 +274,11 @@ def main(use_mosek):
     index = ClassIndex((3, 4), verbose=False)
     cache = GapCache.load(seeds=SEEDS, keyed_by='class')
     paths = {case: replay(index, cache, case) for case in CASES}
+    # The second example in the stitching section retains the outcome's original child.
+    childful = graph(4, [(0, 3), (1, 2)], quantum=[(1, 2), (1, 3)])
+    params = ((('outcome', 1), ('source', 0)),)
+    stitched = dict(childful.node_stitching_steps())[params]
+    assert stitched.unique_id == paths['stitch'][-1].unique_id
     split, restricted = split_checks(*paths['split'])
     kpc_checks(*paths['kpc'], use_mosek)
     binary_sources()

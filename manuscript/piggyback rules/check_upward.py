@@ -72,6 +72,8 @@ def check_pair(cap, five_ids):
     hierarchy, beneficiaries = compare_hierarchy(enabled)
     assert (hierarchy, beneficiaries) == compare_hierarchy(disabled)
     if cap is None:
+        assert enabled.counts['with node_stitching'] == 12
+        assert enabled.counts['only via node_stitching'] == 0
         selected = sum(any(t.trick == 'upward' for t in path) for path in enabled.proven.values())
         moves = {t for edges in enabled.explorer.edges.values() for t in edges if t.trick == 'upward'}
         assert selected == 45 and len(moves) == 156

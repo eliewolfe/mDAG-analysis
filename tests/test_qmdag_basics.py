@@ -1,4 +1,6 @@
 """Fast regression tests for QmDAG basics and the piggyback tricks (stage-1 maintenance pins)."""
+import pytest
+
 from hypergraphs import Hypergraph, LabelledHypergraph
 from directed_structures import DirectedStructure
 from quantum_mDAG import QmDAG
@@ -36,6 +38,25 @@ def test_exogenous_visible_nodes_and_interruption():
     ghost = QmDAG(DirectedStructure([(1, 2), (1, 3)], 4), Hypergraph([], 4), Hypergraph([(0, 2), (0, 3)], 4))
     assert ghost.exogenous_visible_nodes == {1}
     assert evans().unique_unlabelled_id in ghost.unique_unlabelled_ids_obtainable_by_interruption
+
+
+def test_stitching_preserves_outcome_children_and_sources():
+    graph = QmDAG(DirectedStructure([(1, 2), (1, 3), (0, 2), (0, 4), (3, 5)], 6),
+                  Hypergraph([(0, 4)], 6), Hypergraph([(0, 5)], 6))
+    # Removing setting 1 leaves vertices [0, 2, 3, 4, 5] in that order.
+    expected = QmDAG(DirectedStructure([(0, 1), (0, 2), (0, 3), (2, 4)], 5),
+                     Hypergraph([(0, 3)], 5), Hypergraph([(0, 4)], 5))
+    steps = {(dict(params[0])['outcome'], dict(params[0])['source']): child.unique_id
+             for params, child in graph.node_stitching_steps()}
+    assert steps.keys() == {(0, 1), (4, 1)}
+    assert steps[0, 1] == expected.unique_id
+    assert {child.unique_id for child in graph.subinterruptions} == set(steps.values())
+    for descendant in (1, 2, 3, 5):
+        with pytest.raises(ValueError):
+            graph.node_stitching(descendant, 1)
+    for endogenous in (0, 2, 4, 5):
+        with pytest.raises(ValueError):
+            graph.node_stitching(1, endogenous)
 
 
 def test_unlabelled_id_is_memoized_and_label_invariant():

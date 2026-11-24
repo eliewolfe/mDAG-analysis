@@ -25,7 +25,7 @@ EXPECTED_COUNTS = {
     'classical classes with proven and unproven': 0,
     'with identity': 2,
     'with PD': 349,
-    'with node_stitching': 7,
+    'with node_stitching': 12,
     'with conditioning': 63,
     'with naive_marginalization': 173,
     'with teleportation_marginalization': 181,
