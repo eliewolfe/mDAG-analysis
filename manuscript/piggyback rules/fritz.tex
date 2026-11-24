@@ -1,131 +1,362 @@
-\pageof{One construction, four reasons it works}\label{sec:template}
-Pick a predictor \(X\) and a predicted output \(S\). We will engineer an experiment in which reading the \emph{whole announcement} at \(X\) tells us \(S\) perfectly. Which of the old inputs can a classical explanation dispense with? Consider this small example of the construction.
-\trio{\(G\): choose \(X,S\)}{\siblingfig{0}}{\(G_1\): restrict \(S\)}{\siblingfig{1}}{\(G'\): forget \(X\)}{\siblingfig{2}}
-\captext{In this slice of a larger graph, \(V\) sends an input that \(X\) cannot read. \(G_1\) deletes that arrow. The source shared by \(S,X\) supplies classical data to \(S\). With a childless \(X\) removed, a source serving \(S\) alone becomes private randomness.}
-For a sibling predictor, \(S\) keeps its parents seen by \(X\): inputs that also enter \(X\), including shared sources. It loses every other parent. Each retained quantum source can still send a quantum state to its recipients other than \(S\), and sends shared classical data to the whole group. For a visible parent predictor use the simpler rule on the next page.
-\quant Start with \emph{any} experiment witnessing a gap in \(G'\). Use the construction for forgetting a node to run it in \(G_1\). For a shared-source predictor, put \(S\)'s random seed in the shared classical data. Then \(X\) can compute \(S\) and announce \((x_{\rm old},s_{\rm prediction})\); its children still use \(x_{\rm old}\). A predicting parent can instead send the seed along its arrow, as on the next page. For several predictors, each reports the classical inputs it sees, so their combined record determines \(S\). This experiment also runs in \(G\), ignoring the deleted inputs.
-\begin{rulebox}{What a hypothetical classical explanation must satisfy}
-\textbf{P1.} The sources in the classical explanation are independent. Given them, the observed nodes are sampled in causal order, each from its own inputs in \(G\) and private randomness.\\
-\textbf{P2.} \(S\) can be read without error from the full \(X\), written \(H(S\mid X)=0\).\\
-\textbf{P3.} The observed announcements obey the observable independences of \(G_1\), with the predictor present. The constructed experiment can run there even with the extra field. Observable graphical separations hold for quantum experiments too \cite{HLP}.
-\end{rulebox}
-\clas We need a classical model of \(G_1\) for these same observations. The next four arguments give sufficient reasons it exists. Delete a childless predictor, or sum over a predictor with children and relay its inputs as on p.~\pageref{sec:forget}. A split predictor loses just its predicting copy. The result explains the original witness for \(G'\) classically, a contradiction. Only this final graph is handed to another piggyback.
+\section{Fritz piggybacks}\label{sec:fritz}
+The Fritz constructions use an output that another laboratory can predict
+exactly. Splitting a node allows just one field of its output to be predicted. The next four
+subsections show when a classical explanation of these observations would also
+explain them on a graph with fewer inputs.
 
-\pageof{Fritz I. A parent predicts its child}\label{sec:parent}
-\begin{rulebox}{If \(X\) sends its outcome to \(S\), prediction itself suffices}
-Keep the arrow \(X\to S\). Delete every other input of \(S\), including its membership in sources shared with \(X\). The same holds for several predicting parents by keeping their arrows.
-\end{rulebox}
-\duo{A parent can also share a source}{\vtx{x}{0}{1.8}{X}\vtx{s}{3.4}{1.8}{S}\vtx{v}{3.4}{-.3}{V}
- \qsrc{l}{1.4}{.4}{x,s}\de{x}{s}\de[dropedge]{v}{s}}
-{The restricted graph, before removal}{\vtx{x}{0}{1.8}{X}\vtx{s}{3.4}{1.8}{S}\vtx{v}{3.4}{-.3}{V}\de{x}{s}
- \node[lab,below] at (1.7,1.65) {send \(x\) and a seed};}
-\quant In the restricted experiment \(S\) can sample its output as \(h(x,r)\) using a fresh random seed \(r\). Generate \(r\) at \(X\) and append it to \(x\). The child now outputs exactly the same \(h(x,r)\), and the predictor's full report determines it.
-\clas P2 says \(S=g(X)\) on every event of positive probability. In any classical explanation replace \(S\)'s old instruction by this function. It uses a permitted input and preserves the full joint distribution. Here P1 and P2 suffice.
+\subsection{Node splitting}\label{sec:splitting}
+\begin{piggyback}{Node splitting}
+Replace a visible \(S\) by \(S,S'\). Give both the original visible parents
+and children, and include both in every source that formerly supplied \(S\).
+Add an independent classical source on \(\{S,S'\}\), absorbing it into a larger
+source when possible. Call this graph \(H\).
+\end{piggyback}
+\begin{proposition}\label{prop:splitting}
+For any output alphabets of \(S,S'\), a witness on \(H\) gives a witness on \(G\)
+when \(S\) reports their ordered pair. In particular, \(\gap(H)\leq\gap(G)\).
+\end{proposition}
+\begin{proof}
+In \(G\), give \(S\) both subsystems that an incident quantum source would send
+to the two laboratories in \(H\). It has all their classical inputs, can perform
+their two local operations on their respective systems, and can sample their
+shared independent classical randomness locally. It reports the ordered pair.
+Every child can read the coordinates it needs.
 
-\begin{validbox}{Keep the quantum resource by predicting one field}
-Take the chain \(0\to1\to2\to3\), with independent quantum sources on \(01,02,13\) (digits list recipients). Let 0 predict one field \(1'\) of the output at 1. Split 1 first. Before removing 0, the predicted field reads only 0's visible announcement. The original field 1 still receives its share of source \(13\). If we had restricted the entire laboratory 1, that share would have disappeared. The full sequence is drawn on p.~\pageref{sec:chain}.
-\end{validbox}
-After \(X\) leaves, its children may share classical data from the relay. This explains why shared sources can reappear in the final picture even though \(S\) kept only one arrow in the middle picture.
+Suppose the paired experiment has a classical model on \(G\). Conditional on
+its parents, \(S\)'s response is a distribution on pairs. A random seed
+independent of the parents lets a deterministic function of the parents and
+the seed sample that response. In \(H\), \(S,S'\) have the same parents and
+share a fresh seed. They compute the same pair and report its respective
+coordinates. Giving both coordinates to their original children reproduces the
+entire split distribution classically, contradicting the witness on \(H\).
+\end{proof}
+In Fritz's triangle experiment a laboratory can report a setting together with
+a measurement result \cite{Fritz}. A second laboratory can know the setting
+exactly even when it cannot predict the result. Treating the two recorded
+coordinates as distinct visible vertices makes it possible to restrict the
+inputs to just the predicted coordinate.
 
-\pageof{Fritz II. What can independent inputs predict?}\label{sec:separate}
-Write \(B\) for the inputs \(S\) keeps and \(A\) for the inputs it loses, including its own private noise. In the original graph, expose each hidden source as a node. Check whether the predictors outside \(B\) are separated from \(A\) once \(B\) is known. The usual path check is called \emph{d-separation}: a path closes at a conditioned ordinary intermediate node, or at a meeting of two arrowheads unless that meeting or a descendant is conditioned on.
-\begin{rulebox}{The classical direction in a four-cell picture}
-Fix the kept inputs at \(B=b\). Classical instructions give \(S=h(b,A)\), and P2 gives \(S=g(X)\). Graphical separation makes \(A\) and \(X\) independent at this fixed \(b\). For two possible values of each, the common entry would have to satisfy
+Figure~\ref{fig:splitting} shows an intermediate construction in a recorded
+parent-Fritz step. The unprimed laboratory retains the system used for its
+measurement, while only the primed output will be restricted.
+\censusfigure{splitting}
+
+\paragraph{Which output is predicted?}
+Write \(S\) for the target and \(\mathbf X\) for the list of predictor outputs.
+The predictor and target vertex sets are disjoint. A target can be the whole output of a laboratory or one coordinate isolated
+by Proposition~\ref{prop:splitting}. In the latter case only \(S'\) is
+restricted and the unprimed vertex keeps its original resources. Predictor
+outputs may themselves be enlarged. Perfect prediction means that the full
+tuple determines the target,
+\begin{equation}
+  S=f(\mathbf X)\ \text{almost surely},\qquad H(S\mid\mathbf X)=0 .
+  \label{eq:prediction}
+\end{equation}
+We use only the direction of prediction in \eqref{eq:prediction}. Other coordinates of \(\mathbf X\) can still carry a measurement outcome, data
+from visible parents, or teleportation corrections.
+
+Write \(G_1\) for the graph after restricting the target's inputs, with the
+predictors still present. The final graph \(H\) depends on which predictor
+outputs are to survive. A predictor to be removed is deleted if childless and
+marginalized with teleportation if it has children. To retain a predictor with
+children, first split it, use the copy as predictor, and marginalize that copy.
+To retain a childless predictor it suffices to enlarge its output temporarily
+and discard the extra field at the end. For several predictors, choose and
+retain a specified order of marginalizations. An earlier marginalization can
+change which teleportation channels the next one can use.
+
+These conventions give a common recovery in all four Fritz propositions.
+Starting with an experiment on \(H\), reverse the predictor removals using the
+quantum constructions of Section~\ref{sec:elementary}. The resulting strategy
+in \(G_1\) can be enlarged to arrange \eqref{eq:prediction} as described below.
+Conversely, once a classical explanation of these observations has been
+constructed on \(G_1\), the classical parts of the same marginalization rules
+recover a model on \(H\). An extra field at a retained childless predictor
+is simply summed out. If splitting was used at the outset,
+Proposition~\ref{prop:splitting} transfers the result to the original laboratory.
+
+\subsection{Fritz I. Parent prediction}\label{sec:parent}
+\begin{piggyback}{Fritz I. Parent prediction}
+Choose one or more visible parents \(\mathbf X\) of a target \(S\). In \(G_1\)
+keep just their arrows into \(S\). Remove all other visible inputs and remove
+\(S\) from every incident source. Apply the chosen predictor removal to obtain
+\(H\).
+\end{piggyback}
+\begin{proposition}\label{prop:parent}
+The parent Fritz construction is \qcn{} from \(H\) to \(G\). It applies also
+when a predicting parent shares a source with \(S\).
+\end{proposition}
+\begin{proof}
+Start with any witness on \(H\) and perform the experiment in \(G_1\) by reversing the predictor removal. In \(G_1\), \(S\)
+can sample its output as \(h(\mathbf x,r)\) from the predicting parents and
+an independent private seed \(r\). Draw this seed at one of the predicting
+parents instead and append it to its announcement. In \(G\) the arrow carries
+the seed to \(S\). The other children can use the original field. The enlarged
+predictor record determines \(S\) with certainty and recovery still gives the
+specified witness.
+
+In any classical model of \(G\) for the constructed distribution, the target
+therefore equals \(f(\mathbf X)\) almost surely. Replacing its response by this
+function preserves the joint law with all the other variables. The function
+reads only parents retained in \(G_1\), so the new responses constitute a
+classical model there. Predictor removal would then recover the witness
+classically on \(H\), a contradiction.
+\end{proof}
+In Figure~\ref{fig:parent}, \(A\) predicts the field \(B'\) of laboratory \(B\).
+The quantum source shared by \(B\) and \(D\) can still supply the unprimed
+field, and \(B'\) reads only \(A\). The resulting graph has a further
+teleportation marginalization to an instrumental seed. Predicting the entire
+output of \(B\) would also deprive the measurement field of its quantum input.
+\censusfigure{parent}
+
+\paragraph{The common restriction for sibling predictors.}
+A sibling is another recipient of a source incident to the target. A predictor
+in this position need not send an outcome to \(S\). For a classical explanation
+to eliminate the deleted inputs, the prediction must force \(S\) to depend
+only on inputs it shares with the predictors.
+
+In the expanded DAG of \(G\), after any preliminary splitting, let
 \[
-\begin{array}{c|cc}
- & X=x_0 & X=x_1\\ \hline
- A=a_0 & h(b,a_0)=g(x_0)&h(b,a_0)=g(x_1)\\
- A=a_1 & h(b,a_1)=g(x_0)&h(b,a_1)=g(x_1)
-\end{array}
+ K_S=\pa(S)\cap\Bigl(\mathbf X\cup\bigcup_{X\in\mathbf X}\pa(X)\Bigr),
+ \qquad D_S=\pa(S)\setminus K_S .
 \]
-Independence puts every combination of positive-probability row and column on the table. All entries agree. Thus \(S\) can use a function of \(b\) alone. Apply this for each \(b\). The same reasoning applies to larger alphabets, almost surely.
-\end{rulebox}
-\quant The shared input gives the predictor the data needed to announce \(S\) as on p.~\pageref{sec:template}. The separation check is a fact about the original graph used for the classical argument. That proof needs no observable independence from P3. With several targets, replace one instruction at a time. Each replacement preserves the joint distribution, so the next prediction still holds.
-\textbf{Example: the tetrahedron.} There is an independent source for each triple of laboratories and no visible arrows. Laboratory 0 predicts 1. Read each row as one source, each mark as one recipient.
-\duo{Original sources}{\cols{0/0,1/1,2/2,3/3}
-\members{-.35}{\(012\)}{0,1,2}\members{-1.0}{\(013\)}{0,1,3}
-\members{-1.65}{\(023\)}{0,2,3}\members{-2.3}{\(123\)}{1,2,3}}
-{After restriction and removing 0}{\cols{1/1,2/2,3/3}
-\classmembers{-.35}{classical}{1,2}\classmembers{-1.0}{classical}{1,3}\members{-1.65}{quantum}{2,3}}
-\captext{Fix the sources \(012,013\) seen by both 0 and 1. The unseen source \(123\) is independent of the remaining inputs at 0. The new classical links carry the shared data, and 2 and 3 retain a quantum source. This is the triangle seed.}
+Here \(\mathbf X\) also denotes the set of predictor vertices. Include \(S\)'s
+private noise in \(D_S\). A retained visible parent continues to send its value. For a single target, a
+retained quantum facet \(F\) supplies a state on \(F\setminus\{S\}\) and a
+classical register on \(F\). A dropped facet loses \(S\) alone. For several
+targets, first remove every target that drops the facet. Supply classical
+data to the unrestricted recipients and all targets that keep it. The quantum
+shares go only to unrestricted recipients. An originally classical facet
+supplies a classical variable to its surviving recipients. In every case each
+restricted target reads classical inputs only.
 
-\pageof{The triangle hides two Bell settings}\label{sec:triangle}
-Fritz's original experiment \cite{Fritz} illustrates why predicting two outputs together matters. Let \(A,B\) share an entangled state. A second source supplies a random setting \(x\) to \(A,R\); a third independently supplies \(y\) to \(B,R\). Ask the three laboratories to announce \((x,a)\), \((y,b)\), and \((x,y)\) respectively. Here \(a,b\) are the two measurement outcomes.
-\duo{The three laboratories}{\trianglefig{0}}
-{Show each setting as its own output}{\trianglefig{1}}
-\captext{The right panel shows the restricted experiment. The small laboratories \(x,y\) are the setting fields split from \(A,B\). The record at \(R\) predicts both. The two blue sources are explicitly classical; an all-quantum triangle can run this experiment too.}
-\duo{Forget the record at \(R\)}{\trianglefig{2}}
-{A Bell test on the surviving fields}{
-\node[draw=ccol,rounded corners,fill=ccol!6,align=center] at (2,2.45) {independent choices \(x,y\)};
-\node[draw=qcol,rounded corners,fill=qcol!7,align=center] at (2,.95) {measure the shared state};
-\node[align=center] at (2,-.15) {read \(a,b\) at settings \(x,y\)};}
-\quant Choose any Bell experiment in the final graph. The two settings sources can include the random seeds generating the recorded settings. In the triangle \(R\) receives these seeds and reports both settings. Forgetting \(R\) leaves exactly the Bell distribution.
-\clas In a classical triangle, the field \(x\) might initially use the hidden source between \(A\) and \(B\). Given the shared input of \(A,R\), all remaining inputs of \(A\) are independent of the remaining inputs at \(R\). If both always report the same \(x\), the table on p.~\pageref{sec:separate} forces \(x\) to depend only on that shared input. Apply the same argument to \(y\) on the other side. The two settings are generated independently of one another and of the source between \(A,B\). A classical explanation would now give a Bell-local model for the surviving fields, impossible for a Bell-violating experiment.
-\begin{validbox}{A gap you can read directly from the triangle records}
-Choose independent fair setting bits \(x,y\). Count a win when \(a\oplus b=xy\), where \(\oplus\) is addition modulo two. A classical Bell strategy wins at most three of the four setting pairs on average: for fixed local responses, adding the four left sides modulo two gives 0 (each response appears twice), while adding the four right sides gives 1. Shared random choices only average these bounds. On the state \((|00\rangle+|11\rangle)/\sqrt2\), measuring the Pauli observables \(Z\) or \(X\) at \(A\) and \((Z+X)/\sqrt2\) or \((Z-X)/\sqrt2\) at \(B\) wins with probability \((2+\sqrt2)/4>3/4\). The eigenvalues \(+1,-1\) are recorded as \(0,1\). Laboratory \(R\)'s two predictions certify the setting fields used to score the game.
-\end{validbox}
+The sibling rules in the next three subsections all make this same restriction.
+They differ in which information forces a classical explanation to respect it.
+Khanna, Pusey and Colbeck proved their Lemma~1 using conditional probabilities
+\cite{KPC}. In a separate draft they proposed conditional-independence and entropic
+versions \cite{KPCdraft}. The census implements these with a semigraphoid closure and a
+single linear program for each proposed set of Markov equalities.
 
-\pageof{Fritz III. What the extra independence buys}\label{sec:kpc}
-Khanna, Pusey and Colbeck (KPC) \cite{KPC} give a graph where the last path test fails. Use their names: \(C,D,E,F\) are observed. Source \(A\) feeds \(E,F\) and source \(B\) feeds \(D,F\). Ask \(F\) to predict \(E\). The restricted \(E\) keeps only the source shared with \(F\). Retain the ordinary output \(F\) by forgetting just its predicting field.
-\trio{Original graph \(G\)}{\kpcfig{0}}{Restricted graph \(G_1\)}{\kpcfig{1}}{Classical explanation}{\kpcfig{2}}
-\captext{Left: fixing \(A\) leaves \(F\leftarrow B\to D\) open. Middle: removing the two dashed arrows gives \(E\ind(C,D)\), while \(D,F\) may still measure a shared quantum state. Right: if the original observations had a classical explanation, the proof below would give this model with independent classical sources \(A',B\).}
-\quant Begin with that Bell experiment: \(C\) supplies a setting to \(D\), the shared classical source supplies the setting \(E\) to \(F\), and \(D,F\) share a quantum state. Give \(F\) a copy of the data determining \(E\), including its random seed. In the original graph the extra arrows into \(E\) can be ignored. This realizes P2 and the observable independence in P3. In the deductions below \(F\) denotes the full report including its extra field.
-\clas Write \(U=(C,D)\). In a proposed classical explanation, \(J\ind K\mid L\) means that once \(L\) is known, learning \(J\) gives no further information about \(K\).
+\subsection{Fritz II. Sibling prediction by d-separation}\label{sec:dsep}
+\begin{piggyback}{Fritz II. Sibling prediction by d-separation}
+Keep the target's inputs that are available to the predictors, denoted by
+\(K_S\), and let \(D_S\) be its other inputs, including private noise.
+Retained sources supply classical data to \(S\). Require a shared source
+or a predicting parent's arrow through which \(S\) can share a seed.
+In the expanded DAG of \(G\), check that \(\mathbf X\setminus K_S\)
+and \(D_S\) are d-separated given \(K_S\). Remove or retain the
+predictors as specified to obtain \(H\).
+\end{piggyback}
+\begin{proposition}\label{prop:dsep}
+Under the stated separation and channel conditions, \(\gap(H)\leq\gap(G)\).
+Several targets of the same predictors may be restricted together if the conditions
+hold for each in the graph before any of the restrictions.
+\end{proposition}
+\begin{proof}
+Realize the chosen experiment on \(H\) in \(G_1\) by reversing predictor removal. For each target, place its independent
+seed in the shared classical register of a channel to a predictor, or transmit
+the seed on a predicting parent's arrow. The target is now a deterministic
+function of the retained inputs including this register. Each predictor appends
+the inputs it sees that are needed to evaluate the function. The combined record
+determines \(S\). The enlarged experiment also runs in \(G\) since a
+quantum source can provide the shared register along with the state on the
+other recipients.
+
+Consider a classical model for this experiment in \(G\) and expose its private
+noises. Conditional on \(K_S=k\), the target is a function of \(D_S\) and,
+by prediction, also a function of \(\mathbf X\setminus K_S\). The separation
+hypothesis makes the two arguments independent under this conditional law.
+The two functions agree almost surely. For each possible target value, its
+conditional probability \(p\) therefore satisfies \(p=p^2\), by applying
+independence to the two events that the functions take this value. Thus \(S\)
+is a function of \(K_S\) almost surely. Replace its response by that function.
+For several targets, all these equalities hold simultaneously on a set of
+probability one, so the replacements preserve the original joint law.
+Classical source variables in \(K_S\) can be supplied through the retained
+classical facets. This yields a classical model on \(G_1\). The common recovery
+then gives a classical model for the witness on \(H\).
+\end{proof}
+In the tetrahedron in Figure~\ref{fig:dsep}, \(A\) predicts \(B\). The
+sources on \(ABC\) and \(ABD\) are visible to both. The source on \(BCD\)
+feeds \(B\) but is independent of the inputs of \(A\), conditional on the two
+retained sources. Restriction makes those two sources classical for \(B\).
+Deleting the childless \(A\) leaves a triangle with classical sources on
+\(BC,BD\) and a quantum source on \(CD\).
+\censusfigure{dsep}
+
+\subsection{Fritz III. The semigraphoid certificate}\label{sec:semigraphoid}
+\begin{piggyback}{Fritz III. The semigraphoid certificate}
+Form the sibling restriction \(G_1\). Use the classical graphical independences
+of \(G\), perfect prediction, and the observable independences of \(G_1\).
+Close their independence consequences under the semigraphoid rules. Check
+whether they establish a classical factorization on \(G_1\), possibly after
+replacing the target's single retained source. Remove or retain the predictors
+as specified to obtain \(H\).
+\end{piggyback}
+\begin{proposition}\label{prop:semigraphoid}
+Suppose the closure implies the local Markov statements of \(G_1\). Alternatively,
+suppose \(S\)'s sole retained parent is a source \(L\) and the closure implies
+the local Markov statements after replacing \(L\) by \(S\) as a root supplying
+its other recipients. Under either condition, \(\gap(H)\leq\gap(G)\).
+\end{proposition}
+\begin{proof}
+When the path test fails, one may still derive a classical explanation of
+the restricted experiment. The extra premises come from the experiment one
+constructed. The predictors reveal \(S\), and the experiment actually runs on
+\(G_1\), even with the enlarged predictor records. Every conditional independence
+among visible outputs implied by d-separation in \(G_1\) therefore holds in
+these observations, by the generalized Markov property \cite{HLP}.
+
+Consider three groups of premises about a hypothetical classical explanation on
+\(G\), using its joint distribution of visible and source variables after integrating out private noises.
 \begin{enumerate}
-\item \(E\ind B\mid U\) follows in \(G\): given \(C,D\), \(E\) uses only the independent source \(A\) and its own noise. P3 gives \(E\ind U\). Combining these yields \(E\ind(B,U)\).
-\item \(F\ind U\mid B\) follows in \(G\): fixing \(B\) separates the inputs generating \(F\) from \(C,D\). P2 gives \(E\ind U\mid B,F\). Combine the statements to get \((F,E)\ind U\mid B\), then condition on \(E\) to get \(F\ind U\mid B,E\).
-\item \(B\ind C\) in \(G\). The two preceding lines now give the factorization
-\[
-p(b,c,d,e,f)=p(b)\,p(c)\,p(d\mid b,c)\,p(e)\,p(f\mid b,e).
-\]
+\item[\textbf{P1.}] The d-separations of its expanded classical DAG, including those involving hidden sources.
+\item[\textbf{P2.}] The conditional independences \(S\ind J\mid \mathbf X,Z\) for all
+disjoint additional variables \(J,Z\), including hidden variables, since \(S\) is determined by \(\mathbf X\).
+\item[\textbf{P3.}] The observable d-separations of \(G_1\), including those involving the
+full predictor announcements. These concern visible outputs alone.
 \end{enumerate}
-Sample \(A'\) independently with distribution \(p(e)\), let \(E=A'\), and give \(F\) the inputs \(A',B\). The factorization proves these instructions preserve all observed statistics. Forget \(F\)'s extra field. This is the desired classical explanation of the Bell experiment and completes the contradiction.
+The \emph{semigraphoid closure} consists of all independence statements that
+follow by symmetry, decomposition, weak union and contraction \cite{Studeny}.
+For example, contraction combines \(Y\ind Z\mid W\) and
+\(Y\ind U\mid W,Z\) to give \(Y\ind(Z,U)\mid W\). These rules hold for every
+joint distribution, including ones with zeros.
 
-\pageof{Why the old source can be the wrong one}\label{sec:fresh}
-Let \(A,B,C\) be independent fair bits. The symbol \(\oplus\) means addition modulo two. Keep the KPC arrows and give the laboratories the following instructions:
-\[
- D=C\oplus B,\qquad E=A\oplus C\oplus D=A\oplus B,\qquad F=(A,B).
-\]
-Laboratory \(E\) can use the first expression because it receives \(A,C,D\). Laboratory \(F\) can predict it by the second. For each fixed \(C,D\), the fresh fair bit \(A\) makes \(E\) fair, so \(E\ind(C,D)\). Could \(E\) simply toss a private coin after reading the old \(A\)? Given \(A\), \(E\) and \(B\) are perfectly correlated or anticorrelated: \(E=A\oplus B\). A rule using only \(A\) and independent private noise would give \(E\ind B\mid A\). Thus it cannot preserve this classical joint distribution. The table constructs a different joint distribution with the same observations.
-\duo{Sample \(A,B,C\) independently}{
-\node[draw=qcol,fill=qcol!6,rounded corners,align=left] at (1,1) {\(\begin{array}{cc|cc} A&B&E&F\\\hline 0&0&0&00\\0&1&1&01\\1&0&1&10\\1&1&0&11\end{array}\)};}
-{Sample \(A',B,C\) independently}{
-\node[draw=ccol,fill=ccol!6,rounded corners,align=left] at (1,1) {\(\begin{array}{cc|cc} A'&B&E&F\\\hline 0&0&0&00\\1&1&1&01\\1&0&1&10\\0&1&0&11\end{array}\)};}
-\captext{Each row has probability \(1/4\) and is repeated for \(C=0,1\) with equal weights. Corresponding rows have identical \(B,E,F\), hence identical \(C,D,E,F\). On the right use \(E=A'\), \(D=C\oplus B\), and \(F=(A'\oplus B,B)\).}
-\begin{rulebox}{Two sufficient ways to prove a restricted graph has a classical explanation}
-\textbf{Keep the old sources.} Use P1, P2 and P3 to deduce the local independence statements of the restricted graph. They say each node can be sampled given its permitted parents. This test can certify restrictions directly.
+There are two sufficient conclusions. One is the local Markov property of the
+classical DAG of \(G_1\) on the original source variables. It requires each vertex to be
+independent, given its parents, of its remaining non-descendants. These
+statements imply the factorization on \(G_1\). For this test, a retained facet
+can be represented by one classical source variable on the whole facet, which
+can also carry whatever its smaller surviving facet requires.
+The other conclusion applies when \(S\) retains exactly one parent, a source
+\(L\). Form an auxiliary DAG \(J\) by deleting \(L\) in the classical DAG of
+\(G_1\), making \(S\) a root, and giving its value to every other former
+recipient of \(L\). In this case it suffices to derive the local Markov
+property of \(J\) on the remaining variables. The auxiliary DAG describes a
+possible classical explanation and is distinct from the final census graph \(H\).
 
-\textbf{Replace one source.} When one predicted node \(S\) keeps exactly one parent, a hidden source \(L\), remove \(L\) on paper. Make \(S\) a root and send its value to every other former recipient of \(L\). Prove the local independence statements of this graph over the remaining variables. Then a fresh independent source carrying \(S\) realizes the restricted graph, exactly as on p.~\pageref{sec:kpc}.
-\end{rulebox}
-\textbf{How the independence test works.} Start with graphical independences of the original classical model, the observable ones from the restriction, and the fact that once the predictor is given, learning other variables adds no information about \(S\). This last fact continues to hold with extra variables conditioned on. Close the list under symmetry, dropping variables from one side, moving part of that side into the conditioning set, and the reverse combining step (contraction). These are the \emph{semigraphoid rules}. The proof on the previous page is a short instance. This calculation uses a consequence of perfect prediction; independence from other variables given \(X\) alone also holds for an unrelated fresh random bit.
+The quantum construction in Proposition~\ref{prop:dsep} uses only the
+retained inputs and the prediction channel. It works independently of whether
+the path test succeeds. For any classical model on \(G\) of the constructed
+distribution, source independence and the local kernels give the first group
+of premises, perfect prediction gives the second, and the observed law gives
+the third. Soundness of the semigraphoid rules implies every statement in the
+closure for this model.
 
-\pageof{Fritz IV. Read the same proof in bits}\label{sec:entropy}
-Read \(H(E\mid F)=0\) as zero uncertainty about \(E\) once \(F\) is known. Read \(I(J;K\mid L)=0\) as independence of \(J,K\) given \(L\). Both quantities are nonnegative for the joint distribution of a classical explanation.
-\begin{rulebox}{An entropy calculation for the KPC graph}
-Again write \(U=(C,D)\). P1 supplies \(I(E;B\mid U)=0\) and \(I(F;U\mid B)=0\). P3 supplies \(I(E;U)=0\). The chain rule gives
-\[
- I(E;B,U)= I(E;U)+I(E;B\mid U)=0.
-\]
-P2 supplies \(H(E\mid F)=0\). Consequently
-\[
- 0\le I(E;U\mid B,F)\le H(E\mid B,F)\le H(E\mid F)=0.
-\]
-Use the chain rule in its two orders:
-\[
- \underbrace{I(F;U\mid B)+I(E;U\mid B,F)}_{0}
-     = I(E;U\mid B)+I(F;U\mid B,E).
-\]
-Both terms on the right must vanish. These are the same ingredients that allow the fresh-source factorization on p.~\pageref{sec:kpc}.
-\end{rulebox}
-\quant The experiment on p.~\pageref{sec:kpc} again lets \(F\) announce \(E\) exactly.
-\clas For the general test, take one entropy coordinate for every nonempty subset of the classical variables. Impose the Shannon inequalities (nonnegative conditional entropies and conditional mutual informations), the original graph's local independence equalities, full \(H(S\mid X)=0\), and the visible independence equalities of \(G_1\). A local equality for node \(v\) says \(I(v;N\mid\Pa(v))=0\), where \(N\) contains its non-descendants other than itself and its parents.
-\textbf{Why one linear program suffices for a proposed conclusion.} Sum the local quantities for the chosen graph, calling the sum \(T\). Each summand is nonnegative. To test if all vanish, ask whether the constraints permit \(T\ge1\). All constraints before the last are homogeneous, so any positive \(T\) could be scaled to 1. Infeasibility forces \(T=0\) for every compatible classical model of \(G\). Each required independence then holds, so the construction on p.~\pageref{sec:fresh} gives a classical explanation in \(G_1\). The solver can certify \(T\le0\) by combining the premise equalities and nonnegative multiples of the inequalities. One solve checks each proposed set of conclusions; testing both choices on p.~\pageref{sec:fresh} can require two. Feasibility leaves the question undecided because a Shannon vector need not come from a distribution.
+If the first conclusion is derived, the joint law factors on \(G_1\). If the
+second is derived, first marginalize out \(L\). The resulting law factors on
+\(J\). Since \(S\) is a root there, draw a fresh independent source
+\(L'\) with the marginal law of \(S\). Give \(S\) the value \(L'\) and supply
+\(L'\) to the other former children of \(L\), which use it wherever their
+\(J\)-response calls for \(S\). This implements the same observed law using
+the resources of \(G_1\). In both cases predictor removal recovers the chosen
+witness classically on \(H\), a contradiction.
+\end{proof}
 
-\begin{ideabox}{Why agreement on the census does not make the two tests equivalent}
-For four arbitrary variables, expand each information quantity into entropies. The following two sums agree term for term after cancellation:
-\begin{align*}
- &I(A;B\mid C,D)+I(C;D\mid A)+I(C;D\mid B)+I(A;B)\\
-={}&I(C;D\mid A,B)+I(A;B\mid C)+I(A;B\mid D)+I(C;D).
-\end{align*}
-If the first four terms vanish, the last four vanish too. The semigraphoid rules applied to those premises derive none of the four conclusions \cite{Repo}.
-\end{ideabox}
+\paragraph{The Khanna--Pusey--Colbeck example.}
+In Figure~\ref{fig:semigraphoid}, \(F\) predicts \(E\) and keeps its ordinary
+output. The independent quantum sources reach \(E,F\) and \(D,F\). In a
+hypothetical classical explanation denote their variables by \(L\) and \(M\),
+respectively. Throughout the deduction \(F\) is the full predictor announcement, including its extra field. The direct path \(F\leftarrow M\to D\) stays open given \(L\),
+so Proposition~\ref{prop:dsep} cannot remove \(D\to E\). In the restricted
+experiment \(E\) receives only the classical register shared with \(F\).
+Writing \(U=(C,D)\), the visible separation is \(E\ind U\). This is an
+instance of P3 for the constructed observations \cite{KPC}. The census records
+a single transition to Bell. The expanded derivation in the authors' separate draft introduces a
+vertex for the predictor's setting field and exhibits intermediate graphs
+(draft Figure~4, discussed in Ref.~\cite{KPCdraft}).
+\censusfigure{semigraphoid}
+
+By P1 the original classical DAG gives \(E\ind M\mid U\) because, given \(C,D\), the remaining
+inputs at \(E\) are independent of \(M\). Contraction with \(E\ind U\) gives
+\(E\ind(M,U)\). The original DAG also gives \(F\ind U\mid M\), and P2
+gives \(E\ind U\mid M,F\). By symmetry and contraction,
+\((F,E)\ind U\mid M\). Weak union now gives \(F\ind U\mid M,E\).
+Finally \(M\ind C\), since \(C\) is an independent root. Combining these
+statements gives the factorization
+\begin{equation}
+ p(m,c,d,e,f)
+ =p(m)\,p(c)\,p(d\mid m,c)\,p(e)\,p(f\mid m,e).
+ \label{eq:kpc-factor}
+\end{equation}
+A fresh independent source with law \(p(e)\) supplies \(E\) and the corresponding
+setting at \(F\). The variable \(M\) supplies the connection between the two
+measurement outcomes \(D,F\). After the extra predictor field at \(F\) is
+discarded, this is a classical Bell explanation. Any Bell witness on the
+restricted graph would contradict it. Equation~\eqref{eq:kpc-factor} determines a classical realization with the same
+observations without requiring the old variable \(L\) to determine \(E\).
+
+\paragraph{Why a fresh source can be necessary.}
+On this same census graph, take \(L,M,C\) to be independent fair bits and set
+\[
+   D=C\oplus M,\qquad E=L\oplus C\oplus D=L\oplus M,\qquad F=(L,M).
+\]
+Here \(\oplus\) denotes addition modulo two. The displayed responses use only
+the old graph's inputs. The full \(F\) predicts \(E\), and \(E\ind(C,D)\)
+because the independent fair bit \(L\) makes \(E\) uniform conditional on
+\(C,D\). Yet, given \(L\), the values \(E,M\) are perfectly correlated or
+anticorrelated. A response at \(E\) driven only by the old \(L\) and new
+private noise cannot give this classical joint law. To see the repair
+explicitly, sample \(L',M,C\) as independent fair bits, set \(E=L'\),
+\(D=C\oplus M\), and give \(F\) the pair \((L'\oplus M,M)\). The correspondence
+\(L'=L\oplus M\) is a bijection of the equally likely source assignments
+for each \(M\), and all four observed outputs agree. It is the observed law
+that the fresh-source construction must reproduce.
+
+\subsection{Fritz IV. The entropic certificate}\label{sec:entropic}
+\begin{piggyback}{Fritz IV. The entropic certificate}
+Impose the Shannon inequalities, the local Markov equalities of \(G\), the full
+prediction equation \(H(S\mid\mathbf X)=0\), and the observable independence
+equalities of \(G_1\). Certify the restriction when these imply the local
+Markov equalities of \(G_1\), or those of the auxiliary DAG \(J\) under the
+single-source condition. Recover \(H\) by the same predictor removal.
+\end{piggyback}
+\begin{proposition}\label{prop:entropic}
+If the stated linear entropy constraints imply either applicable set of local
+Markov equalities, the Fritz transfer from \(H\) to \(G\) is \qcn.
+\end{proposition}
+\begin{proof}
+The same classical implication can be tested using Shannon entropies. Give
+every nonempty subset of the visible variables and source variables of the
+hypothetical classical model an entropy coordinate. The constraints use only this
+ordinary joint distribution. The quantum experiment enters through its observed
+law and the perfect prediction that the experiment was designed to enforce.
+
+The common quantum construction realizes the witness with perfect prediction
+and with the observable independences of \(G_1\). Every classical explanation
+on \(G\) gives a joint entropy vector satisfying the premises. Each required
+local equality has the form \(I(Y;N\mid\pa(Y))=0\) for the appropriate
+non-descendants \(N\). A vanishing conditional mutual information is equivalent
+to conditional independence for these classical variables. Therefore an
+implication from the entropy premises supplies the full local factorization
+on \(G_1\), or on \(J\) after discarding \(L\). The source replacement of
+Proposition~\ref{prop:semigraphoid} treats the latter case. Recovering a
+classical model of the original witness on \(H\) again gives the contradiction.
+\end{proof}
+
+Figure~\ref{fig:entropic} returns to the same KPC transition. Here is an
+explicit entropic certificate for \eqref{eq:kpc-factor}. The graph and the
+observed separation give
+\[
+ I(E;M\mid U)=0,\qquad I(F;U\mid M)=0,\qquad I(E;U)=0,\qquad I(M;C)=0.
+\]
+The chain rule first yields \(I(E;U,M)=0\). From full prediction,
+\(0\le I(E;U\mid M,F)\le H(E\mid M,F)\le H(E\mid F)=0\).
+A second application of the chain rule, in its two orders, gives
+\begin{align}
+ I(F;U\mid M)+I(E;U\mid M,F)
+ &= I(E;U\mid M)+I(F;U\mid M,E)=0 . \label{eq:kpc-entropy}
+\end{align}
+Both terms on the right are nonnegative. In particular \(I(F;U\mid M,E)=0\).
+These equalities establish all factors in \eqref{eq:kpc-factor}. The
+semigraphoid and entropy calculations thus certify the same census step by
+different deductions.
+\censusfigure{entropic}
+
+For a larger graph, sum the nonnegative local Markov quantities in the chosen
+conclusion, calling the sum \(T\). The premises are homogeneous linear
+constraints on the entropy coordinates. If they allow \(T>0\), rescaling yields
+a feasible vector with \(T\geq1\). Infeasibility with this additional bound
+therefore certifies all the required equalities in a single linear program.
+A feasible Shannon vector need not be the entropy vector of an actual
+distribution, so feasibility leaves the proposed restriction undecided.
